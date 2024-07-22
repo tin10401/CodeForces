@@ -10,22 +10,10 @@ vector<vector<int>> dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 
 void solve()
 {
-    string s;
-    cin >> s;
-    string target = "hello";
-    string ans = no;
-    int i = 0, j = 0;
-    while(i < s.size() && j < target.size())
-    {
-        if(s[i] == target[j]) j++;
-        i++;
-    }
-    if(j == target.size()) ans = yes;
-    cout << ans;
 }
 
 
 int main()
 {
-    solve();
+
 }
