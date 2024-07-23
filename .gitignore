@@ -1,6 +1,6 @@
 # Prerequisites
 *.d
-
+*.submit
 # Compiled Object files
 *.slo
 *.lo
