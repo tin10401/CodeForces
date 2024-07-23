@@ -7,22 +7,16 @@ INPUT = input.txt
 OUTPUT = a.out
 
 # Targets
-.PHONY: new compile run
+.PHONY: new run
 
 # Create new problem setup
 new:
 	cp $(TEMPLATE) $(SUBMIT)
 	> $(INPUT)
 
-# Compile the submit.cpp file
-compile:
+# Run the compiled program with input from input.txt and clean up afterwards
+run:
 	g++ -o $(OUTPUT) $(SUBMIT)
-
-# Run the compiled program with input from input.txt
-run: compile
 	./$(OUTPUT) < $(INPUT)
-
-# Clean the output file
-clean:
 	rm -f $(OUTPUT)
 
