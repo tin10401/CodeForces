@@ -7,6 +7,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define allr(x) (x).rbegin(), (x).rend()
 #define ll unsigned long long
 #define int long long
+const static int INF = 1e18;
 const static int mod = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -23,7 +24,6 @@ int modExpo(ll base, ll exp)
     }
     return res;
 }
-
 
 void solve()
 {

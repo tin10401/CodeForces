@@ -7,7 +7,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define allr(x) (x).rbegin(), (x).rend()
 #define ll unsigned long long
 #define int long long
-const static int INF = 1e18;
 const static int mod = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -25,9 +24,45 @@ int modExpo(ll base, ll exp)
     return res;
 }
 
+
 void solve()
 {
-
+    int n, m;
+    cin >> n >> m;
+    vector<int> cnt(n + 1), degree(n + 1);
+    vector<vector<int>> graph(n + 1);
+    for(int i = 0; i < m; i++)
+    {
+        int a, b;
+        cin >> a >> b;
+        graph[a].push_back(b);
+        degree[b]++;
+    }
+    queue<int> q;
+    for(int i = 2; i <= n; i++)
+    {
+        if(degree[i] == 0) q.push(i);
+    }
+    while(!q.empty())
+    {
+        int node = q.front(); q.pop();
+        for(auto& nei : graph[node])
+        {
+            if(--degree[nei] == 0 && nei != 1) q.push(nei);
+        }
+    }
+    q.push(1);
+    cnt[1] = 1;
+    while(!q.empty())
+    {
+        int node = q.front(); q.pop();
+        for(auto& nei : graph[node])
+        {
+            cnt[nei] = (cnt[nei] + cnt[node]) % mod;
+            if(--degree[nei] == 0) q.push(nei);
+        }
+    }
+    cout << cnt[n] << endl;
 }
 
 signed main()
