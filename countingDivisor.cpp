@@ -20,6 +20,9 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 const vector<vector<int>> dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 
+int divisor[1000005] = {};
+
+
 int modExpo(int base, int exp)
 {
     int res = 1;
@@ -32,16 +35,26 @@ int modExpo(int base, int exp)
     return res;
 }
 
+void calculateDivisor()
+{
+    for(int i = 1; i < 1000005; i++)
+    {
+        for(int j = i; j < 1000005; j += i) divisor[j]++;
+    }
+}
+
 void solve()
 {
     int n;
     cin >> n;
-    int res = 0;
-    for(int i = 1; i <= n / 2; i++)
+    calculateDivisor();
+    for(int i = 0; i < n; i++)
     {
-        res = (res + n / i * i) % mod;
+        int num;
+        cin >> num;
+        cout << divisor[num] << endl;
     }
-    cout << res << endl;
+
 }
 
 signed main()
