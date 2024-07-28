@@ -20,7 +20,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 const vector<vector<int>> dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 
-int modExpo(int base, int exp)
+int modExpo(ll base, ll exp)
 {
     int res = 1;
     while(exp)
@@ -34,14 +34,38 @@ int modExpo(int base, int exp)
 
 void solve()
 {
-    int n;
-    cin >> n;
-    int res = 0;
-    for(int i = 1; i <= n / 2; i++)
+    string s;
+    cin >> s;
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, left = 0, right = 0; i < n; i++)
     {
-        res = (res + n / i * i) % mod;
+        if(i > right)
+        {
+            left = right = i;
+            while(right < n && s[right] == s[right - left]) right++;
+            prefix[i] = right-- - left;
+        }
+        else
+        {
+            if(prefix[i - left] + i < right + 1)
+            {
+                prefix[i] = prefix[i - left];
+            }
+            else
+            {
+                left = i;
+                while(right < n && s[right] == s[right - left]) right++;
+                prefix[i] = right-- - left;
+            }
+        }
     }
-    cout << res << endl;
+
+    for(int i = 0; i < n; i++)
+    {
+        if(i + prefix[i] == n) cout << i << " ";
+    }
+    cout << n << endl;
 }
 
 signed main()
