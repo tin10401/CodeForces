@@ -16,7 +16,7 @@ new:
 
 # Run the compiled program with input from input.txt and clean up afterwards
 run:
-	g++ -std=c++17 -o $(OUTPUT) $(SUBMIT)
+	g++ -std=c++17 -DLOCAL -o $(OUTPUT) $(SUBMIT)
 	./$(OUTPUT) < $(INPUT)
 	rm -f $(OUTPUT)
 
