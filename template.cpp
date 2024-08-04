@@ -37,6 +37,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define vd vector<db>
 #define ar(x) array<int, x>
 #define var(x) vector<ar(x)>
+#define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
 #define f first
