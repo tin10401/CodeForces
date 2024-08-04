@@ -31,6 +31,8 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
+#define us unordered_set
+#define um unordered_map
 #define vvi vector<vi>
 #define vd vector<db>
 #define ar(x) array<int, x>
