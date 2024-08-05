@@ -61,37 +61,92 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcount(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-struct custom {
-    static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
-    size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
+static uint64_t x;
+uint64_t next() { uint64_t z = (x += 0x9e3779b97f4a7c15); z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9; z = (z ^ (z >> 27)) * 0x94d049bb133111eb; return z ^ (z >> 31); }
+struct custom{ template <typename T> size_t operator()(const T& value) const { return next() ^ std::hash<T>{}(value); } };
+
+class UnionFind
+{
+    public:
+    int n;
+    vi root, rank;
+    UnionFind(int n)
+    {
+        this->n = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+
+    int find(int x)
+    {
+        if(root[x] == -1) return x;
+        return root[x] = find(root[x]);
+    }
+
+    void merge(int x, int y)
+    {
+        x = find(x), y = find(y);
+        if(x != y)
+        {
+            if(rank[y] > rank[x]) swap(x, y);
+            rank[x] += rank[y];
+            root[y] = x;
+        }
+    }
+    int get()
+    {
+        int res = 0;
+        for(int i = 0; i < n; i++)
+        {
+            if(find(i) == i && rank[i] >= 3) res++;
+        }
+        return res;
+    }
 };
 
 void solve()
 {
-    int a, b, c; cin >> a >> b >> c;
-    if((a + b + c) & 1) {cout << -1 << endl; return; }
-    pq<int> maxHeap;
-    maxHeap.push(a), maxHeap.push(b), maxHeap.push(c);
-    int res = 0;
-    while(maxHeap.size() > 1)
+    int n, m; cin >> n >> m;
+    vvi graph(n);
+    vi degree(n);
+    for(int i = 0; i < m; i++)
     {
-        int t = maxHeap.top(); maxHeap.pop();
-        int t2 = maxHeap.top(); maxHeap.pop();
-        if(t == 0 || t2 == 0) break;
-        if(--t > 0) maxHeap.push(t);
-        if(--t2 > 0) maxHeap.push(t2);
-        res++;
+        int a, b; cin >> a >> b;
+        graph[--a].pb(--b);
+        graph[b].pb(a);
+        degree[a]++, degree[b]++;
+    }
+    vi comp, vis(n);
+    auto dfs = [&](int node, auto& dfs) -> void
+    {
+        vis[node] = true;
+        comp.pb(node);
+        for(auto& nei : graph[node])
+        {
+            if(!vis[nei]) dfs(nei, dfs);
+        }
+    };
+    int res = 0;
+    for(int i = 0; i < n; i++)
+    {
+        if(!vis[i])
+        {
+            comp.clear();
+            dfs(i, dfs);
+            bool ok = true;
+            for(auto& nei : comp) ok &= degree[nei] == 2;
+            res += ok;
+        }
     }
     cout << res << endl;
 
-    
+
 }
 
 signed main()
@@ -100,7 +155,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    // cin >> t;
     while(t--) solve();
 
     endClock
