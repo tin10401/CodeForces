@@ -61,37 +61,81 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcount(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-struct custom {
-    static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
-    size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
-};
+static uint64_t x;
+uint64_t next() { uint64_t z = (x += 0x9e3779b97f4a7c15); z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9; z = (z ^ (z >> 27)) * 0x94d049bb133111eb; return z ^ (z >> 31); }
+struct custom{ template <typename T> size_t operator()(const T& value) const { return next() ^ std::hash<T>{}(value); } };
+
+class SegmentTree
+{
+    public:
+    int n, x;
+    vi root;
+    SegmentTree(vi& arr)
+    {
+        n = arr.size(); root.rsz(n * 4);
+        x = log2(n);
+        build(0, 0, n - 1, 0, arr);
+    }
+
+    void build(int i, int left, int right, int depth, vi& arr)
+    {
+        if(left == right) 
+        {
+            root[i] = arr[left];
+            return;
+        }
+        int middle = left + (right - left) / 2;
+        build(i * 2 + 1, left, middle, depth + 1, arr);
+        build(i * 2 + 2, middle + 1, right, depth + 1, arr);
+        merge(i, depth);
+    }
+    
+    void update(int index, int val)
+    {
+        update(0, 0, n - 1, 0, index, val);
+    }
+
+    void update(int i, int left, int right, int depth, int index, int val)
+    {
+        if(left == right)
+        {
+            root[i] = val;
+            return;
+        }
+        int middle = left + (right - left) / 2;
+        if(index <= middle) update(i * 2 + 1, left, middle, depth + 1, index, val);
+        else update(i * 2 + 2, middle + 1, right, depth + 1, index, val);
+        merge(i, depth);
+    }
+
+    int get() {return root[0];}
+    void merge(int i, int depth)
+    {
+        if(depth % 2 != x % 2) root[i] = root[i * 2 + 1] | root[i * 2 + 2];
+        else root[i] = root[i * 2 + 1] ^ root[i * 2 + 2];
+    }
+};        
 
 void solve()
 {
-    int a, b, c; cin >> a >> b >> c;
-    if((a + b + c) & 1) {cout << -1 << endl; return; }
-    pq<int> maxHeap;
-    maxHeap.push(a), maxHeap.push(b), maxHeap.push(c);
-    int res = 0;
-    while(maxHeap.size() > 1)
+    int n, q; cin >> n >> q;
+    n = 1 << n;
+    vi arr(n);
+    for(auto& it : arr) cin >> it;
+    SegmentTree root(arr);
+    while(q--)
     {
-        int t = maxHeap.top(); maxHeap.pop();
-        int t2 = maxHeap.top(); maxHeap.pop();
-        if(t == 0 || t2 == 0) break;
-        if(--t > 0) maxHeap.push(t);
-        if(--t2 > 0) maxHeap.push(t2);
-        res++;
+        int a, b; cin >> a >> b;
+        root.update(--a, b);
+        cout << root.get() << endl;
     }
-    cout << res << endl;
-
-    
 }
 
 signed main()
@@ -100,7 +144,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    // cin >> t;
     while(t--) solve();
 
     endClock
