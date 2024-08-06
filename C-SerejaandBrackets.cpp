@@ -31,8 +31,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
-#define vs vector<string>
-#define vb vector<bool>
 #define us unordered_set
 #define um unordered_map
 #define vvi vector<vi>
@@ -75,9 +73,65 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
+class SGT
+{
+    public:
+    int n;
+    var(3) root;
+    SGT(const string& s)
+    {
+        n = s.size();
+        root.rsz(n * 4);
+        build(0, 0, n - 1, s);
+    }
+
+    void build(int i, int left, int right, const string& s)
+    {
+        if(left == right)
+        {
+            root[i] = {0, s[left] == '(', s[right] == ')'};
+            return;
+        }
+        int middle = left + (right - left) / 2;
+        build(i * 2 + 1, left, middle, s);
+        build(i * 2 + 2, middle + 1, right, s);
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);
+    }
+
+    int get(int start, int end)
+    {
+        return get(0, 0, n - 1, start, end)[0] * 2;
+    }
+
+    ar(3) get(int i, int left, int right, int start, int end)
+    {
+        if(left >= start && right <= end) return root[i];
+        if(left > end || start > right) return {0, 0, 0};
+        int middle = left + (right - left) / 2;
+        return merge(get(i * 2 + 1, left, middle, start, end), get(i * 2 + 2, middle + 1, right, start, end));
+    }
+
+    ar(3) merge(ar(3) left, ar(3) right)
+    {
+        ar(3) res;
+        int take = min(left[1], right[2]);
+        res[0] = left[0] + right[0] + take;
+        res[1] = left[1] + right[1] - take;
+        res[2] = left[2] + right[2] - take;
+        return res;
+    }
+};
+
 void solve()
 {
-
+    string s; cin >> s;
+    int n; cin >> n;
+    SGT root(s);
+    while(n--)
+    {
+        int a, b; cin >> a >> b;
+        cout << root.get(--a, -- b) << endl;
+    }
 }
 
 signed main()

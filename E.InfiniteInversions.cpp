@@ -75,9 +75,87 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
+
+class FenwickTree
+{
+    public:
+    int n;
+    vi root;
+    FenwickTree(int n)
+    {
+        this->n = n;
+        root.rsz(n + 1);
+    }
+
+    void update(int id, int val)
+    {
+        while(id <= n)
+        {
+            root[id] += val;
+            id += (id & -id);
+        }
+    }
+
+    int get(int id)
+    {
+        int res = 0;
+        while(id)
+        {
+            res += root[id];
+            id -= (id & -id);
+        }
+        return res;
+    }
+};
+
 void solve()
 {
+    int n; cin >> n;
+    vpii arr(n);
+    vi t(n * 2);
+    for(int i = 0; i < n; i++)
+    {
+        cin >> arr[i].f >> arr[i].s;
+        t[i] = arr[i].f, t[i + n] = arr[i].s;
+    }
+    srtU(t);
+    int m = t.size();
+    umii mp;
+    int val[m * 2]; mset(val, 0);
+    int index[m * 2]; mset(index, 0);
+    int cnt = -1;
+    index[++cnt] = t.front();
+    mp[t.front()] = cnt;
+    val[cnt] = 1;
+    for(int i = 1; i < m; i++)
+    {
+        if(t[i] > t[i - 1] + 1)
+        {
+            index[++cnt] = t[i - 1] + 1;
+            mp[t[i - 1] + 1] = cnt;
+            val[cnt] = t[i] - t[i - 1] - 1;
+        }
+        index[++cnt] = t[i];
+        mp[t[i]] = cnt;
+        val[cnt] = 1;
+    }
 
+    vi id(cnt + 1);
+    iota(all(id), 1);
+    for(auto& it : arr)
+    {
+        int u = mp[it.f], v = mp[it.s];
+        swap(val[u], val[v]);
+        swap(id[u], id[v]);
+    }
+    int res = 0;
+    FenwickTree root(cnt);
+    for(int i = cnt; i >= 0; i--)
+    {
+        res += val[i] * root.get(id[i] - 1);
+        root.update(id[i], val[i]);
+    }
+    cout << res << endl;
 }
 
 signed main()
