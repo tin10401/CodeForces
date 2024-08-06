@@ -31,8 +31,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
-#define vs vector<string>
-#define vb vector<bool>
 #define us unordered_set
 #define um unordered_map
 #define vvi vector<vi>
@@ -75,9 +73,66 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
+class SGT
+{
+    public:
+    int n;
+    vi root;
+    SGT(vi& arr)
+    {
+        n = arr.size();
+        root.rsz(n * 4);
+        build(0, 0, n - 1, arr);
+    }
+
+    void build(int i, int left, int right, vi& arr)
+    {
+        if(left == right)
+        {
+            root[i] = arr[left];
+            return;
+        }
+        int middle = left + (right - left) / 2;
+        build(i * 2 + 1, left, middle, arr);
+        build(i * 2 + 2, middle + 1, right, arr);
+        root[i] = gcd(root[i * 2 + 1], root[i * 2 + 2]);
+    }
+
+    int get(int start, int end)
+    {
+        return get(0, 0, n - 1, start, end);
+    }
+
+    int get(int i, int left, int right, int start, int end)
+    {
+        if(left >= start && right <= end) return root[i];
+        if(left > end || start > right) return 0;
+        int middle = left + (right - left) / 2;
+        return gcd(get(i * 2 + 1, left, middle, start, end), get(i * 2 + 2, middle + 1, right, start, end));
+    }
+};
+
+
 void solve()
 {
-
+    um<int, vi, custom> mp;
+    int n; cin >> n;
+    vi arr(n);
+    for(int i = 0; i < n; i++)
+    {
+        cin >> arr[i];
+        mp[arr[i]].pb(i);
+    }
+    SGT root(arr);
+    int q; cin >> q;
+    while(q--)
+    {
+        int a, b; cin >> a >> b;
+        int val = root.get(--a, --b);
+        auto& curr = mp[val];
+        int l = lb(all(curr), a) - begin(curr), r = ub(all(curr), b) - begin(curr);
+        cout << b - a + 1 - (r - l) << endl;
+    }
 }
 
 signed main()
