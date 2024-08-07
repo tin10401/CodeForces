@@ -44,8 +44,8 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define umii um<int, int, custom>
 #define usi us<int, custom>
-#define f first
-#define s second
+#define ff first
+#define ss second
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))

@@ -44,8 +44,10 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define umii um<int, int, custom>
 #define usi us<int, custom>
-#define ff first
-#define ss second
+#define put(x) cout << x << " "
+#define putl(x) cout << x << endl
+#define f first
+#define s second
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -75,81 +77,32 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
-class SGT
-{
-    public:
-    int n;
-    vi root;
-    SGT(int n)
-    {
-        this->n = n;
-        root.rsz(n * 4);
-        build(0, 0, n - 1);
-    }
-
-    void build(int i, int left, int right)
-    {
-        if(left == right)
-        {
-            root[i] = 1;
-            return;
-        }
-        int middle = left + (right - left) / 2;
-        build(i * 2 + 1, left, middle);
-        build(i * 2 + 2, middle + 1, right);
-        root[i] = root[i * 2 + 1] + root[i * 2 + 2];
-    }
-
-    void update(int index)
-    {
-        update(0, 0, n - 1, index);
-    }
-
-    void update(int i, int left, int right, int index)
-    {
-        if(left == right)
-        {
-            root[i] = 0;
-            return;
-        }
-        int middle = left + (right - left) / 2;
-        if(index <= middle) update(i * 2 + 1, left, middle, index);
-        else update(i * 2 + 2, middle + 1, right, index);
-        root[i] = root[i * 2 + 1] + root[i * 2 + 2];
-    }
-
-    int get(int k)
-    {
-        return get(0, 0, n - 1, k);
-    }
-
-    int get(int i, int left, int right, int k)
-    {
-        if(left < 0 || right > n || root[i] < k) return -1;
-        if(left == right && k == 1) return left;
-        int middle = left + (right - left) / 2;
-        if(root[i * 2 + 1] >= k) return get(i * 2 + 1, left, middle, k);
-        return get(i * 2 + 2, middle + 1, right, k - root[i * 2 + 1]);
-    }
-
-};
-
 void solve()
 {
-    int n; cin >> n;
-    SGT root(n);
-    int q; cin >> q;
-    while(q--)
+    int n, k; cin >> n >> k;
+    vi prefix(1);
+    for(int i = 0; i < n; i++)
     {
-        int type, x; cin >> type >> x;
-        x--;
-        if(type == 0) root.update(x);
-        else
-        {
-            int val = root.get(x + 1);
-            cout << val + (val != -1) << endl; 
-        }
+        int val; cin >> val;
+        prefix.pb(prefix.back() ^ val);
     }
+    int res = 0;
+    for(int bit = 19; bit >= 0; bit--)
+    {
+        int curr = res | (1 << bit);
+        int mask = (1 << 20) - 1 - ((1 << bit) - 1);
+        int cnt = 0;
+        umii freq;
+        for(int i = 0; i < prefix.size(); i++)
+        {
+            int target = (prefix[i] ^ curr) & mask;
+            cnt += freq[target];
+            freq[prefix[i] & mask]++;
+        }
+        if(k <= cnt) res = curr;
+        else k -= cnt;
+    }
+    putl(res);
 }
 
 signed main()

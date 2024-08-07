@@ -44,8 +44,8 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define umii um<int, int, custom>
 #define usi us<int, custom>
-#define ff first
-#define ss second
+#define f first
+#define s second
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -75,80 +75,59 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
+const int M = 5e3 + 1;
 class SGT
 {
     public:
+    vector<bitset<M>> root;
     int n;
-    vi root;
-    SGT(int n)
+    SGT(vi& arr)
     {
-        this->n = n;
+        this->n = arr.size();
         root.rsz(n * 4);
-        build(0, 0, n - 1);
+        build(0, 0, n - 1, arr);
     }
 
-    void build(int i, int left, int right)
+    void build(int i, int left, int right, vi& arr)
     {
         if(left == right)
         {
-            root[i] = 1;
+            root[i].set(arr[left]);
             return;
         }
         int middle = left + (right - left) / 2;
-        build(i * 2 + 1, left, middle);
-        build(i * 2 + 2, middle + 1, right);
-        root[i] = root[i * 2 + 1] + root[i * 2 + 2];
+        build(i * 2 + 1, left ,middle, arr);
+        build(i * 2 + 2, middle + 1, right, arr);
+        root[i] = root[i * 2 + 1] | root[i * 2 + 2];
     }
 
-    void update(int index)
+    bitset<M> get(int start, int end)
     {
-        update(0, 0, n - 1, index);
+        return get(0, 0, n - 1, start, end);
     }
 
-    void update(int i, int left, int right, int index)
+    bitset<M> get(int i, int left, int right, int start, int end)
     {
-        if(left == right)
-        {
-            root[i] = 0;
-            return;
-        }
+        if(left >= start && right <= end) return root[i];
+        if(left > end || start > right) return {};
         int middle = left + (right - left) / 2;
-        if(index <= middle) update(i * 2 + 1, left, middle, index);
-        else update(i * 2 + 2, middle + 1, right, index);
-        root[i] = root[i * 2 + 1] + root[i * 2 + 2];
+        return get(i * 2 + 1, left, middle, start, end) | get(i * 2 + 2, middle + 1, right, start, end);
     }
-
-    int get(int k)
-    {
-        return get(0, 0, n - 1, k);
-    }
-
-    int get(int i, int left, int right, int k)
-    {
-        if(left < 0 || right > n || root[i] < k) return -1;
-        if(left == right && k == 1) return left;
-        int middle = left + (right - left) / 2;
-        if(root[i * 2 + 1] >= k) return get(i * 2 + 1, left, middle, k);
-        return get(i * 2 + 2, middle + 1, right, k - root[i * 2 + 1]);
-    }
-
 };
 
 void solve()
 {
     int n; cin >> n;
-    SGT root(n);
+    vi a(n), b(n);
+    for(auto& it : a) cin >> it;
+    for(auto& it : b) cin >> it;
+    SGT aRoot(a), bRoot(b);
     int q; cin >> q;
     while(q--)
     {
-        int type, x; cin >> type >> x;
-        x--;
-        if(type == 0) root.update(x);
-        else
-        {
-            int val = root.get(x + 1);
-            cout << val + (val != -1) << endl; 
-        }
+        int a, b, c, d; cin >> a >> b >> c >> d;
+        a--, b--, c--, d--;
+        cout << (aRoot.get(a, b) | bRoot.get(c, d)).count() << endl;
     }
 }
 
