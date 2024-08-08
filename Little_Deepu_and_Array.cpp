@@ -75,21 +75,115 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
+class SGT
+{
+    public:
+    int n;
+    var(2) root;
+    vi lazy;
+    SGT(vpii& arr)
+    {
+        n = arr.size();
+        root.rsz(n * 4), lazy.rsz(n * 4);
+        build(0, 0, n - 1, arr);
+    }
+
+    void apply(int i, int left, int right)
+    {
+        int& x = lazy[i];
+        root[i][0] += x;
+        root[i][1] += x;
+        if(left != right)
+        {
+            lazy[i * 2 + 1] += lazy[i];
+            lazy[i * 2 + 2] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    void build(int i, int left, int right, vpii& arr)
+    {
+        if(left == right)
+        {
+            root[i][0] = root[i][1] = arr[left].ff;
+            return ;
+        }
+        int middle = left + (right - left) / 2;
+        build(i * 2 + 1, left, middle, arr);
+        build(i * 2 + 2, middle + 1, right, arr);
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);
+    }
+
+    ar(2) merge(ar(2) left, ar(2) right)
+    {
+        ar(2) res;
+        res[0] = min(left[0], right[0]);
+        res[1] = max(left[1], right[1]);
+        return res;
+    }
+
+    void update(int x)
+    {
+        update(0, 0, n - 1, x, -1);
+    }
+
+    void update(int i, int left, int right, int x, int val)
+    {
+        apply(i, left, right);
+        if(root[i][0] > x)
+        {
+            lazy[i] += val;
+            apply(i, left, right);
+            return;
+        }
+        if(left == right || root[i][1] <= x) return;
+        int middle = left + (right - left) / 2;
+        update(i * 2 + 1, left, middle, x, val);
+        update(i * 2 + 2, middle + 1, right, x, val);
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);
+    }
+
+    int get(int index)
+    {
+        return get(0, 0, n - 1, index);
+    }
+
+    int get(int i, int left, int right, int index)
+    {
+        apply(i, left, right);
+        if(left == right) return root[i][0];
+        int middle = left + (right - left) / 2;
+        if(index <= middle) return get(i * 2 + 1, left, middle, index);
+        return get(i * 2 + 2, middle + 1, right, index);
+    }
+};
+
 void solve()
 {
-    int n, k, q; cin >> n >> k >> q;    
-    vi a(k + 1), b(k + 1);
-    for(int i = 1; i <= k; i++) cin >> a[i];    
-    for(int i = 1; i <= k; i++) cin >> b[i];    
-    while(q--)  
-    {   
-        int d; cin >> d;    
-        int i = ub(all(a), d) - begin(a);   
-        i--;
-        int extra = (d - a[i]) * (b[i + 1] - b[i]) / (a[i + 1] - a[i]);
-        cout << b[i] + extra << " ";    
-    }   
+    int n; cin >> n;
+    vpii arr(n);
+    for(int i = 0; i < n; i++)
+    {
+        cin >> arr[i].ff;
+        arr[i].ss = i;
+    }
+    srt(arr);
+    SGT root(arr);
+    int q; cin >> q;
+    while(q--)
+    {
+        int x; cin >> x;
+        root.update(x);
+    }
+    for(int i = 0; i < n; i++)
+    {
+        arr[i].ff = root.get(i);
+        swap(arr[i].ff, arr[i].ss);
+    }
+    srt(arr);
+    for(auto& it : arr) cout << it.ss << " ";
     cout << endl;
+
 }
 
 signed main()
@@ -98,7 +192,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    // cin >> t;
     while(t--) solve();
 
     endClock

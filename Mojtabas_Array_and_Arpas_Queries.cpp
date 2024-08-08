@@ -26,10 +26,12 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll long long
+#define ll unsigned long long
+#define int long long
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
+#define vvpii vector<vpii>
 #define vs vector<string>
 #define vb vector<bool>
 #define us unordered_set
@@ -43,8 +45,8 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define umii um<int, int, custom>
 #define usi us<int, custom>
-#define f first
-#define s second
+#define ff first
+#define ss second
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -61,7 +63,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-const static int INF = INT_MAX;
+const static int INF = 1LL << 61;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
@@ -73,3 +75,106 @@ struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
+
+class FenwickTree   
+{   
+    public: 
+    int n;  
+    vi root;    
+    FenwickTree(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n + 1, INF);   
+    }   
+    
+    void update(int id, int val)    
+    {   
+        while(id <= n)  
+        {   
+            root[id] = min(root[id], val);  
+            id += (id & -id);   
+        }   
+    }   
+    
+    int get(int id) 
+    {   
+        int res = INF;
+        while(id)   
+        {   
+            res = min(res, root[id]);   
+            id -= (id & -id);   
+        }   
+        return res; 
+    }   
+};
+
+void solve()
+{
+    int n, k, q; cin >> n >> k >> q;    
+    int m = 21;
+    vvi dp(n, vi(m, 1));    
+    for(int i = 0; i < n; i++)  
+    {   
+        cin >> dp[i][0];    
+        dp[i][0] %= k;
+    }   
+    
+    for(int j = 1; j < m; j++)  
+    {   
+        for(int i = 0; i + (1 << j) <= n; i++)
+        {   
+            dp[i][j] = (dp[i][j - 1] * dp[i + (1 << (j - 1))][j - 1]) % k;
+        }   
+    }
+    vvpii arr(n);
+    vi res(q);
+    for(int i = 0; i < q; i++)
+    {   
+        int a, b; cin >> a >> b;    
+        a--,b--;    
+        arr[a].pb({b, i});  
+    }   
+    FenwickTree root(n); 
+    for(int i = n - 1; i >= 0; i--) 
+    {   
+        int j = i, curr = 1;    
+        for(int bit = m - 1; bit >= 0; bit--)   
+        {   
+            if(j + (1 << bit) < n && (curr * dp[j][bit]) % k) 
+            {   
+                curr = (curr * dp[j][bit]) % k;
+                j += (1 << bit);    
+            }   
+        }   
+        if((curr * dp[j][0]) % k == 0)    
+        {   
+            root.update(j + 1, j - i + 1);  
+        }   
+        for(auto& [b, index] : arr[i])  
+        {   
+            res[index] = root.get(b + 1);   
+        }   
+    }   
+    for(int i = 0; i < q; i++)  
+    {   
+        if(res[i] == INF) res[i] = -1;  
+        cout << res[i] << " ";
+    }   
+    cout << endl;
+
+
+}
+
+signed main()
+{
+    IOS;
+    startClock
+
+    int t = 1;
+    // cin >> t;
+    while(t--) solve();
+
+    endClock
+    return 0;
+}
+

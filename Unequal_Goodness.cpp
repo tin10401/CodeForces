@@ -26,7 +26,8 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll long long
+#define ll unsigned long long
+#define int long long
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
@@ -43,8 +44,8 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define umii um<int, int, custom>
 #define usi us<int, custom>
-#define f first
-#define s second
+#define ff first
+#define ss second
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -61,7 +62,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-const static int INF = INT_MAX;
+const static int INF = 1LL << 61;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
@@ -73,3 +74,95 @@ struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
+
+class SGT   
+{   
+    public: 
+    int n;  
+    vi root;    
+    SGT(int i)  
+    {   
+        n = i;  
+        root.rsz(n * 4);    
+    }   
+    
+    void update(int index, int val) 
+    {   
+        update(0, 0, n - 1, index, val);    
+    }   
+    
+    void update(int i, int left, int right, int index, int val) 
+    {   
+        if(left == right)   
+        {   
+            root[i] = val;  
+            return; 
+        }
+        int middle = left + (right - left) / 2; 
+        if(index <= middle) update(i * 2 + 1, left, middle, index, val);    
+        else update(i * 2 + 2, middle + 1, right, index, val);  
+        root[i] = min(root[i * 2 + 1], root[i * 2 + 2]); 
+    }   
+        
+    int get(int start, int end) 
+    {   
+        return get(0, 0, n - 1, start, end);    
+    }   
+    
+    int get(int i, int left, int right, int start, int end) 
+    {   
+        if(left > end || start > right) return INT_MAX; 
+        if(left >= start && right <= end) return root[i];   
+        int middle = left + (right - left) / 2; 
+        return min(get(i * 2 + 1, left, middle, start, end), get(i * 2 + 2, middle + 1, right, start, end));    
+    }   
+};
+
+void solve()
+{
+    int n; cin >> n;    
+    vi prefix(n + 1);   
+    SGT root(n + 1);
+    um<int, vi, custom> mp;
+    for(int i = 1; i <= n; i++)
+    {   
+        int val; cin >> val;
+        prefix[i] = prefix[i - 1] + val;    
+        mp[val].pb(i);  
+        root.update(i, prefix[i - 1]);  
+    }   
+    if(mp.size() <= 1) {cout << "Not Possible" << endl; return; }
+    int res = -INF;
+    for(auto& it : mp)  
+    {   
+        auto& curr = it.ss; 
+        for(int i = 0; i < curr.size(); i++)    
+        {   
+            int index = curr[i];
+            res = max(res, prefix[index] - root.get(1, index - 1));  
+            root.update(index, INT_MAX);    
+        }   
+        for(int i = 0; i < curr.size(); i++)    
+        {   
+            int index = curr[i];    
+            root.update(index, prefix[index - 1]);  
+        }   
+    }   
+    cout << res << endl;
+
+
+}
+
+signed main()
+{
+    IOS;
+    startClock
+
+    int t = 1;
+    cin >> t;
+    while(t--) solve();
+
+    endClock
+    return 0;
+}
+
