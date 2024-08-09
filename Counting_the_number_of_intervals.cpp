@@ -71,21 +71,100 @@ const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcount(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-void multiply(int f[2][2], int m[2][2]) {   
-    int res[2][2] = {}; 
-    for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
-    for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++) f[i][j] = res[i][j]; }   }
-int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
-    int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
-    while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
 struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
-
+class FenwickTree   
+{   
+    public: 
+    int n;  
+    vi root;    
+    FenwickTree(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n * 4);    
+    }   
+    
+    void update(int i, int val) 
+    {   
+        while(i <= n)   
+        {   
+            root[i] += val; 
+            i += (i & -i);  
+        }   
+    }
+    
+    int get(int i)  
+    {   
+        int res = 0;    
+        while(i)    
+        {   
+            res += root[i]; 
+            i -= (i & -i);  
+        }   
+        return res; 
+    }   
+};
 void solve()
 {
+    int n, k; cin >> n >> k;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    vi tmp(arr);    
+    srtU(tmp);  
+    vi r(n), l(n);  
+    iota(all(r), 0), iota(all(l), 0);   
+    for(int i = 1; i < n; i++)
+    {   
+        int ptr = i;    
+        while(ptr && arr[i] < arr[ptr - 1]) ptr = l[ptr - 1]; 
+        l[i] = ptr;
+    }   
+    for(int i = n - 2; i >= 0; i--)    
+    {   
+        int ptr = i;    
+        while(ptr + 1 < n && arr[i] <= arr[ptr + 1]) ptr = r[ptr + 1];  
+        r[i] = ptr; 
+    }   
+    vvpii g(n); 
+    for(int i = 0; i < n; i++)  
+    {   
+        if(i - l[i] <= r[i] - i)   
+        {   
+            for(int j = l[i]; j <= i; j++)  
+            {   
+                int d = ub(all(tmp), k - arr[i] - arr[j]) - begin(tmp); 
+                g[r[i]].pb({d, 1}); 
+                if(i) g[i - 1].pb({d, -1}); 
+            }   
+        }   
+        else    
+        {   
+            for(int j = i; j <= r[i]; j++)  
+            {   
+                int d = ub(all(tmp), k - arr[i] - arr[j]) - begin(tmp); 
+                g[i].pb({d, 1});    
+                if(l[i]) g[l[i] - 1].pb({d, -1});   
+            }   
+        }   
+    }   
+    
+    int res = 0;    
+    FenwickTree root(n);
+    for(int i = 0; i < n; i++)
+    {   
+        int d = lb(all(tmp), arr[i]) - begin(tmp);  
+        root.update(d + 1, 1);  
+        for(auto& [dis, v] : g[i])
+        {   
+            res += root.get(dis) * v;   
+        }   
+    }   
+    cout << res << endl;
+    
+
 
 }
 
@@ -95,7 +174,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    // cin >> t;
     while(t--) solve();
 
     endClock

@@ -83,10 +83,66 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
 
+class UnionFind 
+{   
+    public: 
+    int n;  
+    vi root;
+    vvi list;
+    UnionFind(int n)    
+    {   
+        this->n = n;    
+        root.rsz(n, -1), list.rsz(n);
+    }   
+    
+    int find(int x) 
+    {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]); 
+    }   
+    
+    void merge(int x, int y)    
+    {   
+        x = find(x), y = find(y);   
+        root[x] = y;
+    }   
+    
+    void generate() 
+    {   
+        for(int i = 1; i < n; i++)  
+        {   
+            list[find(i)].pb(i);    
+        }   
+    }   
+    
+    void queries()
+    {   
+        int left, right, x; cin >> left >> right >> x;  
+        x = find(x);    
+        cout << ub(all(list[x]), right) - lb(all(list[x]), left) << endl;
+    }   
+};
 
 void solve()
 {
-
+    int n, k, q; cin >> n >> k >> q;    
+    vpii arr(n + 1);
+    for(int i = 1; i <= n; i++) 
+    {   
+        cin >> arr[i].ff;   
+        arr[i].ss = i;  
+    }   
+    srt(arr);
+    UnionFind root(n + 1);
+    for(int i = n - 1; i > 0; i--)
+    {   
+        if(arr[i].ff + k >= arr[i + 1].ff)  
+        {   
+            root.merge(arr[i].ss, arr[i + 1].ss);
+        }
+    }   
+    root.generate();    
+    while(q--) root.queries();
 }
 
 signed main()
