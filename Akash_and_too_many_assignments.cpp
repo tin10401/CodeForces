@@ -88,139 +88,61 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
     
-class SGT   
+int root[MX][26];   
+    
+void update(int id, int c, int val) 
 {   
-    public: 
-    int n;  
-    vi root;    
-    SGT(int n)  
+    while(id < MX)  
     {   
-        this->n = n;    
-        root.rsz(n * 4);    
+        root[id][c] += val; 
+        id += (id & -id);   
     }   
+}   
     
-    void update(int index, int val) 
-    {   
-        update(0, 0, n - 1, index, val);    
-    }   
-    
-    void update(int i, int left, int right, int index, int val) 
-    {   
-        if(left == right)   
-        {   
-            root[i] = val;  
-            return; 
-        }   
-        int middle = left + (right - left) / 2; 
-        if(index <= middle) update(i * 2 + 1, left, middle, index, val);    
-        else update(i * 2 + 2, middle + 1, right, index, val);  
-        root[i] = root[i * 2 + 1] ^ root[i * 2 + 2];    
-    }   
-    
-    int queries(int start, int end) 
-    {   
-        return queries(0, 0, n - 1, start, end);    
-    }   
-    
-    int queries(int i, int left, int right, int start, int end) 
-    {   
-        if(left >= start && right <= end) return root[i];   
-        if(left > end || start > right) return 0;   
-        int middle = left + (right - left) / 2; 
-        return queries(i * 2 + 1, left, middle, start, end) ^ queries(i * 2 + 2, middle + 1, right, start, end);    
-    }   
-};
-    
-int startTime[MX], endTime[MX], timer, depth[MX], vis[MX];  
-vvi graph;
-int dp[MX][21];
-    
-void dfs(int node, int par, int d = 0)  
+int get(int id, int c)  
 {   
-    if(vis[node]) return;
-    vis[node] = true;
-    depth[node] = d;
-    dp[node][0] = par;
-    startTime[node] = ++timer;  
-    for(auto& nei : graph[node])
+    int res = 0;    
+    while(id)   
     {   
-        if(!vis[nei]) dfs(nei, node, d + 1);
+        res += root[id][c]; 
+        id -= (id & -id);   
     }   
-    endTime[node] = ++timer;
-}
-    
-int lca(int a, int b)   
-{   
-    if(depth[a] > depth[b]) swap(a, b);
-    int d = depth[b] - depth[a];    
-    for(int i = 20; i >= 0; i--)    
-    {   
-        if((d >> i) & 1) b = dp[b][i];  
-    }   
-    if(b == a) return a;    
-    for(int i = 20; i >= 0; i--)    
-    {   
-        if(dp[a][i] != dp[b][i])    
-        {   
-            a = dp[a][i];   
-            b = dp[b][i];   
-        }   
-    }   
-    return dp[a][0];    
+    return res; 
 }
 
 void solve()
 {
-    timer = 0, mset(vis, 0), mset(endTime, 0), mset(startTime, 0), mset(depth, 0);  
-    graph = {};
-    int n; cin >> n;    
-    int val[n + 1];
-    for(int i = 1; i <= n; i++) cin >> val[i];
-    graph.rsz(n + 1);   
-    for(int i = 0; i < n - 1; i++)  
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    for(int i = 0; i < n; i++)  
     {   
-        int u, v; cin >> u >> v;    
-        graph[u].pb(v); 
-        graph[v].pb(u); 
-    }
-    dfs(1, 0);
-    for(int j = 1; j < 21; j++) 
+        update(i + 1, s[i] - 'a', 1);   
+    }   
+    while(q--)  
     {   
-        for(int i = 1; i <= n; i++)
+        int type; cin >> type;  
+        if(type == 0)   
         {   
-            int v = dp[i][j - 1];
-            dp[i][j] = dp[v][j - 1];
-        }   
-    }
-    SGT root(timer + 1);
-    for(int i = 1; i <= n; i++) 
-    {   
-        root.update(startTime[i], val[i]);   
-        root.update(endTime[i], val[i]);
-    }
-    int q; cin >> q;
-    while(q--)
-    {   
-        int type, u, v; cin >> type >> u >> v;
-        if(type == 1)   
-        {   
-            root.update(startTime[u], v);   
-            root.update(endTime[u], v);
-            val[u] = v;
+            int x; cin >> x;    
+            char c; cin >> c;
+            update(x, s[x - 1] - 'a', -1); 
+            s[x - 1] = c;   
+            update(x, c - 'a', 1);   
         }   
         else    
         {   
-            if(u > v) swap(u, v);   
-            if(u == v) cout << val[u] << endl;
-            else if(u == 1) cout << root.queries(1, startTime[v]) << endl;   
-            else    
+            int l, r, k; cin >> l >> r >> k;
+            if(k > r - l + 1) {cout << "Out of range" << endl; continue; }
+            int res = 0;    
+            char ch;
+            for(int i = 0; i < 26 && res < k; i++)
             {   
-                int node = lca(u, v);   
-                int res = root.queries(1, startTime[u]) ^ root.queries(1, startTime[v]);
-                res ^= val[node];
-                cout << res << endl;    
-            }
-        }   
+                res += get(r, i) - get(l - 1, i); 
+                ch = i + 'a';
+            }   
+            cout << ch << endl;
+        }
+
     }
 }
 
@@ -230,7 +152,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

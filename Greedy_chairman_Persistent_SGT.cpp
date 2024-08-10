@@ -64,7 +64,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -78,21 +78,84 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-int GCD[MX], TOTI[MX];  
-void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;   
-    for(int i = 2; i < MX; i++) {   if(TOTI[i] == i)   {   TOTI[i] = i - 1; for(int j = 2 * i; j < MX; j += i)  {   TOTI[j] -= (TOTI[j] / i); }   }   }   
-    for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
-}
 struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
-    
 
+int root[MX * 22], T[MX], ptr;   
+pii child[MX * 22];
+void update(int prev, int curr, int left, int right, int index) 
+{   
+    root[curr] = root[prev];    
+    child[curr].ff = child[prev].ff;    
+    child[curr].ss = child[prev].ss;    
+    if(left == right)   
+    {   
+        root[curr]++;   
+        return; 
+    }   
+    int middle = left + (right - left) / 2;
+    if(index <= middle) 
+    {   
+        child[curr].ff = ++ptr; 
+        update(child[prev].ff, child[curr].ff, left, middle, index);    
+    }   
+    else    
+    {   
+        child[curr].ss = ++ptr; 
+        update(child[prev].ss, child[curr].ss, middle + 1, right, index);   
+    }   
+    root[curr] = root[child[curr].ff] + root[child[curr].ss];   
+}   
+    
+int f[MX], inv[MX]; 
+void generate() 
+{   
+    f[0] = f[1] = 1;    
+    for(int i = 2; i < MX; i++) f[i] = (f[i - 1] * i) % MOD;    
+    inv[MX - 1] = modExpo(f[MX - 1], MOD - 2, MOD); 
+    for(int i = MX - 2; i >= 0; i--) inv[i] = (inv[i + 1] * (i + 1)) % MOD; 
+}   
+int cnk(int a, int b)   
+{   
+    return (f[a] * inv[b] % MOD * inv[a - b] % MOD) % MOD;  
+}
+
+int queries(int prev, int curr, int left, int right, int k, int s, int f)   
+{   
+    if(left == right)   
+    {   
+        return cnk(root[curr] - root[prev], f - s); 
+    }   
+    int middle = left + (right - left) / 2; 
+    int now = root[child[curr].ff] - root[child[prev].ff]; 
+    if(now >= k) return queries(child[prev].ff, child[curr].ff, left, middle, k, s, f); 
+    return queries(child[prev].ss, child[curr].ss, middle + 1, right, k - now, s + now, f); 
+}
+    
 
 void solve()
 {
-    
+    generate();
+    int n, q; cin >> n >> q;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    vi tmp(arr);    
+    srtU(tmp);  
+    int m = tmp.size();
+    umii mp;    
+    for(int i = 0; i < tmp.size(); i++) mp[tmp[i]] = i; 
+    for(int i = 1; i <= n; i++) 
+    {   
+        T[i] = ++ptr;
+        update(T[i - 1], T[i], 0, m - 1, mp[arr[i - 1]]);
+    }   
+    while(q--)  
+    {   
+        int a, b, k; cin >> a >> b >> k;
+        cout << queries(T[a - 1], T[b], 0, m - 1, k, 0, k) << endl; 
+    }
 }
 
 signed main()

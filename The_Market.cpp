@@ -64,7 +64,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 1e6 + 1;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -78,21 +78,46 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-int GCD[MX], TOTI[MX];  
-void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;   
-    for(int i = 2; i < MX; i++) {   if(TOTI[i] == i)   {   TOTI[i] = i - 1; for(int j = 2 * i; j < MX; j += i)  {   TOTI[j] -= (TOTI[j] / i); }   }   }   
-    for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
-}
 struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
-    
 
 
+int d[MX];
+void pre()  
+{   
+    for(int i = 1; i < MX; i++) 
+    {   
+        for(int j = i; j < MX; j += i) d[j]++; 
+    }   
+}
 void solve()
 {
-    
+    pre();  
+    int n; cin >> n;    
+    const int m = 241;
+    var(m) arr(n + 1);
+    for(int i = 1; i <= n; i++)  
+    {   
+        int x; cin >> x;
+        x = d[x];
+        arr[i] = arr[i - 1];    
+        arr[i][x]++;
+    }   
+    int q; cin >> q;    
+    while(q--)  
+    {   
+        int a, b; cin >> a >> b;    
+        a--;    
+        int res = 0;    
+        for(int i = 1; i < m; i++) 
+        {   
+            int x = arr[b][i] - arr[a][i];  
+            res += x * (x - 1) / 2; 
+        }   
+        cout << res << endl;    
+    }
 }
 
 signed main()

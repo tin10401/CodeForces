@@ -64,7 +64,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -78,21 +78,97 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-int GCD[MX], TOTI[MX];  
-void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;   
-    for(int i = 2; i < MX; i++) {   if(TOTI[i] == i)   {   TOTI[i] = i - 1; for(int j = 2 * i; j < MX; j += i)  {   TOTI[j] -= (TOTI[j] / i); }   }   }   
-    for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
-}
 struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
     
+const int MK = 22;
+int root[MX * MK], T[MX], ptr, timer = 1, startTime[MX], endTime[MX], m;  
+pii child[MX * MK];
+vi d, st, cnt, tmp;   
+vvpii graph;    
+    
+int dfs(int node, int par, int curr)   
+{   
+    d[node] = curr;
+    st.pb(node);
+    startTime[node] = timer++;  
+    cnt[node] = 1;
+    for(auto& [nei, w] : graph[node])
+    {   
+        if(nei != par) cnt[node] += dfs(nei, node, curr + w);    
+    }   
+    endTime[node] = timer - 1;  
+    return cnt[node];
+}
+    
+void update(int prev, int curr, int left, int right, int index) 
+{   
+    child[curr].ff = child[prev].ff;    
+    child[curr].ss = child[prev].ss;
+    if(left == right)   
+    {   
+        root[curr] = root[prev] + 1;
+        return;
+    }   
+    int middle = left + (right - left) / 2; 
+    if(index <= middle) 
+    {   
+        child[curr].ff = ++ptr; 
+        update(child[prev].ff, child[curr].ff, left, middle, index);    
+    }   
+    else    
+    {   
+        child[curr].ss = ++ptr; 
+        update(child[prev].ss, child[curr].ss, middle + 1, right, index);   
+    }   
+    root[curr] = root[child[curr].ff] + root[child[curr].ss];   
+}
 
+int queries(int prev, int curr, int left, int right, int k) 
+{   
+    if(left == right) return left; 
+    int middle = left + (right - left) / 2; 
+    int now = root[child[curr].ff] - root[child[prev].ff];  
+    if(now >= k) return queries(child[prev].ff, child[curr].ff, left, middle, k);   
+    return queries(child[prev].ss, child[curr].ss, middle + 1, right, k - now); 
+}
 
+int get(int v, int k)   
+{   
+    if(cnt[v] <= k) return -1;
+    int index = queries(T[startTime[v]], T[endTime[v]], 0, m - 1, k);
+    return tmp[index] - tmp[d[v]];
+}
 void solve()
 {
-    
+    int n; cin >> n;    
+    graph.rsz(n + 1), d.rsz(n + 1), cnt.rsz(n + 1);   
+    for(int i = 0; i < n - 1; i++)  
+    {   
+        int a, b, w; cin >> a >> b >> w;    
+        graph[a].pb({b, w});    
+        graph[b].pb({a, w});    
+    }   
+    dfs(1, 0, 0);
+    tmp = d;
+    srtU(tmp);  
+    m = tmp.size();
+    umii mp;    
+    for(int i = 0; i < tmp.size(); i++) mp[tmp[i]] = i; 
+    for(auto& it : d) it = mp[it];  
+    for(int i = 1; i <= st.size(); i++)  
+    {   
+        T[i] = ++ptr;   
+        update(T[i - 1], T[i], 0, m - 1, d[st[i - 1]]);
+    }
+    int q; cin >> q;    
+    while(q--)  
+    {   
+        int v, k; cin >> v >> k;
+        cout << get(v, k) << endl;
+    }
 }
 
 signed main()

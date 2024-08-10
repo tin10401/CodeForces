@@ -64,7 +64,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 5e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -91,136 +91,98 @@ struct custom {
 class SGT   
 {   
     public: 
+    var(2) root;    
+    vi lazy;    
     int n;  
-    vi root;    
-    SGT(int n)  
+    SGT(const string& s)
     {   
-        this->n = n;    
-        root.rsz(n * 4);    
+        this->n = s.size();
+        root.rsz(n * 4), lazy.rsz(n * 4);   
+        build(0, 0, n - 1, s);
     }   
     
-    void update(int index, int val) 
-    {   
-        update(0, 0, n - 1, index, val);    
-    }   
-    
-    void update(int i, int left, int right, int index, int val) 
+    void build(int i, int left, int right, const string& s)
     {   
         if(left == right)   
         {   
-            root[i] = val;  
+            int val = s[left] == '>';
+            root[i][val] = 1;
             return; 
         }   
         int middle = left + (right - left) / 2; 
-        if(index <= middle) update(i * 2 + 1, left, middle, index, val);    
-        else update(i * 2 + 2, middle + 1, right, index, val);  
-        root[i] = root[i * 2 + 1] ^ root[i * 2 + 2];    
+        build(i * 2 + 1, left, middle, s);  
+        build(i * 2 + 2, middle + 1, right, s);
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);  
     }   
     
-    int queries(int start, int end) 
+    ar(2) merge(ar(2) left, ar(2) right)    
     {   
-        return queries(0, 0, n - 1, start, end);    
+        ar(2) res;  
+        res[0] = left[0] + right[0];    
+        res[1] = left[1] + right[1];    
+        return res; 
     }   
     
-    int queries(int i, int left, int right, int start, int end) 
+    void update(int start, int end) 
     {   
-        if(left >= start && right <= end) return root[i];   
-        if(left > end || start > right) return 0;   
-        int middle = left + (right - left) / 2; 
-        return queries(i * 2 + 1, left, middle, start, end) ^ queries(i * 2 + 2, middle + 1, right, start, end);    
+        update(0, 0, n - 1, start, end);    
     }   
-};
     
-int startTime[MX], endTime[MX], timer, depth[MX], vis[MX];  
-vvi graph;
-int dp[MX][21];
-    
-void dfs(int node, int par, int d = 0)  
-{   
-    if(vis[node]) return;
-    vis[node] = true;
-    depth[node] = d;
-    dp[node][0] = par;
-    startTime[node] = ++timer;  
-    for(auto& nei : graph[node])
+    void update(int i, int left, int right, int start, int end) 
     {   
-        if(!vis[nei]) dfs(nei, node, d + 1);
-    }   
-    endTime[node] = ++timer;
-}
-    
-int lca(int a, int b)   
-{   
-    if(depth[a] > depth[b]) swap(a, b);
-    int d = depth[b] - depth[a];    
-    for(int i = 20; i >= 0; i--)    
-    {   
-        if((d >> i) & 1) b = dp[b][i];  
-    }   
-    if(b == a) return a;    
-    for(int i = 20; i >= 0; i--)    
-    {   
-        if(dp[a][i] != dp[b][i])    
+        push(i, left, right);   
+        if(left > end || start > right) return;
+        if(left >= start && right <= end)   
         {   
-            a = dp[a][i];   
-            b = dp[b][i];   
+            lazy[i] ^= 1;   
+            push(i, left, right);   
+            return; 
+        }
+        int middle = left + (right - left) / 2; 
+        update(i * 2 + 1, left, middle, start, end);    
+        update(i * 2 + 2, middle + 1, right, start, end);   
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);  
+    }
+
+    void push(int i, int left, int right)   
+    {   
+        int& x = lazy[i];   
+        if(x == 0) return;  
+        swap(root[i][0], root[i][1]);   
+        if(left != right)   
+        {   
+            lazy[i * 2 + 1] ^= x;   
+            lazy[i * 2 + 2] ^= x;   
         }   
-    }   
-    return dp[a][0];    
-}
+        x = 0;  
+    }
+
+    int queries(int start, int end, int x)  
+    {   
+        return queries(0, 0, n - 1, start, end, x);
+    }
+
+    int queries(int i, int left, int right, int start, int end, int x)  
+    {   
+        push(i, left, right);
+        if(left >= start && right <= end) return root[i][x];    
+        if(left > end || start > right) return 0;   
+        int middle = left + (right - left) / 2;
+        return queries(i * 2 + 1, left, middle, start, end, x) + queries(i * 2 + 2, middle + 1, right, start, end, x);  
+    }
+};
 
 void solve()
 {
-    timer = 0, mset(vis, 0), mset(endTime, 0), mset(startTime, 0), mset(depth, 0);  
-    graph = {};
-    int n; cin >> n;    
-    int val[n + 1];
-    for(int i = 1; i <= n; i++) cin >> val[i];
-    graph.rsz(n + 1);   
-    for(int i = 0; i < n - 1; i++)  
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    SGT root(s);
+    while(q--)  
     {   
-        int u, v; cin >> u >> v;    
-        graph[u].pb(v); 
-        graph[v].pb(u); 
-    }
-    dfs(1, 0);
-    for(int j = 1; j < 21; j++) 
-    {   
-        for(int i = 1; i <= n; i++)
-        {   
-            int v = dp[i][j - 1];
-            dp[i][j] = dp[v][j - 1];
-        }   
-    }
-    SGT root(timer + 1);
-    for(int i = 1; i <= n; i++) 
-    {   
-        root.update(startTime[i], val[i]);   
-        root.update(endTime[i], val[i]);
-    }
-    int q; cin >> q;
-    while(q--)
-    {   
-        int type, u, v; cin >> type >> u >> v;
-        if(type == 1)   
-        {   
-            root.update(startTime[u], v);   
-            root.update(endTime[u], v);
-            val[u] = v;
-        }   
-        else    
-        {   
-            if(u > v) swap(u, v);   
-            if(u == v) cout << val[u] << endl;
-            else if(u == 1) cout << root.queries(1, startTime[v]) << endl;   
-            else    
-            {   
-                int node = lca(u, v);   
-                int res = root.queries(1, startTime[u]) ^ root.queries(1, startTime[v]);
-                res ^= val[node];
-                cout << res << endl;    
-            }
-        }   
+        int type, a, b; cin >> type >> a >> b;  
+        a--, b--;
+        if(type == 1) root.update(a, --b);
+        else cout << root.queries(min(a, b), max(a, b) - 1, a >= b) << endl;
     }
 }
 
@@ -230,7 +192,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
