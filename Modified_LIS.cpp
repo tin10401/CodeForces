@@ -64,7 +64,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 5e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -88,140 +88,95 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
     
+struct Node 
+{   
+    int way, mx;    
+    Node() : way(0), mx(0) {}   
+    Node(int w, int m) : way(w), mx(m) {}
+};  
+    
 class SGT   
 {   
-    public: 
+    public:
     int n;  
-    vi root;    
+    vector<Node> root;
     SGT(int n)  
     {   
         this->n = n;    
-        root.rsz(n * 4);    
+        root.rsz(n * 4);
     }   
     
-    void update(int index, int val) 
+    void update(int index, Node val)
     {   
-        update(0, 0, n - 1, index, val);    
+        update(0, 0, n - 1, index, val);
     }   
     
-    void update(int i, int left, int right, int index, int val) 
+    void update(int i, int left, int right, int index, Node val)
     {   
         if(left == right)   
         {   
-            root[i] = val;  
+            root[i] = merge(root[i], val);  
             return; 
         }   
         int middle = left + (right - left) / 2; 
         if(index <= middle) update(i * 2 + 1, left, middle, index, val);    
         else update(i * 2 + 2, middle + 1, right, index, val);  
-        root[i] = root[i * 2 + 1] ^ root[i * 2 + 2];    
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);  
     }   
     
-    int queries(int start, int end) 
+    Node queries(int start, int end)    
     {   
         return queries(0, 0, n - 1, start, end);    
     }   
     
-    int queries(int i, int left, int right, int start, int end) 
+    Node merge(Node left, Node right)   
     {   
+        Node res;   
+        res.mx = max(left.mx, right.mx);    
+        res.way = ((res.mx == left.mx ? left.way : 0) + (res.mx == right.mx ? right.way : 0)) % MOD;
+        return res;
+    }   
+
+    Node queries(int i, int left, int right, int start, int end)
+    {   
+        if(left > end || start > right) return Node();  
         if(left >= start && right <= end) return root[i];   
-        if(left > end || start > right) return 0;   
-        int middle = left + (right - left) / 2; 
-        return queries(i * 2 + 1, left, middle, start, end) ^ queries(i * 2 + 2, middle + 1, right, start, end);    
+        int middle = left + (right - left) / 2;
+        return merge(queries(i * 2 + 1, left, middle, start, end), queries(i * 2 + 2, middle + 1, right, start, end));
     }   
 };
-    
-int startTime[MX], endTime[MX], timer, depth[MX], vis[MX];  
-vvi graph;
-int dp[MX][21];
-    
-void dfs(int node, int par, int d = 0)  
-{   
-    if(vis[node]) return;
-    vis[node] = true;
-    depth[node] = d;
-    dp[node][0] = par;
-    startTime[node] = ++timer;  
-    for(auto& nei : graph[node])
-    {   
-        if(!vis[nei]) dfs(nei, node, d + 1);
-    }   
-    endTime[node] = ++timer;
-}
-    
-int lca(int a, int b)   
-{   
-    if(depth[a] > depth[b]) swap(a, b);
-    int d = depth[b] - depth[a];    
-    for(int i = 20; i >= 0; i--)    
-    {   
-        if((d >> i) & 1) b = dp[b][i];  
-    }   
-    if(b == a) return a;    
-    for(int i = 20; i >= 0; i--)    
-    {   
-        if(dp[a][i] != dp[b][i])    
-        {   
-            a = dp[a][i];   
-            b = dp[b][i];   
-        }   
-    }   
-    return dp[a][0];    
-}
+
 
 void solve()
 {
-    timer = 0, mset(vis, 0), mset(endTime, 0), mset(startTime, 0), mset(depth, 0);  
-    graph = {};
     int n; cin >> n;    
-    int val[n + 1];
-    for(int i = 1; i <= n; i++) cin >> val[i];
-    graph.rsz(n + 1);   
-    for(int i = 0; i < n - 1; i++)  
+    vi arr(n);  
+    int m = 0;  
+    for(int i = 0; i < n; i++)  
     {   
-        int u, v; cin >> u >> v;    
-        graph[u].pb(v); 
-        graph[v].pb(u); 
-    }
-    dfs(1, 0);
-    for(int j = 1; j < 21; j++) 
+        cin >> arr[i];  
+        m = max(m, abs(arr[i])); 
+    }   
+    SGT neg(m + 1), pos(m + 1);
+    for(auto& it : arr) 
     {   
-        for(int i = 1; i <= n; i++)
+        if(it < 0)  
         {   
-            int v = dp[i][j - 1];
-            dp[i][j] = dp[v][j - 1];
-        }   
-    }
-    SGT root(timer + 1);
-    for(int i = 1; i <= n; i++) 
-    {   
-        root.update(startTime[i], val[i]);   
-        root.update(endTime[i], val[i]);
-    }
-    int q; cin >> q;
-    while(q--)
-    {   
-        int type, u, v; cin >> type >> u >> v;
-        if(type == 1)   
-        {   
-            root.update(startTime[u], v);   
-            root.update(endTime[u], v);
-            val[u] = v;
+            Node k = pos.queries(0, abs(it) - 1);   
+            if(k.mx == 0) k.way = 1;    
+            k.mx++; 
+            neg.update(abs(it), k); 
         }   
         else    
         {   
-            if(u > v) swap(u, v);   
-            if(u == v) cout << val[u] << endl;
-            else if(u == 1) cout << root.queries(1, startTime[v]) << endl;   
-            else    
-            {   
-                int node = lca(u, v);   
-                int res = root.queries(1, startTime[u]) ^ root.queries(1, startTime[v]);
-                res ^= val[node];
-                cout << res << endl;    
-            }
+            Node k = neg.queries(0, it - 1);    
+            if(k.mx == 0) k.way = 1;    
+            k.mx++; 
+            pos.update(it, k);  
         }   
     }
+    Node k = pos.merge(pos.queries(0, m), neg.queries(0, m));   
+    cout << k.mx << " " << k.way << endl;
 }
 
 signed main()
@@ -230,7 +185,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
