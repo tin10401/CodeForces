@@ -12,7 +12,7 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
-
+ 
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -62,9 +62,9 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define endClock
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
-
+ 
 const static int INF = 1LL << 61;
-const static int MX = 5e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -88,108 +88,73 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
     
-const int MK = 22;
-int root[MX * MK], T[MX], ptr, m;    
-pii child[MX * MK]; 
-    
-void update(int prev, int curr, int left, int right, int index, int val)    
+class FW    
 {   
-    root[curr] = root[prev];    
-    child[curr].ff = child[prev].ff;    
-    child[curr].ss = child[prev].ss;    
-    if(left == right)   
+    public: 
+    int n, k;   
+    vvi root;
+    FW(int n, int k)    
     {   
-        root[curr] += val;  
-        return; 
+        this->n = n, this->k = k;   
+        root.rsz(n + 1, vi(k + 1, INT_MAX));
     }   
-    int middle = left + (right - left) / 2; 
-    if(index <= middle) 
-    {   
-        child[curr].ff = ++ptr;
-        update(child[prev].ff, child[curr].ff, left, middle, index, val);   
-    }   
-    else    
-    {   
-        child[curr].ss = ++ptr; 
-        update(child[prev].ss, child[curr].ss, middle + 1, right, index, val);  
-    }   
-    root[curr] = root[child[curr].ff] + root[child[curr].ss];   
-}   
     
-int queries(int i, int left, int right, int start, int end) 
-{   
-    if(left >= start && right <= end) return root[i];   
-    if(left > end || start > right) return 0;   
-    int middle = left + (right - left) / 2; 
-    return queries(child[i].ff, left, middle, start, end) + queries(child[i].ss, middle + 1, right, start, end);    
-}
-
+    void update(int id, int i, int val)
+    {   
+        while(id <= n)  
+        {   
+            root[id][i] = min(root[id][i], val);    
+            id += (id & -id);   
+        }   
+    }   
+    
+    int get(int id, int i)  
+    {   
+        int res = INT_MAX;  
+        while(id)   
+        {   
+            res = min(res, root[id][i]);    
+            id -= (id & -id);   
+        }   
+        return res; 
+    }   
+};
+ 
 void solve()
 {
-    int n; cin >> n;    
-    vvi list;   
-    vi tmp;
-    for(int i = 0; i < n; i++)  
-    {   
-        int op; cin >> op;  
-        if(op == 0) list.pb({0});   
-        else
-        {   
-            if(op == 2) 
-            {   
-                int k, x; cin >> k >> x;    
-                tmp.pb(x);
-                list.pb({op, k, x});    
-            }   
-            else    
-            {   
-                int a; cin >> a;    
-                tmp.pb(a);
-                list.pb({op, a});   
-            }   
-        }   
-    }
+    int n, k; cin >> n >> k;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    vi tmp(arr);    
     srtU(tmp);  
     umii mp;
-    m = tmp.size();
-    for(int i = 0; i < tmp.size(); i++) mp[tmp[i]] = i; 
-    stack<int> s;   
-    for(int i = 0; i < n; i++)
+    int m = tmp.size();
+    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
+    int res = -1;
+    FW root(m + 1, k);
+    for(auto& it : arr) 
     {   
-        int op = list[i][0];    
-        if(op == 0) 
+        int id = mp[it];    
+        root.update(id, 1, it);
+        for(int i = 1; i < k; i++)  
         {   
-            int id = s.top(); s.pop();
-            T[i + 1] = ++ptr;   
-            update(T[i], T[i + 1], 0, m - 1, id, -1);
+            int sm = root.get(id - 1, i);  
+            root.update(id, i + 1, sm);
         }   
-        else if(op == 1)
-        {   
-            T[i + 1] = ++ptr;   
-            int a = mp[list[i][1]];
-            update(T[i], T[i + 1], 0, m - 1, a, 1);   
-            s.push(a);
-        }   
-        else    
-        {   
-            T[i + 1] = T[i];    
-            int k = list[i][1], x = mp[list[i][2]];
-            cout << queries(T[k], 0, m - 1, 0, x - 1) << endl;  
-        }
+        res = max(res, it - root.get(id, k));
     }
-
+    cout << res << endl;
 }
-
+ 
 signed main()
 {
     IOS;
     startClock
-
+ 
     int t = 1;
     //cin >> t;
     while(t--) solve();
-
+ 
     endClock
     return 0;
 }
-
