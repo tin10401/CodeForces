@@ -87,54 +87,94 @@ struct custom {
     static uint64_t splitmix64(uint64_t x) { x += 0x9e3779b97f4a7c15; x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9; x = (x ^ (x >> 27)) * 0x94d049bb133111eb; return x ^ (x >> 31); }
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
+struct Node 
+{   
+    Node* children[2];  
+    int val;
+    Node() : val(0), children{} {}
+};  
+
+static Node nodes[MX];  
+
+class Trie  
+{   
+    public: 
+    Node* root; 
+    int count = 0;
+    Node* newNode()
+    {   
+        nodes[count] = Node();
+        return &nodes[count++];
+    }
     
+    Trie()  
+    {   
+        root = newNode();  
+    }   
+
+    void insert(int num)    
+    {   
+        Node* curr = root;  
+        for(int i = 30; i >= 0; i--)    
+        {   
+            int bits = (num >> i) & 1;
+            if(!curr->children[bits]) curr->children[bits] = newNode();  
+            curr = curr->children[bits];   
+            curr->val++;
+        }   
+    };
+    
+    int search(int a, int b)
+    {   
+        int res = 0;    
+        Node* curr = root;  
+        int num = a ^ b;
+        for(int i = 30; i >= 0; i--)    
+        {   
+            int j = (num >> i) & 1; 
+            int aBit = (a >> i) & 1;    
+            int bBit = (b >> i) & 1;    
+            int k = aBit ^ (!j);    
+            if(k < bBit && curr->children[!j]) res += curr->children[!j]->val;
+            if(!curr->children[j]) break;    
+            curr = curr->children[j];
+        }   
+        return res; 
+    }
+};
 
 
 void solve()
 {
-    int n, k; cin >> n >> k;    
-    vi a(n), b(n);
-    for(auto& it : a) cin >> it;    
-    for(auto& it : b) cin >> it;    
-    int max_e = 0;
-    vpii arr;
-    for(int i = 0; i < n; i++)  
+    // fix for new test case
+    int n; cin >> n; 
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    int q; cin >> q;    
+    vi b;
+    for(int i = 0; i < q; i++)  
     {   
-        max_e = max(max_e, a[i]);   
-        if(b[i] == 1) arr.pb({a[i], i});
-    }   
-    srtR(arr); 
-    if(!arr.empty())    
-    {   
-        if(arr.front().ff + k > max_e)
-        {   
-            a[arr.front().ss] += k; 
-        }   
-        else    
-        {   
-            int m = arr.size();
-            int extra = k % m;  
-            int get = k / m;    
-            for(int i = m / 2; i < m; i++) a[arr[i].ss] += get + (extra-- > 0);   
-            for(int i = 0; i < m / 2; i++) a[arr[i].ss] += get + (extra-- > 0);
-        }   
-    }   
-    ordered_set s;  
-    int res = 0;
-    srt(a);
-    for(int i = 0; i < n; i++)
-    {   
-        s.insert({a[i], i});
-    }   
-    for(int i = 0; i < n; i++)  
-    {   
-        s.erase(s.lb({a[i], i}));
-        int m = s.size();
-        int j = m / 2 - (m % 2 == 0);
-        res = max(res, a[i] + s.find_by_order(j)->first);  
-        s.insert({a[i], i});  
+        int l, r; cin >> l >> r;    
+        b.pb(l), b.pb(r + 1);
     }
-    cout << res << endl;
+    Trie trie;
+    int curr = 0;
+    trie.insert(0);
+    vi res(b.size());
+    for(auto& it : arr)
+    {       
+        curr ^= it;
+        for(int j = 0; j < b.size(); j++)   
+        {   
+            res[j] += trie.search(curr, b[j]);
+        }   
+        trie.insert(curr);  
+    }   
+    for(int i = 0; i < b.size(); i += 2)    
+    {   
+        cout << res[i + 1] - res[i] << endl;    
+    }
+        
 }
 
 signed main()
