@@ -88,84 +88,11 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
     
-class FW    
-{   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
-    {   
-        this->n = n;    
-        root.rsz(n + 1);    
-    }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            id += (id & -id);   
-        }   
-    }   
-        
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id > 0)   
-        {   
-            res += root[id];    
-            id -= (id & -id);   
-        }   
-        return res; 
-    }   
-    
-    int findK(int k)    
-    {   
-        if(get(n) < k) return -1;
-        int curr = 0, sm = 0;   
-        int range = log2(n);
-        for(int i = range; i >= 0; i--)
-        {   
-            int tmp = curr | (1 << i);  
-            if(tmp <= n && sm + root[tmp] < k)    
-            {   
-                sm += root[tmp];    
-                curr = tmp;
-            }   
-        }   
-        return curr + 1;    
-    }
-};
+
 
 void solve()
 {
-    int n, x; cin >> n >> x;    
-    FW root(n); 
-    vi arr(n + 1);  
-    for(int i = 1; i <= n; i++) 
-    {   
-        cin >> arr[i];  
-        if(arr[i] == x) root.update(i, 1);  
-    }   
-    int q; cin >> q;    
-    while(q--)  
-    {   
-        int type; cin >> type;  
-        if(type == 1)   
-        {   
-            int l, r, k; cin >> l >> r >> k;    
-            k += root.get(l - 1);   
-            if(k > root.get(r)) {cout << -1 << endl; continue;} 
-            cout << root.findK(k) << endl;   
-        }   
-        else    
-        {   
-            int i, val; cin >> i >> val;
-            if(arr[i] == x) root.update(i, -1); 
-            if(val == x) root.update(i, 1); 
-            arr[i] = val;   
-        }   
-    }
+    
 }
 
 signed main()
