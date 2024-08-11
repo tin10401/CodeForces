@@ -88,53 +88,59 @@ struct custom {
     size_t operator()(uint64_t x) const { static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count(); return splitmix64(x + FIXED_RANDOM); }
 };
     
-
+class FW    
+{   
+    public: 
+    int n;  
+    vi root;    
+    FW(int n)   
+    {   
+        this->n = n;    
+        root.rsz(n + 1);    
+    }   
+    
+    void update(int id, int val)    
+    {   
+        while(id <= n)
+        {   
+            root[id] += val;    
+            id += (id & -id);   
+        }   
+    }   
+    
+    int get(int id) 
+    {   
+        int res = 0;    
+        while(id)   
+        {   
+            res += root[id];    
+            id -= (id & -id);   
+        }   
+        return res; 
+    }   
+};
 
 void solve()
 {
-    int n, k; cin >> n >> k;    
-    vi a(n), b(n);
-    for(auto& it : a) cin >> it;    
-    for(auto& it : b) cin >> it;    
-    int max_e = 0;
-    vpii arr;
+    int n; cin >> n;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    int iv = 0, res = 0;
     for(int i = 0; i < n; i++)  
     {   
-        max_e = max(max_e, a[i]);   
-        if(b[i] == 1) arr.pb({a[i], i});
-    }   
-    srtR(arr); 
-    if(!arr.empty())    
-    {   
-        if(arr.front().ff + k > max_e)
+        FW root(n);
+        for(int j = i + 1; j < n; j++)
         {   
-            a[arr.front().ss] += k; 
-        }   
-        else    
-        {   
-            int m = arr.size();
-            int extra = k % m;  
-            int get = k / m;    
-            for(int i = m / 2; i < m; i++) a[arr[i].ss] += get + (extra-- > 0);   
-            for(int i = 0; i < m / 2; i++) a[arr[i].ss] += get + (extra-- > 0);
+            if(arr[i] > arr[j]) 
+            {   
+                iv++;   
+                int mid = root.get(arr[i]) - root.get(arr[j]);  
+                res = max(res, 2 * mid + 1);    
+            }   
+            root.update(arr[j], 1); 
         }   
     }   
-    ordered_set s;  
-    int res = 0;
-    srt(a);
-    for(int i = 0; i < n; i++)
-    {   
-        s.insert({a[i], i});
-    }   
-    for(int i = 0; i < n; i++)  
-    {   
-        s.erase(s.lb({a[i], i}));
-        int m = s.size();
-        int j = m / 2 - (m % 2 == 0);
-        res = max(res, a[i] + s.find_by_order(j)->first);  
-        s.insert({a[i], i});  
-    }
-    cout << res << endl;
+    cout << iv - res << endl;
 }
 
 signed main()
@@ -143,7 +149,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
