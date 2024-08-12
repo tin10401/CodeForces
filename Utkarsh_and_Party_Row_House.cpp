@@ -84,12 +84,100 @@ struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
+
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
 
+class FW    
+{   
+    public: 
+    int n;  
+    vi root;    
+    FW(int n)   
+    {   
+        this->n = n;    
+        root.rsz(n + 1);    
+    }   
+    
+    void update(int id, int val)    
+    {   
+        while(id <= n)  
+        {   
+            root[id] += val;    
+            id += (id & -id);   
+        }   
+    }   
+    
+    int get(int id) 
+    {   
+        int res = 0;    
+        while(id > 0)
+        {   
+            res += root[id];    
+            id -= (id & -id);   
+        }   
+        return res; 
+    }   
+    
+    int queries(int left, int right)    
+    {   
+        return get(right) - get(left - 1);  
+    }
+};
 
 void solve()
 {
+    int n, q;   
+    cin >> n >> q;  
+    vi arr(n + 1);
+    FW prefix(n), curr(n), suffix(n);   
+    for(int i = 1; i <= n; i++)
+    {   
+        cin >> arr[i];  
+        prefix.update(i, arr[i] * (i - 1));    
+        suffix.update(i, arr[i] * (n - i - 1));    
+        curr.update(i, arr[i]);
+    }   
+    auto prefix_compute = [&](int left, int right)
+    {   
+        if(left > right) return 0LL;
+        return prefix.queries(left, right) - curr.queries(left, right) * (left - 1);    
+    };
     
+    auto suffix_compute = [&](int left, int right)  
+    {   
+        if(left > right) return 0LL;
+        return suffix.queries(left, right) - curr.queries(left, right) * (n - right - 1); 
+    };
+
+    while(q--)  
+    {   
+        int op; cin >> op;  
+        if(op == 2) 
+        {   
+            int x, val; cin >> x >> val;    
+            curr.update(x, val);   
+            prefix.update(x, val * (x - 1)); 
+            suffix.update(x, val * (n - x - 1));   
+            arr[x] = val;   
+        }   
+        else    
+        {   
+            int k, l, r; cin >> k >> l >> r;    
+            if(k <= l)  
+            {   
+                cout << prefix_compute(k, r) - prefix_compute(k, l - 1) << endl; 
+            }   
+            else if(k <= r) 
+            {   
+                cout << suffix_compute(l, k) + prefix_compute(k, r) << endl;
+            }   
+            else    
+            {   
+                cout << suffix_compute(l, k) - suffix_compute(r + 1, k) << endl;
+            }
+        }   
+    }
+
 }
 
 signed main()
