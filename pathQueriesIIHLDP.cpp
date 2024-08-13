@@ -12,7 +12,7 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
-
+ 
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -59,9 +59,9 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define endClock
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
-
+ 
 const static int INF = 1LL << 61;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -85,119 +85,100 @@ struct custom {
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
-
-struct Node 
-{   
-    Node* children[2];  
-    Node() : children{} {}  
-};  
-    
-Node* root[4 * MX];
-vpii graph[MX];
+ 
 const int MK = 20;
-int id[MX], depth[MX], sz[MX], dp[MX][MK], tp[MX], ct, n, q, v[MX];
+int id[MX], dp[MX][MK], root[1 << 19], v[MX], sz[MX], n, q, depth[MX], tp[MX], ct;
+vi graph[MX];
     
-void insert(Node* curr, int num)    
-{   
-    Node* tmp = curr;   
-    for(int i = 20; i >= 0; i--)    
-    {   
-        int bits = (num >> i) & 1;  
-        if(!tmp->children[bits]) tmp->children[bits] = new Node();  
-        tmp = tmp->children[bits];  
-    }   
-}   
-    
-int search(Node* r, int num)    
-{   
-    Node* curr = r; 
-    int res = 0;
-    for(int i = 20; i >= 0; i--)    
-    {   
-        int bits = (num >> i) & 1;  
-        if(curr->children[!bits]) res |= (1 << i), curr = curr->children[!bits];    
-        else if(curr->children[bits]) curr = curr->children[bits];   
-        else return 0;
-    }   
-    return res; 
-}
-
-Node* combine(Node* a, Node* b) 
-{   
-    if(!a) return b;    
-    if(!b) return a;    
-    Node* curr = new Node();
-    curr->children[0] = combine(a->children[0], b->children[0]);    
-    curr->children[1] = combine(a->children[1], b->children[1]);    
-    return curr;    
-}
-    
-void build(int i = 0, int left = 0, int right = ct - 1)    
+void update(int i, int left, int right, int index, int val) 
 {   
     if(left == right)   
     {   
-        root[i] = new Node();   
-        insert(root[i], v[left]);
+        root[i] = val;  
         return; 
     }   
     int middle = left + (right - left) / 2; 
-    build(i * 2 + 1, left, middle); 
-    build(i * 2 + 2, middle + 1, right);
-    root[i] = combine(root[i * 2 + 1], root[i * 2 + 2]);    
-}
+    if(index <= middle) update(i * 2 + 1, left, middle, index, val);   
+    else update(i * 2 + 2, middle + 1, right, index, val);  
+    root[i] = max(root[i * 2 + 1], root[i * 2 + 2]);    
+}   
     
-int queries(int start, int end, int x, int i = 0,  int left = 0, int right = ct - 1) 
+int queries(int i, int left, int right, int start, int end) 
 {   
-    if(left >= start && right <= end) return search(root[i], x);    
+    if(left >= start && right <= end) return root[i];   
     if(left > end || start > right) return 0;   
     int middle = left + (right - left) / 2; 
-    return max(queries(start, end, x, i * 2 + 1, left, middle), queries(start, end, x, i * 2 + 2, middle + 1, right));  
-}
-    
+    return max(queries(i * 2 + 1, left, middle, start, end), queries(i * 2 + 2, middle + 1, right, start, end));    
+}   
+ 
 int dfs1(int node = 1, int par = 1) 
 {   
-    sz[node] = 1;
-    for(auto& [nei, w] : graph[node])   
+    sz[node] = 1;   
+    for(auto& nei : graph[node])    
     {   
         if(nei == par) continue;    
         dp[nei][0] = node;  
         depth[nei] = depth[node] + 1;   
-        sz[node] += dfs1(nei, node); 
+        sz[node] += dfs1(nei, node);
     }   
     return sz[node];    
 }
     
+void dfs2(int node = 1, int par = 1, int top = 1)  
+{   
+    id[node] = ct++;    
+    tp[node] = top;
+    update(0, 0, n - 1, id[node], v[node]);
+    int nxt = -1, max_size = -1;    
+    for(auto& nei : graph[node])    
+    {   
+        if(nei == par) continue;    
+        if(sz[nei] > max_size)  
+        {   
+            max_size = sz[nei]; 
+            nxt = nei;  
+        }   
+    }   
+    if(nxt == -1) return;   
+    dfs2(nxt, node, top);   
+    for(auto& nei : graph[node])    
+    {   
+        if(nei != par && nei != nxt) dfs2(nei, node, nei);  
+    }   
+}
+    
+int path(int node, int par) 
+{   
+    int res = 0;    
+    while(node != par)  
+    {   
+        if(node == tp[node])   
+        {   
+            res = max(res, v[node]);    
+            node = dp[node][0]; 
+        }   
+        else if(depth[tp[node]] > depth[par])  
+        {   
+            res = max(res, queries(0, 0, n - 1, id[tp[node]], id[node]));    
+            node = dp[tp[node]][0];
+        }   
+        else    
+        {   
+            res = max(res, queries(0, 0, n - 1, id[par] + 1, id[node]));  
+            break;  
+        }   
+    }   
+    return res; 
+}
+ 
 void init_lca() 
 {   
-    for(int j = 1; j < MK; j++)
+    for(int j = 1; j < MK; j++) 
     {   
         for(int i = 1; i <= n; i++) 
         {   
             dp[i][j] = dp[dp[i][j - 1]][j - 1]; 
         }   
-    }   
-}   
-    
-void dfs2(int node = 1, int par = 1, int top = 1, int weight = 0)   
-{   
-    tp[node] = top; 
-    v[ct] = weight; 
-    id[node] = ct++;    
-    int index = -1, new_weight = 0; 
-    for(auto& [nei, w] : graph[node])   
-    {   
-        if(nei == par) continue;    
-        if(index == -1 || sz[nei] > sz[index])  
-        {   
-            index = nei;    
-            new_weight = w; 
-        }   
-    }   
-    if(index == -1) return; 
-    dfs2(index, node, top, new_weight); 
-    for(auto& [nei, w] : graph[node])   
-    {   
-        if(nei != par && nei != index) dfs2(nei, node, nei, w); 
     }   
 }
     
@@ -210,68 +191,55 @@ int lca(int a, int b)
         if((d >> i) & 1) b = dp[b][i];  
     }   
     if(a == b) return a;    
-    for(int i = MK - 1; i >= 0; i--)
+    for(int i = MK - 1; i >= 0; i--)    
     {   
         if(dp[a][i] != dp[b][i]) a = dp[a][i], b = dp[b][i];    
     }   
     return dp[a][0];    
 }
-    
-int path(int node, int par, int x)    
-{   
-    int res = 0;    
-    while(node != par)  
-    {   
-        if(node == tp[node])   
-        {   
-            res = max(res, v[id[node]] ^ x);    
-            node = dp[node][0];
-        }   
-        else if(depth[tp[node]] > depth[par])   
-        {   
-            res = max(res, queries(id[tp[node]], id[node], x));   
-            node = dp[tp[node]][0];
-        }   
-        else    
-        {   
-            res = max(res, queries(id[par] + 1, id[node], x));  
-            break;  
-        }   
-    }   
-    return res; 
-}
-    
+ 
 void solve()
 {
     cin >> n >> q;  
-    for(int i = 0; i < n - 1; i++)  
+    for(int i = 1; i <= n; i++) cin >> v[i];    
+    for(int i = 0; i < n - 1; i++)
     {   
-        int a, b, w; cin >> a >> b >> w;    
-        graph[a].pb({b, w});    
-        graph[b].pb({a, w});
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
     dfs1(); 
     init_lca(); 
     dfs2();
-    build();
     while(q--)  
     {   
-        int a, b, x; cin >> a >> b >> x;    
-        int c = lca(a, b);
-        int res = max(path(a, c, x), path(b, c, x));
-        cout << res << endl;
-    }
+        int type; cin >> type;  
+        if(type == 1)   
+        {   
+            int i, x; cin >> i >> x;    
+            update(0, 0, n - 1, id[i], x);  
+            v[i] = x;   
+        }   
+        else    
+        {   
+            int a, b; cin >> a >> b;
+            int c = lca(a, b);
+            int res = max(max(path(a, c), path(b, c)), v[c]);
+            cout << res << endl;    
+        }   
+    }   
+ 
 }
-
+ 
 signed main()
 {
     IOS;
     startClock
-
+ 
     int t = 1;
     //cin >> t;
     while(t--) solve();
-
+ 
     endClock
     return 0;
 }
