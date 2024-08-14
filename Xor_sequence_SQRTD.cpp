@@ -61,7 +61,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 2e4 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -86,10 +86,100 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
 
+const int MK = 30;  
+const int MM = 150;
+int ptr, T[MX * MK][2], a[MX], b[MX], f[MM][MX], g[MM][MX];
+    
+void clear()    
+{   
+    for(int i = 0; i <= ptr; i++) T[i][0] = T[i][1] = 0;    
+    ptr = 0;    
+}
+    
+void add(int num)   
+{   
+    int node = 0;   
+    for(int i = MK - 1; i >= 0; i--)    
+    {   
+        int bits = (num >> i) & 1;
+        if(!T[node][bits]) T[node][bits] = ++ptr;   
+        node = T[node][bits];   
+    }   
+}
+    
+int queries(int num)    
+{   
+    int res = 0, node = 0;
+    for(int i = MK - 1; i >= 0; i--)    
+    {   
+        int bits = (num >> i) & 1;  
+        if(T[node][!bits]) res |= (1 << i), node = T[node][!bits];  
+        else node = T[node][bits];  
+    }   
+    return res; 
+}
 
 void solve()
 {
-    
+    int n, q, t; cin >> n >> q >> t;    
+    for(int i = 1; i <= n; i++) 
+    {   
+        cin >> a[i];    
+        b[i] = a[i];    
+        a[i] ^= a[i - 1];   
+    }   
+    for(int i = n - 1; i; i--) b[i] ^= b[i + 1];
+    for(int st = 1; st <= n; st += MM)  
+    {   
+        int id = st / MM;
+        int mx = 0; 
+        clear();    
+        for(int i = st; i <= n; i++)    
+        {   
+            add(a[i - 1]);  
+            mx = max(mx, queries(a[i]));    
+            f[id][i] = mx;  
+        }   
+    }   
+    for(int st = MM; st <= n; st += MM) 
+    {   
+        int id = st / MM - 1;   
+        int mx = 0; 
+        clear();    
+        for(int i = st; i >= 1; i--)    
+        {   
+            add(b[i + 1]);  
+            mx = max(mx, queries(b[i]));    
+            g[id][i] = mx;  
+        }   
+    }
+    int res = 0;
+    while(q--)  
+    {   
+        int x, y; cin >> x >> y;
+        int l = ((x + res * t) % n) + 1;  
+        int r = ((y + res * t) % n) + 1;  
+        if(l > r) swap(l, r);   
+        clear();
+        if(r - l + 1 <= MM) 
+        {   
+            res = 0;    
+            for(int i = l; i <= r; i++) 
+            {   
+                add(a[i - 1]);  
+                res = max(res, queries(a[i]));  
+            }   
+            cout << res << endl;    
+            continue;   
+        }   
+        int il = (l - 1 + MM - 1) / MM; 
+        int ir = r / MM - 1;    
+        res = max(f[il][r], g[ir][l]);  
+        for(int i = l; i <= il * MM; i++) add(a[i - 1]);    
+        for(int i = (ir + 1) * MM; i <= r; i++) res = max(res, queries(a[i]));  
+        cout << res << endl;    
+    }
+
 }
 
 signed main()

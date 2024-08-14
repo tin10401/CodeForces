@@ -85,11 +85,105 @@ struct custom {
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
+    
+const int MK = 30;  
+int root[MX], T[MX * MK][2], depth[MX], ptr, t[MX], val[MX], n, q, dp[MX][MK];    
+vi graph[MX];   
 
+int insert(int prev, int num, int lev) 
+{   
+    int newRoot = ++ptr;    
+    int curr = newRoot;
+    for(int i = MK - 1; i >= 0; i--)    
+    {   
+        int bits = (num >> i) & 1;  
+        T[curr][!bits] = T[prev][!bits];
+        T[curr][bits] = ++ptr;  
+        prev = T[prev][bits];   
+        curr = T[curr][bits];   
+        t[curr] = lev;
+    }
+    return newRoot;
+}
+    
+void dfs(int node, int par) 
+{   
+    root[node] = insert(root[par], val[node], depth[node]);
+    for(auto&nei : graph[node]) 
+    {   
+        if(nei == par) continue;    
+        dp[nei][0] = node;  
+        depth[nei] = depth[node] + 1;
+        dfs(nei, node);
+    }   
+}
+    
+void init_lca() 
+{   
+    for(int j = 1; j < MK; j++) 
+    {   
+        for(int i = 1; i <= n; i++) dp[i][j] = dp[dp[i][j - 1]][j - 1]; 
+    }   
+}
+    
+int lca(int a, int b)   
+{   
+    if(depth[a] > depth[b]) swap(a, b); 
+    int d = depth[b] - depth[a];    
+    for(int i = MK - 1; i >= 0; i--)    
+    {   
+        if((d >> i) & 1) b = dp[b][i];  
+    }   
+    if(a == b) return a;    
+    for(int i = MK - 1; i >= 0; i--)    
+    {   
+        if(dp[a][i] != dp[b][i]) a = dp[a][i], b = dp[b][i];    
+    }   
+    return dp[a][0];    
+}
+    
+int queries(int node, int lev, int num) 
+{   
+    int res = 0;    
+    for(int i = MK - 1; i >= 0; i--)    
+    {   
+        int bits = (num >> i) & 1;  
+        int nxt = T[node][!bits];
+        if(nxt && t[nxt] >= lev)
+        {   
+            res |= (1 << i);    
+            node = T[node][!bits];  
+        }   
+        else node = T[node][bits];  
+    }   
+    return res; 
+}
 
 void solve()
 {
-    
+    cin >> n >> q;  
+    for(int i = 1; i <= n; i++) cin >> val[i];  
+    for(int i = 0; i < n - 1; i++)  
+    {   
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a); 
+    }   
+    dfs(1, 0);  
+    init_lca();
+    auto get = [&](int a, int b, int c, int s)  
+    {   
+        return max(queries(root[a], depth[c], s), queries(root[b], depth[c], s));
+    };
+
+    while(q--)  
+    {   
+        int a, b; cin >> a >> b;    
+        int c = lca(a, b);  
+        int res = max(get(a, b, c, val[a]), get(a, b, c, val[b])); 
+        cout << res << endl;
+    }
+
 }
 
 signed main()

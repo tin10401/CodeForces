@@ -85,11 +85,111 @@ struct custom {
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
-
-
+    
+class SGT   
+{   
+    public: 
+    int n;  
+    vi root;    
+    vpii range;
+    SGT(vi& arr)
+    {   
+        n = arr.size();
+        root.rsz(n * 4), range.rsz(n * 4);  
+        build(0, 0, n - 1, arr);    
+    }   
+    
+    void build(int i, int left, int right, vi& arr) 
+    {   
+        range[i].ff = left, range[i].ss = right;    
+        if(left == right)   
+        {   
+            root[i] = arr[left];    
+            return; 
+        }   
+        int middle = left + (right - left) / 2; 
+        build(i * 2 + 1, left, middle, arr);    
+        build(i * 2 + 2, middle + 1, right, arr);   
+        root[i] = gcd(root[i * 2 + 1], root[i * 2 + 2]);    
+    }   
+    
+    void update(int id, int val)    
+    {   
+        update(0, 0, n - 1, id, val);   
+    }   
+    
+    void update(int i, int left, int right, int id, int val)    
+    {   
+        if(left == right)   
+        {   
+            root[i] = val;  
+            return;
+        }   
+        int middle = left + (right - left) / 2; 
+        if(id <= middle) update(i * 2 + 1, left, middle, id, val);  
+        else update(i * 2 + 2, middle + 1, right ,id, val); 
+        root[i] = gcd(root[i * 2 + 1], root[i * 2 + 2]);    
+    }   
+    
+    bool queries(int start, int end, int x)
+    {   
+        int res = 0;    
+        queries(0, 0, n - 1, start, end, x, res);    
+        return res <= 1;    
+    }   
+    
+    void queries(int i, int left, int right, int start, int end, int x, int& res) 
+    {   
+        if(left > end || start > right) return;
+        if(left >= start && right <= end)   
+        {   
+            if(root[i] % x == 0) return;    
+            while(range[i].ff != range[i].ss)   
+            {   
+                if(root[i * 2 + 1] % x != 0)
+                {   
+                    if(root[i * 2 + 2] % x != 0)    
+                    {   
+                        res += 2;   
+                        return; 
+                    }   
+                    i = i * 2 + 1;  
+                }   
+                else i = i * 2 + 2; 
+            }
+            res++;
+            return; 
+        }
+        int middle = left + (right - left) / 2; 
+        queries(i * 2 + 1, left, middle, start, end, x, res);   
+        if(res > 1) return; 
+        queries(i * 2 + 2, middle + 1, right, start, end, x, res);  
+    }   
+};
+   
 void solve()
 {
-    
+    int n; cin >> n;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    SGT root(arr);  
+    int q; cin >> q;
+    while(q--)
+    {   
+        int op; cin >> op;  
+        if(op == 2) 
+        {   
+            int i, x; cin >> i >> x;    
+            i--;
+            root.update(i, x);  
+        }   
+        else    
+        {   
+            int l, r, x; cin >> l >> r >> x;
+            l--, r--;
+            cout << (root.queries(l, r, x) ? yes : no); 
+        }   
+    }
 }
 
 signed main()

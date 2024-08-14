@@ -61,7 +61,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static int INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 2e6 + 1;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -86,10 +86,89 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
 
+struct Node 
+{   
+    int maxGap, cnt, leftGap, rightGap, range;
+    Node() : leftGap(0), rightGap(0), cnt(0), maxGap(0), range(1) {}  
+};  
+int n;
+vector<Node> root;
+Node merge(Node left, Node right)   
+{   
+    Node res;   
+    res.maxGap = max({left.maxGap, right.maxGap, left.rightGap + right.leftGap});   
+    res.leftGap = left.leftGap + (left.leftGap == left.range ? right.leftGap : 0);
+    res.rightGap = right.rightGap + (right.rightGap == right.range ? left.rightGap : 0);    
+    res.range = left.range + right.range;   
+    return res; 
+}
+    
+void build(int i, int left, int right) 
+{   
+    if(left == right)   
+    {   
+        root[i].cnt = 0;
+        root[i].maxGap = root[i].leftGap = root[i].rightGap = (root[i].cnt == 0);   
+        return; 
+    }   
+    int middle = left + (right - left) / 2;
+    build(i * 2 + 1, left, middle); 
+    build(i * 2 + 2, middle + 1, right);    
+    root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);
+}
+
+void update(int id, int val, int i = 0, int left = 0, int right = MX - 1)   
+{   
+    if(left == right)   
+    {   
+        root[i].cnt += val; 
+        root[i].maxGap = root[i].leftGap = root[i].rightGap = (root[i].cnt == 0);   
+        root[i].range = 1;
+        return; 
+    }   
+    int middle = left + (right - left) / 2; 
+    if(id <= middle) update(id, val, i * 2 + 1, left, middle);  
+    else update(id, val, i * 2 + 2, middle + 1, right); 
+    root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);  
+}   
+    
+int queries(int k, int i = 0, int left = 0, int right = MX - 1)
+{   
+    if(left == right) return left + 1;
+    int middle = left + (right - left) / 2; 
+    if(root[i * 2 + 1].maxGap >= k) return queries(k, i * 2 + 1, left, middle); 
+    return queries(k, i * 2 + 2, middle + 1, right);
+}   
+    
 
 void solve()
 {
-    
+    root.assign(MX * 4, Node());
+    build(0, 0, MX - 1);
+    cin >> n;    
+    for(int i = 0; i < n; i++)  
+    {   
+        int val; cin >> val;
+        update(val, 1); 
+    }
+    int q; cin >> q;    
+    while(q--)  
+    {   
+        char op; cin >> op; 
+        if(op == '?')   
+        {   
+            int k; cin >> k;
+            cout << queries(k) << " "; 
+        }   
+        else    
+        {   
+            int v; cin >> v;    
+            update(v, (op == '+' ? 1 : -1));    
+        }   
+    }   
+    cout << endl;
+
+
 }
 
 signed main()
@@ -98,7 +177,7 @@ signed main()
     startClock
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
