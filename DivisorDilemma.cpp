@@ -86,11 +86,63 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+pii root[MX * 4];   
+int M;
+
+pii merge(pii left, pii right) {return {left.ff + right.ff, left.ss + right.ss};}
+
+void update(int id, int val, int i = 0, int left = 0, int right = M - 1)    
+{   
+    if(left == right)   
+    {   
+        root[i].ff++, root[i].ss += val;  
+        return; 
+    }   
+    int middle = left + (right - left) / 2; 
+    if(id <= middle) update(id, val, i * 2 + 1, left, middle);  
+    else update(id, val, i * 2 + 2, middle + 1, right);    
+    root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);
+}   
+    
+int get(int k, int res = 0, int i = 0, int left = 0, int right = M - 1) 
+{   
+    if(left == right) return res + k * (root[i].ss / root[i].ff); 
+    int middle = left + (right - left) / 2; 
+    auto [rightCount, rightSum] = root[i * 2 + 2];  
+    if(rightCount >= k) return get(k, res, i * 2 + 2, middle + 1, right);   
+    return get(k - rightCount, res + rightSum, i * 2 + 1, left, middle);    
+}
 
 void solve()
 {
-
+    int t; cin >> t;
+    vvpii queries(MX);
+    int m = 0;
+    for(int i = 0; i < t; i++)
+    {   
+        int n, k; cin >> n >> k;
+        queries[n].pb({k, i});
+        m = max(m, n);
+    }   
+    vi pre(m + 1);
+    for(int i = 1; i <= m; i++) 
+    {   
+        for(int j = i; j <= m; j += i) pre[j] += i; 
+    }   
+    vi tmp(pre);    
+    srtU(tmp);  
+    M = tmp.size(); 
+    umap<int, int> pos;
+    for(int i = 0; i < M; i++) pos[tmp[i]] = i;    
+    vi res(t);
+    for(int i = 1; i <= m; i++) 
+    {   
+        update(pos[pre[i]], pre[i]); 
+        for(auto& [k, index] : queries[i]) res[index] = get(k);
+    }
+    for(auto& it : res) cout << it << endl;
 }
+
 
 signed main()
 {

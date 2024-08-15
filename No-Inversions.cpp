@@ -86,10 +86,79 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+struct Node 
+{   
+    int leftCount, rightCount, range, ans;  
+    char leftChar, rightChar;
+    Node(char ch = '#', int cnt = 0) : range(cnt), leftCount(cnt), rightCount(cnt), rightChar(ch), leftChar(ch), ans(1) {}   
+};
+
+class SGT   
+{   
+    public: 
+    int n;  
+    vector<Node> root;  
+    SGT(const string& s)  
+    {   
+        n = s.size();
+        root.rsz(n * 4);    
+        build(0, 0, n - 1, s);
+    }   
+    Node merge(Node left, Node right)   
+    {   
+        if(left.range == 0) return right;   
+        if(right.range == 0) return left;
+        Node res;   
+        bool ok = left.rightChar <= right.leftChar;
+        left.ans -= ok ? left.rightCount * (left.rightCount + 1) / 2 : 0;   
+        right.ans -= ok ? right.leftCount * (right.leftCount + 1) / 2 : 0;
+        res.ans = left.ans + right.ans + (ok ? (left.rightCount + right.leftCount + 1) * (left.rightCount + right.leftCount) / 2 : 0);
+        res.leftCount = left.leftCount + (left.leftCount == left.range && ok ? right.leftCount : 0);    
+        res.rightCount = right.rightCount + (right.rightCount == right.range && ok ? left.rightCount : 0);   
+        res.range = left.range + right.range;   
+        res.leftChar = left.leftChar;   
+        res.rightChar = right.rightChar;
+        return res; 
+    }
+        
+    void build(int i, int left, int right, const string& s)
+    {   
+        if(left == right)   
+        {   
+            root[i] = Node(s[left], 1);
+            return;
+        }   
+        int middle = left + (right - left) / 2; 
+        build(i * 2 + 1, left, middle, s);  
+        build(i * 2 + 2, middle + 1, right, s); 
+        root[i] = merge(root[i * 2 + 1], root[i * 2 + 2]);  
+    }
+        
+    int queries(int start, int end) 
+    {   
+        return queries(0, 0, n - 1, start, end).ans;    
+    }   
+    
+    Node queries(int i, int left, int right, int start, int end)    
+    {   
+        if(left > end || start > right) return Node();  
+        if(left >= start && right <= end) return root[i];   
+        int middle = left + (right - left) / 2; 
+        return merge(queries(i * 2 + 1, left, middle, start, end), queries(i * 2 + 2, middle + 1, right, start, end));  
+    }
+};
 
 void solve()
 {
-
+    int n; cin >> n;    
+    string s; cin >> s; 
+    SGT root(s);    
+    int q; cin >> q;    
+    while(q--)  
+    {   
+        int l, r; cin >> l >> r;    
+        cout << root.queries(--l, --r) << endl; 
+    }
 }
 
 signed main()
@@ -98,7 +167,7 @@ signed main()
     startClock
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
