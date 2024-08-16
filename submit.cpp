@@ -41,7 +41,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
-#define usi us<int, custom>
 #define ff first
 #define ss second
 #define rsz resize
@@ -50,6 +49,14 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
+
+//SGT DEFINE
+#define lc i * 2 + 1
+#define rc i * 2 + 2
+#define lp left, middle
+#define rp middle + 1, right
+#define midPoint left + (right - left) / 2
+
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -62,7 +69,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
 const static int MX = 2e6 + 5;
-const static int MOD = 1e9 + 7;
+const static int MOD = 1e6 + 3;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcount(x); }
@@ -86,81 +93,41 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-class FW    
+int f[MX], inv[MX]; 
+bitset<MX> bt;
+void generate() 
 {   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
+    f[0] = 1;
+    for(int i = 1; i < MX; i++) f[i] = (f[i - 1] * i) % MOD;    
+    inv[MX - 1] = modExpo(f[MX - 1], MOD - 2, MOD); 
+    for(int i = MX - 2; i >= 0; i--) inv[i] = (inv[i + 1] * (i + 1)) % MOD; 
+    bt.set(2);  
+    for(int i = 3; i < MX; i += 2) bt.set(i);   
+    for(int i = 3; i * i < MX; i += 2)  
     {   
-        this->n = n;    
-        root.rsz(n + 1);    
-    }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
+        if(bt[i])   
         {   
-            root[id] += val;    
-            id += (id & -id);   
+            for(int j = i; j * i < MX; j += 2) bt.reset(i * j); 
         }   
     }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id > 0)   
-        {   
-            res += root[id];    
-            id -= (id & -id);   
-        }   
-        return res;
-    }   
-        
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left - 1);  
-    }
-};
+}
+
+ll cnk(ll n, ll k)   
+{   
+    return f[n] * inv[n - k] % MOD * inv[k] % MOD;  
+}
 
 void solve()
 {
-    int n; cin >> n;    
-    var(3) list(n);    
-    vpii arr(n);
-    int res = 0;
-    for(int i = 0; i < n; i++)  
-    {   
-        cin >> arr[i].ff >> arr[i].ss;  
-        arr[i].ff--, arr[i].ss--;
-        if(i >= arr[i].ff && i <= arr[i].ss) res--;
-        list[i] = {arr[i].ff, arr[i].ss, i};
-    }   
-    srt(list);
-    pq<pii, vpii, greater<pii>> minHeap;
-    FW root(n);
-    for(int i = 0, j = 0; i < n; i++)  
-    {   
-        while(j < n && list[j][0] <= i) 
-        {       
-            root.update(list[j][2] + 1, 1);
-            minHeap.push({list[j][1], list[j][2]}); 
-            j++;
-        }
-        while(!minHeap.empty() && minHeap.top().ff < i) 
-        {   
-            root.update(minHeap.top().ss + 1, -1);  
-            minHeap.pop();  
-        }   
-        res += root.queries(arr[i].ff + 1, arr[i].ss + 1);
-    }   
-    cout << res / 2 << endl;
+    int n, x; cin >> n >> x;    
+    cout << (x * f[n]) % MOD << endl;
 }
 
 signed main()
 {
     IOS;
     startClock
+    generate();
 
     int t = 1;
     cin >> t;

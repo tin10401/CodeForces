@@ -49,14 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-
-//SGT DEFINE
-#define lc i * 2 + 1
-#define rc i * 2 + 2
-#define lp left, middle
-#define rp middle + 1, right
-#define midPoint left + (right - left) / 2
-
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -94,8 +86,73 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+class SGT    
+{   
+#define lc i * 2 + 1    
+#define rc i * 2 + 2
+    public: 
+    int n;  
+    vi root;    
+    SGT(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n * 4);    
+    }   
+    
+    void update(int id, int val)    
+    {   
+        update(0, 0, n - 1, id, val);   
+    }   
+        
+    void update(int i, int left, int right, int id, int val)    
+    {   
+        if(left == right)   
+        {   
+            root[i] = val;  
+            return; 
+        }
+        int middle = left + (right - left) / 2; 
+        if(id <= middle)  update(lc, left, middle, id, val);  
+        else update(rc, middle + 1, right, id, val);    
+        root[i] = max(root[lc], root[rc]);  
+    }
+    
+    int queries(int start, int end) 
+    {   
+        return queries(0, 0, n - 1, start, end);    
+    }   
+        
+    int queries(int i, int left, int right, int start, int end) 
+    {   
+        if(left >= start && right <= end) return root[i];   
+        if(left > end || start > right) return 0;   
+        int middle = left + (right - left) / 2; 
+        return max(queries(lc, left, middle, start, end), queries(rc, middle + 1, right, start, end));
+    }
+};
+
 void solve()
 {
+    int n; cin >> n;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;
+    int m = *max_element(all(arr));
+    SGT inc(m + 1), dec(m + 1), equal(m + 1);
+    int res = 0;    
+    umap<int, int> freq;
+    for(auto& x : arr)
+    {   
+        int iLen = max(inc.queries(1, x), equal.queries(1, x)) + 1; 
+        int dLen = max(dec.queries(x, m), equal.queries(x, m)) + 1; 
+        int eLen = 1 + freq[x];
+        int maxi = max({iLen, dLen, eLen}); 
+        freq[x] = maxi; 
+        res = max(res, maxi);   
+        inc.update(x, iLen);    
+        dec.update(x, dLen);    
+        equal.update(x, eLen);  
+    }   
+    cout << res << endl;
 
 }
 
@@ -105,7 +162,7 @@ signed main()
     startClock
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

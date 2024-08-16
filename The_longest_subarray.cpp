@@ -49,14 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-
-//SGT DEFINE
-#define lc i * 2 + 1
-#define rc i * 2 + 2
-#define lp left, middle
-#define rp middle + 1, right
-#define midPoint left + (right - left) / 2
-
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -68,7 +60,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 5e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -93,19 +85,77 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+const int MK = 21;  
+const int MM = 61;
+int dp_and[MX][MK], dp_max[MM][7], bit[MM], log_table[MX];
 
 void solve()
 {
+    int n; cin >> n;    
+    mset(bit, 0);
+    for(int i = 0; i < n; i++) cin >> dp_and[i][0];
 
+    for(int j = 1; j < MK; j++) 
+    {   
+        for(int i = 0; i + (1 << j) <= n; i++)  
+        {   
+            dp_and[i][j] = dp_and[i][j - 1] & dp_and[i + (1 << (j - 1))][j - 1];    
+        }   
+    }
+    auto get_val = [&](int left, int right, bool get_and) 
+    {   
+        int j = log_table[right - left + 1];
+        if(!get_and) return max(dp_max[left][j], dp_max[right - (1 << j) + 1][j]);
+        return dp_and[left][j] & dp_and[right - (1 << j) + 1][j];   
+    };  
+    auto queries = [&](int start)  -> pii
+    {   
+        int left = start, right = n - 1, res = -1, v = -1;  
+        while(left <= right)
+        {   
+            int middle = left + (right - left) / 2; 
+            int val = get_val(start, middle, true);
+            if(val > 0) 
+            {   
+                if((val & (val - 1)) == 0) res = middle, v = val;
+                left = middle + 1;  
+            }   
+            else right = middle - 1;    
+        }   
+        return {res, v};
+    };
+
+    for(int i = 0; i < n; i++)  
+    {   
+        auto [cnt, j] = queries(i);
+        if(cnt == -1) continue;
+        j = log2(j);
+        bit[j] = max(bit[j], cnt - i + 1);
+    }
+    for(int i = 0; i < MM; i++) dp_max[i][0] = bit[i];  
+    for(int j = 1; j < 7; j++) 
+    {   
+        for(int i = 0; i + (1 << j) <= MM; i++)
+        {   
+            dp_max[i][j] = max(dp_max[i][j - 1], dp_max[i + (1 << (j - 1))][j - 1]);    
+        }   
+    }   
+    int q; cin >> q;
+    while(q--)  
+    {   
+        int l, r; cin >> l >> r;    
+        cout << get_val(l, r, false) << endl;   
+    }
 }
 
 signed main()
 {
     IOS;
     startClock
+    for(int i = 2; i < MX; i++) log_table[i] = log_table[i / 2] + 1;
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
