@@ -49,14 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-
-//SGT DEFINE
-#define lc i * 2 + 1
-#define rc i * 2 + 2
-#define lp left, middle
-#define rp middle + 1, right
-#define midPoint left + (right - left) / 2
-
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -93,10 +85,81 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+class FW    
+{   
+    public: 
+    int n;  
+    vi root;    
+    FW(int n)   
+    {   
+        this->n = n;    
+        root.rsz(n + 1);    
+    }   
+    
+    void update(int id, int val)    
+    {   
+        while(id <= n)  
+        {   
+            root[id] += val;    
+            id += (id & -id);   
+        }   
+    }   
+    
+    int get(int id) 
+    {   
+        int res = 0;    
+        while(id)   
+        {   
+            res += root[id];    
+            id -= (id & -id);
+        }   
+        return res;
+    }   
+    
+    int queries(int left, int right)    
+    {   
+        return get(right) - get(left - 1);  
+    }   
+};
 
 void solve()
 {
-
+    int n, q; cin >> n >> q;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    var(3) list;    
+    for(int i = 0; i + 1 < n; i++)  
+    {   
+        list.pb({min(arr[i], arr[i + 1]), 1, i + 1});   
+        list.pb({max(arr[i], arr[i + 1]), 3, i + 1});   
+    }   
+    vi left(q), right(q);
+    for(int i = 0; i < q; i++)  
+    {   
+        int l, r, x; cin >> l >> r >> x;
+        list.pb({x, 2, i});
+        left[i] = l, right[i] = r;  
+    }   
+    auto compare = [](const ar(3)& a, const ar(3)& b)   
+    {   
+        if(a[0] == b[0]) return a[1] < b[1];    
+        return a[0] < b[0]; 
+    };
+    sort(all(list), compare);
+    vi res(q);
+    FW root(n);
+    for(auto& [point, type, index] : list)  
+    {   
+        if(type == 2)   
+        {   
+            res[index] = root.queries(left[index], right[index]);   
+        }   
+        else    
+        {   
+            root.update(index, (type == 1 ? 1 : -1));   
+        }   
+    }   
+    for(auto& it : res) cout << it << endl;
 }
 
 signed main()

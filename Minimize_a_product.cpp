@@ -49,14 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-
-//SGT DEFINE
-#define lc i * 2 + 1
-#define rc i * 2 + 2
-#define lp left, middle
-#define rp middle + 1, right
-#define midPoint left + (right - left) / 2
-
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -65,6 +57,11 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define startClock
 #define endClock
 #endif
+#define lc i * 2 + 1    
+#define rc i * 2 + 2    
+#define lp left, middle 
+#define rp middle + 1, right    
+#define midPoint left + (right - left) / 2
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
@@ -93,9 +90,116 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+struct Node 
+{   
+    int min1, min2, min_cnt1, min_cnt2; 
+    Node(int mini = INF, int cnt = 0) : min1(mini), min_cnt1(cnt), min_cnt2(0), min2(INF) {}    
+};  
+    
+class SGT   
+{   
+    public: 
+    int n;  
+    vector<Node> root;  
+    SGT(vi& arr)    
+    {   
+        n = arr.size(); 
+        root.rsz(n * 4);    
+        build(0, 0, n - 1, arr);    
+    }   
+    
+    void build(int i, int left, int right, vi& arr) 
+    {   
+        if(left == right)   
+        {   
+            root[i] = Node(arr[left], 1);   
+            return;
+        }   
+        int middle = midPoint;  
+        build(lc, lp, arr); 
+        build(rc, rp, arr); 
+        root[i] = merge(root[lc], root[rc]);    
+    }   
+    
+    Node merge(Node left, Node right)   
+    {   
+        if(left.min1 == INF) return right;  
+        if(right.min1 == INF) return left;
+        Node res;   
+        map<int, int> mp;   
+        mp[left.min1] += left.min_cnt1; 
+        mp[left.min2] += left.min_cnt2; 
+        mp[right.min1] += right.min_cnt1;   
+        mp[right.min2] += right.min_cnt2;   
+        auto it = begin(mp);    
+        res.min1 = it->first, res.min_cnt1 = it->second;    
+        it = next(it);
+        res.min2 = it->first, res.min_cnt2 = it->second;
+        return res;
+    }   
+    
+    void update(int id, int val)    
+    {   
+        update(0, 0, n - 1, id, val);   
+    }   
+    
+    void update(int i, int left, int right, int id, int val)    
+    {   
+        if(left == right)   
+        {   
+            root[i] = Node(val, 1); 
+            return; 
+        }   
+        int middle = midPoint;  
+        if(id <= middle) update(lc, lp, id, val);   
+        else update(rc, rp, id, val);
+        root[i] = merge(root[lc], root[rc]);    
+    }   
+    
+    int queries(int start, int end) 
+    {   
+        Node res = queries(0, 0, n - 1, start, end);    
+        if(res.min_cnt1 > 1) return res.min_cnt1 * (res.min_cnt1 - 1) / 2; 
+        return res.min_cnt2;
+    }   
+    
+    Node queries(int i, int left, int right, int start, int end)    
+    {   
+        if(left > end || start > right) return Node();  
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lc, lp, start, end), queries(rc, rp, start, end)); 
+    }
+    
+};
 
 void solve()
 {
+    int n, q; cin >> n >> q;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    SGT root(arr);  
+    int res = 0;
+    while(q--)  
+    {   
+        int op; cin >> op;  
+        if(op == 1) 
+        {   
+            int i, x; cin >> i >> x;    
+            i--;    
+            root.update(i, x);  
+        }   
+        else    
+        {   
+            int l, r; cin >> l >> r;
+            l--, r--;   
+            int tmp = root.queries(l, r);   
+            res += tmp;
+            res %= MOD;
+        }   
+    }   
+    cout << res << endl;
+            
 
 }
 
@@ -105,7 +209,7 @@ signed main()
     startClock
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

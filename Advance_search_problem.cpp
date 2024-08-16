@@ -20,7 +20,7 @@
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
 using namespace std;
-typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+typedef tree<int, null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
 #define all(x) begin(x), end(x)
 #define allr(x) rbegin(x), rend(x)
 #define ub upper_bound
@@ -56,7 +56,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define lp left, middle
 #define rp middle + 1, right
 #define midPoint left + (right - left) / 2
-
+    
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -94,9 +94,58 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+umap<string, ordered_set> bigList;
+string s;
+int n, q;
+uset<int> vis;
+void updateSet(ordered_set& small_set, int sign, int pos)    
+{   
+    if(sign == -1) small_set.erase(pos);
+    else small_set.insert(pos); 
+}
+    
+void update(int l, int r, int len, int sign)    
+{   
+    l = max(l, len - 1);
+    for(int i = l; i < n && i - len + 1 <= r; i++)
+    {   
+        string key = s.substr(i - len + 1, len);
+        updateSet(bigList[key], sign, i); 
+    }   
+}
+
+
+void updateList(int l, int r, const string& u)  
+{   
+    for(auto& len : vis) update(l, r, len, -1);
+    for(int i = l; i <= r; i++) s[i] = u[i - l];
+    for(auto& len : vis) update(l, r, len, 1);  
+}   
+
 void solve()
 {
-
+    cin >> n >> q >> s;
+    while(q--)  
+    {   
+        int op, l, r; cin >> op >> l >> r;  
+        string a; cin >> a;
+        l--, r--;
+        int m = a.size();
+        if(op == 1) 
+        {   
+            if(!vis.count(m))
+            {   
+                vis.insert(m);
+                update(0, n - 1, m, 1);
+            }   
+            auto& curr = bigList[a];   
+            cout << curr.order_of_key(r + 1) - curr.order_of_key(l + m - 1) << endl;
+        }   
+        else    
+        {   
+            updateList(l, r, a);    
+        }   
+    }
 }
 
 signed main()

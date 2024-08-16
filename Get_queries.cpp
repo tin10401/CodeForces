@@ -49,14 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-
-//SGT DEFINE
-#define lc i * 2 + 1
-#define rc i * 2 + 2
-#define lp left, middle
-#define rp middle + 1, right
-#define midPoint left + (right - left) / 2
-
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -93,10 +85,112 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+struct Node 
+{   
+    string s;   
+    int cnt;
+    Node(const string& s = "", int cnt = 0) : s(s), cnt(cnt) {}   
+};
+class SGT   
+{   
+#define lc i * 2 + 1    
+#define rc i * 2 + 2
+    public: 
+    int n;  
+    vector<Node> root;
+    SGT(vi& arr)    
+    {   
+        n = arr.size();
+        root.rsz(n * 4);    
+        build(0, 0, n - 1, arr);
+    }   
+        
+    Node fetch(int num)   
+    {   
+        string s = to_string(num);  
+        return {s, (int)s.size()};
+    }
+
+    void build(int i, int left, int right, vi& arr)
+    {   
+        if(left == right)   
+        {   
+            root[i] = fetch(arr[left]);
+            return; 
+        }   
+        int middle = left + (right - left) / 2;
+        build(lc, left, middle, arr);   
+        build(rc, middle + 1, right, arr);  
+        root[i].cnt = root[lc].cnt + root[rc].cnt;
+    }   
+    
+    void update(int id, int val)    
+    {   
+        update(0, 0, n - 1, id, val);   
+    }   
+    
+    void update(int i, int left, int right, int id, int val)    
+    {   
+        if(left == right)   
+        {   
+            root[i] = fetch(val);
+            return; 
+        }   
+        int middle = left + (right - left) / 2; 
+        if(id <= middle) update(lc, left, middle, id, val);  
+        else update(rc, middle + 1, right, id, val);
+        root[i].cnt = root[lc].cnt + root[rc].cnt;
+    }
+    
+    int queries(int start, int end, int k)  
+    {   
+        return queries(0, 0, n - 1, start, end, k);
+    }   
+    
+    int queries(int i, int left, int right, int start, int end, int &k) 
+    {   
+        if(left > end || start > right) return -1;  
+        if(left >= start && right <= end && k > root[i].cnt)   
+        {   
+            k -= root[i].cnt;   
+            return -1;
+        }   
+        if(left == right)   
+        {   
+            if(root[i].cnt >= k) return root[i].s[k - 1] - '0'; 
+            k -= root[i].cnt;   
+            return -1;  
+        }   
+        int middle = left + (right - left) / 2; 
+        int l = queries(lc, left, middle, start, end, k);   
+        if(l != -1) return l;   
+        return queries(rc, middle + 1, right, start, end, k);
+    }   
+};
+
 
 void solve()
 {
-
+    int n, q; cin >> n >> q;
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;
+    SGT root(arr);  
+    while(q--)  
+    {   
+        string op; cin >> op;   
+        if(op == "get") 
+        {   
+            int l, r, k; cin >> l >> r >> k;    
+            l--, r--;
+            cout << root.queries(l, r, k) << endl;  
+        }   
+        else    
+        {   
+            int i, x; cin >> i >> x;    
+            i--;
+            root.update(i, x);  
+        }   
+    }
 }
 
 signed main()
