@@ -102,9 +102,78 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+struct Node 
+{   
+    int mx, leftPart, rightPart, sm;    
+    Node(int val = INT_MIN, int sm = 0) : mx(val), leftPart(val), rightPart(val), sm(sm) {}   
+};
+
+class SGT   
+{   
+    public: 
+    int n;  
+    vector<Node> root;
+    SGT(vi& arr)    
+    {   
+        n = arr.size(); 
+        root.rsz(n * 4);    
+        build(entireTree, arr);
+    }   
+    
+    void build(iterator, vi& arr)   
+    {   
+        if(left == right)   
+        {   
+            root[i] = Node(arr[left], arr[left]);    
+            return; 
+        }   
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);    
+    }   
+    
+    Node merge(Node left, Node right)   
+    {   
+        Node res;   
+        res.mx = max({left.mx, right.mx, left.rightPart + right.leftPart}); 
+        res.leftPart = max(left.leftPart, left.sm + right.leftPart);    
+        res.rightPart = max(right.rightPart, right.sm + left.rightPart);   
+        res.sm = left.sm + right.sm;
+        return res;
+    }   
+    
+    Node queries(int start, int end)    
+    {   
+        return queries(entireTree, start, end);
+    }   
+    
+    Node queries(iterator, int start, int end)  
+    {   
+        if(left > end || start > right) return Node();  
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end)); 
+    }   
+};
+
+
 void solve()
 {
-
+    int n, q; cin >> n >> q;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    SGT root(arr);
+    while(q--)  
+    {   
+        int l, r; cin >> l >> r;    
+        l--, r--;   
+        Node M = root.queries(l, r), L = root.queries(0, l - 1), R = root.queries(r + 1, n - 1);
+        int ans = max({M.mx, L.mx, R.mx});  
+        ans = max(ans, M.sm + L.rightPart + R.leftPart);
+        ans = max(ans, M.leftPart + R.leftPart);  
+        ans = max(ans, M.rightPart + L.rightPart);
+        cout << ans << endl;    
+    }   
 }
 
 signed main()

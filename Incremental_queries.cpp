@@ -20,7 +20,7 @@
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
 using namespace std;
-typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+typedef tree<int, null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
 #define all(x) begin(x), end(x)
 #define allr(x) rbegin(x), rend(x)
 #define ub upper_bound
@@ -43,7 +43,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -60,10 +59,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
 #define iterator int i, int left, int right
-    
-//FW TREE   
-#define goUp id += (id & -id)   
-#define goDown id -= (id & -id)
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
@@ -101,9 +96,106 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+struct Node 
+{   
+    int mx, sm, odd, even;
+    Node(int val = 0, int odd = 0, int even = 0) : mx(val), sm(val), odd(odd), even(even) {};
+};  
+
+class SGT   
+{   
+    public: 
+    int n;  
+    vector<Node> root;  
+    SGT(vi& arr)  
+    {   
+        n = arr.size(); 
+        root.rsz(n * 4);    
+        build(entireTree, arr); 
+    }   
+    
+    Node init(int x) {   return Node(x, (x & 1), !(x & 1)); }
+
+    void build(iterator, vi& arr) 
+    {   
+        if(left == right)   
+        {   
+            root[i] = init(arr[left]);
+            return; 
+        }   
+        int middle = midPoint;  
+        build(lp, arr); 
+        build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
+    }   
+    
+    Node merge(Node left, Node right)   
+    {
+        Node res;   
+        res.mx = max(left.mx, right.mx);    
+        res.sm = left.sm + right.sm;    
+        res.odd = left.odd + right.odd; 
+        res.even = left.even + right.even;
+        return res;
+    }   
+    
+    void update(int id, int val)    
+    {   
+        update(entireTree, id, val);    
+    }   
+    
+    void update(iterator, int id, int x)
+    {   
+        if(left == right)   
+        {   
+            root[i] = init(x);
+            return; 
+        }   
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, x);   
+        else update(rp, id, x);   
+        root[i] = merge(root[lc], root[rc]);    
+    }   
+    
+    int queries(int start, int end) 
+    {   
+        Node res = queries(entireTree, start, end);
+        int x = res.mx;
+        int c = (x & 1) ? res.even : res.odd;
+        return ((x * (end - start + 1) - res.sm - c) / 2) + c;
+    }   
+    
+    Node queries(iterator, int start, int end)  
+    {   
+        if(left > end || start > right) return Node(); 
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end)); 
+    }
+
+};
+    
 
 void solve()
 {
+    int n, q; cin >> n >> q;    
+    vi arr(n);
+    for(auto& it : arr) cin >> it;
+    SGT root(arr);
+    while(q--)  
+    {   
+        int op; cin >> op;  
+        if(op == 1) 
+        {   
+            int i, k; cin >> i >> k;    
+            root.update(--i, k);
+        }   
+        else    
+        {   
+            int l, r; cin >> l >> r;    
+            cout << root.queries(--l, --r) << endl;
+        }   
+    }
 
 }
 
