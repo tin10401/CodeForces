@@ -102,8 +102,99 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+const int MK = 24;
+int n, q;
+vpii bits[MK];  
+int root[MK][MX * 2];   
+void updateTree(int pos, int id, int delta) 
+{   
+    while(id < MX * 2)  
+    {   
+        root[pos][id] += delta; 
+        goUp;   
+    }   
+}   
+    
+int get(int pos, int id)    
+{   
+    int res = 0;    
+    while(id)   
+    {   
+        res += root[pos][id];   
+        goDown; 
+    }   
+    return res; 
+}
+    
+int filter(int num, int i)  {return num & ((1 << i) - 1);}
+
+    
+void addNumber(int pos, int num)    
+{   
+    for(int i = 1; i < MK; i++) 
+    {   
+        int val = filter(num, i);   
+        bits[i].pb(MP(val, pos));   
+    }   
+}   
+    
+void update(int pos, int num, int delta = 1)    
+{   
+    for(int i = 1; i < MK; i++) 
+    {   
+        int val = filter(num, i);   
+        int id = ub(all(bits[i]), MP(val, pos)) - begin(bits[i]);   
+        updateTree(i, id, delta);   
+    }   
+}   
+    
+int queries(int pos, int num)   
+{   
+    int res = 0;    
+    for(int i = 1; i < MK; i++) 
+    {   
+        int val = filter(num, i);   
+        int id = ub(all(bits[i]), MP(val, pos)) - begin(bits[i]);   
+        res += get(i, id);  
+    }   
+    return res; 
+}
+
 void solve()
 {
+    cin >> n >> q;  
+    vi arr(n + 1);  
+    for(int i = 1; i <= n; i++) 
+    {   
+        cin >> arr[i];  
+        addNumber(i, arr[i]);   
+    }   
+    
+    var(4) data(q);
+    for(int i = 0; i < q; i++)
+    {   
+        auto& [op, l, r, x] = data[i]; 
+        cin >> op >> l >> r;
+        if(op == 1) addNumber(l, r);    
+        else cin >> x;
+    }   
+    
+    for(int i = 1; i < MK; i++) srtU(bits[i]);  
+    for(int i = 1; i <= n; i++) update(i, arr[i]);  
+    for(int i = 0; i < q; i++)  
+    {   
+        auto& [op, l, r, x] = data[i];  
+        if(op == 1) 
+        {   
+            update(l, arr[l], -1);  
+            arr[l] = r;
+            update(l, arr[l]);
+        }   
+        else    
+        {   
+            cout << queries(r, x) - queries(l - 1, x) << endl;  
+        }   
+    }
 
 }
 

@@ -43,7 +43,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -59,11 +58,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define entireTree 0, 0, n - 1
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
-#define iterator int i, int left, int right
-    
-//FW TREE   
-#define goUp id += (id & -id)   
-#define goDown id -= (id & -id)
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
@@ -75,7 +69,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-const static ll INF = 1LL << 61;
+const static int INF = 1LL << 61;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
@@ -101,10 +95,103 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+class FW    
+{   
+    public: 
+    int n;  
+    vi root;    
+    FW() {} 
+
+    void init(int n)
+    {   
+        this->n = n;    
+        root.assign(n + 1, 0);
+    }   
+    
+    void update(int id, int val)    
+    {   
+        while(id <= n)  
+        {   
+            root[id] = max(root[id], val);  
+            id += (id & -id);   
+        }   
+    }
+    
+    int get(int id) 
+    {   
+        int res = 0;    
+        while(id)   
+        {   
+            res = max(res, root[id]);   
+            id -= (id & -id);   
+        }   
+        return res; 
+    }   
+};
+
+FW root;
+int depth[MX], val[MX], vis[MX];  
+vvi graph;
+int max_depth = 0;
+void dfs(int node, int par) 
+{   
+    max_depth = max(max_depth, depth[node]);
+    root.update(depth[node], val[node]);
+    for(auto& nei : graph[node])    
+    {   
+        if(nei == par) continue;
+        depth[nei] = depth[node] + 1;
+        dfs(nei, node); 
+    }   
+}
 
 void solve()
 {
+    int n; cin >> n;    
+    graph.assign(n + 1, {});
+    max_depth = 0;
+    for(int i = 1; i <= n; i++) cin >> val[i];  
+    for(int i = 0; i < n - 1; i++)  
+    {   
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a); 
+    }   
+    root.init(n + 1);
+    depth[1] = 1;
+    dfs(1, 0);
+    int q; cin >> q;
+    auto queries = [&](int k) -> int    
+    {   
+        int left = 1, right = max_depth, res = 0;  
+        while(left <= right)    
+        {   
+            int middle = midPoint;  
+            if(root.get(midPoint) > k) res = middle, right = middle - 1;    
+            else left = middle + 1; 
+        }   
+        return res - 1; 
+    };  
 
+    while(q--)  
+    {   
+        int op; cin >> op;  
+        if(op == 1) 
+        {   
+            int i, x; cin >> i >> x;    
+            val[i] += x;    
+            root.update(depth[i], val[i]);   
+        }   
+        else    
+        {   
+            int p; cin >> p;
+            cout << queries(p) << endl;
+        }   
+    }
+
+
+
+    
 }
 
 signed main()
@@ -113,7 +200,7 @@ signed main()
     startClock
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

@@ -101,9 +101,112 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+class SGT   
+{   
+    public: 
+    int n;  
+    vi root, lazy;
+    SGT(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n * 4), lazy.rsz(n * 4);    
+    }   
+    
+    void update(int start, int end, int val)    
+    {   
+        update(entireTree, start, end, val);    
+    }   
+    
+    void update(iterator, int start, int end, int val)  
+    {   
+        pushDown;
+        if(left > end || start > right) return;
+        if(left >= start && right <= end)   
+        {   
+            lazy[i] += val; 
+            pushDown;   
+            return;
+        }   
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = root[lc] + root[rc];  
+    }   
+    
+    void push(iterator) 
+    {   
+        root[i] += (right - left + 1) * lazy[i];    
+        if(left != right)   
+        {   
+            lazy[lc] += lazy[i];    
+            lazy[rc] += lazy[i];    
+        }   
+        lazy[i] = 0;    
+    }   
+    
+    int queries(int start, int end) 
+    {   
+        return queries(entireTree, start, end); 
+    }   
+    
+    int queries(iterator, int start, int end)   
+    {   
+        pushDown;
+        if(left > end || start > right) return 0;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return queries(lp, start, end) + queries(rp, start, end);   
+    }   
+};
 
+const int MK = 21;  
+int dp[MX][MK];
 void solve()
 {
+    int n, q; cin >> n >> q;    
+    for(int i = 1; i <= n; i++) cin >> dp[i][0];
+    for(int j = 1; j < MK; j++) 
+    {   
+        for(int i = 1; i + (1 << j) <= n + 1; i++)  
+        {   
+            dp[i][j] = __gcd(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);    
+        }   
+    }   
+    auto get = [&](int left, int right) 
+    {   
+        int j = log2(right - left + 1); 
+        return __gcd(dp[left][j], dp[right - (1 << j) + 1][j]);   
+    };  
+    vvpii Q(n + 1);
+    for(int i = 0; i < q; i++)  
+    {   
+        int a, b; cin >> a >> b;    
+        Q[a].pb({b, i});    
+    }   
+    SGT root(n + 1);
+    vi res(q);
+    for(int i = n; i; i--)  
+    {   
+        for(int j = i; j <= n;) 
+        {   
+            int left = j, right = n, nxt = i;   
+            while(left <= right)    
+            {   
+                int middle = midPoint;  
+                if(get(i, middle) == get(i, j)) nxt = middle, left = middle + 1;    
+                else right = middle - 1;    
+            }   
+            root.update(j, nxt, get(i, j)); 
+            j = nxt + 1;    
+        }   
+        for(auto& [b, index] : Q[i])    
+        {   
+            res[index] = root.queries(i, b);    
+        }   
+    }   
+    for(auto& it : res) cout << it << endl;
+
+
 
 }
 
