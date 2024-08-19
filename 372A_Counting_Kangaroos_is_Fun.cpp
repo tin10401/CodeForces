@@ -104,32 +104,21 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-    int n, k; cin >> n >> k;    
+    int n; cin >> n;    
     vi arr(n);  
-    bool ok = false;
-    for(auto& it : arr)     
+    for(auto& it : arr) cin >> it;  
+    vb vis(n);  
+    int res = 0;    
+    srt(arr);
+    for(int left = 0, right = n / 2; left < n; left++)
     {   
-        cin >> it;
-        ok |= (it == k);
+        if(vis[left]) continue;
+        while(right < n && arr[left] * 2 > arr[right]) right++;
+        if(right < n) vis[right] = true;    
+        right++;
+        res++;  
     }
-    int res = 0;
-    if(!ok) arr.pb(k), res++;  
-    srt(arr);   
-    auto med = [](int num)  
-    {   
-        return (num + 1) / 2 - 1;   
-    };
-    if(arr[med(n)] == k) {cout << res << endl; return;}  
-    int pos = lb(all(arr), k) - begin(arr);  
-    if(pos < n / 2) 
-    {   
-        while(arr[med(arr.size())] != k) arr.insert(begin(arr), 0), res++;
-        cout << res << endl;
-        return; 
-    }
-    while(arr[med(n + res)] != k) res++;   
     cout << res << endl;
-
 }
 
 signed main()
