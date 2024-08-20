@@ -104,10 +104,35 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-    int a, b, c, d; cin >> a >> b >> c >> d;    
-    int f = max((3 * a) / 10, a - a / 250 * c); 
-    int s = max((3 * b) / 10, b - b / 250 * d); 
-    cout << (f > s ? "Misha" : (f == s ? "Tie" : "Vasya")) << endl;
+    int n, k; cin >> n >> k;    
+    string s; cin >> s; 
+    auto getChar = [](const string& s, int index, int k, int n) -> char
+    {   
+        int prev = s[index - 1] - 'A';
+        if(index == n - 1) return ((prev + 1) % k) + 'A';    
+        int nxt = s[index + 1] - 'A';
+        for(int i = 0; i < k; i++) 
+        {   
+            if(i != prev && i != nxt) return i + 'A';   
+        }   
+        return ((prev + 1) % k) + 'A'; 
+    };
+    auto compute = [&](string a) -> pair<int, string>
+    {   
+        int res = 0;
+        for(int i = 1; i < n; i++)  
+        {   
+            if(a[i] == a[i - 1]) res++, a[i] = getChar(a, i, k, n);
+        }   
+        return {res, a};    
+    };
+    auto [a, s1] = compute(s);    
+    int extra = 0;
+    if(k == 2) s.front() = (((s.front() - 'A') + 1) % k) + 'A', extra = 1;
+    auto [b, s2] = compute(s);
+    b += extra;
+    if(a < b) cout << a << endl << s1 << endl;  
+    else cout << b << endl << s2 << endl;
 }
 
 signed main()

@@ -104,10 +104,35 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-    int a, b, c, d; cin >> a >> b >> c >> d;    
-    int f = max((3 * a) / 10, a - a / 250 * c); 
-    int s = max((3 * b) / 10, b - b / 250 * d); 
-    cout << (f > s ? "Misha" : (f == s ? "Tie" : "Vasya")) << endl;
+    int n, m, k; cin >> n >> m >> k;    
+    vector<vector<char>> grid(n, vector<char>(m, '.'));
+    int s = 0;
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++) cin >> grid[i][j], s += grid[i][j] == '.';
+    }   
+    k = s - k;
+    auto dfs = [&](int row, int col, auto& dfs) -> void 
+    {   
+        if(row < 0 || col < 0 || row == n || col == m || k <= 0 || grid[row][col] != '.') return; 
+        k--;
+        grid[row][col] = 'X';   
+        dfs(row + 1, col, dfs); 
+        dfs(row - 1, col, dfs); 
+        dfs(row, col + 1, dfs); 
+        dfs(row, col - 1, dfs);
+    };
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++)  
+        {   
+            dfs(i, j, dfs);
+            if(grid[i][j] == '.') cout << 'X';  
+            else if(grid[i][j] == 'X') cout << '.'; 
+            else cout << grid[i][j];    
+        }   
+        cout << endl;
+    }   
 }
 
 signed main()

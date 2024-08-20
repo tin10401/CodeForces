@@ -76,7 +76,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 5e3 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -101,14 +101,34 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
+int dp[MX][MX], best[MX], prefix[MX];
 void solve()
 {
-    int a, b, c, d; cin >> a >> b >> c >> d;    
-    int f = max((3 * a) / 10, a - a / 250 * c); 
-    int s = max((3 * b) / 10, b - b / 250 * d); 
-    cout << (f > s ? "Misha" : (f == s ? "Tie" : "Vasya")) << endl;
+    int n, m, K; cin >> n >> m >> K;
+    for(int i = 0; i < n; i++)  
+    {   
+        int val; cin >> val;
+        prefix[i + 1] = prefix[i] + val;
+    }
+    for(int i = 0; i < n + 1; i++) fill(dp[i], dp[i] + K + 1, INT_MIN);   
+    fill(best, best + K + 1, INT_MIN);
+    dp[0][0] = 0;   
+    best[0] = 0;
+    int res = 0;
+    for(int i = m; i <= n; i++)  
+    {   
+        int sm = prefix[i] - prefix[i - m];
+        for(int k = 1; k <= K; k++) 
+        {   
+            dp[i][k] = best[k - 1] + sm;    
+            best[k] = max(best[k], dp[i - m][k]);
+        }
+        res = max(res, dp[i][K]);
+    }
+    cout << res << endl;
 }
+
+
 
 signed main()
 {
