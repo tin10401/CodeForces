@@ -102,12 +102,28 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+int cnt[MX];
 void solve()
 {
-    int a, b, c, d; cin >> a >> b >> c >> d;    
-    int f = max((3 * a) / 10, a - a / 250 * c); 
-    int s = max((3 * b) / 10, b - b / 250 * d); 
-    cout << (f > s ? "Misha" : (f == s ? "Tie" : "Vasya")) << endl;
+    int n; cin >> n;    
+    int sm = 0; 
+    vi arr(n);  
+    for(auto& it : arr) cin >> it, sm += it;    
+    if(sm % 3 != 0) {cout << 0 << endl; return;}    
+    sm /= 3;    
+    for(int i = n - 1, curr = 0; i >= 0; i--) 
+    {   
+        curr += arr[i];
+        cnt[i] += cnt[i + 1] + (curr == sm); 
+    }   
+    int res = 0;    
+    for(int i = 0, curr = 0; i + 2 < n; i++)
+    {   
+        curr += arr[i]; 
+        if(curr == sm) res += cnt[i + 2];   
+    }   
+    cout << res << endl;
+        
 }
 
 signed main()

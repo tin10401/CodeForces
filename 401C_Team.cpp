@@ -104,10 +104,29 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-    int a, b, c, d; cin >> a >> b >> c >> d;    
-    int f = max((3 * a) / 10, a - a / 250 * c); 
-    int s = max((3 * b) / 10, b - b / 250 * d); 
-    cout << (f > s ? "Misha" : (f == s ? "Tie" : "Vasya")) << endl;
+    int n, m; cin >> n >> m;    
+    string s;   
+    if((n > m && n - m > 1) || (m > n && m > 2 * (n + 1))) {cout << -1 << endl; return;}
+    if(abs(n - m) <= 1) 
+    {   
+        string a = n > m ? "01" : "10"; 
+        for(int i = 0; i < max(n, m); i++) s += a;  
+        if(abs(n - m) == 1) s.pop_back();   
+        cout << s << endl;  
+        return;
+    }
+    while(n > 0 && m > 0 && abs(n - m) > 1)
+    {   
+        int take=  min(m, 2LL);
+        s += string(take, '1'); 
+        s += '0';
+        n--, m -= take;
+    }   
+    for(int i = 0; i < n; i++) s += "10";   
+    if(m > n) s += string(m - n, '1');
+    cout << s << endl;
+
+
 }
 
 signed main()
