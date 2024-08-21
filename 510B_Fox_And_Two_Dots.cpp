@@ -105,7 +105,38 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-
+    int n, m; cin >> n >> m;    
+    vt<vt<char>> grid(n, vt<char>(m, '.')); 
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++) cin >> grid[i][j];   
+    }   
+    vvi vis(n, vi(m));
+    auto dfs = [&](int row, int col, int prev_row, int prev_col,  auto& dfs) -> bool 
+    {   
+        if(vis[row][col] == -1) return true;
+        else if(vis[row][col] == 1) return false;
+        vis[row][col] = -1; 
+        for(auto& dir : dirs)   
+        {   
+            int r = row + dir[0], c = col + dir[1]; 
+            if(r >= 0 && c >= 0 && r < n && c < m && grid[r][c] == grid[row][col])  
+            {   
+                if(r == prev_row && c == prev_col) continue;    
+                if(dfs(r, c, row, col, dfs)) return true;
+            }   
+        }
+        vis[row][col] = 1;  
+        return false;
+    };
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++)  
+        {   
+            if(dfs(i, j, -1, -1, dfs)) {cout << "Yes" << endl; return;}    
+        }   
+    }   
+    cout << "No" << endl;
 }
 
 signed main()

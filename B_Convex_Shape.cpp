@@ -102,9 +102,38 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
+char grid[51][51];
+int cnt, x[2501], y[2501];
 void solve()
 {
+    int n, m; cin >> n >> m;    
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++)  
+        {   
+            cin >> grid[i][j];  
+            if(grid[i][j] == 'B') x[++cnt] = i, y[cnt] = j; 
+        }
+    }   
+    auto check = [&](int x, int a1, int a2, int y, int b1, int b2) -> bool
+    {   
+        for(int i = min(a1, a2); i <= max(a1, a2); i++) if(grid[x][i] != 'B') return false; 
+        for(int i = min(b1, b2); i <= max(b1, b2); i++) if(grid[i][y] != 'B') return false; 
+        return true;    
+    };
+
+    for(int i = 1; i <= cnt; i++)   
+    {   
+        for(int j = i + 1; j <= cnt; j++)   
+        {   
+            if(check(x[i], y[i], y[j], y[j], x[i], x[j])) continue; 
+            if(check(x[j], y[i], y[j], y[i], x[i], x[j])) continue; 
+            cout << no; 
+            return; 
+        }   
+    }   
+    cout << yes;
+
 
 }
 

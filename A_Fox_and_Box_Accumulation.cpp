@@ -12,7 +12,7 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
-
+ 
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -28,7 +28,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define db double
 #define ll unsigned long long
 #define int long long
-#define vt vector
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
@@ -51,7 +50,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-
+ 
 //SGT DEFINE
 #define lc i * 2 + 1
 #define rc i * 2 + 2
@@ -65,7 +64,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 //FW TREE   
 #define goUp id += (id & -id)   
 #define goDown id -= (id & -id)
-
+ 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 #ifdef LOCAL
 #define startClock clock_t tStart = clock();
@@ -75,7 +74,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define endClock
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
-
+ 
 const static ll INF = 1LL << 61;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -102,22 +101,35 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
+ 
 void solve()
 {
-
+    int n; cin >> n;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    srt(arr);   
+    int curr = 1;
+    for(int i = 1; i < n; i++)
+    {   
+        int least = i / curr;   
+        if(arr[i] < least)  
+        {   
+            curr++; 
+        }   
+    }   
+    cout << curr << endl;
 }
 
+ 
 signed main()
 {
     IOS;
     startClock
-
+ 
     int t = 1;
     //cin >> t;
     while(t--) solve();
-
+ 
     endClock
     return 0;
 }
-

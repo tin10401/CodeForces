@@ -28,7 +28,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define db double
 #define ll unsigned long long
 #define int long long
-#define vt vector
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
@@ -105,6 +104,45 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n; cin >> n;    
+    vs s(n);
+    for(auto& it : s) cin >> it;
+    vi graph[26];   
+    for(int i = 1; i < n; i++)  
+    {   
+        auto& curr = s[i], &prev = s[i - 1];    
+        int m = curr.size(), mm = prev.size();  
+        bool ok = false;    
+        for(int j = 0; j < min(m, mm); j++)
+        {   
+            if(curr[j] != prev[j])  
+            {   
+                ok = true;  
+                graph[curr[j] - 'a'].pb(prev[j] - 'a');  
+                break;  
+            }   
+        }   
+        if(!ok && mm > m) {cout << "Impossible" << endl; return;} 
+    }   
+    vi res, vis(26); 
+    auto dfs = [&](int node, auto& dfs) -> bool 
+    {   
+        if(vis[node] == -1) return false;   
+        else if(vis[node] == 1) return true;    
+        vis[node] = -1; 
+        for(auto& nei : graph[node])    
+        {   
+            if(!dfs(nei, dfs)) return false;    
+        }
+        vis[node] = 1;  
+        res.pb(node);
+        return true;
+    };
+
+    for(int i = 0; i < 26; i++) if(!dfs(i, dfs)) {cout << "Impossible" << endl; return;} 
+    for(auto& it : res) cout << (char)(it + 'a');   
+    cout << endl;
+
 
 }
 
