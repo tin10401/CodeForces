@@ -105,6 +105,27 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    string s; cin >> s;
+    int k; cin >> k;    
+    s += string(k, '?');    
+    int res = 0;    
+    int n = s.size();
+    for(int i = 1; i <= n / 2; i++)  
+    {   
+        bool found = false;
+        for(int j = 0; j + i * 2 <= n && !found; j++)
+        {   
+            bool ok = true;
+            for(int k = j; k < j + i && ok && s[k] != '?'; k++)  
+            {   
+                if(s[k + i] == '?') break;
+                if(s[k] != s[k + i]) ok = false;    
+            }
+            if(ok) found = true;
+        }   
+        if(found) res = i * 2; 
+    }   
+    cout << res << endl;
 
 }
 

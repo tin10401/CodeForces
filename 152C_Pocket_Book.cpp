@@ -105,7 +105,19 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n, m; cin >> n >> m;    
+    vs s(n);   
+    for(auto& it : s) cin >> it;    
+    int res = 1;
+    for(int i = 0; i < m; i++)
+    {   
+        uset<char> st;
+        for(int j = 0; j < n; j++) st.insert(s[j][i]); 
+        res = (res * st.size()) % MOD;
+    }   
+    cout << res << endl;
 
+    
 }
 
 signed main()

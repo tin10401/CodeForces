@@ -102,9 +102,30 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
 void solve()
 {
+    int n; cin >> n;    
+    vi d(n), s(n);
+    queue<int> q;
+    for(int i = 0; i < n; i++)
+    {   
+        cin >> d[i] >> s[i];    
+        if(d[i] == 1) q.push(i);    
+    }   
+    vpii res;   
+    while(!q.empty())   
+    {   
+        auto node = q.front(); q.pop(); 
+        if(d[node] == 0) continue;  
+        res.pb({node, s[node]});    
+        int nei = s[node];
+        s[node] = 0;    
+        s[nei] ^= node; 
+        d[node]--, d[nei]--;    
+        if(d[nei] == 1) q.push(nei);    
+    }   
+    cout << res.size() << endl; 
+    for(auto& it : res) cout << it.ff << " " << it.ss << endl;
 
 }
 

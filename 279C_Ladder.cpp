@@ -105,6 +105,25 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n, m; cin >> n >> m;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    vi leftMost(n), rightMost(n);   
+    iota(all(leftMost), 0), iota(all(rightMost), 0);    
+    for(int i = 1; i < n; i++)  
+    {   
+        if(arr[i - 1] >= arr[i]) leftMost[i] = leftMost[i - 1]; 
+    }   
+    for(int i = n - 2; i >= 0; i--)     
+    {   
+        if(arr[i + 1] >= arr[i]) rightMost[i] = rightMost[i + 1];   
+    }   
+    while(m--)  
+    {   
+        int l, r; cin >> l >> r;    
+        l--, r--;   
+        cout << (rightMost[l] >= leftMost[r] ? "Yes" : "No") << endl;   
+    }
 
 }
 
