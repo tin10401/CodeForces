@@ -108,54 +108,39 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+int dp[1001][20][20], n;
+int arr[11], ans[1001];
+int dfs(int node, int diff, int prev)  
+{   
+    if(node == n) return true;  
+    int& res = dp[node][diff][prev];    
+    if(res != -1) return res;   
+    for(int i = 1; i <= 10; i++)    
+    {   
+        if(arr[i] == 1 && i > diff && i != prev)   
+        {   
+            int nxt = i - diff; 
+            ans[node] = i;
+            if(dfs(node + 1, nxt, i)) return res = 1; 
+            ans[node] = -1;
+        }   
+    }
+    return res = 0;
+}
 void solve()
 {
-    int n, k, p; cin >> n >> k >> p;    
-    int odd = 0, even = 0;  
-    vi arr(n);  
-    for(auto& it : arr)     
+    mset(dp, -1);
+    for(int i = 1; i <= 10; i++)    
     {   
-        cin >> it;  
-        if(it & 1) odd++;   
-        else even++;    
+        char ch; cin >> ch; 
+        arr[i] = ch - '0';  
     }
-    if(odd < k - p) {cout << no; return;}
-    auto cmp = [&](const int& a, const int& b)  
-    {   
-        return (a & 1) < (b & 1);   
-    };
-    sort(all(arr), cmp);    
-    vvi ans;
-    int i = 0, cnt = 0;
-    for(; i < n && cnt < p; cnt++, i++) 
-    {   
-        if(arr[i] & 1)  
-        {   
-            if(i == n - 1) {cout << no; return;}    
-            ans.pb({arr[i], arr[i + 1]});   
-            i++;
-        }   
-        else ans.pb({arr[i]});  
-    }
-    if(cnt < p) {cout << no; return;}
-    int j = n - 1;
-    for(; j > n - (k - p); j--) ans.pb({arr[j]});
-    if((i > j + 1 && k != p) || (cnt < p)) {cout << no; return;}
-    vi last;
-    for(; i <= n - max(1LL, k - p); i++) last.pb(arr[i]);
-    if(k != p && (last.empty() || sum(last) % 2 == 0)) {cout << no; return;}
+    cin >> n;
+    if(!dfs(0, 0, 11)) {cout << no; return;}
     cout << yes;
-    if(!last.empty())   
-    {   
-        if((int)ans.size() == k) ans.back().insert(ans.back().end(), last.begin(), last.end());  
-        else ans.pb(last);  
-    }
-    for(auto& it : ans) 
-    {   
-        cout << it.size() << " ";   
-        for(auto& i : it) cout << i << " "; 
-        cout << endl;
-    }
+    for(int i = 0; i < n; i++) cout << ans[i] << " ";   
+    cout << endl;
+
 
 }
 
