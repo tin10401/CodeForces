@@ -56,7 +56,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -111,30 +110,24 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-    int n; cin >> n;    
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi prefix(n), suffix(n);    
-    iota(all(prefix), 0), iota(all(suffix), 0); 
-    for(int i = 1; i < n; i++)  
+    int n, a, b; cin >> n >> a >> b;    
+    bool flag = false;  
+    if(a > b) swap(a, b), flag = true;  
+    pii res;    
+    int curr = INF;
+    int val = sqrt(6 * n);
+    for(int i = a; i <= max(a, val); i++)   
     {   
-        if(arr[i] > arr[i - 1]) prefix[i] = prefix[i - 1];  
-    }   
-    for(int i = n - 2; i >= 0; i--) 
-    {   
-        if(arr[i + 1] > arr[i]) suffix[i] = suffix[i + 1];  
-    }   
-    int res = 0;
-    for(int i = 0; i < n; i++)
-    {   
-        res = max(res, i - prefix[i] + 1 + (i < n - 1));    
-        res = max(res, suffix[i] - i + 1 + (i > 0));    
-        if(i && i < n - 1 && arr[i - 1] + 1 < arr[i + 1])   
+        int j = max(b, (6 * n + i - 1) / i);    
+        if(i * j < curr)    
         {   
-            res = max(res, suffix[i + 1] - prefix[i - 1] + 1);  
+            res = MP(i, j); 
+            curr = i * j;   
         }   
-    }   
-    cout << res << endl;
+    }
+    if(flag) swap(res.ff, res.ss);  
+    cout << curr << endl;   
+    cout << res.ff << " " << res.ss << endl;
 }
 
 signed main()
