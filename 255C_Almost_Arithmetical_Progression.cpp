@@ -108,33 +108,32 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
+const int MK = 4e3 + 1; 
+int dp[MK][MK];
 void solve()
 {
     int n; cin >> n;    
     vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi prefix(n), suffix(n);    
-    iota(all(prefix), 0), iota(all(suffix), 0); 
+    umap<int, int> mp;  
+    int id = 0;
+    for(auto& it : arr) 
+    {   
+        cin >> it;
+        if(!mp.count(it)) mp[it] = id++;    
+        it = mp[it];
+    }
+    for(int i = 0; i < n; i++) fill(dp[i], dp[i] + id, 1); 
+    int res = 1;
     for(int i = 1; i < n; i++)  
     {   
-        if(arr[i] > arr[i - 1]) prefix[i] = prefix[i - 1];  
-    }   
-    for(int i = n - 2; i >= 0; i--) 
-    {   
-        if(arr[i + 1] > arr[i]) suffix[i] = suffix[i + 1];  
-    }   
-    int res = 0;
-    for(int i = 0; i < n; i++)
-    {   
-        res = max(res, i - prefix[i] + 1 + (i < n - 1));    
-        res = max(res, suffix[i] - i + 1 + (i > 0));    
-        if(i && i < n - 1 && arr[i - 1] + 1 < arr[i + 1])   
+        for(int j = 0; j < i; j++)  
         {   
-            res = max(res, suffix[i + 1] - prefix[i - 1] + 1);  
+            dp[i][arr[j]] = max(dp[i][arr[j]], 1 + dp[j][arr[i]]);  
+            res = max(res, dp[i][arr[j]]);
         }   
     }   
     cout << res << endl;
+
 }
 
 signed main()

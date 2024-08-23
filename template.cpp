@@ -56,6 +56,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
+#define gcd(a, b) __gcd(a, b)
 
 //SGT DEFINE
 #define lc i * 2 + 1

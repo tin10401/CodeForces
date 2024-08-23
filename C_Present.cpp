@@ -56,7 +56,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -111,28 +110,33 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-    int n; cin >> n;    
+    int n, m, k; cin >> n >> m >> k;    
     vi arr(n);  
     for(auto& it : arr) cin >> it;  
-    vi prefix(n), suffix(n);    
-    iota(all(prefix), 0), iota(all(suffix), 0); 
-    for(int i = 1; i < n; i++)  
+    auto compute = [&](int K) -> bool 
     {   
-        if(arr[i] > arr[i - 1]) prefix[i] = prefix[i - 1];  
-    }   
-    for(int i = n - 2; i >= 0; i--) 
-    {   
-        if(arr[i + 1] > arr[i]) suffix[i] = suffix[i + 1];  
-    }   
-    int res = 0;
-    for(int i = 0; i < n; i++)
-    {   
-        res = max(res, i - prefix[i] + 1 + (i < n - 1));    
-        res = max(res, suffix[i] - i + 1 + (i > 0));    
-        if(i && i < n - 1 && arr[i - 1] + 1 < arr[i + 1])   
+        int total = 0;  
+        vi sweep(n), a(arr);
+        for(int i = 0; i < n; i++)  
         {   
-            res = max(res, suffix[i + 1] - prefix[i - 1] + 1);  
+            if(i) sweep[i] += sweep[i - 1]; 
+            a[i] += sweep[i];   
+            if(a[i] < K)    
+            {   
+                int x = K - a[i];
+                sweep[i] += x; 
+                if(i + k < n) sweep[i + k] -= x;    
+                total += x; 
+            }   
         }   
+        return total <= m;
+    };  
+    int left = 0, right = *max_element(all(arr)) + m, res = 0; 
+    while(left <= right)    
+    {   
+        int middle = midPoint;  
+        if(compute(middle)) res = middle, left = middle + 1;    
+        else right = middle - 1;    
     }   
     cout << res << endl;
 }

@@ -56,7 +56,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -111,30 +110,52 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    // BINARY SEARCH APPROACH
     int n; cin >> n;    
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi prefix(n), suffix(n);    
-    iota(all(prefix), 0), iota(all(suffix), 0); 
-    for(int i = 1; i < n; i++)  
+    vi a(n), tmp;    
+    for(auto& it : a) {cin >> it; tmp.pb(it);} 
+    int m; cin >> m;    
+    vi b(m);    
+    for(auto& it : b) {cin >> it; tmp.pb(it);} 
+    srt(a), srt(b);
+    int sa = 3 * n, sb = 3 * m; 
+    pii ans = {sa, sb};
+    auto cmp = [](pii a, pii b) -> pii  
     {   
-        if(arr[i] > arr[i - 1]) prefix[i] = prefix[i - 1];  
-    }   
-    for(int i = n - 2; i >= 0; i--) 
+        int d1 = a.ff - a.ss, d2 = b.ff - b.ss;
+        if(d1 == d2) return max(a, b);  
+        return d1 > d2 ? a : b; 
+    };
+    for(auto& num : tmp)
     {   
-        if(arr[i + 1] > arr[i]) suffix[i] = suffix[i + 1];  
-    }   
-    int res = 0;
-    for(int i = 0; i < n; i++)
-    {   
-        res = max(res, i - prefix[i] + 1 + (i < n - 1));    
-        res = max(res, suffix[i] - i + 1 + (i > 0));    
-        if(i && i < n - 1 && arr[i - 1] + 1 < arr[i + 1])   
-        {   
-            res = max(res, suffix[i + 1] - prefix[i - 1] + 1);  
-        }   
-    }   
-    cout << res << endl;
+        int id1 = sa - (ub(all(a), num) - begin(a));    
+        int id2 = sb - (ub(all(b), num) - begin(b));
+        ans = cmp(ans, MP(id1, id2));    
+    }
+    cout << ans.ff << ":" << ans.ss << endl;
+// TWO POINTER APPROACH   
+//    int n; cin >> n;    
+//    vi a(n);    
+//    for(auto& it : a) cin >> it;    
+//    int m; cin >> m;    
+//    vi b(m);    
+//    for(auto& it : b) cin >> it;    
+//    srt(a), srt(b);
+//    int sa = 3 * n, sb = 3 * m; 
+//    int diff = sa - sb, a_score = sa, b_score = sb, i = 0, j = 0;   
+//    while(i < n || j < m)   
+//    {   
+//        int d = (i < n && j < m ? min(a[i], b[j]) : (i < n ? a[i] : b[j])); 
+//        if(i < n && a[i] <= d) sa--, i++;    
+//        if(j < m && b[j] <= d) sb--, j++;    
+//        int x = sa - sb;
+//        if(x > diff || (x == diff && sa > a_score))
+//        {   
+//            diff = x;
+//            a_score = sa, b_score = sb; 
+//        }   
+//    }   
+//    cout << a_score << ":" << b_score << endl;
 }
 
 signed main()
