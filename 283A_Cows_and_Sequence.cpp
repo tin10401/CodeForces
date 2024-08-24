@@ -108,86 +108,39 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
-class FW    
-{   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
-    {   
-        this->n = n;    
-        root.rsz(n + 1);    
-    }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            goUp;   
-        }   
-    }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id)   
-        {   
-            res += root[id];    
-            goDown; 
-        }   
-        return res; 
-    }   
-    
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left);
-    }   
-        
-    void reset()    
-    {   
-        root.assign(n + 1, 0);  
-    }
-};
+int prefix[MX];
 
 void solve()
 {
-    int n; cin >> n;
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi tmp(arr);    
-    srtU(tmp);
-    umap<int, int> mp;  
-    int m = tmp.size();
-    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
-    vi f(n), g(n), cnt(n);
-    umap<int, int> mp2;
-    FW root(++m);
-    for(int i = 0; i < n; i++)  
+    int q; cin >> q;    
+    vi curr(1); 
+    int sm = 0;
+    while(q--)  
     {   
-        arr[i] = mp[arr[i]];
-        int val = root.queries(0, arr[i]);  
-        f[i] = val; 
-        val = root.queries(arr[i] - 1, m);  
-        g[i] = val;
-        cnt[i] = mp2[arr[i]]++;
-        root.update(arr[i], 1); 
-    }   
-    root.reset();
-    int res = 0;
-    vi suffix;
-    mp2 = {};
-    for(int i = n - 1; i >= 0; i--) 
-    {   
-        int val = root.queries(arr[i] - 1, m);  
-        res += val * f[i];  
-        val = root.queries(0, arr[i]);  
-        res += val * g[i];
-        res -= cnt[i] * mp2[arr[i]]++;
-        root.update(arr[i], 1); 
-    }   
-    cout << res << endl;
+        int op; cin >> op;  
+        if(op == 2) 
+        {   
+            int k; cin >> k;
+            sm += k;    
+            curr.pb(k); 
+        }   
+        else if(op == 1)    
+        {   
+            int r, x; cin >> r >> x;    
+            prefix[r] += x;
+            sm += r * x;    
+        }   
+        else    
+        {   
+            int m = curr.size();    
+            sm -= curr.back() + prefix[m];    
+            prefix[m - 1] += prefix[m]; 
+            prefix[m] = 0;
+            curr.pop_back();    
+        }   
+        cout << fixed << setprecision(6) << (db)sm / (db)curr.size() << endl;
+    }
+
 
 }
 
@@ -197,7 +150,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

@@ -109,86 +109,36 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
-class FW    
+vi graph[MX];
+int val[MX];
+pii dfs(int node, int par)  
 {   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
+    pii ans;
+    for(auto& nei : graph[node])
     {   
-        this->n = n;    
-        root.rsz(n + 1);    
+        if(nei == par) continue;    
+        auto t = dfs(nei, node);    
+        ans.ff = max(ans.ff, t.ff); 
+        ans.ss = max(ans.ss, t.ss); 
     }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            goUp;   
-        }   
-    }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id)   
-        {   
-            res += root[id];    
-            goDown; 
-        }   
-        return res; 
-    }   
-    
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left);
-    }   
-        
-    void reset()    
-    {   
-        root.assign(n + 1, 0);  
-    }
-};
-
+    int curr = val[node] + ans.ff - ans.ss; 
+    if(curr > 0) ans.ss += curr;    
+    else ans.ff += -curr;    
+    return ans; 
+}
 void solve()
 {
-    int n; cin >> n;
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi tmp(arr);    
-    srtU(tmp);
-    umap<int, int> mp;  
-    int m = tmp.size();
-    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
-    vi f(n), g(n), cnt(n);
-    umap<int, int> mp2;
-    FW root(++m);
-    for(int i = 0; i < n; i++)  
+    int n; cin >> n;    
+    for(int i = 0; i < n - 1; i++)  
     {   
-        arr[i] = mp[arr[i]];
-        int val = root.queries(0, arr[i]);  
-        f[i] = val; 
-        val = root.queries(arr[i] - 1, m);  
-        g[i] = val;
-        cnt[i] = mp2[arr[i]]++;
-        root.update(arr[i], 1); 
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a); 
     }   
-    root.reset();
-    int res = 0;
-    vi suffix;
-    mp2 = {};
-    for(int i = n - 1; i >= 0; i--) 
-    {   
-        int val = root.queries(arr[i] - 1, m);  
-        res += val * f[i];  
-        val = root.queries(0, arr[i]);  
-        res += val * g[i];
-        res -= cnt[i] * mp2[arr[i]]++;
-        root.update(arr[i], 1); 
-    }   
-    cout << res << endl;
-
+    for(int i = 1; i <= n; i++) cin >> val[i];  
+    auto res = dfs(1, -1);  
+    cout << res.ff + res.ss << endl;
+    
 }
 
 signed main()
@@ -197,7 +147,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

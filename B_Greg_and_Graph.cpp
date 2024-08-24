@@ -109,85 +109,47 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
-class FW    
-{   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
-    {   
-        this->n = n;    
-        root.rsz(n + 1);    
-    }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            goUp;   
-        }   
-    }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id)   
-        {   
-            res += root[id];    
-            goDown; 
-        }   
-        return res; 
-    }   
-    
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left);
-    }   
-        
-    void reset()    
-    {   
-        root.assign(n + 1, 0);  
-    }
-};
-
 void solve()
 {
-    int n; cin >> n;
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi tmp(arr);    
-    srtU(tmp);
-    umap<int, int> mp;  
-    int m = tmp.size();
-    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
-    vi f(n), g(n), cnt(n);
-    umap<int, int> mp2;
-    FW root(++m);
-    for(int i = 0; i < n; i++)  
+    int n; cin >> n;    
+    vvi graph(n + 1, vi(n + 1));
+    for(int i = 1; i <= n; i++) 
     {   
-        arr[i] = mp[arr[i]];
-        int val = root.queries(0, arr[i]);  
-        f[i] = val; 
-        val = root.queries(arr[i] - 1, m);  
-        g[i] = val;
-        cnt[i] = mp2[arr[i]]++;
-        root.update(arr[i], 1); 
-    }   
-    root.reset();
-    int res = 0;
-    vi suffix;
-    mp2 = {};
-    for(int i = n - 1; i >= 0; i--) 
+        for(int j = 1; j <= n; j++) cin >> graph[i][j];
+    }
+    vvi dp(n + 1, vi(n + 1, INT_MAX));  
+    vi queries(n);  
+    for(auto& it : queries) cin >> it;  
+    rev(queries);   
+    vi res, active(n + 1);
+    for(auto& it : queries) 
     {   
-        int val = root.queries(arr[i] - 1, m);  
-        res += val * f[i];  
-        val = root.queries(0, arr[i]);  
-        res += val * g[i];
-        res -= cnt[i] * mp2[arr[i]]++;
-        root.update(arr[i], 1); 
-    }   
-    cout << res << endl;
+        for(int i = 1; i <= n; i++) 
+        {   
+            dp[it][i] = min(dp[it][i], graph[it][i]);   
+            dp[i][it] = min(dp[i][it], graph[i][it]);
+        }
+        for(int i = 1; i <= n; i++) 
+        {   
+            for(int j = 1; j <= n; j++) 
+            {   
+                dp[i][j] = min(dp[i][j], dp[i][it] + dp[it][j]);
+            }   
+        }
+        active[it] = true;
+        int sm = 0; 
+        for(int i = 1; i <= n; i++) 
+        {   
+            for(int j = 1; j <= n; j++) 
+            {   
+                if(active[i] && active[j]) sm += dp[i][j];
+            }   
+        }   
+        res.pb(sm);
+    }
+    rev(res);   
+    for(auto& it : res) cout << it << " ";  
+    cout << endl;
 
 }
 
@@ -197,7 +159,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
