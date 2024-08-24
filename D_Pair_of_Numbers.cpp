@@ -83,7 +83,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 3e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -108,86 +108,35 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
-class FW    
-{   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
-    {   
-        this->n = n;    
-        root.rsz(n + 1);    
-    }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            goUp;   
-        }   
-    }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id)   
-        {   
-            res += root[id];    
-            goDown; 
-        }   
-        return res; 
-    }   
-    
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left);
-    }   
-        
-    void reset()    
-    {   
-        root.assign(n + 1, 0);  
-    }
-};
-
 void solve()
 {
-    int n; cin >> n;
+    int n; cin >> n;    
     vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi tmp(arr);    
-    srtU(tmp);
-    umap<int, int> mp;  
-    int m = tmp.size();
-    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
-    vi f(n), g(n), cnt(n);
-    umap<int, int> mp2;
-    FW root(++m);
+    for(auto& it : arr) cin >> it;
+    vi leftMost(n), rightMost(n);   
+    iota(all(leftMost), 0), iota(all(rightMost), 0);    
+    for(int i = 1; i < n; i++)  
+    {   
+        int& j = leftMost[i];
+        while(j && arr[j - 1] % arr[i] == 0 && arr[j - 1] != arr[i]) j = leftMost[j - 1];
+    }
+    for(int i = n - 2; i >= 0; i--) 
+    {   
+        int& j = rightMost[i];
+        while(j < n - 1 && arr[j + 1] % arr[i] == 0) j = rightMost[j + 1];   
+    }
+    int mx = 0; 
+    vi res[n], vis(n);  
     for(int i = 0; i < n; i++)  
     {   
-        arr[i] = mp[arr[i]];
-        int val = root.queries(0, arr[i]);  
-        f[i] = val; 
-        val = root.queries(arr[i] - 1, m);  
-        g[i] = val;
-        cnt[i] = mp2[arr[i]]++;
-        root.update(arr[i], 1); 
+        int ans = rightMost[i] - leftMost[i];   
+        mx = max(mx, ans);  
+        res[ans].pb(leftMost[i] + 1);   
     }   
-    root.reset();
-    int res = 0;
-    vi suffix;
-    mp2 = {};
-    for(int i = n - 1; i >= 0; i--) 
-    {   
-        int val = root.queries(arr[i] - 1, m);  
-        res += val * f[i];  
-        val = root.queries(0, arr[i]);  
-        res += val * g[i];
-        res -= cnt[i] * mp2[arr[i]]++;
-        root.update(arr[i], 1); 
-    }   
-    cout << res << endl;
+    auto& curr = res[mx];   
+    cout << curr.size() << " " << mx << endl;
+    for(auto& it : curr) cout << it << " ";  
+    cout << endl;
 
 }
 
@@ -197,7 +146,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

@@ -108,86 +108,50 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
-class FW    
+vt<vpii> graph;
+vi res;
+int dfs1(int node = 1, int par = -1)    
 {   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
+    int total = 0;  
+    for(auto& [nei, cost] : graph[node])    
     {   
-        this->n = n;    
-        root.rsz(n + 1);    
+        if(nei == par) continue;    
+        total += dfs1(nei, node) + cost; 
     }   
+    return total;   
+}
     
-    void update(int id, int val)    
+void dfs2(int node = 1, int par = -1)   
+{   
+    for(auto& [nei, cost] : graph[node])    
     {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            goUp;   
-        }   
+        if(nei == par) continue;    
+        res[nei] = res[node] + (cost ? -1 : 1);
+        dfs2(nei, node);    
     }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id)   
-        {   
-            res += root[id];    
-            goDown; 
-        }   
-        return res; 
-    }   
-    
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left);
-    }   
-        
-    void reset()    
-    {   
-        root.assign(n + 1, 0);  
-    }
-};
+}
 
 void solve()
 {
-    int n; cin >> n;
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi tmp(arr);    
-    srtU(tmp);
-    umap<int, int> mp;  
-    int m = tmp.size();
-    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
-    vi f(n), g(n), cnt(n);
-    umap<int, int> mp2;
-    FW root(++m);
-    for(int i = 0; i < n; i++)  
+    int n; cin >> n;    
+    graph.rsz(n + 1);
+    res.rsz(n + 1);
+    for(int i = 0; i < n - 1; i++)  
     {   
-        arr[i] = mp[arr[i]];
-        int val = root.queries(0, arr[i]);  
-        f[i] = val; 
-        val = root.queries(arr[i] - 1, m);  
-        g[i] = val;
-        cnt[i] = mp2[arr[i]]++;
-        root.update(arr[i], 1); 
+        int a, b; cin >> a >> b;    
+        graph[a].pb(MP(b, 0));  
+        graph[b].pb(MP(a, 1));  
     }   
-    root.reset();
-    int res = 0;
-    vi suffix;
-    mp2 = {};
-    for(int i = n - 1; i >= 0; i--) 
+    res[1] = dfs1();
+    dfs2(); 
+    int mini = *min_element(begin(res) + 1, end(res));  
+    cout << mini << endl;
+    for(int i = 1; i <= n; i++) 
     {   
-        int val = root.queries(arr[i] - 1, m);  
-        res += val * f[i];  
-        val = root.queries(0, arr[i]);  
-        res += val * g[i];
-        res -= cnt[i] * mp2[arr[i]]++;
-        root.update(arr[i], 1); 
+        if(res[i] == mini) cout << i << " ";    
     }   
-    cout << res << endl;
+    cout << endl;
+
 
 }
 
@@ -197,7 +161,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

@@ -109,85 +109,36 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
-class FW    
-{   
-    public: 
-    int n;  
-    vi root;    
-    FW(int n)   
-    {   
-        this->n = n;    
-        root.rsz(n + 1);    
-    }   
-    
-    void update(int id, int val)    
-    {   
-        while(id <= n)  
-        {   
-            root[id] += val;    
-            goUp;   
-        }   
-    }   
-    
-    int get(int id) 
-    {   
-        int res = 0;    
-        while(id)   
-        {   
-            res += root[id];    
-            goDown; 
-        }   
-        return res; 
-    }   
-    
-    int queries(int left, int right)    
-    {   
-        return get(right) - get(left);
-    }   
-        
-    void reset()    
-    {   
-        root.assign(n + 1, 0);  
-    }
-};
-
 void solve()
 {
-    int n; cin >> n;
-    vi arr(n);  
-    for(auto& it : arr) cin >> it;  
-    vi tmp(arr);    
-    srtU(tmp);
-    umap<int, int> mp;  
-    int m = tmp.size();
-    for(int i = 0; i < m; i++) mp[tmp[i]] = i + 1;  
-    vi f(n), g(n), cnt(n);
-    umap<int, int> mp2;
-    FW root(++m);
-    for(int i = 0; i < n; i++)  
+    int n; cin >> n;    
+    vi t(n), w(n);  
+    for(int i = 0; i < n; i++) cin >> t[i] >> w[i];
+    const int MAX = 201;
+    vvi dp(n + 1, vi(MAX, INF));    
+    dp[0][0] = 0;
+    for(int i = 0; i < n; i++)
     {   
-        arr[i] = mp[arr[i]];
-        int val = root.queries(0, arr[i]);  
-        f[i] = val; 
-        val = root.queries(arr[i] - 1, m);  
-        g[i] = val;
-        cnt[i] = mp2[arr[i]]++;
-        root.update(arr[i], 1); 
+        for(int j = 0; j < MAX; j++)    
+        {   
+            if(dp[i][j] != INF) 
+            {   
+                if(j + t[i] < MAX)  
+                {   
+                    dp[i + 1][j + t[i]] = min(dp[i + 1][j + t[i]], dp[i][j]);   
+                }
+                dp[i + 1][j] = min(dp[i + 1][j], dp[i][j] + w[i]);  
+            }   
+        }   
     }   
-    root.reset();
-    int res = 0;
-    vi suffix;
-    mp2 = {};
-    for(int i = n - 1; i >= 0; i--) 
+    for(int j = 0; j < MAX; j++)    
     {   
-        int val = root.queries(arr[i] - 1, m);  
-        res += val * f[i];  
-        val = root.queries(0, arr[i]);  
-        res += val * g[i];
-        res -= cnt[i] * mp2[arr[i]]++;
-        root.update(arr[i], 1); 
+        if(dp[n][j] <= j)   
+        {   
+            cout << j << endl;  
+            return; 
+        }   
     }   
-    cout << res << endl;
 
 }
 
@@ -197,7 +148,7 @@ signed main()
     startClock
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
