@@ -112,7 +112,30 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-
+    set<int> s; 
+    umap<int, int> left, right; 
+    int n, x; cin >> n >> x;
+    int res;
+    s.insert(x);
+    for(int i = 1; i < n; i++)
+    {   
+        cin >> x;
+        auto it = s.ub(x);
+        if(it != s.end() && !left.count(*it))    
+        {   
+            left[*it] = x;  
+            res = *it;  
+        }   
+        else    
+        {   
+            it--;
+            right[*it] = x; 
+            res = *it;  
+        }   
+        cout << res << " "; 
+        s.insert(x);
+    }   
+    cout << endl;
 }
 
 signed main()

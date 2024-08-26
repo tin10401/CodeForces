@@ -49,7 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define sv string_view
 #define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
@@ -109,9 +108,34 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+db dp[101][101][101];
 
 void solve()
 {
+    int a, b, c; cin >> a >> b >> c;    
+    dp[a][b][c] = 1;    
+    for(int i = a; i >= 0; i--) 
+    {   
+        for(int j = b; j >= 0; j--) 
+        {   
+            for(int k = c; k >= 0; k--) 
+            {   
+                if((i == 0 && j == 0) || (j == 0 && k == 0) || (i == 0 && k == 0)) continue;    
+                db total = i * j + j * k + i * k;
+                if(i) dp[i - 1][j][k] += dp[i][j][k] * ((i * k) / total);   
+                if(j) dp[i][j - 1][k] += dp[i][j][k] * ((i * j) / total);   
+                if(k) dp[i][j][k - 1] += dp[i][j][k] * ((j * k) / total);   
+            }   
+        }   
+    }   
+    db res[3] = {};
+    for(int i = 1; i <= a; i++) res[0] += dp[i][0][0];  
+    for(int i = 1; i <= b; i++) res[1] += dp[0][i][0];  
+    for(int i = 1; i <= c; i++) res[2] += dp[0][0][i];
+    for(auto& it : res) cout << fixed << setprecision(12) << it << " ";  
+    cout << endl;
+
+
 
 }
 

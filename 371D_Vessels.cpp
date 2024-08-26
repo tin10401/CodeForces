@@ -49,7 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define sv string_view
 #define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
@@ -110,8 +109,71 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+class DSU   
+{   
+    public: 
+    int n;
+    vi root;    
+    DSU(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n, -1);    
+    }   
+    
+    int find(int x) 
+    {   
+        if(root[x] == -1) return x;   
+        return root[x] = find(root[x]);
+    }   
+    
+    void merge(int x, int y)    
+    {   
+        x = find(x), y = find(y);   
+        if(x != y) root[x] = y;
+    }
+    
+    int next(int x) 
+    {   
+        return find(x); 
+    }   
+};
+
 void solve()
 {
+    int n; cin >> n;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    int q; cin >> q;    
+    vi curr(n);
+    DSU root(n);
+    while(q--)  
+    {   
+        int op; cin >> op;  
+        if(op == 2)     
+        {   
+            int k; cin >> k;    
+            cout << curr[--k] << endl;  
+        }   
+        else    
+        {   
+            int i, x; cin >> i >> x;    
+            i--;
+            while(x)    
+            {   
+                int take = min(arr[i] - curr[i], x);    
+                curr[i] += take;  
+                x -= take;  
+                if(curr[i] == arr[i])   
+                {   
+                    if(i == n - 1) break;   
+                    root.merge(i, i + 1);    
+                }
+                i = root.next(i);    
+            }   
+        }   
+    }
+
+    
 
 }
 

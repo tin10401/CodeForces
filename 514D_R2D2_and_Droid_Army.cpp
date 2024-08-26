@@ -84,7 +84,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -109,10 +109,56 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+const int MK = 22;
+int n, m, k, dp[6][MX][MK];
 
 void solve()
 {
-
+    cin >> n >> m >> k;
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++) cin >> dp[j][i][0]; 
+    }
+    for(int i = 0; i < m; i++)  
+    {   
+        for(int j = 1; j < MK; j++) 
+        {   
+            for(int K = 0; K + (1 << j) <= n; K++)  
+            {   
+                dp[i][K][j] = max(dp[i][K][j - 1], dp[i][K + (1 << (j - 1))][j - 1]);   
+            }   
+        }   
+    }
+    auto get = [&](int i, int left, int right) -> int   
+    {   
+        int j = log2(right - left + 1); 
+        return max(dp[i][left][j], dp[i][right - (1 << j) + 1][j]); 
+    };
+    auto check = [&](int K) -> vi   
+    {   
+        vi ans(m);  
+        for(int i = 0; i + K <= n; i++) 
+        {   
+            int l = i, r = i + K - 1, sm = 0;
+            for(int j = 0; j < m; j++)  
+            {   
+                ans[j] = get(j, l, r);
+                sm += ans[j];   
+            }   
+            if(sm <= k) return ans;
+        }   
+        return {};  
+    };
+    int left = 1, right = n;    
+    vi res(m);
+    while(left <= right)    
+    {   
+        int middle = midPoint;  
+        auto v = check(middle); 
+        if(!v.empty()) res = v, left = middle + 1;
+        else right = middle - 1;    
+    }   
+    for(auto& it : res) cout << it << " ";
 }
 
 signed main()
