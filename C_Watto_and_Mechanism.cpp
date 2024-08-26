@@ -49,7 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define sv string_view
 #define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
@@ -58,6 +57,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
+#define sv string_view
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -84,7 +84,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 6e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -109,9 +109,58 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
-
+int power[MX];
 void solve()
 {
+    int n, m; cin >> n >> m;    
+    vt<map<pii, int>> s(MX);
+    vs arr(n);
+    power[0] = 1;
+    for(int i = 1; i < MX; i++) power[i] = (power[i - 1] * 26) % MOD;
+    for(int j = 0; j < n; j++)
+    {   
+        auto& t = arr[j];   
+        cin >> t;
+        int N = t.size();
+        vi prefix(N + 1);   
+        for(int i = 0, hash = 0; i < N; i++)
+        {   
+            hash = (hash * 26 + (t[i] - 'a' + 1)) % MOD;    
+            prefix[i + 1] = hash;   
+        }
+        for(int i = 0; i < N; i++)  
+        {   
+            pii key = {prefix[i], (prefix[N] - (prefix[i + 1] * power[N - i - 1]) % MOD + MOD) % MOD};
+            int id = t[i] - 'a';
+            s[N][key] |= (1 << id);
+        }   
+    }
+    auto isValid = [&](const string& v) -> bool 
+    {   
+        int N = v.size();   
+        vi prefix(N + 1);   
+        for(int i = 0, hash = 0; i < N; i++)
+        {   
+            hash = (hash * 26 + (v[i] - 'a' + 1)) % MOD;    
+            prefix[i + 1] = hash;   
+        }
+        for(int i = 0; i < N; i++)  
+        {   
+            int id = v[i] - 'a';    
+            pii key = {prefix[i], (prefix[N] - (prefix[i + 1] * power[N - i - 1]) % MOD + MOD) % MOD};
+            if(s[N].find(key) != s[N].end())
+            {   
+                int& hash = s[N][key];   
+                if(hash ^ (1 << id)) return true;
+            }
+        }   
+        return false;   
+    };
+    while(m--)  
+    {   
+        string v; cin >> v; 
+        cout << (isValid(v) ? yes : no);
+    }   
 
 }
 

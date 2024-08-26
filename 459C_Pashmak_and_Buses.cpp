@@ -49,7 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define sv string_view
 #define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
@@ -112,6 +111,23 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n, k, d; cin >> n >> k >> d;    
+    vvi bus(n, vi(d, 1));   
+    if(modExpo(k, d, MOD) < n) {cout << -1 << endl; return;}
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0, tmp = i; j < d && tmp; j++)  
+        {   
+            bus[i][j] = (tmp % k) + 1;  
+            tmp /= k;   
+        }   
+
+    }   
+    for(int j = 0; j < d; j++)
+    {   
+        for(int i = 0; i < n; i++) cout << bus[i][j] << " ";
+        cout << endl;   
+    }
 
 }
 

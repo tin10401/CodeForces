@@ -49,7 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define sv string_view
 #define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
@@ -83,7 +82,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-const static ll INF = 1LL << 61;
+const static ll INF = INT_MAX;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
@@ -109,10 +108,96 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+class DSU   
+{   
+    public: 
+    int n;  
+    vi root;    
+    DSU(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n, -1);    
+    }   
+    
+    int find(int x) 
+    {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]); 
+    }   
+    
+    void merge(int x, int y)    
+    {   
+        x = find(x), y = find(y);   
+        if(x != y) root[x] = y; 
+    }   
+    
+    bool isConnected(int x, int y)  
+    {   
+        return find(x) == y;    
+    }   
+};
+    
+const int MK = 501;
+int type[MX], dp[MK][MK], cost[MK];
 
 void solve()
 {
-
+    int n, m, k; cin >> n >> m >> k;    
+    DSU root(n);    
+    int id = 0;
+    for(int i = 0; i < k; i++)  
+    {   
+        int& c = cost[i];
+        cin >> c;
+        for(int j = 0; j < c; j++)
+        {   
+            type[id++] = i; 
+        }   
+    }   
+    for(int i = 0; i < MK; i++)     
+    {   
+        fill(dp[i], dp[i] + MK, INF);   
+        dp[i][i] = 0;   
+    }
+    for(int i = 0; i < m; i++)  
+    {   
+        int u, v, c; cin >> u >> v >> c;    
+        u--, v--;   
+        if(c == 0) root.merge(u, v);    
+        u = type[u], v = type[v];   
+        dp[u][v] = dp[v][u] = min({dp[u][v], dp[v][u], c}); 
+    }
+    bool ok = true;
+    id = 0;
+    for(int i = 0; i < k; i++)  
+    {   
+        int p = root.find(id);
+        for(int j = 0; j < cost[i]; j++)
+        {   
+            if(!root.isConnected(id++, p)) ok = false;    
+        }   
+    }   
+    if(!ok) {cout << "No" << endl; return;}
+    cout << "Yes" << endl;
+    for(int middle = 0; middle < k; middle++)   
+    {   
+        for(int from = 0; from < k; from++) 
+        {   
+            for(int to = 0; to < k; to++)   
+            {   
+                dp[from][to] = min(dp[from][to], dp[from][middle] + dp[to][middle]);    
+            }   
+        }   
+    }   
+    for(int i = 0; i < k; i++)  
+    {   
+        for(int j = 0; j < k; j++)  
+        {   
+            if(dp[i][j] == INF) dp[i][j] = -1;  
+            cout << dp[i][j] << " "; 
+        }
+        cout << endl;   
+    }
 }
 
 signed main()

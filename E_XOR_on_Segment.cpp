@@ -84,7 +84,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 61;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -109,9 +109,130 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+const int MK = 21;
+int root[MX * 4][MK], lazy[MX * 4];
+
+class SGT   
+{   
+    public: 
+    int n;  
+    SGT(vi& arr)    
+    {   
+        n = arr.size(); 
+        build(entireTree, arr); 
+    }   
+    
+    void build(iterator, vi& arr)   
+    {   
+        if(left == right)   
+        {   
+            int x = arr[left];
+            for(int j = 0; j < MK; j++) 
+            {   
+                root[i][j] = (x >> j) & 1;  
+            }   
+            return; 
+        }   
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        merge(i);
+    }   
+    
+    void merge(int i)   
+    {   
+        for(int j = 0; j < MK; j++) root[i][j] = root[lc][j] + root[rc][j]; 
+    }   
+    
+    void update(int start, int end, int x) 
+    {   
+        update(entireTree, start, end, x); 
+    }   
+    
+    void update(iterator, int start, int end, int x)   
+    {   
+        pushDown;
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end)   
+        {   
+            lazy[i] ^= x;   
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, x);  
+        update(rp, start, end, x);  
+        merge(i);   
+    }   
+    
+    
+    void push(iterator) 
+    {   
+        int& x = lazy[i];   
+        if(x == 0) return;  
+        auto& curr = root[i];
+        int range = right - left + 1;
+        for(int j = 0; j < MK; j++)
+        {   
+            if((x >> j) & 1)    
+            {   
+                curr[j] = range - curr[j];
+            }
+        }   
+        if(left != right)   
+        {   
+            lazy[lc] ^= x;  
+            lazy[rc] ^= x;  
+        }   
+        x = 0;  
+    }   
+    
+    int queries(int start, int end) 
+    {   
+        return queries(entireTree, start, end); 
+    }   
+    
+    int queries(iterator, int start, int end)   
+    {   
+        pushDown;
+        if(left >= start && right <= end)   
+        {   
+            int res = 0;    
+            auto& curr = root[i];
+            for(int j = 0; j < MK; j++)
+            {   
+                res += curr[j] * (1 << j);  
+            }   
+            return res; 
+        }   
+        if(left > end || start > right) return 0;   
+        int middle = midPoint;  
+        return queries(lp, start, end) + queries(rp, start, end);   
+    }   
+};
+                
 
 void solve()
 {
+    int n; cin >> n;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    SGT root(arr);    
+    int q; cin >> q;    
+    while(q--)  
+    {   
+        int op, l, r; cin >> op >> l >> r;
+        l--, r--;
+        if(op == 1) 
+        {   
+            cout << root.queries(l, r) << endl;
+        }   
+        else    
+        {   
+            int x; cin >> x;
+            root.update(l, r, x);   
+        }   
+    }
+
 
 }
 

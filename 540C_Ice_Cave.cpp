@@ -49,7 +49,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define pb push_back
 #define ff first
 #define ss second
-#define sv string_view
 #define MP make_pair
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
@@ -112,6 +111,41 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n, m; cin >> n >> m;    
+    vt<vt<char>> grid(n, vt<char>(m, '.')); 
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++) cin >> grid[i][j];   
+    }   
+    int r1, c1; cin >> r1 >> c1;    
+    int r2, c2; cin >> r2 >> c2;    
+    r1--, r2--, c2--, c1--; 
+    auto dfs = [&](int row, int col, auto& dfs) -> bool 
+    {   
+        if(row == r2 && col == c2) return true; 
+        if(row < 0 || col < 0 || row == n || col == m || grid[row][col] != '.') return false;   
+        grid[row][col] = '#';
+        return dfs(row + 1, col, dfs) || dfs(row - 1, col, dfs) || dfs(row, col - 1, dfs) || dfs(row, col + 1, dfs);    
+    };   
+    auto check = [&](int row, int col, bool equal = false) -> bool  
+    {   
+        if(grid[row][col] == 'X' && !equal) return true;
+        int cnt = 0;
+        for(auto& it : dirs)    
+        {   
+            int r = row + it[0], c = col + it[1];   
+            if(r >= 0 && c >= 0 && r < n && c < m && grid[r][c] != 'X') cnt++; 
+        }   
+        return cnt >= (equal ? 1 : 2);
+    };
+    if(r1 == r2 && c1 == c2)
+    {   
+        cout << (check(r1, c1, true) ? yes : no);   
+        return; 
+    }
+    grid[r1][c1] = '.';
+    if(dfs(r1, c1, dfs) && check(r2, c2)) cout << yes;  
+    else cout << no;
 
 }
 

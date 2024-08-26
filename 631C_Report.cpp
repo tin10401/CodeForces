@@ -112,7 +112,37 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-
+    int n, m; cin >> n >> m;    
+    vi arr(n);  
+    for(auto& it : arr) cin >> it;  
+    map<int, int> last;
+    vpii Q(m);
+    for(int i = 0; i < m; i++)  
+    {   
+        auto& [op, x] = Q[i]; cin >> op >> x;
+        last[--x] = i;
+    }
+    vpii range; 
+    for(int i = 0; i < m; i++)  
+    {   
+        auto [op, x] = Q[i];
+        if(last.count(x) && last[x] == i)   
+        {   
+            if(x == last.rbegin()->ff && (range.empty() || range.back().ss != op)) range.pb(MP(x, op)); 
+            last.erase(x);
+        }
+    }
+    range.pb(MP(-1, 0)); 
+    auto [x, op] = range.front();   
+    sort(begin(arr), begin(arr) + x + 1);   
+    if(op == 2) reverse(begin(arr), begin(arr) + x + 1);
+    vi ans(arr);
+    for(int i = 0, id = x, k = x, j = 0; i < range.size() - 1; i++) 
+    {   
+        int len = range[i].ff - range[i + 1].ff;
+        while(len--) ans[id--] = arr[i & 1 ? j++ : k--];
+    }   
+    for(auto& it : ans) cout << it << " ";
 }
 
 signed main()

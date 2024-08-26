@@ -110,9 +110,82 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+class DSU   
+{   
+    public: 
+    int n;  
+    vi root, last;    
+    DSU(int n)  
+    {   
+        this->n = n;    
+        root.rsz(n, -1), last.rsz(n, -1); 
+    }
+    
+    int find(int x) 
+    {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]); 
+    }   
+    
+    void merge(int x, int y)    
+    {   
+        int u = x;
+        x = find(x), y = find(y);   
+        if(x != y)  
+        {   
+            if(last[x] == -1) last[x] = u;  
+            last[y] = last[x];
+            root[x] = y;    
+        }   
+    }   
+    
+    bool check(int x)   
+    {   
+        return last[find(x)] == -1; 
+    }   
+    
+    vpii queries()   
+    {   
+        vpii res;
+        for(int i = 0; i < n; i++)
+        {   
+            if(find(i) == i) res.pb(MP(last[i], i));    
+        }   
+        return res; 
+    }
+};
+    
 void solve()
 {
-
+    int n; cin >> n;    
+    vt<pair<string, string>> arr(n);    
+    uset<string> s; 
+    for(int i = 0; i < n; i++)  
+    {   
+        cin >> arr[i].ff >> arr[i].ss;  
+        s.insert(arr[i].ff), s.insert(arr[i].ss);   
+    }   
+    int id = 0; 
+    umap<string, int> stringToInt;   
+    umap<int, string> intToString;
+    for(auto& it : s)   
+    {   
+        stringToInt[it] = id;   
+        intToString[id++] = it; 
+    }   
+    
+    DSU root(id);    
+    for(int i = 0; i < n; i++)  
+    {   
+        auto& [a, b] = arr[i];
+        if(root.check(stringToInt[b])) root.merge(stringToInt[a], stringToInt[b]);
+    }   
+    auto res = root.queries();  
+    cout << res.size() << endl;
+    for(auto& [a, b] : res) 
+    {   
+        cout << intToString[a] << " " << intToString[b] << endl;    
+    }
 }
 
 signed main()

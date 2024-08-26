@@ -112,6 +112,15 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n; cin >> n;    
+    int res = 0, i = 1, t = 1;
+    while(t * 10 <= n)
+    {
+        res += i++ * t * 9; 
+        t *= 10;    
+    }   
+    res += (n - t + 1) * i; 
+    cout << res << endl;
 
 }
 

@@ -110,8 +110,33 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
+int dp[1LL << 18][101], cnt[18];
 void solve()
 {
+    string s;   
+    int m;  
+    cin >> s >> m;
+    int N = s.size();   
+    for(int i = 0; i < N; i++) cnt[i] = s[i] - '0';
+    mset(dp, -1);
+    int target = (1 << N) - 1;
+    auto dfs = [&](int mask, int rm, auto& dfs) -> int  
+    {   
+        if(mask == target) return rm == 0;
+        int& res = dp[mask][rm];    
+        if(res != -1) return res;   
+        res = 0;
+        for(int i = 0; i < N; i++)  
+        {   
+            int x = cnt[i];
+            if((mask == 0 && x == 0) || ((mask >> i) & 1)) continue;
+            if (i > 0 && cnt[i] == cnt[i - 1] && !(mask & (1 << (i - 1)))) continue;
+            res += dfs((mask | (1 << i)), (rm * 10 + x) % m, dfs);
+        }   
+        return res; 
+    };
+    sort(cnt, cnt + N);
+    cout << dfs(0, 0, dfs) << endl;
 
 }
 
