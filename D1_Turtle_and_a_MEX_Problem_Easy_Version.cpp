@@ -114,7 +114,31 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-
+    int n, m; cin >> n >> m;
+    int mx = 0; 
+    for(int i = 0; i < n; i++)  
+    {   
+        int l; cin >> l;    
+        uset<int> s;    
+        while(l--) {int x; cin >> x; s.insert(x);}
+        bool flag = false;  
+        int x = 0;  
+        while(true) 
+        {   
+            if(!s.count(x)) 
+            {   
+                if(flag)    
+                {   
+                    mx = max(mx, x);    
+                    break;  
+                }
+                flag = true;
+            }   
+            x++;    
+        }   
+    }
+    if(mx >= m) cout << mx * (m + 1) << endl;   
+    else cout << (m * (m + 1) / 2 - mx * (mx + 1) / 2 + mx * (mx + 1)) << endl; 
 }
 
 signed main()
@@ -123,7 +147,7 @@ signed main()
     startClock
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

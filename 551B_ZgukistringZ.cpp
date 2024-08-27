@@ -114,6 +114,46 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    string a, b, c; cin >> a >> b >>c;  
+    int A[26] = {}, B[26] = {}, C[26] = {}; 
+    for(auto& ch : a) A[ch - 'a']++;    
+    for(auto& ch : b) B[ch - 'a']++;    
+    for(auto& ch : c) C[ch - 'a']++;    
+    int mx = 0, ansB = 0, ansC = 0;
+    int range = a.size() / b.size();
+    for(int i = 0; i <= range; i++)  
+    {   
+        int left[26] = {};
+        bool ok = true;
+        for(int j = 0; j < 26; j++) 
+        {   
+            left[j] = A[j] - B[j] * i;  
+            if(left[j] < 0) {ok = false; break;}
+        }
+        if(!ok) break;
+        int cnt = a.size(); 
+        for(int j = 0; j < 26; j++) 
+        {   
+            if(C[j] == 0) continue;
+            cnt = min(cnt, left[j] / C[j]); 
+        }   
+        if(cnt + i > mx)    
+        {   
+            mx = cnt + i;   
+            ansB = i;   
+            ansC = cnt; 
+        }   
+    }   
+    string res;
+    for(int i = 0; i < ansB; i++) res += b; 
+    for(int i = 0; i < ansC; i++) res += c;
+    for(int i = 0; i < 26; i++) 
+    {   
+        A[i] -= B[i] * ansB + C[i] * ansC;  
+        res += string(A[i], (char)i + 'a'); 
+    }   
+    cout << res << endl;
+    
 
 }
 

@@ -114,6 +114,21 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
+    int n; cin >> n;    
+    vs arr(n);  
+    for(auto& it : arr) cin >> it;  
+    string s; cin >> s; 
+    string res, code = "<3"; 
+    for(auto& it : arr) res += code + it;
+    res += code;
+    int i = 0, j = 0, N = s.size(), M = res.size(); 
+    while(i < N && j < M)   
+    {   
+        if(s[i] == res[j]) j++; 
+        i++;    
+    }   
+    cout << (j == M ? "yes" : "no") << endl;
+
 
 }
 

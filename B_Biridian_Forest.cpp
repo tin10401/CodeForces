@@ -58,8 +58,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
-#define max(a, b) fmax(a, b)    
-#define min(a, b) fmin(a, b)
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -111,9 +109,59 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+const int MK = 1e3 + 1; 
+char grid[MK][MK];    
+int dp[MK][MK];
 
 void solve()
 {
+    int n, m; cin >> n >> m;    
+    pii exit;   
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++)  
+        {   
+            cin >> grid[i][j];  
+            if(grid[i][j] == 'E') exit = MP(i, j);  
+        }   
+    }   
+    auto bfs = [&](int startRow, int startCol) -> void    
+    {   
+        queue<pii> q;   
+        dp[startRow][startCol] = 1;
+        q.push(MP(startRow, startCol));   
+        while(!q.empty())   
+        {   
+            auto [r, c] = q.front(); q.pop();   
+            for(auto& it : dirs)    
+            {   
+                int row = r + it[0], col = c + it[1];
+                if(row >= 0 && col >= 0 && row < n && col < m && grid[row][col] != 'T' && !dp[row][col])
+                {   
+                    dp[row][col] = dp[r][c] + 1;    
+                    q.push(MP(row, col));   
+                }   
+            }   
+        }
+    };
+    bfs(exit.ff, exit.ss);
+    int mini = -1;   
+    for(int i = 0; i < n; i++)
+    {   
+        for(int j = 0; j < m; j++)    
+        {   
+            if(grid[i][j] == 'S') mini = dp[i][j];
+        }  
+    }   
+    int res = 0;    
+    for(int i = 0; i < n; i++)  
+    {   
+        for(int j = 0; j < m; j++)  
+        {   
+            if(grid[i][j] >= '0' && grid[i][j] <= '9' && dp[i][j] && dp[i][j] <= mini) res += grid[i][j] - '0';   
+        }   
+    }   
+    cout << res << endl;
 
 }
 
