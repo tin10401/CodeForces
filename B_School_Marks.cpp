@@ -58,8 +58,6 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
-#define max(a, b) fmax(a, b)    
-#define min(a, b) fmin(a, b)
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -111,9 +109,24 @@ struct custom {
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+int arr[MX];
 
 void solve()
 {
+    int n, k, p, x, y; cin >> n >> k >> p >> x >> y;    
+    int cnt = 0;
+    for(auto& it : arr) 
+    {   
+        cin >> it;  
+        cnt += it >= y;
+    }   
+    int m = k;  
+    while(cnt < (n + 1) / 2) arr[m++] = y, cnt++; 
+    while(m < n) arr[m++] = 1;
+    int sm = accumulate(arr, arr + n, 0LL);
+    if(m > n || sm > x) {cout << -1 << endl; return;} 
+    for(int i = k; i < n; i++) cout << arr[i] << " ";   
+    cout << endl;
 
 }
 

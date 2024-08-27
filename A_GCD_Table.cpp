@@ -114,7 +114,27 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-
+    int n; cin >> n;    
+    vi res;
+    multiset<int> s;
+    for(int i = 0; i < n * n; i++)  
+    {   
+        int x; cin >> x;    
+        s.insert(x);    
+    }   
+    for(int i = 0; i < n; i++)  
+    {   
+        int k = *s.rbegin();
+        res.pb(k);
+        for(int j = 0; j <= i; j++) 
+        {   
+            int x = gcd(k, res[j]); 
+            s.erase(s.find(x)); 
+            if(j < i) s.erase(s.find(x));
+        }   
+    }   
+    for(auto& it : res) cout << it << " ";  
+    cout << endl;
 }
 
 signed main()

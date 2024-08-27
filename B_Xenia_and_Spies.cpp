@@ -114,7 +114,36 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 
 void solve()
 {
-
+    int n, m, s, f; cin >> n >> m >> s >> f;
+    umap<int, pii> mp;  
+    for(int i = 0; i < m; i++)  
+    {   
+        int x, l, r; cin >> x >> l >> r;    
+        mp[x] = MP(l, r);   
+    }   
+    int timer = 1;  
+    string res;
+    auto in = [](int l, int r, int x) -> bool   
+    {   
+        return l <= x && x <= r;
+    };
+    const pii def = {-1, -1};
+    while(s != f)   
+    {   
+        pii pos = mp.count(timer) ? mp[timer] : def;
+        timer++;    
+        if(s < f)   
+        {   
+            if(!in(pos.ff, pos.ss, s) && !in(pos.ff, pos.ss, s + 1)) res += 'R', s++;   
+            else res += 'X';    
+        }   
+        else    
+        {   
+            if(!in(pos.ff, pos.ss, s) && !in(pos.ff, pos.ss, s - 1)) res += 'L', s--;   
+            else res += 'X';    
+        }   
+    }   
+    cout << res << endl;
 }
 
 signed main()
