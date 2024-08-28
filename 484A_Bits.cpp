@@ -141,6 +141,23 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
 
 void solve()
 {
+    int q; cin >> q;    
+    while(q--)  
+    {   
+        int left, right; cin >> left >> right;  
+        int res = 0;
+        for(int i = 1LL << 61; i; i >>= 1)  
+        {   
+            if((right & i) != (left & i))   
+            {   
+                if((right & (i - 1)) == i - 1) res = right;   
+                else res |= i - 1;
+                break;
+            }   
+            else res |= (left & i);
+        }
+        cout << res << endl;
+    }
 
 }
 
