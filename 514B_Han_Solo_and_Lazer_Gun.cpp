@@ -141,33 +141,19 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
 
 void solve()
 {
-    int n; cin >> n;    
-    deque<int> q1, q2;  
-    int q; cin >> q;
-    while(q--)  
+    db n, x, y; cin >> n >> x >> y;    
+    vt<pair<db, db>> arr(n);
+    for(auto& it : arr) cin >> it.ff >> it.ss;  
+
+    uset<db> vis;
+    for(int i = 0; i < n; i++)  
     {   
-        int x; cin >> x;    
-        q1.pb(x);   
-    }   
-    cin >> q;
-    while(q--)  
-    {   
-        int x; cin >> x;    
-        q2.pb(x);   
-    };
-    int ans = 0;
-    set<pair<deque<int>, deque<int>>> vis;
-    while(!q1.empty() && !q2.empty())
-    {   
-        if(vis.count(MP(q1, q2))) {cout << -1 << endl; return;}  
-        vis.insert(MP(q1, q2));
-        auto c1 = q1.front(); q1.pop_front(); 
-        auto c2 = q2.front(); q2.pop_front(); 
-        if(c1 < c2) q2.pb(c1), q2.pb(c2);   
-        else q1.pb(c2), q1.pb(c1);
-        ans++;
+        auto &[x1, y1] = arr[i];    
+        if(x1 == x) vis.insert(INF);  
+        else vis.insert((y - y1) / (x - x1));
     }
-    cout << ans << " " << (q1.empty() ? 2 : 1) << endl; 
+    cout << vis.size() << endl;
+
 }
 
 signed main()

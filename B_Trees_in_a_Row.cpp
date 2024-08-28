@@ -25,7 +25,7 @@
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
 using namespace std;
-template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
 #define vt vector
 #define all(x) begin(x), end(x)
 #define allr(x) rbegin(x), rend(x)
@@ -77,25 +77,10 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 //FW TREE   
 #define goUp id += (id & -id)   
 #define goDown id -= (id & -id)
-
-struct custom {
-    static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
-    size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
-template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
-auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " | "; o << e; } return o << "}";
-}
-    
-template<typename K, typename V>
-auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
-    o << "{"; int i = 0;
-    for (const auto &[key, value] : m) { if (i++) o << " | "; o << key << " : " << value; }
-    return o << "}";
-}
+auto operator<<(auto &o, auto x)->decltype(end(x), o) { o << "{"; int i=0; for(auto e: x) o << ", " + 2*!i++ << e; return o << "}"; }
 
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
@@ -117,12 +102,12 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-const static ll INF = 1LL << 60;
+const static ll INF = 1LL << 61;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
-constexpr int pct(int x) { return __builtin_popcountll(x); }
+constexpr int pct(int x) { return __builtin_popcount(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
@@ -137,11 +122,47 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
     for(int i = 2; i < MX; i++) {   if(TOTI[i] == i)   {   TOTI[i] = i - 1; for(int j = 2 * i; j < MX; j += i)  {   TOTI[j] -= (TOTI[j] / i); }   }   }   
     for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
 }
+struct custom {
+    static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
+    size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
+template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 
 void solve()
 {
-
+    int n, k; cin >> n >> k;    
+    pii DEFAULT = {INF, INF};
+    pii best = DEFAULT;
+    vi arr(n);
+    for(auto& it : arr) cin >> it;  
+    auto compute = [&](int h) -> pii    
+    {   
+        if(h <= 0) return DEFAULT;  
+        int cnt = 0;    
+        for(int i = 0; i < n; i++)  
+        {   
+            if(arr[i] != h + i * k) cnt++;  
+        }   
+        return MP(cnt, h);  
+    };
+    for(int i = 0; i < n; i++)  
+    {   
+        best = min(best, compute(arr[i] - i * k));
+    }
+    auto [ans, base] = best;    
+    cout << ans << endl;
+    for(int i = 0; i < n; i++)  
+    {   
+        if(base + i * k > arr[i])   
+        {   
+            cout << "+ " << to_string(i + 1) << " " << base + i * k - arr[i] << endl;   
+        }   
+        else if(base + i * k < arr[i]) 
+        {   
+            cout << "- " << to_string(i + 1) << " " << arr[i] - (base + i * k) << endl;  
+        }   
+    }
 }
 
 signed main()
