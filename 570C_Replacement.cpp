@@ -54,7 +54,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ss second
 #define sv string_view
 #define MP make_pair
-#define MT make_tuple
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -88,7 +87,7 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " | "; o << e; } return o << "}";
 }
     
 template<typename K, typename V>
@@ -140,8 +139,43 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
 }
     
 void solve() {
-    vi res = {23, 3, 2};    
-    cout << res << endl;
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    int total = 0, group = 0;   
+    vb arr(n);
+    char ch = '.';
+    auto left = [&](int id) -> bool {   
+        return id && arr[id - 1];
+    };
+    auto right = [&](int id) -> bool {  
+        return id < n - 1 && arr[id + 1];
+    };
+    for(int i = 0; i < n; i++) {    
+        if(s[i] == ch) {    
+            arr[i] = true;  
+            total++;    
+            group += !left(i);
+        }
+    }
+    int id; 
+    char c;
+    while(q--) {    
+        cin >> id >> c;
+        bool a = arr[--id], b = c == ch;  
+        if(a != b) {    
+            total += b ? 1 : -1;    
+            if(left(id) && right(id)) { 
+                if(b) group--;  
+                else group++;
+            }
+            else if(!left(id) && !right(id)) { 
+                if(b) group++;  
+                else group--;
+            }
+        }
+        arr[id] = b;
+        cout << total - group << endl;
+    }
 }
 
 signed main() {

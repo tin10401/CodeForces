@@ -54,7 +54,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ss second
 #define sv string_view
 #define MP make_pair
-#define MT make_tuple
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -88,7 +87,7 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " | "; o << e; } return o << "}";
 }
     
 template<typename K, typename V>
@@ -119,7 +118,7 @@ void debug_out(const char* names, T value, Args... args) {
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 const static ll INF = 1LL << 60;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 1;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -139,9 +138,29 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
     for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
 }
     
+int cnt[MX], vis[MX], step[MX];
 void solve() {
-    vi res = {23, 3, 2};    
+    int n; cin >> n;    
+    for(int i = 1; i <= n; i++) {    
+        int x; cin >> x;    
+        queue<pii> q;   
+        q.push(MP(x, 0));   
+        while(!q.empty()) { 
+            auto [num, cost] = q.front(); q.pop();  
+            if(num >= MX || vis[num] == i) continue;  
+            vis[num] = i;   
+            cnt[num]++; 
+            step[num] += cost;  
+            q.push(MP(num >> 1, cost + 1)); 
+            q.push(MP(num << 1, cost + 1));
+        }
+    }
+    int res = INF;  
+    for(int i = 0; i < MX; i++) {   
+        if(cnt[i] == n) res = min(res, step[i]);
+    }
     cout << res << endl;
+    
 }
 
 signed main() {

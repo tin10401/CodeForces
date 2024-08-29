@@ -54,6 +54,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ss second
 #define sv string_view
 #define MP make_pair
+#define MT make_tuple
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -93,7 +94,7 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
     o << "{"; int i = 0;
-    for (const auto &[key, value] : m) { if (i++) o << " | "; o << key << " : " << value; }
+    for (const auto &[key, value] : m) { if (i++) o << " , "; o << key << " : " << value; }
     return o << "}";
 }
 
@@ -138,14 +139,11 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
     for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
 }
     
-
-void solve()
-{
-
+void solve() {
+    
 }
 
-signed main()
-{
+signed main() {
     IOS;
     startClock
 
