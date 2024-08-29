@@ -54,7 +54,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ss second
 #define sv string_view
 #define MP make_pair
-#define MT make_tuple
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -88,7 +87,7 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " | "; o << e; } return o << "}";
 }
     
 template<typename K, typename V>
@@ -140,8 +139,42 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
 }
     
 void solve() {
-    vi res = {23, 3, 2};    
-    cout << res << endl;
+    int n, m; cin >> n >> m;    
+    int a[n][m], b[n][m];   
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            cin >> a[i][j]; 
+            b[i][j] = 1;
+        }
+    }
+    for(int i = 0; i < n; i++)  {
+        for(int j = 0; j < m; j++) {    
+            if(!a[i][j]) {  
+                for(int k = 0; k < m; k++) b[i][k] = 0; 
+                for(int k = 0; k < n; k++) b[k][j] = 0;
+            }
+        }
+    }
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            if(a[i][j]){    
+                int cnt = 0;    
+                for(int k = 0; k < m; k++) cnt += b[i][k];  
+                for(int k = 0; k < n; k++) cnt += b[k][j];  
+                if(!cnt) {cout << no << endl; return;}
+            }
+        }
+    }
+    cout << yes;
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            cout << b[i][j] << " ";
+        }
+        cout << endl;
+    }
+
+
+
 }
 
 signed main() {

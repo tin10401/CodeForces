@@ -54,7 +54,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ss second
 #define sv string_view
 #define MP make_pair
-#define MT make_tuple
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -88,7 +87,7 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " | "; o << e; } return o << "}";
 }
     
 template<typename K, typename V>
@@ -140,8 +139,15 @@ void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;
 }
     
 void solve() {
-    vi res = {23, 3, 2};    
-    cout << res << endl;
+    int n; cin >> n;    
+    int mx = 0; 
+    umap<int, int> mp;  
+    for(int i = 0, sm = 0; i < n; i++) {    
+        int x; cin >> x;    
+        mx = max(mx, ++mp[sm += x]);
+    }
+    cout << n - mx << endl;
+    
 }
 
 signed main() {
