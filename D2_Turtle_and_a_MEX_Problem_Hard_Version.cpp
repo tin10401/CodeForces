@@ -124,8 +124,6 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-#define eps 1e-9
-#define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -133,7 +131,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -146,10 +144,54 @@ bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-}
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } } }
     
 void solve() {  
+    int n, m; cin >> n >> m;    
+    vpii arr;
+    int mx1 = 0, mx2 = 0;
+    for(int i = 0; i < n; i++) {    
+        int len; cin >> len;    
+        uset<int> s;
+        while(len--) {  
+            int x; cin >> x;
+            s.insert(x);
+        }
+        int j = 0, a = INF;
+        while(true) { 
+            if(!s.count(j)) {   
+                if(a != INF) {  
+                    arr.pb(MP(a, j));
+                    mx2 = max(mx2, j);
+                    break;
+                }
+                a = j;
+                mx1 = max(mx1, a);
+            } 
+            j++;
+        }
+    }
+    vvi graph(mx2 + 1);
+    vi cnt(mx2 + 1), dp(mx2 + 1);
+    iota(all(dp), 0);
+    for(int i = 0; i < n; i++) {    
+        graph[arr[i].ff].pb(arr[i].ss);
+        cnt[arr[i].ff]++;
+    }
+    for(int i = mx2; i >= 0; i--) { 
+        for(auto& it : graph[i]) {  
+            dp[i] = max(dp[i], dp[it]);
+        }
+        if(cnt[i] > 1) mx1 = max(mx1, dp[i]);
+    }
+    int res = 0;
+    for(int i = 0; i <= min(m, mx2); i++) {  
+        res += max(mx1, dp[i]);
+    }
+    if(mx2 < m) {   
+        res += m * (m + 1) / 2 - mx2 * (mx2 + 1) / 2;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -158,7 +200,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

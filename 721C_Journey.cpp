@@ -36,7 +36,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
-#define int long long
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
@@ -124,8 +123,6 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-#define eps 1e-9
-#define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -133,7 +130,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -149,7 +146,53 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
+const int MK = 5e3 + 1;
+int dp[MK][MK], par[MK][MK];
 void solve() {  
+    int n, m, t; cin >> n >> m >> t;    
+    vt<vpii> graph(n), revGraph(n);
+    vi degree(n);
+    for(int i = 0; i < m; i++) {    
+        int a, b, c; cin >> a >> b >> c;
+        graph[--a].pb(MP(--b, c));
+        revGraph[b].pb(MP(a, c));
+        degree[b]++;
+    }
+    for(int i = 0; i < n; i++) fill(dp[i], dp[i] + n + 1, t + 1);
+    queue<int> q;
+    dp[0][1] = 0;
+    for(int i = 0; i < n; i++) {    
+        if(degree[i] == 0) q.push(i);
+    }
+    while(!q.empty()) { 
+        int node = q.front(); q.pop();  
+        for(auto& [nei, cost] : graph[node]) {  
+            for(int i = 2; i <= n; i++) {   
+                int newCost = dp[node][i - 1] + cost;
+                if(newCost < dp[nei][i]) {  
+                    dp[nei][i] = newCost;   
+                    par[nei][i] = node;
+                }
+            }
+            if(--degree[nei] == 0) q.push(nei);
+        }
+    }
+    int mx = 0; 
+    for(int i = n; i >= 0; i--) {   
+        if(dp[n - 1][i] <= t) { 
+            mx = i; 
+            break;
+        }
+    }
+    cout << mx << endl;
+    vi res = {n - 1};   
+    while(res.back()) {   
+        res.pb(par[res.back()][mx--]);
+    }
+    rev(res);   
+    for(auto& it : res) cout << it + 1 << " ";  
+    cout << endl;
+    
 }
 
 signed main() {

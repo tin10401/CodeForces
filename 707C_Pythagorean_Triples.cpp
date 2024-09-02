@@ -86,14 +86,10 @@ struct custom {
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 template<typename T1, typename T2>
-std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
+std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " | "; o << e; } return o << "}";
 }
-    
-template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
-    
-template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -101,8 +97,6 @@ auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
     for (const auto &[key, value] : m) { if (i++) o << " , "; o << key << " : " << value; }
     return o << "}";
 }
-    
-template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
 
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
@@ -124,8 +118,6 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-#define eps 1e-9
-#define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -133,7 +125,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -141,21 +133,30 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-vi primes;  
-bitset<MX> primeBits;
-void generatePrime() {  primeBits.set(2);   
-    for(int i = 3; i < MX; i += 2) primeBits.set(i);
-    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+int GCD[MX], TOTI[MX];  
+void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;   
+    for(int i = 2; i < MX; i++) {   if(TOTI[i] == i)   {   TOTI[i] = i - 1; for(int j = 2 * i; j < MX; j += i)  {   TOTI[j] -= (TOTI[j] / i); }   }   }   
+    for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
 }
     
-void solve() {  
+void solve() {
+    int n; cin >> n;    
+    int b, c;
+    if(n & 1) { 
+        b = (n * n - 1) / 2;    
+        c = (n * n + 1) / 2;    
+    }
+    else {  
+        b = (n * n) / 4 - 1;    
+        c = (n * n) / 4 + 1;
+    }
+    if(b == 0 || c == 0) {cout << -1 << endl;}  
+    else cout << b << " " << c << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
 
     int t = 1;
     //cin >> t;

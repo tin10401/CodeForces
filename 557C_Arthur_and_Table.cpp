@@ -124,8 +124,6 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-#define eps 1e-9
-#define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -133,7 +131,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -150,6 +148,33 @@ void generatePrime() {  primeBits.set(2);
 }
     
 void solve() {  
+    int n; cin >> n;    
+    vpii arr(n);    
+    for(auto& it : arr) {   
+        cin >> it.ff;
+    }
+    for(auto& it : arr) {   
+        cin >> it.ss;
+    }
+    map<int, vi> mp;    
+    int sm = 0;
+    for(auto& [l, c] : arr) {   
+        mp[l].pb(c);
+        sm += c;
+    }
+    multiset<int, greater<int>> s;    
+    int res = sm;
+    for(auto& [_, curr] : mp) {    
+        int rem = curr.size();  
+        int ans = sum(curr);   
+        for(auto it = begin(s); it != end(s) && --rem > 0; it++) {  
+            ans += *it;
+        }
+        debug(ans);
+        res = min(res, sm - ans);    
+        s.insert(all(curr));
+    }
+    cout << res << endl;
 }
 
 signed main() {

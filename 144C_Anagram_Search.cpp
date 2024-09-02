@@ -124,8 +124,6 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-#define eps 1e-9
-#define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -133,7 +131,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -146,10 +144,30 @@ bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-}
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } } }
     
 void solve() {  
+    string a, b; cin >> a >> b; 
+    int n = a.size(), m = b.size();
+    if(n < m) {cout << 0 << endl; return;}
+    int A[26] = {}, B[26] = {}; 
+    for(auto& ch : b) B[ch - 'a']++;    
+    for(int i = 0; i < m; i++) {    
+        if(a[i] != '?') A[a[i] - 'a']++;
+    }
+    auto check = [&]() -> bool {    
+        for(int i = 0; i < 26; i++) {   
+            if(B[i] < A[i]) return false;
+        }
+        return true;
+    };
+    int res = check();
+    for(int l = 0, r = m; r < n; l++, r++) { 
+        if(a[l] != '?') A[a[l] - 'a']--;    
+        if(a[r] != '?') A[a[r] - 'a']++;    
+        res += check();
+    }
+    cout << res << endl;
 }
 
 signed main() {
