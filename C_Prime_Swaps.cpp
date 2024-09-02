@@ -124,8 +124,6 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-#define eps 1e-9
-#define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
@@ -133,7 +131,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -146,16 +144,38 @@ bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-}
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i - 1); } } }
     
 void solve() {  
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;  
+    vi pos(n);  
+    for(int i = 0; i < n; i++) {    
+        pos[--arr[i]] = i;
+    }
+    vpii res;   
+    for(int i = 0; i < n; i++) {    
+        int right = pos[i]; 
+        while(right > i) {  
+            int need = right - i;   
+            auto it = ub(all(primes), need); 
+            need = *prev(it);
+            res.pb(MP(right - need, right));
+            swap(pos[arr[right - need]], pos[arr[right]]);    
+            swap(arr[right - need], arr[right]);
+            right -= need;
+        }
+    }
+    cout << res.size() << endl; 
+    for(auto& it : res) {   
+        cout << it.ff + 1 << " " << it.ss + 1 << endl;
+    }
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;

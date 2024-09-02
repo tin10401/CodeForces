@@ -133,7 +133,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -150,6 +150,17 @@ void generatePrime() {  primeBits.set(2);
 }
     
 void solve() {  
+    int n; cin >> n;    
+    string s; cin >> s; 
+    int cnt[26] = {}, res = 0;   
+    for(int i = 0; i < n; i++) {    
+        for(int j = i + 1, curr = 0; j < n; j++) {  
+            if(s[i] == s[j]) res += curr;   
+            curr += cnt[s[j] - 'a'];
+        }
+        cnt[s[i] - 'a']++;
+    }
+    cout << res << endl;
 }
 
 signed main() {

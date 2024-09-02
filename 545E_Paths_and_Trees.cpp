@@ -127,13 +127,13 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
-const static int MX = 2e6 + 5;
+const static int MX = 3e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -148,8 +148,46 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
+int dp[MX], res[MX], cost[MX];
     
 void solve() {  
+    int n, m; cin >> n >> m;    
+    vt<var(3)> graph(n + 1);
+    for(int i = 1; i <= m; i++) {    
+        int a, b, c; cin >> a >> b >> c;
+        cost[i] = c;
+        graph[a].pb({b, c, i});  
+        graph[b].pb({a, c, i});
+    }
+    fill(dp, dp + n + 1, INF);
+    pq<pii, vpii, greater<pii>> minHeap;  
+    int start; cin >> start;
+    dp[start] = 0;
+    minHeap.push(MP(0, start));
+    while(!minHeap.empty()) {   
+        auto [cost, node] = minHeap.top(); minHeap.pop();   
+        if(dp[node] < cost) continue;   
+        for(auto& [nei, c, id] : graph[node]) { 
+            int newCost = c + cost; 
+            if(newCost < dp[nei]) { 
+                res[nei] = id;  
+                dp[nei] = newCost;
+                minHeap.push(MP(newCost, nei));
+            }
+            else if(newCost == dp[nei]) res[nei] = id;
+        }
+    }
+    int sm = 0; 
+    for(int i = 1; i <= n; i++) {   
+        if(i == start) continue;
+        sm += cost[res[i]];
+    }
+    cout << sm << endl;    
+    for(int i = 1; i <= n; i++) {   
+        if(i == start) continue;
+        cout << res[i] << " ";
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -178,3 +216,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

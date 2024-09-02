@@ -133,7 +133,7 @@ const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -149,7 +149,57 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
+class FW {  
+    public: 
+    int n;  
+    vi root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, int val) {  
+        while(id <= n) { 
+            root[id] += val;    
+            goUp;
+        }
+    }
+    
+    int get(int id) {   
+        int res = 0;    
+        while(id) { 
+            res += root[id];    
+            goDown;
+        }
+        return res;
+    }
+};
+
 void solve() {  
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    FW root(n);
+    while(q--) {    
+        int op, x; cin >> op >> x;  
+        if(op == 1) {   
+            if(x == n / 2 && n % 2 != 0) continue;  
+            if(x >= n / 2) x = n - x - 1;
+            root.update(x + 1, 1);
+        }
+        else {  
+            int o = x;  
+            if(x >= n / 2) x = n - x - 1;   
+            int val = root.get(x + 1);  
+            if(val & 1) o = n - o - 1;
+            s[o] = (char)((s[o] - 'a' + 1) % 26 + 'a');
+        }
+    }
+    int sm = 0;
+    for(int i = 0; i < n / 2; i++) {    
+        sm += root.get(i + 1) - root.get(i);  
+        if(sm % 2 != 0) swap(s[i], s[n - i - 1]);
+    }
+    cout << s << endl;
 }
 
 signed main() {
@@ -158,7 +208,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

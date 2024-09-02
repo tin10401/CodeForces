@@ -127,13 +127,13 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -150,6 +150,39 @@ void generatePrime() {  primeBits.set(2);
 }
     
 void solve() {  
+    int n, q; cin >> n >> q;    
+    int ans[n + 1], cnt[n + 1]; 
+    mset(ans, 0), mset(cnt, 0);
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        cnt[x]++;
+    }
+    for(int i = 2; i <= n; i++) cnt[i] += cnt[i - 1];
+
+    auto compute = [&](int l, int r) -> int {   
+        if(l == 0) return cnt[r];   
+        return cnt[r] - cnt[l - 1];
+    };
+    auto isValid = [&](int x, int k) -> bool {  
+        int total = 0;  
+        for(int i = 0; i <= n; i += x) total += compute(i, min(n, i + k));  
+        return total >= n / 2 + 1;
+    };
+    for(int x = 1; x <= n; x++) {   
+        int left = 0, right = x - 1, res = -1;
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(isValid(x, middle)) res = middle, right = middle - 1;   
+            else left = middle + 1;
+        }
+        ans[x] = res;
+    }
+    while(q--) {    
+        int x; cin >> x;    
+        cout << ans[x] << " ";
+    }
+    cout << endl;
+
 }
 
 signed main() {
@@ -158,7 +191,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
