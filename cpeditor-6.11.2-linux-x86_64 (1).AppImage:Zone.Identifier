@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://github.com/cpeditor/cpeditor/releases
+HostUrl=https://objects.githubusercontent.com/github-production-release-asset-2e65be/221268096/9e33e109-b9d5-4861-a320-04d587a5715e?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=releaseassetproduction%2F20240903%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240903T010236Z&X-Amz-Expires=300&X-Amz-Signature=a03d09394fad30bf6446e12f9dd44a39622c73bf40cf8168c374b42464cb5e1f&X-Amz-SignedHeaders=host&actor_id=101690568&key_id=0&repo_id=221268096&response-content-disposition=attachment%3B%20filename%3Dcpeditor-6.11.2-linux-x86_64.AppImage&response-content-type=application%2Foctet-stream

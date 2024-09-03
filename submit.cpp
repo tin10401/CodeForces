@@ -150,31 +150,6 @@ void generatePrime() {  primeBits.set(2);
 }
     
 void solve() {  
-    int n, k; cin >> n >> k;
-    vi arr(n); cin >> arr;  
-    if(n == 1) {    
-        k += arr.front() < k;   
-        cout << k - 1 << endl;  
-        return;
-    }
-    int g = 0;  
-    for(auto& it : arr) {   
-        g = gcd(g, it);
-    }
-    
-    auto isValid = [&](int x) -> bool { 
-        int ans = 0;
-        int take = min(n - 1, x / g);
-        ans = x - take;
-        return ans >= k;
-    };
-    int left = 0, right = n + k, res = -1;
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(isValid(middle)) res = middle, right = middle - 1;   
-        else left = middle + 1;
-    }
-    cout << res << endl;
 }
 
 signed main() {
@@ -183,7 +158,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
