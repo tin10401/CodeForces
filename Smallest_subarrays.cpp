@@ -17,7 +17,7 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
- 
+
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -62,7 +62,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
- 
+
 //SGT DEFINE
 #define lc i * 2 + 1
 #define rc i * 2 + 2
@@ -72,13 +72,13 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
 #define iterator int i, int left, int right
- 
+
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
     
 //FW TREE   
 #define goUp id += (id & -id)   
 #define goDown id -= (id & -id)
- 
+
 struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
@@ -103,7 +103,7 @@ auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
 }
     
 template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
- 
+
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
 void debug_out(const char* names) { std::cerr << std::endl; }
@@ -120,14 +120,14 @@ void debug_out(const char* names, T value, Args... args) {
 #define debug(...)
 #define startClock
 #define endClock
- 
+
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
- 
+
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
-const static int MX = 2e6 + 5;
+const static int MX = 3e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -149,78 +149,82 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
-#define ld long db
-class FW {  
-    public: 
-    int n;  
-    vt<ld> root;    
-    FW(int n) { 
-        this->n = n;    
-        root.rsz(n + 1);
-    }
+const int MK = 22;
+int T[MX * MK], root[MX * MK * 4], ptr, m;  
+pii child[MX * MK * 4];
     
-    void update(int id, ld val) {  
-        while(id <= n) {  
-            root[id] += val;    
-            goUp;
-        }
+void update(int prev, int curr, int id, int left = 0, int right = m - 1) {    
+    root[curr] = root[prev];    
+    child[curr] = child[prev];
+    if(left == right) { 
+        root[curr]++;
+        return;
     }
+    int middle = midPoint;  
+    if(id <= middle) {  
+        child[curr].ff = ++ptr; 
+        update(child[prev].ff, child[curr].ff, id, left, middle);
+    }
+    else {  
+        child[curr].ss = ++ptr; 
+        update(child[prev].ss, child[curr].ss, id, middle + 1, right);
+    }
+    root[curr] = root[child[curr].ff] + root[child[curr].ss];
+}
     
-    ld get(int id) {   
-        ld res = 0;    
-        while(id) { 
-            res += root[id];
-            goDown;
-        }
-        return res;
-    }
-    
-    ld queries(ld x, ld sm) {    
-        ld left = get(x), right = sm - left;   
-        return abs(left - right);
-    }
-};
+int queries(int curr, int start, int end, int left = 0, int right = m - 1) {   
+    if(left > end || start > right) return 0;
+    if(left >= start && right <= end) return root[curr];
+    int middle = midPoint;  
+    return queries(child[curr].ff, start, end, left, middle) + queries(child[curr].ss, start, end, middle + 1, right);
+}
+
 void solve() {  
-    int n, q; cin >> n >> q;    
-    FW root(n);
-    ld sm = 0;
-    for(int i = 1; i <= n; i++) {   
-        ld x; cin >> x;    
-        x = (ld)log2(x); 
-        sm += x;
-        root.update(i, x);
+    int n; cin >> n;    
+    vi A(n), B(n); cin >> A >> B;   
+    vi tmp = uniqued(A);    
+    m = tmp.size();
+    umap<int, int> mp;  
+    for(int i = 0; i < m; i++) mp[tmp[i]] = i;
+    for(int i = 0; i < n; i++) {    
+        A[i] = mp[A[i]];
+        T[i + 1] = ++ptr;   
+        update(T[i], T[i + 1], A[i]);
     }
-    while(q--) {    
-        int op; cin >> op;  
-        if(op == 1) {   
-            ld i, x; cin >> i >> x;
-            x = (ld)log2(x);
-            debug(x);
-            root.update(i, x);
-            sm += x;
+    for(int i = 0; i < n; i++) {    
+        int left = i, right = n, ans = -1, target = queries(T[i], A[i], m - 1);
+        while(left <= right) {  
+            int middle = midPoint;
+            if(queries(T[middle], A[i], m - 1) - target >= B[i]) ans = middle, right = middle - 1;  
+            else left = middle + 1;
         }
-        else {  
-            int left = 1, right = n, ans = 0;   
-            while(left <= right) {  
-                int middle = midPoint;  
-                ld x = root.queries(middle, sm), y = root.queries(middle + 1, sm); 
-                if(x > y) ans = middle + 1, left = middle + 1;    
-                else ans = middle, right = middle - 1;
-            }
-            cout << ans << endl;
-        }
+        cout << fmax(-1, ans - i) << " ";
     }
 }
- 
+
 signed main() {
     IOS;
     startClock
     //generatePrime();
- 
+
     int t = 1;
     //cin >> t;
     while(t--) solve();
- 
+
     endClock
     return 0;
 }
+
+//███████████████████████████████████████████████████████████████████████████████████████████████████████
+//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░░░░░░░█
+//█░░▄▀░░█████████░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░░░░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░█
+//█░░▄▀░░█████████░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░▄▀░░█
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
+//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
+//███████████████████████████████████████████████████████████████████████████████████████████████████████

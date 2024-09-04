@@ -17,7 +17,7 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
- 
+
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -62,7 +62,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
- 
+
 //SGT DEFINE
 #define lc i * 2 + 1
 #define rc i * 2 + 2
@@ -72,13 +72,13 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
 #define iterator int i, int left, int right
- 
+
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
     
 //FW TREE   
 #define goUp id += (id & -id)   
 #define goDown id -= (id & -id)
- 
+
 struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
@@ -103,7 +103,7 @@ auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
 }
     
 template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
- 
+
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
 void debug_out(const char* names) { std::cerr << std::endl; }
@@ -120,10 +120,10 @@ void debug_out(const char* names, T value, Args... args) {
 #define debug(...)
 #define startClock
 #define endClock
- 
+
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
- 
+
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
@@ -149,78 +149,51 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
-#define ld long db
-class FW {  
-    public: 
-    int n;  
-    vt<ld> root;    
-    FW(int n) { 
-        this->n = n;    
-        root.rsz(n + 1);
-    }
-    
-    void update(int id, ld val) {  
-        while(id <= n) {  
-            root[id] += val;    
-            goUp;
-        }
-    }
-    
-    ld get(int id) {   
-        ld res = 0;    
-        while(id) { 
-            res += root[id];
-            goDown;
-        }
-        return res;
-    }
-    
-    ld queries(ld x, ld sm) {    
-        ld left = get(x), right = sm - left;   
-        return abs(left - right);
-    }
-};
 void solve() {  
     int n, q; cin >> n >> q;    
-    FW root(n);
-    ld sm = 0;
-    for(int i = 1; i <= n; i++) {   
-        ld x; cin >> x;    
-        x = (ld)log2(x); 
-        sm += x;
-        root.update(i, x);
+    vi arr(n); cin >> arr;  
+    for(int i = 0; i < n; i++) {    
+        arr.pb(arr[i]);
     }
+    vi prefix(2 * n + 1);   
+    for(int i = 0; i < 2 * n; i++) {    
+        prefix[i + 1] = prefix[i] + arr[i];
+    }
+    auto queries = [&](int id) -> int { 
+        int ans = prefix[n] * (id / n);    
+        int start = id / n; 
+        ans += prefix[start + id % n] - prefix[start];  
+        return ans;
+    };
     while(q--) {    
-        int op; cin >> op;  
-        if(op == 1) {   
-            ld i, x; cin >> i >> x;
-            x = (ld)log2(x);
-            debug(x);
-            root.update(i, x);
-            sm += x;
-        }
-        else {  
-            int left = 1, right = n, ans = 0;   
-            while(left <= right) {  
-                int middle = midPoint;  
-                ld x = root.queries(middle, sm), y = root.queries(middle + 1, sm); 
-                if(x > y) ans = middle + 1, left = middle + 1;    
-                else ans = middle, right = middle - 1;
-            }
-            cout << ans << endl;
-        }
+        int l, r; cin >> l >> r;    
+        cout << queries(r) - queries(l - 1) << endl;
     }
 }
- 
+
 signed main() {
     IOS;
     startClock
     //generatePrime();
- 
+
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
- 
+
     endClock
     return 0;
 }
+
+//███████████████████████████████████████████████████████████████████████████████████████████████████████
+//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░░░░░░░█
+//█░░▄▀░░█████████░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░░░░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░█
+//█░░▄▀░░█████████░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░▄▀░░█
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
+//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
+//███████████████████████████████████████████████████████████████████████████████████████████████████████
