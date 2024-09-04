@@ -32,7 +32,8 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll unsigned long long
+#define ld long db
+#define ll int64_t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
