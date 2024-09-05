@@ -17,7 +17,7 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
- 
+
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -32,7 +32,8 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll unsigned long long
+#define ld long db
+#define ll int64_t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
@@ -62,7 +63,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
- 
+
 //SGT DEFINE
 #define lc i * 2 + 1
 #define rc i * 2 + 2
@@ -72,13 +73,13 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
 #define iterator int i, int left, int right
- 
+
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
     
 //FW TREE   
 #define goUp id += (id & -id)   
 #define goDown id -= (id & -id)
- 
+
 struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
@@ -103,7 +104,7 @@ auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
 }
     
 template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
- 
+
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
 void debug_out(const char* names) { std::cerr << std::endl; }
@@ -120,13 +121,14 @@ void debug_out(const char* names, T value, Args... args) {
 #define debug(...)
 #define startClock
 #define endClock
- 
+
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
- 
+
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
+const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
@@ -149,78 +151,209 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
-#define ld long db
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    void merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+        }
+    }
+    
+    bool isConnected(int u, int v) {    
+        return find(u) == find(v);
+    }
+};
+    
 class FW {  
     public: 
     int n;  
-    vt<ld> root;    
+    vi root;    
     FW(int n) { 
         this->n = n;    
         root.rsz(n + 1);
     }
     
-    void update(int id, ld val) {  
-        while(id <= n) {  
+    void update(int id, int val) {  
+        while(id <= n) {    
             root[id] += val;    
             goUp;
         }
     }
     
-    ld get(int id) {   
-        ld res = 0;    
-        while(id) { 
-            res += root[id];
+    int get(int id) {   
+        int res = 0;    
+        while(id > 0) { 
+            res += root[id];    
             goDown;
         }
         return res;
     }
     
-    ld queries(ld x, ld sm) {    
-        ld left = get(x), right = sm - left;   
-        return abs(left - right);
+    int queries(int left, int right) {  
+        return get(right) - get(left - 1);
     }
 };
-void solve() {  
-    int n, q; cin >> n >> q;    
-    FW root(n);
-    ld sm = 0;
-    for(int i = 1; i <= n; i++) {   
-        ld x; cin >> x;    
-        x = (ld)log2(x); 
-        sm += x;
-        root.update(i, x);
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    SGT(vi& arr) {    
+        n = arr.size(); 
+        root.rsz(n * 4), lazy.rsz(n * 4);
     }
-    while(q--) {    
-        int op; cin >> op;  
-        if(op == 1) {   
-            ld i, x; cin >> i >> x;
-            x = (ld)log2(x);
-            debug(x);
-            root.update(i, x);
-            sm += x;
+    
+    void build(iterator, vi& arr) { 
+
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        if(left != right) { 
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return 0;   
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+};
+    
+class PSGT {    
+    public: 
+    int n, ptr;  
+    vpii child; 
+    vi root, T; 
+    PSGT(int n) {   
+        this->n = n;
+        ptr = 0;
+        root.rsz(n * MK * 4), T.rsz(n * MK * 4);   
+        child.rsz(n * MK * 4);
+    }
+    
+    void update(int id, int pos, int val) {  
+        T[id] = ++ptr;
+        update(T[id - 1], T[id], pos, val, 0, n - 1);
+    }
+    
+    void update(int prev, int curr, int id, int val, int left, int right) { 
+        root[curr] = root[prev];    
+        child[curr] = child[prev];  
+        if(left == right) { 
+            root[curr] += val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) {  
+            child[curr].ff = ++ptr; 
+            update(child[prev].ff, child[curr].ff, id, val, left, middle);
         }
         else {  
-            int left = 1, right = n, ans = 0;   
-            while(left <= right) {  
-                int middle = midPoint;  
-                ld x = root.queries(middle, sm), y = root.queries(middle + 1, sm); 
-                if(x > y) ans = middle + 1, left = middle + 1;    
-                else ans = middle, right = middle - 1;
-            }
-            cout << ans << endl;
+            child[curr].ss = ++ptr; 
+            update(child[prev].ss, child[curr].ss, id, val, middle + 1, right);
         }
+        root[curr] = root[child[curr].ff] + root[child[curr].ss];
     }
+};
+    
+    
+void solve() {  
+    int n = 1;
+    vi arr(n);
+    SGT<int> root(arr);    
+    DSU t(n);   
+    PSGT T(n);  
+    FW s(n);
 }
- 
+
 signed main() {
     IOS;
     startClock
     //generatePrime();
- 
+
     int t = 1;
     //cin >> t;
     while(t--) solve();
- 
+
     endClock
     return 0;
 }
+
+//███████████████████████████████████████████████████████████████████████████████████████████████████████
+//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░░░░░░░█
+//█░░▄▀░░█████████░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░░░░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░█
+//█░░▄▀░░█████████░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░█
+//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░▄▀░░█
+//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
+//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
+//███████████████████████████████████████████████████████████████████████████████████████████████████████
