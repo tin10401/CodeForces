@@ -128,7 +128,6 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
-const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
@@ -165,12 +164,12 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    void merge(int u, int v) {  
-        u = find(u), v = find(v);   
-        if(u != v) {    
-            if(rank[v] > rank[u]) swap(u, v);   
-            rank[u] += rank[v]; 
-            root[v] = u;
+    void merge(int x, int y) {  
+        x = find(x), y = find(y);   
+        if(x != y) {    
+            if(rank[y] > rank[x]) swap(x, y);   
+            rank[x] += rank[y]; 
+            root[y] = x;
         }
     }
     
@@ -178,151 +177,41 @@ class DSU {
         return find(u) == find(v);
     }
 };
-    
-class FW {  
-    public: 
-    int n;  
-    vi root;    
-    FW(int n) { 
-        this->n = n;    
-        root.rsz(n + 1);
-    }
-    
-    void update(int id, int val) {  
-        while(id <= n) {    
-            root[id] += val;    
-            goUp;
-        }
-    }
-    
-    int get(int id) {   
-        int res = 0;    
-        while(id > 0) { 
-            res += root[id];    
-            goDown;
-        }
-        return res;
-    }
-    
-    int queries(int left, int right) {  
-        return get(right) - get(left - 1);
-    }
-};
-
-template<class T>   
-class SGT { 
-    public: 
-    int n;  
-    vt<T> root, lazy; 
-    SGT(vi& arr) {    
-        n = arr.size(); 
-        root.rsz(n * 4), lazy.rsz(n * 4);
-    }
-    
-    void build(iterator, vi& arr) { 
-
-    }
-    
-    void update(int id, int val) {  
-        update(entireTree, id, val);
-    }
-    
-    void update(iterator, int id, int val) {    
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
-    }
-
-    void update(int start, int end, int val) { 
-        update(entireTree, start, end, val);
-    }
-    
-    void update(iterator, int start, int end, int val) {    
-        pushDown;   
-        if(left > end || start > right) return; 
-        if(left >= start && right <= end) { 
-            lazy[i] = val;  
-            pushDown;   
-            return;
-        }
-        int middle = midPoint;  
-        update(lp, start, end, val);    
-        update(rp, start, end, val);    
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
-    T merge(T left, T right) {  
-        T res;  
-        return res;
-    }
-    
-    void push(iterator) {   
-        if(lazy[i] == 0) return;    
-        if(left != right) { 
-            lazy[lc] = lazy[i]; 
-            lazy[rc] = lazy[i];
-        }
-        lazy[i] = 0;
-    }
-
-    T queries(int start, int end) { 
-        return queries(entireTree, start, end);
-    }
-    
-    T queries(iterator, int start, int end) {   
-        pushDown;
-        if(left > end || start > right) return 0;   
-        if(left >= start && right <= end) return root[i];   
-        int middle = midPoint;  
-        return merge(queries(lp, start, end), queries(rp, start, end));
-    }
-
-};
-    
-class PSGT {    
-    public: 
-    int n, ptr;  
-    vpii child; 
-    vi root, T; 
-    PSGT(int n) {   
-        this->n = n;
-        ptr = 0;
-        root.rsz(n * MK * 4), T.rsz(n * MK * 4);   
-        child.rsz(n * MK * 4);
-    }
-    
-    void update(int id, int pos, int val) {  
-        T[id] = ++ptr;
-        update(T[id - 1], T[id], pos, val, 0, n - 1);
-    }
-    
-    void update(int prev, int curr, int id, int val, int left, int right) { 
-        root[curr] = root[prev];    
-        child[curr] = child[prev];  
-        if(left == right) { 
-            root[curr] += val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) {  
-            child[curr].ff = ++ptr; 
-            update(child[prev].ff, child[curr].ff, id, val, left, middle);
-        }
-        else {  
-            child[curr].ss = ++ptr; 
-            update(child[prev].ss, child[curr].ss, id, val, middle + 1, right);
-        }
-        root[curr] = root[child[curr].ff] + root[child[curr].ss];
-    }
-};
-    
-    
 void solve() {  
+    int n, m, q, k; cin >> n >> m >> q >> k;    
+    vvi arr(n, vi(m)); cin >> arr;  
+    int left = 0, right = INF;  
+    var(4) queries(q);  
+    for(auto& [x1, y1, x2, y2] : queries) { 
+        cin >> x1 >> y1 >> x2 >> y2;    
+        x1--, y1--, x2--, y2--;
+    }
+    auto isValid = [&](int x) -> bool { 
+        DSU root(n * m + 3);    
+        for(int i = 0; i < n; i++) {    
+            for(int j = 0; j < m; j++) {    
+                if(arr[i][j] > x) continue;
+                for(auto& dir : dirs) { 
+                    int row = i + dir[0], col = j + dir[1];   
+                    if(row >= 0 && col >= 0 && row < n && col < m && arr[row][col] <= x) {  
+                        root.merge(i * m + j, row * m + col);
+                    }
+                }
+            }
+        }
+        int cnt = 0;
+        for(auto& [x1, y1, x2, y2] : queries) { 
+            if(root.isConnected(x1 * m + y1, x2 * m + y2)) cnt++;
+        }
+        return cnt >= k;
+    };
+    int res = -1;
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(isValid(middle)) res = middle, right = middle - 1;   
+        else left = middle + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {
