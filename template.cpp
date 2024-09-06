@@ -63,6 +63,9 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
+#define lcm(a, b) (a * b) / gcd(a, b)
+#define MAX(a) *max_element(all(a)) 
+#define MIN(a) *min_element(all(a))
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -220,7 +223,13 @@ class SGT {
     }
     
     void build(iterator, vi& arr) { 
-
+        if(left == right) { 
+            root[i] = arr[left];    
+            return;
+        }
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
     }
     
     void update(int id, int val) {  
@@ -284,42 +293,6 @@ class SGT {
 
 };
     
-class PSGT {    
-    public: 
-    int n, ptr;  
-    vpii child; 
-    vi root, T; 
-    PSGT(int n) {   
-        this->n = n;
-        ptr = 0;
-        root.rsz(n * MK * 4), T.rsz(n * MK * 4);   
-        child.rsz(n * MK * 4);
-    }
-    
-    void update(int id, int pos, int val) {  
-        T[id] = ++ptr;
-        update(T[id - 1], T[id], pos, val, 0, n - 1);
-    }
-    
-    void update(int prev, int curr, int id, int val, int left, int right) { 
-        root[curr] = root[prev];    
-        child[curr] = child[prev];  
-        if(left == right) { 
-            root[curr] += val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) {  
-            child[curr].ff = ++ptr; 
-            update(child[prev].ff, child[curr].ff, id, val, left, middle);
-        }
-        else {  
-            child[curr].ss = ++ptr; 
-            update(child[prev].ss, child[curr].ss, id, val, middle + 1, right);
-        }
-        root[curr] = root[child[curr].ff] + root[child[curr].ss];
-    }
-};
     
     
 void solve() {  
