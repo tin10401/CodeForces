@@ -137,7 +137,7 @@ const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -295,12 +295,23 @@ class SGT {
     
     
     
-void solve() {  
-    int n, k; cin >> n >> k;    
-    vi arr(n); cin >> arr;
-    srtR(arr);  
-    cout << accumulate(begin(arr), begin(arr) + k, 0LL) * 2 << endl;;
-
+void solve() {
+    int n, m; cin >> n >> m;    
+    vi a(n), b(m); cin >> a >> b;   
+    srtR(a), srtR(b); 
+    auto isValid = [&](int x) -> bool { 
+        for(int i = 0, j = 0; i < m && j < n; i++, j += x) {    
+            if(b[i] < a[j]) return false;
+        }
+        return true;
+    };
+    int left = (n + m - 1) / m, right = n, res = -1;  
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(isValid(middle)) res = middle, right = middle - 1;
+        else left = middle + 1;
+    }
+    cout << (res - 1) * 2 + 1 << endl;
 }
 
 signed main() {
@@ -309,7 +320,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

@@ -137,7 +137,7 @@ const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
