@@ -25,14 +25,15 @@
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
 using namespace std;
-typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
 #define vt vector
 #define all(x) begin(x), end(x)
 #define allr(x) rbegin(x), rend(x)
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll unsigned long long
+#define ld long db
+#define ll int64_t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
@@ -54,6 +55,7 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define ss second
 #define sv string_view
 #define MP make_pair
+#define MT make_tuple
 #define rsz resize
 #define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
@@ -61,8 +63,9 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
-#define max(a, b) fmax(a, b)    
-#define min(a, b) fmin(a, b)
+#define lcm(a, b) (a * b) / gcd(a, b)
+#define MAX(a) *max_element(all(a)) 
+#define MIN(a) *min_element(all(a))
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -79,10 +82,31 @@ typedef tree<pair<int, int>, null_type, less<pair<int, int>>, rb_tree_tag, tree_
 //FW TREE   
 #define goUp id += (id & -id)   
 #define goDown id -= (id & -id)
+
+struct custom {
+    static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
+    size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
+    size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
+template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
 template<typename T1, typename T2>
-std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << p.ff << " " << p.ss; }
-auto operator<<(auto &o, auto x)->decltype(end(x), o) { o << "{"; int i=0; for(auto e: x) o << ", " + 2*!i++ << e; return o << "}"; }
+std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
+auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+}
+    
+template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
+    
+template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
+    
+template<typename K, typename V>
+auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
+    o << "{"; int i = 0;
+    for (const auto &[key, value] : m) { if (i++) o << " , "; o << key << " : " << value; }
+    return o << "}";
+}
+    
+template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
 
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
@@ -104,14 +128,17 @@ void debug_out(const char* names, T value, Args... args) {
 #endif
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
-const static ll INF = 1LL << 61;
+#define eps 1e-9
+#define M_PI 3.14159265358979323846
+const static ll INF = 1LL << 60;
+const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
-constexpr int pct(int x) { return __builtin_popcount(x); }
+constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -119,39 +146,184 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-int GCD[MX], TOTI[MX];  
-void gcdSum()  {   for(int i = 0; i < MX; i++) TOTI[i] = i;   
-    for(int i = 2; i < MX; i++) {   if(TOTI[i] == i)   {   TOTI[i] = i - 1; for(int j = 2 * i; j < MX; j += i)  {   TOTI[j] -= (TOTI[j] / i); }   }   }   
-    for(int i = 1; i < MX; i++) {   for(int j = i, k = 1; j < MX; j += i, k++)  {   GCD[j] += i * TOTI[k];   }   }
+vi primes;  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-struct custom {
-    static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
-    size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
-    size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
-template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
     
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    void merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+        }
+    }
+    
+    bool isConnected(int u, int v) {    
+        return find(u) == find(v);
+    }
+};
+    
+class FW {  
+    public: 
+    int n;  
+    vi root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, int val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            goUp;
+        }
+    }
+    
+    int get(int id) {   
+        int res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            goDown;
+        }
+        return res;
+    }
+    
+    int queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+};
 
-void solve()
-{
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    SGT(vi& arr) {    
+        n = arr.size(); 
+        root.rsz(n * 4), lazy.rsz(n * 4);
+    }
+    
+    void build(iterator, vi& arr) { 
+        if(left == right) { 
+            root[i] = arr[left];    
+            return;
+        }
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        if(left != right) { 
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return 0;   
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+};
+    
+    
+    
+void solve() {  
     int n; cin >> n;    
-    const int MK = 210; 
-    if(n <= 3) {cout << (n == 3 ? MK : -1) << endl; return;}
-    int num = 1;
-    for(int i = 0; i < n - 1; i++) num = (num * 10) % MK;
-    int c = (MK - num) % MK;
-    string r = to_string(c);
-    cout << 1;  
-    for(int i = 0; i < n - 1 - r.size(); i++) cout << 0;    
-    cout << r << endl;
+    vi arr(n); cin >> arr;  
+    arr.pb(0);
+    auto isValid = [&](int x) -> bool {  
+        int g = 0;  
+        auto& curr = arr[n - x];
+        int o = curr;
+        curr = gcd(curr, n - x + 1);
+        for(int i = 0; i < n; i++) {   
+            g = gcd(g, arr[i]);
+        }
+        curr = o;
+        return g == 1;
+    };
+    if(isValid(0)) cout << 0 << endl;   
+    else if(isValid(1)) cout << 1 << endl;  
+    else if(isValid(2)) cout << 2 << endl;  
+    else cout << 3 << endl;
 }
 
-signed main()
-{
+
+signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
