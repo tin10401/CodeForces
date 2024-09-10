@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -300,13 +298,39 @@ class SGT {
     
     
 void solve() {  
-    int n; cin >> n;    
-    uset<int> s;    
-    for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+    int n, q, y; cin >> n >> q >> y;    
+    vi par(n + 1, -1), val(n + 1), vis(n + 1);  
+    vvi graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    cout << s.size() << endl;
+    auto dfs = [&](auto& dfs, int node, int p, int x) -> bool {  
+        if(vis[node]) return true;
+        par[node] = p;    
+        vis[node] = true;
+        for(auto& nei : graph[node]) {  
+            if(nei != p) {    
+                vis[node] &= dfs(dfs, nei, node, x);
+            }
+        }
+        val[node] += x; 
+        vis[node] &= val[node] >= y;    
+        return vis[node];
+    };
+    dfs(dfs, 1, -1, 0); 
+    while(q--) {    
+        int op; cin >> op;  
+        if(op == 0) {   
+            int v, x; cin >> v >> x;    
+            dfs(dfs, v, par[v], x);
+        }
+        else {  
+            int v; cin >> v;    
+            cout << val[v] << endl;
+        }
+    }
 }
 
 signed main() {

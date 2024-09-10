@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -300,13 +298,41 @@ class SGT {
     
     
 void solve() {  
-    int n; cin >> n;    
-    uset<int> s;    
+    int n, k; cin >> n >> k;    
+    string s; cin >> s; 
+    vi score(26); cin >> score; 
+    vi order(26); iota(all(order), 0);  
+    auto cmp = [&](const int& i, const int& j) {    
+        if(score[i] != score[j]) return score[i] > score[j];    
+        return i < j;
+    };
+    sort(all(order), cmp);
+    vi indices[26]; 
     for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+        indices[s[i] - 'a'].pb(i);
     }
-    cout << s.size() << endl;
+    set<int> ans;
+    for(int i = 0; i < 26 && k; i++) {    
+        auto& curr = indices[order[i]]; 
+        int m = curr.size();
+        for(int j = 0; j < m; j++) {  
+            if(k >= m - j) {    
+                ans.insert(curr[j]);    
+                k--;
+            }
+            else if(k) {  
+                auto it = ans.ub(curr[j]);
+                if(it != ans.end() && s[*it] - 'a' > order[i]) {    
+                    k--;    
+                    ans.insert(curr[j]);
+                }
+            }
+        }
+    }
+    for(auto& i : ans) {    
+        cout << s[i];
+    }
+    cout << endl;
 }
 
 signed main() {

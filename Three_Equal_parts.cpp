@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -300,13 +298,35 @@ class SGT {
     
     
 void solve() {  
-    int n; cin >> n;    
-    uset<int> s;    
-    for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+    int n; cin >> n;
+    vi arr(n); cin >> arr;  
+    int target = sum(arr);  
+    if(target % 3 != 0) {   
+        cout << -1 << endl; 
+        return;
+    } 
+    if(target == 0) {   
+        cout << 0 << endl;  
+        return;
     }
-    cout << s.size() << endl;
+    target /= 3;
+    int p1 = 0, p2 = 0, p3 = 0;
+    for(int i = 0, curr = 0; i < n; i++) {  
+        curr += arr[i]; 
+        if(curr == 0) p1 = i + 1;   
+        else if(curr == target) p2 = i + 1; 
+        else if(curr == target * 2) p3 = i + 1;
+    }
+    int pp2 = p2, pp3 = p3, ans = 0; 
+    while(p1 < pp2 && p2 < pp3 && p3 < n) { 
+        ans = ans * 2 + arr[p3];
+        ans %= MOD;
+        if((arr[p1++] + arr[p2++] + arr[p3++]) % 3 != 0) {  
+            cout << -1 << endl; 
+            return;
+        }
+    }
+    cout << (p3 == n ? ans : -1) << endl;
 }
 
 signed main() {
