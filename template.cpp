@@ -168,13 +168,15 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    void merge(int u, int v) {  
+    bool merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
+            return true;
         }
+        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -219,7 +221,9 @@ class SGT {
     vt<T> root, lazy; 
     SGT(vi& arr) {    
         n = arr.size(); 
-        root.rsz(n * 4), lazy.rsz(n * 4);
+        root.rsz(n * 4);    
+        // lazy.rsz(n * 4);
+        build(entireTree, arr);
     }
     
     void build(iterator, vi& arr) { 

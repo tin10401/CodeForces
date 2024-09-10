@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -300,13 +298,23 @@ class SGT {
     
     
 void solve() {  
-    int n; cin >> n;    
-    uset<int> s;    
-    for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+    int n, k; cin >> n >> k;    
+    vi arr(n); cin >> arr;  
+    int res = 0;    
+    int mx = MAX(arr);
+    int freq[mx + 1]; mset(freq, 0);    
+    for(auto& it : arr) freq[it]++; 
+    int left = 1, right = mx;   
+    while(true) {   
+        if(right - left <= k) break;    
+        int take = min(freq[left], freq[right]);
+        res += take;    
+        freq[left + 1] += take, freq[right - 1] += take;
+        freq[left] -= take, freq[right] -= take;   
+        if(freq[left] == 0) left++; 
+        if(freq[right] == 0) right--;
     }
-    cout << s.size() << endl;
+    cout << res << endl;
 }
 
 signed main() {
@@ -315,7 +323,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -301,12 +299,60 @@ class SGT {
     
 void solve() {  
     int n; cin >> n;    
-    uset<int> s;    
+    vvi arr(n, vi(26)); cin >> arr; 
+    auto compute4 = [](vi a, vi b, vi c, vi d) -> int {
+        auto compute1 = [&](vi A) -> int {  
+            return sum(A);
+        };
+        auto compute2 = [&](vi A, vi B) -> int {    
+            int res = 0;    
+            for(int i = 0; i < 26; i++) {   
+                int mn = min(A[i], B[i]);   
+                res += mn;  
+                A[i] -= mn, B[i] -= mn;
+            }
+            return res + compute1(A) + compute1(B);
+        };
+        auto compute3 = [&](vi A, vi B, vi C) -> int {  
+            int res = 0;    
+            for(int i = 0; i < 26; i++) {   
+                int mn = min({A[i], B[i], C[i]}); 
+                res += mn;  
+                A[i] -= mn, B[i] -= mn, C[i] -= mn;
+            }
+            int ans = INF;
+            ans = min(ans, compute1(A) + compute2(B, C));   
+            ans = min(ans, compute1(B) + compute2(A, C));   
+            ans = min(ans, compute1(C) + compute2(A, B));    
+            return res + ans;
+        };
+        int res = 0;    
+        for(int i = 0; i < 26; i++) {   
+            int mn = min({a[i], b[i], c[i], d[i]}); 
+            res += mn;  
+            a[i] -= mn, b[i] -= mn, c[i] -= mn, d[i] -= mn;
+        }
+        int ans = INF;
+        ans = min(ans, compute1(a) + compute3(b, c, d));    
+        ans = min(ans, compute1(b) + compute3(a, c, d));    
+        ans = min(ans, compute1(c) + compute3(a, b, d));    
+        ans = min(ans, compute1(d) + compute3(a, b, c));    
+        ans = min(ans, compute2(a, b) + compute2(c, d));    
+        ans = min(ans, compute2(a, c) + compute2(b, d));    
+        ans = min(ans, compute2(a, d) + compute2(b, c));
+        return res + ans;
+    };
+    int res = INF;
     for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+        for(int j = i + 1; j < n; j++) {    
+            for(int k = j + 1; k < n; k++) {    
+                for(int l = k + 1; l < n; l++) {    
+                    res = min(res, compute4(arr[i], arr[j], arr[k], arr[l]));    
+                }
+            }
+        }
     }
-    cout << s.size() << endl;
+    cout << res  + 1<< endl;
 }
 
 signed main() {

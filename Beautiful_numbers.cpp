@@ -132,7 +132,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e4;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -298,21 +296,43 @@ class SGT {
 };
     
     
+const int MAX_DIGIT = 5;    
+const int MAX_SUM = 50; 
+vi arr[MAX_DIGIT][MAX_SUM];
+vi ans;
+    
+void pre_process() {    
+    for(int i = 1; i < MX; i++) {   
+        string t = to_string(i);    
+        int n = t.size();   
+        int digit_sum = accumulate(all(t), 0) - n * '0';    
+        arr[n][digit_sum].pb(i);
+    } 
+    bool ok = false;
+    for(int i = 1; i < MAX_DIGIT; i++) {    
+        for(int j = 0; j < MAX_SUM; j++) {  
+            for(auto& x : arr[i][j]) {  
+                for(int dd = 0; dd <= i; dd++) {    
+                    for(auto& y : arr[dd][j]) {  
+                        ans.pb(x * (int)pow(10, i) + y);
+                    }
+                }
+            }
+        }
+    }
+    ans = uniqued(ans);
+}
     
 void solve() {  
-    int n; cin >> n;    
-    uset<int> s;    
-    for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
-    }
-    cout << s.size() << endl;
+    int l, r; cin >> l >> r;    
+    cout << ub(all(ans), r) - lb(all(ans), l) << endl;
 }
 
 signed main() {
     IOS;
     startClock
     //generatePrime();
+    pre_process();
 
     int t = 1;
     cin >> t;

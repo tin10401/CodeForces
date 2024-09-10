@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -221,9 +219,7 @@ class SGT {
     vt<T> root, lazy; 
     SGT(vi& arr) {    
         n = arr.size(); 
-        root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
+        root.rsz(n * 4), lazy.rsz(n * 4);
     }
     
     void build(iterator, vi& arr) { 
@@ -301,12 +297,49 @@ class SGT {
     
 void solve() {  
     int n; cin >> n;    
-    uset<int> s;    
-    for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+    vi arr(n); cin >> arr;  
+    int target = 0; 
+    vi cnt(32);
+    for(auto& it : arr) {   
+        target |= it;
+        for(int i = 0; i < 32; i++) {   
+            if((it >> i) & 1) { 
+                cnt[i]++;
+            }
+        }
     }
-    cout << s.size() << endl;
+    vi bits(32);    
+    auto isValid = [&](bool check = false) -> bool {   
+        if(check == true) { 
+        }
+        for(int i = 0; i < 32; i++) {   
+            if(cnt[i] && !bits[i]) return false;
+            if(check && bits[i] == cnt[i] && bits[i]) return false;
+        }
+        return true;
+    };
+    auto update = [&](int x, int val) -> void { 
+        for(int i = 0; i < 32; i++) {   
+            if((x >> i) & 1) {  
+                bits[i] += val;
+            }
+        }
+    };
+    int mx = INF;   
+    vi freq(n + 1);
+    for(int left = 0, right = 0; right < n; right++) {  
+        update(arr[right], 1);  
+        while(isValid()) {  
+            if(isValid(true)) { 
+                int len = right - left + 1; 
+                freq[len]++;
+                mx = min(mx, len);
+            }
+            update(arr[left++], -1);
+        }
+    }
+    if(mx == INF) cout << -1 << endl;   
+    else cout << mx << " " << freq[mx] << endl;
 }
 
 signed main() {

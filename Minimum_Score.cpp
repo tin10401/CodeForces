@@ -168,15 +168,13 @@ class DSU {
         return root[x] = find(root[x]);
     }
     
-    bool merge(int u, int v) {  
+    void merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
-            return true;
         }
-        return false;
     }
     
     bool isConnected(int u, int v) {    
@@ -300,13 +298,40 @@ class SGT {
     
     
 void solve() {  
-    int n; cin >> n;    
-    uset<int> s;    
-    for(int i = 0; i < n; i++) {    
-        int u, v; cin >> u >> v;    
-        s.insert(u), s.insert(v);
+    int n, k; cin >> n >> k;    
+    vi arr(n); cin >> arr;  
+    vpii ans;   
+    for(int left = 0, right = 1; right <= n; right++) {  
+        if(right == n || arr[right] != arr[left]) {   
+            ans.pb(MP(left + 1, right));
+            left = right;
+        }
     }
-    cout << s.size() << endl;
+    int m = ans.size();
+    if(m <= k) {   
+        cout << 0 << endl;
+        int i = 0;
+        while(true) {   
+            if(k <= m - i) break;
+            auto& [x, y] = ans[i];  
+            cout << x << " " << x << endl;  
+            x++;    
+            if(x == y + 1) i++;
+            k--;
+        }
+        while(k) {  
+            auto& [x, y] = ans[i];  
+            cout << x << " " << y << endl;  
+            i++;
+            k--;
+        }
+
+    }
+    else {  
+        cout << 1 << endl;  
+        for(int i = 1; i < k; i++) cout << i << " " << i << endl;  
+        cout << k << " " << n << endl;
+    }
 }
 
 signed main() {
@@ -315,7 +340,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
