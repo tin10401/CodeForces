@@ -32,7 +32,8 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll unsigned long long
+#define ld long db
+#define ll int64_t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
@@ -62,6 +63,9 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
+#define lcm(a, b) (a * b) / gcd(a, b)
+#define MAX(a) *max_element(all(a)) 
+#define MIN(a) *min_element(all(a))
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -127,12 +131,13 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
+const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -149,13 +154,202 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
-void solve() {  
-    int a, b; cin >> a >> b;    
-    int res = INF;  
-    for(int i = a; i <= b; i++) {   
-        res = min(res, abs(a - i) + abs(b - i));
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
     }
-    cout << 0 << endl;
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool isConnected(int u, int v) {    
+        return find(u) == find(v);
+    }
+};
+    
+class FW {  
+    public: 
+    int n;  
+    vi root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, int val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            goUp;
+        }
+    }
+    
+    int get(int id) {   
+        int res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            goDown;
+        }
+        return res;
+    }
+    
+    int queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    SGT(vi& arr) {    
+        n = arr.size(); 
+        root.rsz(n * 4);    
+        // lazy.rsz(n * 4);
+        build(entireTree, arr);
+    }
+    
+    void build(iterator, vi& arr) { 
+        if(left == right) { 
+            root[i] = arr[left];    
+            return;
+        }
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        if(left != right) { 
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return 0;   
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+};
+    
+    
+    
+void solve() {  
+    int n, s; cin >> n >> s;    
+    vvi graph(n + 1);    
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
+    }
+    auto dfs = [&](auto& dfs, int node, int par, int d, pii& ans) -> void {  
+        if(d > ans.ff) ans = MP(d, node);
+        for(auto& nei : graph[node]) {  
+            if(nei != par) {    
+                dfs(dfs, nei, node, d + 1, ans);
+            }
+        }
+    };
+    auto dfs2 = [&](auto& dfs2, int node, int par, int d, int len, bitset<MX>& path, bitset<MX>& ans) -> void { 
+        path.set(node);
+        if(d == len) ans |= path;   
+        for(auto& nei : graph[node]) {  
+            if(nei != par) {    
+                dfs2(dfs2, nei, node, d + 1, len, path, ans);
+            }
+        }
+        path.reset(node);
+    };
+    pii c;  
+    dfs(dfs, 1, -1, 1, c);  
+    int start = c.ss;
+    c = {0, 0};
+    dfs(dfs, start, -1, 1, c);
+    int len = c.ff;
+    bitset<MX> ans; 
+    for(int i = 1; i <= n; i++) {   
+        bitset<MX> path;    
+        dfs2(dfs2, i, -1, 1, len, path, ans);
+    }
+    bool ok = false;
+    for(int i = 1; i <= n; i++) {   
+        if(!ans[i]) {   
+            ok = true;
+            break;
+        }
+    }
+    int res = 0;    
+    if(!ok) {   
+        n--;
+        res = (s + n - 1) / n;
+    }
+    cout << res << endl;
+    
 }
 
 signed main() {
@@ -184,4 +378,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

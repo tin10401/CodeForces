@@ -32,7 +32,8 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ub upper_bound
 #define lb lower_bound
 #define db double
-#define ll unsigned long long
+#define ld long db
+#define ll int64_t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
@@ -62,6 +63,9 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
+#define lcm(a, b) (a * b) / gcd(a, b)
+#define MAX(a) *max_element(all(a)) 
+#define MIN(a) *min_element(all(a))
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -127,12 +131,13 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
+const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
 constexpr int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
 constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -149,13 +154,179 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
-void solve() {  
-    int a, b; cin >> a >> b;    
-    int res = INF;  
-    for(int i = a; i <= b; i++) {   
-        res = min(res, abs(a - i) + abs(b - i));
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
     }
-    cout << 0 << endl;
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool isConnected(int u, int v) {    
+        return find(u) == find(v);
+    }
+};
+    
+class FW {  
+    public: 
+    int n;  
+    vi root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, int val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            goUp;
+        }
+    }
+    
+    int get(int id) {   
+        int res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            goDown;
+        }
+        return res;
+    }
+    
+    int queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    SGT(vi& arr) {    
+        n = arr.size(); 
+        root.rsz(n * 4);    
+        // lazy.rsz(n * 4);
+        build(entireTree, arr);
+    }
+    
+    void build(iterator, vi& arr) { 
+        if(left == right) { 
+            root[i] = arr[left];    
+            return;
+        }
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        if(left != right) { 
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return 0;   
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+};
+    
+    
+    
+void solve() {
+    int n; cin >> n;    
+    vi arr(n);  
+    for(int i = 1; i < n; i++) {   
+        cin >> arr[i];
+    }
+    vvi left_reach(n + 1, vi(2, 1)), right_reach(n + 1, vi(2, 1));   
+    for(int i = 2; i <= n; i++) {   
+        int p = arr[i - 1]; 
+        left_reach[i][p] = left_reach[i - 1][p] + 1;    
+    }
+    for(int i = n - 1; i > 0; i--) {    
+        int p = !arr[i]; 
+        right_reach[i][p] = right_reach[i + 1][p] + 1;  
+    }
+    debug(left_reach, right_reach);
+    right_reach[n][0] = 1;
+    int u = 0;  
+    int q; cin >> q;    
+    while(q--) {    
+        char op; cin >> op; 
+        if(op == 'U') u ^= 1;   
+        else {  
+            int i; cin >> i;
+            cout << left_reach[i][u] + right_reach[i][u] - 1 << endl;
+        }
+        
+    }
 }
 
 signed main() {
@@ -164,7 +335,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock
@@ -184,4 +355,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
