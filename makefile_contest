@@ -21,14 +21,11 @@ run: $(PROBLEM)
 		nl -w 1 -s '. ' $(PROBLEM)_expected_output.txt > $(PROBLEM)_numbered_expected_output.txt; \
 		cat $(PROBLEM)_numbered_expected_output.txt; \
 		echo "\nDifferences:"; \
-		awk ' \
-		NR==FNR {a[NR]=$$0; next} \
-		{if ($$0 != a[FNR]) {print FNR "."; print a[FNR]; print $$0; print ""}}' \
-		$(PROBLEM)_numbered_output.txt $(PROBLEM)_numbered_expected_output.txt; \
+		diff --side-by-side --suppress-common-lines $(PROBLEM)_numbered_output.txt $(PROBLEM)_numbered_expected_output.txt | sed 's/^/    /'; \
 		if diff -q $(PROBLEM)_output.txt $(PROBLEM)_expected_output.txt > /dev/null; then \
-			echo "\n\033[0;32mTest passed!\033[0m"; \
+			echo "\nTest passed!"; \
 		else \
-			echo "\n\033[0;31mTest failed!\033[0m"; \
+			echo "\nTest failed!"; \
 		fi; \
 	else \
 		echo "No expected output file $(PROBLEM)_expected_output.txt found."; \
