@@ -214,43 +214,26 @@ class FW {
     }
 };
 
-template<class T>   
+template <typename T>
 class SGT { 
     public: 
     int n;  
     vt<T> root, lazy; 
-    SGT(vi& arr) {    
-        n = arr.size(); 
-        root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
+    SGT(int n) {    
+        this->n = n;
+        root.rsz(n * 4, {});    
+        lazy.rsz(n * 4, {});
     }
     
-    void build(iterator, vi& arr) { 
-        if(left == right) { 
-            root[i] = arr[left];    
-            return;
+    T fetch(int x) {    
+        T a = {};
+        for(int i = 0; i < MK; i++) {    
+            a[i] ^= ((x >> i) & 1);
         }
-        int middle = midPoint;  
-        build(lp, arr), build(rp, arr); 
-        root[i] = merge(root[lc], root[rc]);
+        a[MK] = true;
+        return a;
     }
     
-    void update(int id, int val) {  
-        update(entireTree, id, val);
-    }
-    
-    void update(iterator, int id, int val) {    
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
-    }
-
     void update(int start, int end, int val) { 
         update(entireTree, start, end, val);
     }
@@ -259,7 +242,7 @@ class SGT {
         pushDown;   
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
-            lazy[i] = val;  
+            lazy[i] = fetch(val);
             pushDown;   
             return;
         }
@@ -270,69 +253,87 @@ class SGT {
     }
     
     T merge(T left, T right) {  
-        T res;  
+        T res = {};  
+        for(int i = 0; i < MK; i++) {   
+            res[i] = left[i] + right[i];
+        }
         return res;
     }
     
     void push(iterator) {   
-        if(lazy[i] == 0) return;    
-        if(left != right) { 
-            lazy[lc] = lazy[i]; 
-            lazy[rc] = lazy[i];
+        if(lazy[i][MK] == 0) return;    
+        int range = right - left + 1;
+        bool ok = left != right;
+        for(int j = 0; j < MK; j++) {   
+            if(lazy[i][j]) {    
+                root[i][j] = range - root[i][j];
+            }
+            if(ok) { 
+                lazy[lc][j] ^= lazy[i][j];  
+                lazy[rc][j] ^= lazy[i][j];  
+            }
+            lazy[i][j] = 0;
         }
-        lazy[i] = 0;
+        if(ok) lazy[lc][MK] = lazy[rc][MK] = true;
+        lazy[i][MK] = false;
     }
-
-    T queries(int start, int end) { 
+        
+    int get(T& a) { 
+        int res = 0;    
+        for(int i = 0; i < MK; i++) {   
+            res += (1LL << i) * a[i];
+        }
+        return res;
+    }
+    int queries(int start, int end) { 
         return queries(entireTree, start, end);
     }
     
-    T queries(iterator, int start, int end) {   
+    int queries(iterator, int start, int end) {   
         pushDown;
-        if(left > end || start > right) return 0;   
-        if(left >= start && right <= end) return root[i];   
+        if(left > end || start > right)  return 0;
+        if(left >= start && right <= end) return get(root[i]);
         int middle = midPoint;  
-        return merge(queries(lp, start, end), queries(rp, start, end));
+        return queries(lp, start, end) + queries(rp, start, end);
     }
 
 };
     
-    
 void solve() {  
-    int n, m; cin >> n >> m;    
-    vpii arr(n); cin >> arr;
-    srt(arr);   
-    vvi dp(n, vi(MK));  
-    vi tmp;
-    for(int i = 0; i < n; i++) {    
-        dp[i][0] = arr[i].ss;
-        tmp.pb(arr[i].ff);
+    int n; cin >> n;
+    vvi graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    for(int j = 1; j < MK; j++) {   
-        for(int i = 0; i + (1 << j) <= n; i++) {    
-            dp[i][j] = max(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+    vi val(n + 1);  
+    for(int i = 1; i <= n; i++) cin >> val[i];  
+    int timer = 0;  
+    vi startTime(n + 1), endTime(n + 1);    
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void { 
+        startTime[node] = timer++;  
+        for(auto& nei : graph[node]) {  
+            if(nei != par) dfs(dfs, nei, node);
         }
-    }
-    auto queries = [&](int l, int r) -> int {   
-        if(l > r) return -INF;  
-        int j = log2(r - l + 1);    
-        return max(dp[l][j], dp[r - (1 << j) + 1][j]);
+        endTime[node] = timer - 1;
     };
-    while(m--) {    
-        pii s, e; cin >> s >> e;    
-        if(s.ff > e.ff) swap(s, e); 
-        auto &[x1, y1] = s;  
-        auto &[x2, y2] = e;    
-        int l = lb(all(tmp), x1) - begin(tmp);  
-        int r = ub(all(tmp), x2) - begin(tmp) - 1;
-        int mx = queries(l, r);
-        int ans = x2 - x1;  
-        if(y1 <= mx) {  
-            ans += mx + 1 - y1; 
-            y1 = mx + 1;
+    dfs(dfs);
+    SGT<ar(MK + 1)> root(timer);    
+    for(int i = 1; i <= n; i++) {   
+        root.update(startTime[i], startTime[i], val[i]);
+    }
+    int q; cin >> q;    
+    while(q--) {    
+        int op; cin >> op;  
+        if(op == 1) {   
+            int x; cin >> x;
+            cout << root.queries(startTime[x], endTime[x]) << endl;
         }
-        ans += abs(y1 - y2);
-        cout << ans << endl;
+        else {  
+            int u, p; cin >> u >> p;    
+            root.update(startTime[u], endTime[u], p);
+        }
     }
 }
 

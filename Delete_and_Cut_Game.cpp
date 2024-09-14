@@ -298,42 +298,48 @@ class SGT {
 };
     
     
+    
 void solve() {  
     int n, m; cin >> n >> m;    
-    vpii arr(n); cin >> arr;
-    srt(arr);   
-    vvi dp(n, vi(MK));  
-    vi tmp;
-    for(int i = 0; i < n; i++) {    
-        dp[i][0] = arr[i].ss;
-        tmp.pb(arr[i].ff);
+    vvpii graph(n + 1); 
+    vpii edges(m);
+    for(int i = 0; i < m; i++) {    
+        auto& [a, b] = edges[i]; cin >> a >> b;
+        graph[a].pb(MP(b, i));  
+        graph[b].pb(MP(a, i));
     }
-    for(int j = 1; j < MK; j++) {   
-        for(int i = 0; i + (1 << j) <= n; i++) {    
-            dp[i][j] = max(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+    vi comp(n + 1, 1), tin(n + 1), lowest_time(n + 1), bridges(m), vis(n + 1);
+    int timer = 0;
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void { 
+        vis[node] = true;
+        tin[node] = lowest_time[node] = timer++;    
+        for(auto& [nei, id] : graph[node]) {    
+            if(nei == par) continue;    
+            if(!vis[nei]) {    
+                dfs(dfs, nei, node);
+                comp[node] += comp[nei];    
+                lowest_time[node] = min(lowest_time[node], lowest_time[nei]);   
+                if(lowest_time[nei] > tin[node]) { 
+                    bridges[id] = true;
+                }
+            }
+            else lowest_time[node] = min(lowest_time[node], tin[nei]);
         }
-    }
-    auto queries = [&](int l, int r) -> int {   
-        if(l > r) return -INF;  
-        int j = log2(r - l + 1);    
-        return max(dp[l][j], dp[r - (1 << j) + 1][j]);
     };
-    while(m--) {    
-        pii s, e; cin >> s >> e;    
-        if(s.ff > e.ff) swap(s, e); 
-        auto &[x1, y1] = s;  
-        auto &[x2, y2] = e;    
-        int l = lb(all(tmp), x1) - begin(tmp);  
-        int r = ub(all(tmp), x2) - begin(tmp) - 1;
-        int mx = queries(l, r);
-        int ans = x2 - x1;  
-        if(y1 <= mx) {  
-            ans += mx + 1 - y1; 
-            y1 = mx + 1;
+    dfs(dfs);   
+    int a = 0, b = 0;   
+    for(int i = 0; i < m; i++) {    
+        if(bridges[i]) {    
+            auto& [u, v] = edges[i];    
+            int c = min(comp[u], comp[v]);  
+            if(n % 2 == 0 && c % 2 == 0) a++;   
+            else b++;
         }
-        ans += abs(y1 - y2);
-        cout << ans << endl;
     }
+    int q = modExpo(a + b, MOD - 2, MOD);   
+    a = (a * q) % MOD;  
+    b = (b * q) % MOD;
+    cout << a << " " << b << endl;
 }
 
 signed main() {

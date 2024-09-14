@@ -298,42 +298,53 @@ class SGT {
 };
     
     
+    
 void solve() {  
-    int n, m; cin >> n >> m;    
-    vpii arr(n); cin >> arr;
-    srt(arr);   
-    vvi dp(n, vi(MK));  
-    vi tmp;
-    for(int i = 0; i < n; i++) {    
-        dp[i][0] = arr[i].ss;
-        tmp.pb(arr[i].ff);
+    int n, k; cin >> n >> k;    
+    vi val(n); cin >> val;  
+    vpii edges(n - 1);
+    for(auto& [u, v] : edges) { 
+        cin >> u >> v;
+        u--, v--;
     }
-    for(int j = 1; j < MK; j++) {   
-        for(int i = 0; i + (1 << j) <= n; i++) {    
-            dp[i][j] = max(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+    auto isValid = [&](int x) -> bool { 
+        vvi graph(n);   
+        for(auto& [u, v] : edges) { 
+            if(max(val[u], val[v]) <= x) {  
+                graph[u].pb(v); 
+                graph[v].pb(u);
+            }
         }
-    }
-    auto queries = [&](int l, int r) -> int {   
-        if(l > r) return -INF;  
-        int j = log2(r - l + 1);    
-        return max(dp[l][j], dp[r - (1 << j) + 1][j]);
+        vb vis(n);  
+        bool ok = false;
+        auto dfs = [&](auto& dfs, int node, int par) -> int {   
+            vis[node] = true;   
+            pii ans = {0, 0};
+            for(auto& nei : graph[node]) {  
+                if(vis[nei]) continue;    
+                int v = dfs(dfs, nei, node);    
+                if(v > ans.ff) {    
+                    ans.ss = ans.ff;    
+                    ans.ff = v;
+                }
+                else ans.ss = max(ans.ss, v);
+            }
+            ok |= ans.ff + ans.ss + 1 > k;  
+            return ans.ff + 1;
+        };            
+        for(int i = 0; i < n; i++) {    
+            if(vis[i]) continue;
+            dfs(dfs, i, -1);
+        }
+        return ok;
     };
-    while(m--) {    
-        pii s, e; cin >> s >> e;    
-        if(s.ff > e.ff) swap(s, e); 
-        auto &[x1, y1] = s;  
-        auto &[x2, y2] = e;    
-        int l = lb(all(tmp), x1) - begin(tmp);  
-        int r = ub(all(tmp), x2) - begin(tmp) - 1;
-        int mx = queries(l, r);
-        int ans = x2 - x1;  
-        if(y1 <= mx) {  
-            ans += mx + 1 - y1; 
-            y1 = mx + 1;
-        }
-        ans += abs(y1 - y2);
-        cout << ans << endl;
+    int left = MIN(val), right = MAX(val), res = -1;    
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(isValid(middle)) res = middle, right = middle - 1;   
+        else left = middle + 1;
     }
+    cout << res << endl;
 }
 
 signed main() {

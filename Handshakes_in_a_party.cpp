@@ -298,42 +298,39 @@ class SGT {
 };
     
     
+    
 void solve() {  
-    int n, m; cin >> n >> m;    
-    vpii arr(n); cin >> arr;
-    srt(arr);   
-    vvi dp(n, vi(MK));  
-    vi tmp;
-    for(int i = 0; i < n; i++) {    
-        dp[i][0] = arr[i].ss;
-        tmp.pb(arr[i].ff);
+    int n; cin >> n;    
+    vvi seq(n + 1, vi(n - 1)); 
+    for(int i = 1; i <= n; i++) {    
+        cin >> seq[i];
     }
-    for(int j = 1; j < MK; j++) {   
-        for(int i = 0; i + (1 << j) <= n; i++) {    
-            dp[i][j] = max(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+    vi idx(n + 1);
+    int step = 0;   
+    while(true) {   
+        vb busy(n + 1); 
+        bool scheduled = false, finish = true; 
+        for(int i = 1; i <= n; i++) {   
+            if(idx[i] < n - 1) {    
+                finish = false;  
+                if(!busy[i]) {  
+                    int j = seq[i][idx[i]]; 
+                    if(!busy[j] && idx[j] < n - 1 && seq[j][idx[j]] == i) { 
+                        busy[i] = busy[j] = true;
+                        idx[j]++, idx[i]++; 
+                        scheduled = true;
+                    }
+                }
+            }
         }
-    }
-    auto queries = [&](int l, int r) -> int {   
-        if(l > r) return -INF;  
-        int j = log2(r - l + 1);    
-        return max(dp[l][j], dp[r - (1 << j) + 1][j]);
-    };
-    while(m--) {    
-        pii s, e; cin >> s >> e;    
-        if(s.ff > e.ff) swap(s, e); 
-        auto &[x1, y1] = s;  
-        auto &[x2, y2] = e;    
-        int l = lb(all(tmp), x1) - begin(tmp);  
-        int r = ub(all(tmp), x2) - begin(tmp) - 1;
-        int mx = queries(l, r);
-        int ans = x2 - x1;  
-        if(y1 <= mx) {  
-            ans += mx + 1 - y1; 
-            y1 = mx + 1;
+        if(finish) break;   
+        if(!scheduled) {    
+            cout << -1 << endl; 
+            return;
         }
-        ans += abs(y1 - y2);
-        cout << ans << endl;
+        step++;
     }
+    cout << step * 3 << endl;
 }
 
 signed main() {

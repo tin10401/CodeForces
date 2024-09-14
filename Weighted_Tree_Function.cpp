@@ -157,10 +157,11 @@ void generatePrime() {  primeBits.set(2);
 class DSU { 
     public: 
     int n;  
-    vi root, rank;  
+    vi root, rank, sm;  
     DSU(int n) {    
         this->n = n;    
-        root.rsz(n, -1), rank.rsz(n, 1);
+        root.rsz(n, -1), rank.rsz(n, 1), sm.rsz(n);
+        iota(all(sm), 0);
     }
     
     int find(int x) {   
@@ -174,9 +175,15 @@ class DSU {
             if(rank[v] > rank[u]) swap(u, v);   
             rank[u] += rank[v]; 
             root[v] = u;
+            sm[u] = (sm[u] + sm[v]) % MOD;
             return true;
         }
         return false;
+    }
+    
+    int compute(int u, int v, int x) {    
+        u = find(u), v = find(v);   
+        return sm[u] * sm[v] % MOD * x % MOD;
     }
     
     bool isConnected(int u, int v) {    
@@ -298,42 +305,22 @@ class SGT {
 };
     
     
+    
 void solve() {  
-    int n, m; cin >> n >> m;    
-    vpii arr(n); cin >> arr;
-    srt(arr);   
-    vvi dp(n, vi(MK));  
-    vi tmp;
-    for(int i = 0; i < n; i++) {    
-        dp[i][0] = arr[i].ss;
-        tmp.pb(arr[i].ff);
+    int n; cin >> n;    
+    var(3) edges(n - 1);    
+    for(int i = 0; i < n - 1; i++) {    
+        auto& [w, u, v] = edges[i]; cin >> u >> v >> w;
     }
-    for(int j = 1; j < MK; j++) {   
-        for(int i = 0; i + (1 << j) <= n; i++) {    
-            dp[i][j] = max(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
-        }
+    srt(edges);
+    DSU root(n + 1);    
+    int res = 0;
+    for(auto& [w, u, v] : edges) {  
+        res = (res + root.compute(u, v, w)) % MOD;  
+        root.merge(u, v);
     }
-    auto queries = [&](int l, int r) -> int {   
-        if(l > r) return -INF;  
-        int j = log2(r - l + 1);    
-        return max(dp[l][j], dp[r - (1 << j) + 1][j]);
-    };
-    while(m--) {    
-        pii s, e; cin >> s >> e;    
-        if(s.ff > e.ff) swap(s, e); 
-        auto &[x1, y1] = s;  
-        auto &[x2, y2] = e;    
-        int l = lb(all(tmp), x1) - begin(tmp);  
-        int r = ub(all(tmp), x2) - begin(tmp) - 1;
-        int mx = queries(l, r);
-        int ans = x2 - x1;  
-        if(y1 <= mx) {  
-            ans += mx + 1 - y1; 
-            y1 = mx + 1;
-        }
-        ans += abs(y1 - y2);
-        cout << ans << endl;
-    }
+    cout << res << endl;
+
 }
 
 signed main() {
