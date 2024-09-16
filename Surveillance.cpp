@@ -297,25 +297,35 @@ class SGT {
 
 };
     
+    
+    
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+    int n; cin >> n;    
+    vvi graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b);
+        graph[b].pb(a);
     }
     int res = 0;    
-    for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
-    }
-    cout << res << endl;
+    vvi dp(n + 1, vi(2, -1));   
+    auto dfs = [&](auto& dfs, int node, int par, int has) -> int {  
+        int& res = dp[node][has];   
+        if(res != -1) return res;   
+        res = 0;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            if(has) {   
+                res += min(dfs(dfs, nei, node, false), 1 + dfs(dfs, nei, node, true));
+            }
+            else {  
+                res += 1 + dfs(dfs, nei, node, true);
+            }
+        }
+        return res;
+    };
+    int ans = min(dfs(dfs, 1, -1, false), 1 + dfs(dfs, 1, -1, true));   
+    cout << ans << endl;
 }
 
 signed main() {
@@ -324,7 +334,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

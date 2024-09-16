@@ -297,25 +297,56 @@ class SGT {
 
 };
     
+    
+    
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
+    int n; cin >> n;    
+    vs arr(n); cin >> arr;
+    vvi graph(n);   
+    auto isValid = [&](int i, int j) -> bool {  
+        return sv(arr[i]).substr(arr[i].size() - 4) == sv(arr[j]).substr(0, 4);
+    };
     for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+        for(int j = 0; j < n; j++) {    
+            if(i == j) continue;    
+            if(isValid(i, j)) graph[i].pb(j);
+        }
     }
-    int res = 0;    
-    for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
+    vvi ans;    
+    vi path;    
+    vb vis(n);
+    auto dfs = [&](auto& dfs, int node) -> void {   
+        if(path.size() == n) {  
+            ans.pb(path);
+            return;
+        }
+        for(auto& nei : graph[node]) {  
+            if(!vis[nei]) { 
+               vis[nei] = true; 
+               path.pb(nei);
+               dfs(dfs, nei);
+               path.pop_back();
+               vis[nei] = false;
+            }
+        }
+    };
+    for(int i = 0; i < n; i++) {    
+        path.pb(i); 
+        vis[i] = true;
+        dfs(dfs, i);
+        path.pop_back();    
+        vis[i] = false;
     }
-    cout << res << endl;
+    set<string> s;
+    for(auto& it : ans) {   
+        string a = arr[it[0]];
+        for(int i = 1; i < n; i++) {    
+            a += arr[it[i]].substr(4);
+        }
+        s.insert(a);
+    }
+    for(auto& it : s) cout << it << endl;
+
 }
 
 signed main() {
@@ -324,7 +355,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

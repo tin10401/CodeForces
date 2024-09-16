@@ -295,27 +295,73 @@ class SGT {
         return merge(queries(lp, start, end), queries(rp, start, end));
     }
 
-};
-    
+};  
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
-    }
-    int res = 0;    
+    int n, q; cin >> n >> q;
+    vvi graph(n + 1), dp(n + 1, vi(MK));   
     for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    cout << res << endl;
+    vi depth(n + 1);    
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {    
+        for(auto& nei : graph[node]) {  
+            if(nei != par) {    
+                depth[nei] = depth[node] + 1;   
+                dp[nei][0] = node;  
+                dfs(dfs, nei, node);
+            }
+        }
+    };
+    dfs(dfs);
+    for(int j = 1; j < MK; j++) {   
+        for(int i = 1; i <= n; i++) {   
+            dp[i][j] = dp[dp[i][j - 1]][j - 1];
+        }
+    }
+    auto lca = [&](int a, int b) -> int {   
+        if(depth[a] > depth[b]) swap(a, b); 
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    };
+    vi sweep(n + 1);
+    while(q--) { 
+        int u, v, x; cin >> u >> v >> x;
+        int c = lca(u, v);
+        sweep[c] ^= x;
+        sweep[u] ^= x;  
+        sweep[v] ^= x;  
+        //if(c != 1) sweep[dp[c][0]] ^= x;
+        sweep[dp[c][0]] ^= x;
+
+
+    }
+    auto dfs2 = [&](auto& dfs2, int node = 1, int par = 0) -> int {    
+        int& curr = sweep[node];
+        for(auto& nei : graph[node]) {  
+            if(nei != par) {    
+                curr ^= dfs2(dfs2, nei, node);
+            }
+        }
+        debug(node, par, curr);
+        return curr;
+    };
+    dfs2(dfs2); 
+    cout << sum(sweep) - sweep.front() << endl;
+
 }
 
 signed main() {
