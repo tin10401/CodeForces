@@ -298,24 +298,47 @@ class SGT {
 };
     
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+    int n, q, t; cin >> n >> q >> t;
+    vi ok(n + 1);   
+    vvi graph(n + 1);
+    ok[1] = true;
+    auto check = [&](int x) -> int {    
+        return ok[x] ? x : 0;
+    };
+    auto update = [&](auto& update, int x) -> void {   
+        while(!graph[x].empty()) {  
+            int node = graph[x].back(); graph[x].pop_back();    
+            if(ok[node]) continue;  
+            ok[node] = true;    
+            update(update, node);
+        }
+    };
+    auto add = [&](int u, int v) -> void {   
+        if(ok[v]) return;   
+        if(ok[u]) { 
+            ok[v] = true;   
+            update(update, v);
+        }
+        else {  
+            graph[u].pb(v);
+        }
+    };
+    int res = 0;
+    auto get = [&](int x) -> int {   
+        return (x ^ (t * res)) % n + 1;
+    };
+    while(q--) {    
+        int type; cin >> type;  
+        if(type == 1) { 
+            int a, b; cin >> a >> b;    
+            add(get(a), get(b));
+        }
+        else {  
+            int a; cin >> a;    
+            res = check(get(a));
+            cout << res << endl;
+        }
     }
-    int res = 0;    
-    for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
-    }
-    cout << res << endl;
 }
 
 signed main() {
@@ -324,7 +347,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

@@ -297,23 +297,32 @@ class SGT {
 
 };
     
+    
+    
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
-    }
-    int res = 0;    
+    int n; cin >> n;    
+    vvpii graph(n + 1);   
+    int total = 0;
     for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
+        int a, b, c; cin >> a >> b >> c;
+        graph[a].pb(MP(b, c));  
+        graph[b].pb(MP(a, c));
+        total += c;
+    }
+    auto dfs = [&](auto& dfs, int node, int par, vi& depth) -> void {   
+        for(auto& [nei, cost] : graph[node]) {  
+            if(nei != par) {    
+                depth[nei] = depth[node] + cost;    
+                dfs(dfs, nei, node, depth);
+            }
+        }
+    };
+    int res = INF;
+    for(int i = 1; i <= n; i++) {   
+        vi depth(n + 1);    
+        dfs(dfs, i, -1, depth);    
+        int a = MAX(depth);
+        res = min(res, total * 2 - a);
     }
     cout << res << endl;
 }
@@ -324,7 +333,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

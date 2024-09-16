@@ -297,25 +297,27 @@ class SGT {
 
 };
     
+    
+    
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+    string init; cin >> init;   
+    int ind; cin >> ind;    
+    int n = init.size();    
+    ind--;  
+    bool ok = ind < n;  
+    vt<char> s; 
+    init += '!';
+    for(auto& ch : init) { 
+        while(!ok && !s.empty() && s.back() > ch) { 
+            s.pop_back();   
+            ind -= n;   
+            n--;
+            if(ind < n) ok = true;  
+        }
+        s.pb(ch);
     }
-    int res = 0;    
-    for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
-    }
-    cout << res << endl;
+    debug(s);
+    cout << s[ind] << endl;
 }
 
 signed main() {
@@ -324,7 +326,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

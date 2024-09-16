@@ -297,23 +297,28 @@ class SGT {
 
 };
     
+    
+    
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;  
+    int sub = n * (n + 1) / 2;  
+    umap<int, vi> vec;  
     for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+        vec[arr[i]].pb(i + 1);
     }
     int res = 0;    
-    for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
+    for(auto& [_, curr] : vec) {    
+        curr.insert(curr.begin(), 0);
+        curr.pb(n + 1);
+        int miss = 0;   
+        for(int i = 0; i < curr.size() - 1; i++) {  
+            int len = curr[i + 1] - curr[i] - 1;    
+            len = len * (len + 1) / 2;  
+            miss += len;
+        }
+        debug(_, miss, sub);
+        res += sub - miss;
     }
     cout << res << endl;
 }
@@ -324,7 +329,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     while(t--) solve();
 
     endClock

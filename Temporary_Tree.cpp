@@ -297,25 +297,49 @@ class SGT {
 
 };
     
+    
+    
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
-    }
-    int res = 0;    
+    int n; cin >> n;
+    vvpii graph(n + 1); 
     for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
+        int u, v, t, w; cin >> u >> v >> t >> w;    
+        if(t == 0) continue;    
+        graph[u].pb(MP(v, w));  
+        graph[v].pb(MP(u, w));
     }
-    cout << res << endl;
+    vi vis(n + 1), a(n + 1);    
+    auto dfs = [&](auto& dfs, int node, int par) -> void {  
+        a[node] = vis[node] = 1;    
+        for(auto& [nei, w] : graph[node]) {  
+            if(nei != par) {    
+                dfs(dfs, nei, node);    
+                a[node] += a[nei];
+            }
+        }
+    };
+    vi comp;
+    for(int i = 1; i <= n; i++) {   
+        if(!vis[i]) {   
+            comp.pb(i); 
+            dfs(dfs, i, -1);
+        }
+    }
+    int ans = 0;
+    auto dfs1 = [&](auto& dfs1, int node, int par, int curr) -> void { 
+        for(auto& [nei, w] : graph[node]) {  
+            if(nei == par) continue;    
+            int l = curr - a[nei];  
+            int r = a[nei];
+            ans = (ans + l * r % MOD * w % MOD) % MOD;
+            dfs1(dfs1, nei, node, curr);
+        }
+    };
+    for(auto& i : comp) {   
+        dfs1(dfs1, i, -1, a[i]);
+    }
+    cout << ans << endl;
+
 }
 
 signed main() {
