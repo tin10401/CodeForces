@@ -297,9 +297,26 @@ class SGT {
 
 };
     
-    
-    
 void solve() {  
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;
+    vi pre(n), suff(n);    
+    for(int i = 0, curr = 0; i < n; i++) {  
+        curr += arr[i];
+        curr = max(curr, 0LL);  
+        pre[i] = curr;
+    }
+    for(int i = n - 1, curr = 0; i >= 0; i--) { 
+        curr += arr[i]; 
+        curr = max(curr, 0LL);  
+        suff[i] = curr;
+    }
+    int res = 0;    
+    for(int i = 0, curr = 0; i < n; i++) {  
+        res = max(res, curr + suff[i]);
+        curr = max(curr, pre[i]);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -308,7 +325,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

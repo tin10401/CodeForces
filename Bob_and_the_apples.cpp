@@ -297,9 +297,32 @@ class SGT {
 
 };
     
-    
-    
 void solve() {  
+    int n, m; cin >> n >> m;    
+    vpii arr(n); cin >> arr;    
+    vvi dp(m + 1, vi(2));   
+    for(int i = 1; i <= n; i++) {   
+        vvi nxt(m + 1, vi(2));  
+        auto& [v, p] = arr[i - 1];  
+        for(int j = 0; j <= m; j++) {   
+            for(int k = 0; k <= 1; k++) {   
+                debug(nxt[j][k], dp[j][k]);
+                nxt[j][k] = max(nxt[j][k], dp[j][k]);
+                if(j >= p) {    
+                    nxt[j][k] = max(nxt[j][k], dp[j - p][k] + v);
+                }
+                if(k == 0) {    
+                    int half = p / 2;   
+                    if(j >= half) { 
+                        nxt[j][1] = max(nxt[j][1], dp[j - half][0] + v);
+                    }
+                }
+            }
+        }
+        swap(nxt, dp);
+    }
+    int res = max(dp[m][0], dp[m][1]);
+    cout << res << endl;
 }
 
 signed main() {
@@ -308,7 +331,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
