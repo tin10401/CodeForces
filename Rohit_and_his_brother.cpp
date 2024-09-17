@@ -297,8 +297,6 @@ class SGT {
 
 };
     
-    
-    
 void solve() {  
 }
 

@@ -17,7 +17,6 @@
 //    \        ____       \
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
-
 #pragma GCC optimize("Ofast")
 #pragma GCC optimize ("unroll-loops")
 #pragma GCC target("popcnt")
@@ -132,7 +131,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
@@ -297,9 +296,29 @@ class SGT {
 
 };
     
-    
-    
+int prefix_sum[MX][30], bit_cnt[MX][30];
 void solve() {  
+    int n, q; cin >> n >> q;    
+    vi arr(n); cin >> arr;  
+    for(int bit = 0; bit < 30; bit++) { 
+        for(int i = 1; i <= n; i++) {   
+            bit_cnt[i][bit] = bit_cnt[i - 1][bit] ^ ((arr[i - 1] >> bit) & 1);    
+            prefix_sum[i][bit] = prefix_sum[i - 1][bit] + bit_cnt[i][bit];
+        }
+    }
+    while(q--) {    
+        int l, r; cin >> l >> r;    
+        int ans = 0;    
+        for(int i = 0; i < 30; i++) {   
+            int cnt = prefix_sum[r][i] - prefix_sum[l - 1][i];    
+            if(bit_cnt[l - 1][i]) {    
+                cnt = r - l + 1 - cnt;
+            }
+            ans += cnt * (1LL << i);
+        }
+    
+        cout << ans << endl;
+    }
 }
 
 signed main() {

@@ -297,9 +297,25 @@ class SGT {
 
 };
     
-    
-    
 void solve() {  
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;
+    vvi dp(n, vi(n, -1));   
+    umap<int, int> mp;  
+    for(int i = 0; i < n; i++) {    
+        mp[arr[i]] = i;
+    }
+    auto dfs = [&](auto& dfs, int i, int l) -> int {   
+        if(i == n - 1) return true; 
+        int& res = dp[i][l];    
+        if(res != -1) return res;   
+        int x = arr[i];
+        if(l && i + l < n && mp.count(x + l) && dfs(dfs, mp[x + l], l)) return res = true;  
+        if(i + l + 1 < n && mp.count(x + l + 1) && dfs(dfs, mp[x + l + 1], l)) return res = true;   
+        if(l > 1 && i + l - 1 < n && mp.count(x + l - 1) && dfs(dfs, mp[x + l - 1], l - 1)) return res = true;
+        return res = false;
+    };
+    cout << (dfs(dfs, 0, arr[0]) ? yes : no); 
 }
 
 signed main() {
@@ -308,7 +324,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

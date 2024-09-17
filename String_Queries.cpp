@@ -297,9 +297,37 @@ class SGT {
 
 };
     
-    
-    
 void solve() {  
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    vvi prefix(n + 1, vi(26));
+    for(int i = 1; i <= n; i++) {    
+        prefix[i] = prefix[i - 1];
+        prefix[i][s[i - 1] - 'a']++;
+    }
+    auto compute = [&](int l, int r) -> int {    
+        vi p;
+        for(int i = 0; i < 26; i++) {    
+            int c = prefix[r + 1][i] - prefix[l][i]; 
+            if(c == 0) continue;    
+            p.pb(c);
+        }
+        srt(p); 
+        int m = p.size();
+        int res = INF, last = 0, curr = 0, sm = sum(p);
+        for(int i = 0; i < m; i++) {    
+            if(i && p[i - 1] != p[i]) last = curr;
+            curr += p[i];
+            sm -= p[i];
+            int total = last + sm - (m - i - 1) * p[i];
+            res = min(res, total);
+        }
+        return res;
+    };
+    while(q--) {    
+        int l, r; cin >> l >> r;    
+        cout << compute(--l, --r) << endl;
+    }
 }
 
 signed main() {

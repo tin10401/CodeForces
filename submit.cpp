@@ -298,23 +298,21 @@ class SGT {
 };
     
 void solve() {  
-    string s; cin >> s; 
-    int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+    string s; cin >> s;
+    auto getKey = [&](char ch) -> int { 
+        if(ch == '(') return 0; 
+        else if(ch == ')') return 1;    
+        else if(ch == '{') return 2;    
+        else if(ch == '}') return 3;    
+        else if(ch == '[') return 4;    
+        return 5;
+    };
+    int cnt[6] = {};    
+    for(auto& ch : s) { 
+        cnt[getKey(ch)]++;
     }
     int res = 0;    
-    for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
-    }
+    for(int i = 0; i < 6; i += 2) res += 2 * min(cnt[i], cnt[i + 1]);
     cout << res << endl;
 }
 
