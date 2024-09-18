@@ -297,6 +297,39 @@ class SGT {
 
 };
     
+vi KMP(const string& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
+
+vi Z_Function(const string& s) {    
+    int n = s.size();   
+    vi prefix(n);   
+    for(int i = 1, left = 0, right = 0; i < n; i++) {   
+        if(i > right) { 
+            left = right = i;   
+            while(right < n && s[right] == s[right - left]) right++;    
+            prefix[i] = right-- - left;
+        }
+        else {  
+            if(prefix[i - left] + i < right + 1) {  
+                prefix[i] = prefix[i - left];
+            }
+            else {  
+                left = i;   
+                while(right < n && s[right] == s[right - left]) right++;    
+                prefix[i] = right-- - left;
+            }
+        }
+    }
+    return prefix;
+}
+    
 void solve() {  
 }
 
