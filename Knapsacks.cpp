@@ -297,40 +297,32 @@ class SGT {
 
 };
     
-vi KMP(const string& s) {   
-    int n = s.size();
-    vi prefix(n);
-    for(int i = 1, j = 0; i < n; i++) { 
-        while(j && s[i] != s[j]) j = prefix[j - 1]; 
-        if(s[i] == s[j]) prefix[i] = ++j;
-    }
-    return prefix;
-}
-
-vi Z_Function(const string& s) {    
-    int n = s.size();   
-    vi prefix(n);   
-    for(int i = 1, left = 0, right = 0; i < n; i++) {   
-        if(i > right) { 
-            left = right = i;   
-            while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
-        }
-        else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
-            }
-            else {  
-                left = i;   
-                while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
-            }
-        }
-    }
-    return prefix;
-}
-    
 void solve() {  
+    int n, c; cin >> n >> c;    
+    vpii arr(n);    
+    int m = 0;
+    for(auto& it : arr) cin >> it.ff, m += it.ff;   
+    for(auto& it : arr) cin >> it.ss;   
+    vi dp(m + 1, INF);  
+    dp[0] = 0;
+    for(int i = 0; i < n; i++) {    
+        vi nxt(m + 1, INF); 
+        auto& [v, w] = arr[i];
+        for(int j = 0; j <= m; j++) {    
+            nxt[j] = dp[j]; 
+            if(j >= v) {    
+                nxt[j] = min(nxt[j], dp[j - v] + w);
+            }
+        }
+        swap(nxt, dp);
+    }
+    for(int i = m; i >= 0; i--) {   
+        if(dp[i] <= c) {    
+            cout << i << endl;
+            return;
+        }
+    }
+    cout << 0 << endl;
 }
 
 signed main() {

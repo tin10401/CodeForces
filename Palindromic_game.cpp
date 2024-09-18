@@ -297,40 +297,36 @@ class SGT {
 
 };
     
-vi KMP(const string& s) {   
-    int n = s.size();
-    vi prefix(n);
-    for(int i = 1, j = 0; i < n; i++) { 
-        while(j && s[i] != s[j]) j = prefix[j - 1]; 
-        if(s[i] == s[j]) prefix[i] = ++j;
-    }
-    return prefix;
-}
-
-vi Z_Function(const string& s) {    
-    int n = s.size();   
-    vi prefix(n);   
-    for(int i = 1, left = 0, right = 0; i < n; i++) {   
-        if(i > right) { 
-            left = right = i;   
-            while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
-        }
-        else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
-            }
-            else {  
-                left = i;   
-                while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
-            }
-        }
-    }
-    return prefix;
-}
-    
+int dp[55][55][2];  
 void solve() {  
+    string s; cin >> s; 
+    int n = s.size();
+    if(s.size() > 54) { 
+        s = s.substr(0, 27) + s.substr(n - 27); 
+        n = s.size();
+    }
+    mset(dp, -1);
+    auto dfs = [&](auto& dfs, int left, int right, bool turn, uset<char>& vis) -> int {    
+        if(left > right) return 2;  
+        int& res = dp[left][right][turn];   
+        if(res != -1) return res;
+        if(vis.count(s[left]) || vis.count(s[right])) return res = turn;
+        bool tie = false;   
+        vis.insert(s[left]);
+        int x = dfs(dfs, left + 1, right, !turn, vis);  
+        vis.erase(s[left]);
+        if(x == turn) return res = turn;    
+        tie |= x == 2;  
+        vis.insert(s[right]);
+        x = dfs(dfs, left, right - 1, !turn, vis); 
+        vis.erase(s[right]);
+        if(x == turn) return res = turn;    
+        tie |= x == 2;
+        return res = tie ? 2 : !turn;
+    };
+    uset<char> vis;
+    int res = dfs(dfs, 0, n - 1, 0, vis);
+    cout << (res == 2 ? "Tie" : (res == 1 ? "Bob" : "Alice")) << endl;
 }
 
 signed main() {

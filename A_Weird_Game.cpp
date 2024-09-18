@@ -297,40 +297,29 @@ class SGT {
 
 };
     
-vi KMP(const string& s) {   
-    int n = s.size();
-    vi prefix(n);
-    for(int i = 1, j = 0; i < n; i++) { 
-        while(j && s[i] != s[j]) j = prefix[j - 1]; 
-        if(s[i] == s[j]) prefix[i] = ++j;
-    }
-    return prefix;
-}
-
-vi Z_Function(const string& s) {    
-    int n = s.size();   
-    vi prefix(n);   
-    for(int i = 1, left = 0, right = 0; i < n; i++) {   
-        if(i > right) { 
-            left = right = i;   
-            while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
-        }
-        else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
-            }
-            else {  
-                left = i;   
-                while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
-            }
-        }
-    }
-    return prefix;
-}
-    
 void solve() {  
+    string s, t; cin >> s >> t;
+    int n = s.size(), m = t.size();
+    vi prefix(n), suffix(n);    
+    for(int i = 0, j = 0; i < n; i++) { 
+        if(j < m && s[i] == t[j]) j++;   
+        prefix[i] = j;
+    }
+    for(int i = n - 1, j = m - 1; i >= 0; i--) {    
+        if(j >= 0 && s[i] == t[j]) j--; 
+        suffix[i] = m - j - 1;
+    }
+    auto isValid = [&](int left, int right) -> bool {   
+        int x = left == 0 ? 0 : prefix[left - 1];
+        int y = right == n - 1 ? 0 : suffix[right + 1]; 
+        return x + y >= m;
+    };
+    int res = 0;    
+    for(int left = 0, right = 0; right < n; right++) {    
+        while(!isValid(left, right)) left++;
+        res += right - left + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -339,7 +328,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock

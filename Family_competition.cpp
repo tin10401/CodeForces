@@ -218,22 +218,10 @@ template<class T>
 class SGT { 
     public: 
     int n;  
-    vt<T> root, lazy; 
-    SGT(vi& arr) {    
-        n = arr.size(); 
+    vt<T> root; 
+    SGT(int n) {    
+        this->n = n;
         root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
-    }
-    
-    void build(iterator, vi& arr) { 
-        if(left == right) { 
-            root[i] = arr[left];    
-            return;
-        }
-        int middle = midPoint;  
-        build(lp, arr), build(rp, arr); 
-        root[i] = merge(root[lc], root[rc]);
     }
     
     void update(int id, int val) {  
@@ -242,7 +230,7 @@ class SGT {
     
     void update(iterator, int id, int val) {    
         if(left == right) { 
-            root[i] = val;  
+            root[i] = max(root[i], val);
             return;
         }
         int middle = midPoint;  
@@ -251,44 +239,18 @@ class SGT {
         root[i] = merge(root[lc], root[rc]);
     }
 
-    void update(int start, int end, int val) { 
-        update(entireTree, start, end, val);
-    }
-    
-    void update(iterator, int start, int end, int val) {    
-        pushDown;   
-        if(left > end || start > right) return; 
-        if(left >= start && right <= end) { 
-            lazy[i] = val;  
-            pushDown;   
-            return;
-        }
-        int middle = midPoint;  
-        update(lp, start, end, val);    
-        update(rp, start, end, val);    
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
     T merge(T left, T right) {  
         T res;  
+        res = max(left, right);
         return res;
     }
     
-    void push(iterator) {   
-        if(lazy[i] == 0) return;    
-        if(left != right) { 
-            lazy[lc] = lazy[i]; 
-            lazy[rc] = lazy[i];
-        }
-        lazy[i] = 0;
-    }
 
     T queries(int start, int end) { 
         return queries(entireTree, start, end);
     }
     
     T queries(iterator, int start, int end) {   
-        pushDown;
         if(left > end || start > right) return 0;   
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
@@ -297,40 +259,37 @@ class SGT {
 
 };
     
-vi KMP(const string& s) {   
-    int n = s.size();
-    vi prefix(n);
-    for(int i = 1, j = 0; i < n; i++) { 
-        while(j && s[i] != s[j]) j = prefix[j - 1]; 
-        if(s[i] == s[j]) prefix[i] = ++j;
-    }
-    return prefix;
-}
-
-vi Z_Function(const string& s) {    
-    int n = s.size();   
-    vi prefix(n);   
-    for(int i = 1, left = 0, right = 0; i < n; i++) {   
-        if(i > right) { 
-            left = right = i;   
-            while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
+void solve() {  
+    int n, h; cin >> n >> h;    
+    const int offSet = 1e5;
+    vpii arr(n); cin >> arr;    
+    for(auto& it : arr) it.ss += offSet;    
+    srt(arr);   
+    SGT<int> root(2 * offSet + 1);
+    int res = 0;
+    vi dp(n);
+    for(int i = 0; i < n; i++) {    
+        int left = 0, right = 0;    
+        if(i && arr[i].ff != arr[i - 1].ff) {  
+            int j = i - 1;  
+            for(int k = j; k >= 0 && arr[j].ff == arr[k].ff; k--) {   
+                root.update(arr[k].ss, dp[k]);
+            }
+        }
+        auto &[_, x] = arr[i];
+        if(x < offSet) {    
+            left = offSet + 1, right = 2 * offSet;
         }
         else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
-            }
-            else {  
-                left = i;   
-                while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
-            }
+            left = 0, right = offSet - 1;
         }
+        left = max(left, x - h);    
+        right = min(right, x + h);
+        int v = root.queries(left, right);
+        res = max(res, v);
+        dp[i] = v + 1;
     }
-    return prefix;
-}
-    
-void solve() {  
+    cout << res << endl;
 }
 
 signed main() {

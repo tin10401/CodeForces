@@ -309,28 +309,64 @@ vi KMP(const string& s) {
 
 vi Z_Function(const string& s) {    
     int n = s.size();   
-    vi prefix(n);   
+    vi Z(n);   
     for(int i = 1, left = 0, right = 0; i < n; i++) {   
         if(i > right) { 
             left = right = i;   
             while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
+            Z[i] = right-- - left;
         }
         else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
+            if(Z[i - left] + i < right + 1) {  
+                Z[i] = Z[i - left];
             }
             else {  
                 left = i;   
                 while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
+                Z[i] = right-- - left;
             }
         }
     }
-    return prefix;
+    return Z;
 }
     
 void solve() {  
+    string s; cin >> s; 
+    vi cnt(3);
+    for(auto& ch : s) { 
+        cnt[ch - '0']++;
+    }
+    debug(s);
+    auto compute = [&](int a, int b, int c) -> int {    
+        int ans = 0, benefit = 0;   
+        for(int i = 0; i < cnt[a] + cnt[b]; i++) {  
+            int id = s[i] - '0';
+            if(i < cnt[a]) {    
+                if(id == a) continue;   
+                ans++;  
+                benefit += id == b;
+            }
+            else if(id != b) {  
+                if(id == c) ans++;  
+                else {  
+                    if(benefit > 0) benefit--;  
+                    else ans++;
+                }
+            }
+        }
+        return ans;
+    };
+    int res = INF;
+    for(int i = 0; i < 3; i++) {    
+        for(int j = 0; j < 3; j++) {    
+            for(int k = 0; k < 3; k++) {    
+                if(i != k && i != j && j != k) {    
+                    res = min(res, compute(i, j, k));
+                }
+            }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -339,7 +375,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     while(t--) solve();
 
     endClock
