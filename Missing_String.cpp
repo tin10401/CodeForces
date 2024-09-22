@@ -555,6 +555,34 @@ vi manacher(string s, int start) {
 }
 
 void solve() {  
+    string s; cin >> s; 
+    int n = s.size();
+    uset<string> vis;    
+    bool ok = false;
+    string curr, ans;
+    auto dfs = [&](auto& dfs, int len) -> void { 
+        if(curr.size() == len) {    
+            if(vis.count(curr)) return; 
+            ans = curr; 
+            ok = true;
+            return;
+        }    
+        for(int i = 0; i < 26; i++) {   
+            curr += (char)(i + 'a');
+            dfs(dfs, len);   
+            curr.pop_back();
+            if(ok) return;
+        }
+    };
+    for(int i = 1; i <= 4 && !ok; i++) {    
+        for(int j = 0; j < n; j++) {    
+            if(j + i > n) break;    
+            vis.insert(s.substr(j, i));
+        }
+        curr = "";
+        dfs(dfs, i); 
+    }
+    cout << ans << endl;
 }
 
 signed main() {

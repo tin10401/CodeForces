@@ -154,6 +154,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
+
 template<typename T>
 class Treap {
 private:
@@ -467,10 +468,9 @@ class SGT {
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
         if(left != right) { 
-            lazy[lc] += lazy[i]; 
-            lazy[rc] += lazy[i];
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
         }
         lazy[i] = 0;
     }
@@ -555,6 +555,25 @@ vi manacher(string s, int start) {
 }
 
 void solve() {  
+    int n; cin >> n;    
+    string s; cin >> s; 
+    int m; cin >> m;    
+    int score[26][26] = {}; 
+    for(int i = 0; i < m; i++) {    
+        char a, b; cin >> a >> b;   
+        int c; cin >> c;
+        score[a - 'a'][b - 'a'] += c;
+    }
+    vi dp(26, -INF);
+    for(int i = 0; i < n; i++) {    
+        int id = s[i] - 'a';
+        int mx = 0;
+        for(int j = 0; j < 26; j++) {   
+            mx = max(mx, dp[j] + score[j][id]);
+        }
+        dp[id] = max(dp[id], mx);
+    }
+    cout << MAX(dp) << endl;
 }
 
 signed main() {
@@ -564,10 +583,7 @@ signed main() {
 
     int t = 1;
     //cin >> t;
-    for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << "i: ";  
-        solve();
-    }
+    while(t--) solve();
 
     endClock
     return 0;
