@@ -410,38 +410,12 @@ class SGT {
     public: 
     int n;  
     vt<T> root, lazy; 
-    SGT(vi& arr) {    
-        n = arr.size(); 
+    SGT(int n) {    
+        this->n = n;
         root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
+        lazy.rsz(n * 4);
     }
     
-    void build(iterator, vi& arr) { 
-        if(left == right) { 
-            root[i] = arr[left];    
-            return;
-        }
-        int middle = midPoint;  
-        build(lp, arr), build(rp, arr); 
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
-    void update(int id, int val) {  
-        update(entireTree, id, val);
-    }
-    
-    void update(iterator, int id, int val) {    
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
-    }
-
     void update(int start, int end, int val) { 
         update(entireTree, start, end, val);
     }
@@ -450,7 +424,7 @@ class SGT {
         pushDown;   
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
-            lazy[i] = val;  
+            lazy[i] += val;  
             pushDown;   
             return;
         }
@@ -462,6 +436,7 @@ class SGT {
     
     T merge(T left, T right) {  
         T res;  
+        res = left + right;
         return res;
     }
     
@@ -475,86 +450,61 @@ class SGT {
         lazy[i] = 0;
     }
 
-    T queries(int start, int end) { 
-        return queries(entireTree, start, end);
+    T queries(int id) { 
+        return queries(entireTree, id);
     }
     
-    T queries(iterator, int start, int end) {   
+    T queries(iterator, int id) {   
         pushDown;
-        if(left > end || start > right) return 0;   
-        if(left >= start && right <= end) return root[i];   
+        if(left == right) return root[i];   
         int middle = midPoint;  
-        return merge(queries(lp, start, end), queries(rp, start, end));
+        if(id <= middle) return queries(lp, id);    
+        return queries(rp, id);
     }
 
 };
-    
-vi KMP(const string& s) {   
-    int n = s.size();
-    vi prefix(n);
-    for(int i = 1, j = 0; i < n; i++) { 
-        while(j && s[i] != s[j]) j = prefix[j - 1]; 
-        if(s[i] == s[j]) prefix[i] = ++j;
-    }
-    return prefix;
-}
-
-vi Z_Function(const string& s) {    
-    int n = s.size();   
-    vi prefix(n);   
-    for(int i = 1, left = 0, right = 0; i < n; i++) {   
-        if(i > right) { 
-            left = right = i;   
-            while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
-        }
-        else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
-            }
-            else {  
-                left = i;   
-                while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
-            }
-        }
-    }
-    return prefix;
-}
-    
-vi manacher(string s, int start) {
-    string tmp;
-    for (auto& it : s) {
-        tmp += "#";
-        tmp += it;
-    }
-    tmp += "#";  
-    swap(s, tmp);
-    int n = s.size();
-    vector<int> p(n); 
-    int l = 0, r = 0;  
-    for (int i = 0; i < n; i++) {
-        if (i < r) {
-            p[i] = min(r - i, p[l + r - i]);
-        } else {
-            p[i] = 0;
-        }
-        while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
-            p[i]++;
-        }
-        if (i + p[i] > r) {
-            l = i - p[i] + 1;
-            r = i + p[i] - 1;
-        }
-    }
-    vi result;
-    for (int i = start; i < n; i += 2) {
-        result.push_back(p[i] / 2);
-    }
-    return result;
-}
 
 void solve() {  
+    int n, m; cin >> n >> m;
+    vt<vt<char>> grid(n, vt<char>(m)); cin >> grid; 
+    vvi prefix(n + 1, vi(m + 1));   
+    for(int i = 1; i <= n; i++) {   
+        int sm = 0;
+        for(int j = 1; j <= m; j++) {   
+            sm += grid[i - 1][j - 1] == '*';    
+            prefix[i][j] = sm + prefix[i - 1][j];
+        }
+    }
+    auto isValid = [&](int r1, int c1, int r2, int c2) -> bool {    
+        int side = r2 - r1 + 1; 
+        return prefix[r2][c2] - prefix[r2][c1 - 1] - prefix[r1 - 1][c2] + prefix[r1 - 1][c1 - 1] == side * side;
+    };
+    int N = min(n, m) + 1;
+    vi dp(N + 1);   
+    for(int i = 1; i <= n; i++) {    
+        for(int j = 1; j <= m; j++) {   
+            if(grid[i - 1][j - 1] != '*') continue;
+            int left = 1, right = min(n - i + 1, m - j + 1), k = -1;
+            while(left <= right) {  
+                int middle = midPoint;  
+                if(isValid(i, j, i + middle - 1, j + middle - 1)) k = middle, left = middle + 1;    
+                else right = middle - 1;
+            }
+            dp[1]++; 
+            dp[k + 1]--;
+        }
+    }
+    for(int i = 1; i <= N; i++) {    
+        dp[i] += dp[i - 1];
+    }
+    for(int i = 1; i <= N; i++) {   
+        dp[i] += dp[i - 1];
+    }
+    int q; cin >> q;    
+    while(q--) {    
+        int x; cin >> x;    
+        cout << dp[min(x, N)] << endl;
+    }
 }
 
 signed main() {
@@ -564,10 +514,7 @@ signed main() {
 
     int t = 1;
     //cin >> t;
-    for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << "i: ";  
-        solve();
-    }
+    while(t--) solve();
 
     endClock
     return 0;

@@ -467,10 +467,9 @@ class SGT {
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
         if(left != right) { 
-            lazy[lc] += lazy[i]; 
-            lazy[rc] += lazy[i];
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
         }
         lazy[i] = 0;
     }
@@ -555,19 +554,52 @@ vi manacher(string s, int start) {
 }
 
 void solve() {  
+    int n, m; cin >> n >> m;    
+    vvi grid(n, vi(m));  
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            cin >> grid[i][j];  
+            grid[i][j] = primeBits[grid[i][j]];
+        }
+    }
+    vvi dp(n + 1, vi(m + 1));   
+    dp[1][1] = 1;   
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= m; j++) {   
+            dp[i][j] = (dp[i][j] + dp[i - 1][j] + dp[i][j - 1] + dp[i - 1][j - 1]) % MOD;
+            if(grid[i - 1][j - 1] == 0) dp[i][j] = 0;
+        }
+    }
+    int k = 0;
+    vpii ans(n * m);
+    auto dfs = [&](auto& dfs, int i = 0, int j = 0, int id = 0) -> void {   
+        if(i >= n || j >= m || grid[i][j] == 0 || k) return; 
+        grid[i][j] = 0; 
+        ans[id++] = MP(i + 1, j + 1);   
+        if(i == n - 1 && j == m - 1) {   
+            k = id;
+            return;
+        }
+        dfs(dfs, i + 1, j + 1, id); 
+        dfs(dfs, i + 1, j, id); 
+        dfs(dfs, i, j + 1, id);
+
+    };
+    cout << dp[n][m] << endl;
+    dfs(dfs);
+    for(int i = 0; i < k; i++) {    
+        cout << ans[i].ff << " " << ans[i].ss << endl;
+    }
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;
-    for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << "i: ";  
-        solve();
-    }
+    while(t--) solve();
 
     endClock
     return 0;

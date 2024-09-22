@@ -132,13 +132,13 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e3 + 5;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
-int pct(int x) { return __builtin_popcountll(x); }
+constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
-int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -154,6 +154,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
+
 template<typename T>
 class Treap {
 private:
@@ -467,10 +468,9 @@ class SGT {
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
         if(left != right) { 
-            lazy[lc] += lazy[i]; 
-            lazy[rc] += lazy[i];
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
         }
         lazy[i] = 0;
     }
@@ -554,7 +554,42 @@ vi manacher(string s, int start) {
     return result;
 }
 
+int dp[MX][MX][2];
 void solve() {  
+    int n, m; cin >> n >> m;    
+    vi a(n), b(m); cin >> a >> b;   
+    auto reset = [&]() -> void {    
+        for(int i = 0; i <= n; i++) {   
+            for(int j = 0; j <= m; j++) {   
+                for(int k = 0; k <= 1; k++) dp[i][j][k] = -1;
+            }
+        }
+    };
+    reset();
+    auto dfs = [&](auto& dfs, int i = 0, int j = 0, int type = 0, int last = -INF) -> int {    
+        if(i >= n && type == 0) return 0;   
+        if(j >= m && type == 1) return 0;
+        int& res = dp[i][j][type];    
+        if(res != -1) return res;   
+        res = 0;    
+        if(type == 0) { 
+            if(a[i] > last) {   
+                res = 1 + dfs(dfs, i + 1, j, !type, a[i]);
+            }
+            res = max(res, dfs(dfs, i + 1, j, type, last));
+        }
+        else {  
+            if(b[j] > last) {   
+                res = 1 + dfs(dfs, i, j + 1, !type, b[j]);
+            }
+            res = max(res, dfs(dfs, i, j + 1, type, last));
+        }
+        return res;
+    };
+    int ans1 = dfs(dfs);    
+    reset();
+    int ans2 = dfs(dfs, 0, 0, 1, -INF);
+    cout << max(ans1, ans2) << endl; 
 }
 
 signed main() {
@@ -563,11 +598,8 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
-    for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << "i: ";  
-        solve();
-    }
+    cin >> t;
+    while(t--) solve();
 
     endClock
     return 0;

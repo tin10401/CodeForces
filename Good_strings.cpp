@@ -131,14 +131,14 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
-const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MK = 21;
+const static int MX = 1e5 + 1;
 const static int MOD = 1e9 + 7;
 const static string no = "NO\n";
 const static string yes = "YES\n";
-int pct(int x) { return __builtin_popcountll(x); }
+constexpr int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
-int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -154,6 +154,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
     
+
 template<typename T>
 class Treap {
 private:
@@ -467,10 +468,9 @@ class SGT {
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
         if(left != right) { 
-            lazy[lc] += lazy[i]; 
-            lazy[rc] += lazy[i];
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
         }
         lazy[i] = 0;
     }
@@ -522,39 +522,26 @@ vi Z_Function(const string& s) {
     return prefix;
 }
     
-vi manacher(string s, int start) {
-    string tmp;
-    for (auto& it : s) {
-        tmp += "#";
-        tmp += it;
-    }
-    tmp += "#";  
-    swap(s, tmp);
-    int n = s.size();
-    vector<int> p(n); 
-    int l = 0, r = 0;  
-    for (int i = 0; i < n; i++) {
-        if (i < r) {
-            p[i] = min(r - i, p[l + r - i]);
-        } else {
-            p[i] = 0;
-        }
-        while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
-            p[i]++;
-        }
-        if (i + p[i] > r) {
-            l = i - p[i] + 1;
-            r = i + p[i] - 1;
-        }
-    }
-    vi result;
-    for (int i = start; i < n; i += 2) {
-        result.push_back(p[i] / 2);
-    }
-    return result;
-}
 
 void solve() {  
+    int n, k; cin >> n >> k;    
+    string s; cin >> s; 
+    vt<vvi> dp(n, vvi(k + 1, vi(2, -1)));
+    auto dfs = [&](auto& dfs, int i, int curr, int smaller) -> int { 
+        if(curr < 0) return 0;
+        if(i == n) {    
+            return curr == 0 && smaller;
+        }
+        int& res = dp[i][curr][smaller];
+        if(res != -1) return res;   
+        char ub = smaller ? 'z' : s[i];  
+        res = 0;
+        for(char ch = 'a'; ch <= ub; ch++) {   
+            res = (res + dfs(dfs, i + 1, curr - (ch != s[i]), smaller || ch < s[i])) % MOD;
+        }
+        return res;
+    };
+    cout << dfs(dfs, 0, k, false) << endl;
 }
 
 signed main() {
@@ -563,11 +550,8 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
-    for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << "i: ";  
-        solve();
-    }
+    cin >> t;
+    while(t--) solve();
 
     endClock
     return 0;
