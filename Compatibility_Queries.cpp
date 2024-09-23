@@ -558,25 +558,28 @@ vi manacher(string s, int start) {
 
 void solve() {
     int n; cin >> n;    
-    vi arr(n); cin >> arr;
-    vpii dp(1 << n, {-INF, INF});    
-    dp[0] = {0, 0};
-    for(int mask = 1; mask < 1 << n; mask++) {    
-        if(pct(mask) & 1) continue;
-        auto& [mx, mn] = dp[mask];
-        for(int i = 0; i < n; i++) {    
-            for(int j = 0; j < n; j++) {    
-                if(i != j && (mask >> i) & 1 && (mask >> j) & 1) {  
-                    auto& [x, y] = dp[mask ^ (1 << i) ^ (1 << j)]; 
-                    int s = arr[i] ^ arr[j];    
-                    mx = max(mx, s + x);    
-                    mn = min(mn, s + y);
-                }
+    vi dp(1 << MK); 
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        dp[x] += x;
+    }
+    for(int i = 0; i < MK; i++) {  
+        for(int mask = 1; mask < 1 << MK; mask++) {   
+            if((mask >> i) & 1) {   
+                dp[mask] += dp[mask ^ (1LL << i)];
             }
         }
     }
-    auto [mx, mn] = dp[(1 << n) - 1];   
-    cout << mn << " " << mx << endl;
+    int q; cin >> q;    
+    while(q--) {    
+        int x; cin >> x;    
+        int y = 0;  
+        for(int i = 0; i < MK; i++) {   
+            if((x >> i) & 1) continue;  
+            y |= (1LL << i);
+        }
+        cout << dp[y] << endl;
+    }
 }
 
 signed main() {

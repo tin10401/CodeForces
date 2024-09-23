@@ -1,4 +1,4 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
+//████████╗██╗███╗░░██╗  ██╗░░░
 //╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
 //░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
 //░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
@@ -410,10 +410,8 @@ class SGT {
     public: 
     int n;  
     vt<T> root, lazy; 
-    T DEFAULT;
     SGT(vi& arr) {    
         n = arr.size(); 
-        DEFAULT = INF;
         root.rsz(n * 4);    
         // lazy.rsz(n * 4);
         build(entireTree, arr);
@@ -483,7 +481,7 @@ class SGT {
     
     T queries(iterator, int start, int end) {   
         pushDown;
-        if(left > end || start > right) return DEFAULT;
+        if(left > end || start > right) return 0;   
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
         return merge(queries(lp, start, end), queries(rp, start, end));
@@ -556,27 +554,33 @@ vi manacher(string s, int start) {
     return result;
 }
 
-void solve() {
-    int n; cin >> n;    
-    vi arr(n); cin >> arr;
-    vpii dp(1 << n, {-INF, INF});    
-    dp[0] = {0, 0};
-    for(int mask = 1; mask < 1 << n; mask++) {    
-        if(pct(mask) & 1) continue;
-        auto& [mx, mn] = dp[mask];
-        for(int i = 0; i < n; i++) {    
-            for(int j = 0; j < n; j++) {    
-                if(i != j && (mask >> i) & 1 && (mask >> j) & 1) {  
-                    auto& [x, y] = dp[mask ^ (1 << i) ^ (1 << j)]; 
-                    int s = arr[i] ^ arr[j];    
-                    mx = max(mx, s + x);    
-                    mn = min(mn, s + y);
-                }
-            }
-        }
+void solve() {  
+    int n, k; cin >> n >> k;
+    k = min(k, n);
+    vi a(n), b(n); cin >> a >> b;
+    if(k == 0) {    
+        cout << 0 << endl;  
+        return;
     }
-    auto [mx, mn] = dp[(1 << n) - 1];   
-    cout << mn << " " << mx << endl;
+    vi dp(n + 1);   
+    k = min(k, n);
+    for(int i = n - 1; i >= 0; i--) {   
+        vi nxt(n + 1);  
+        for(int j = 0; j <= n; j++) {   
+            int& res = nxt[j];
+            int energy = min(n, j + a[i] - 1);
+            if(j) { 
+                res = max(dp[j - 1] + b[i], dp[energy]);
+            }
+            else if(a[i]) { 
+                res = max(b[i], dp[energy]);
+            }
+            else res = b[i];
+        }
+        swap(dp, nxt);
+    }
+    debug(dp);
+    cout << dp[k - 1] << endl;
 }
 
 signed main() {
@@ -585,7 +589,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << "i: ";  
         solve();

@@ -410,8 +410,10 @@ class SGT {
     public: 
     int n;  
     vt<T> root, lazy; 
+    T DEFAULT;
     SGT(vi& arr) {    
         n = arr.size(); 
+        DEFAULT = INF;
         root.rsz(n * 4);    
         // lazy.rsz(n * 4);
         build(entireTree, arr);
@@ -481,7 +483,7 @@ class SGT {
     
     T queries(iterator, int start, int end) {   
         pushDown;
-        if(left > end || start > right) return 0;   
+        if(left > end || start > right) return DEFAULT;
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
         return merge(queries(lp, start, end), queries(rp, start, end));
@@ -554,7 +556,7 @@ vi manacher(string s, int start) {
     return result;
 }
 
-void solve() {  
+void solve() {
 }
 
 signed main() {
