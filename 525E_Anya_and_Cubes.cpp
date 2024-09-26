@@ -38,21 +38,16 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vll vt<ll>  
 #define vpll vt<pll>
 #define int long long
-#define vc vt<char> 
-#define vvc vt<vc>
-#define vi vt<int>
-#define vvi vt<vi>
-#define vvvi vt<vvi>
+#define vi vector<int>
 #define pii pair<int, int>
-#define vpii vt<pii>
-#define vs vt<string>
-#define vvs vt<vs>
-#define vb vt<bool>
-#define vvb vt<vb>
-#define vvpii vt<vpii>
-#define vd vt<db>
+#define vpii vector<pair<int, int>>
+#define vs vector<string>
+#define vb vector<bool>
+#define vvpii vector<vpii>
+#define vvi vector<vi>
+#define vd vector<db>
 #define ar(x) array<int, x>
-#define var(x) vt<ar(x)>
+#define var(x) vector<ar(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -139,10 +134,8 @@ const static ll INF = 1LL << 60;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-const static string YES = "YES\n";  
-const static string yes = "Yes\n";  
-const static string NO = "NO\n";    
-const static string no = "No\n";
+const static string no = "NO\n";
+const static string yes = "YES\n";
 int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
@@ -160,7 +153,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-
+    
 template<typename T>
 class Treap {
 private:
@@ -377,12 +370,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -568,6 +557,37 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+   int n, k, s; cin >> n >> k >> s;
+   vi arr(n); cin >> arr;
+   vi fact(21, 1e17);
+   fact[0] = fact[1] = 1;
+   for(int i = 2; i < 21; i++) { 
+        fact[i] = fact[i - 1] * i;  
+        if(fact[i] > 1e16) break;
+   }
+   umap<int, int> mp[26];
+   int res = 0;
+   auto dfs = [&](auto& dfs, int i, int curr, int left, bool ok) -> void { 
+        if(left > k) return;
+        if(i == min(13LL, n) && ok) { 
+            for(int j = 0; j <= k - left; j++) { 
+                if(mp[j].count(s - curr)) res += mp[j][s - curr];
+            }
+            return;
+        }
+        else if(!ok && i >= n) {    
+            mp[left][curr]++;
+            return;
+        }
+        dfs(dfs, i + 1, curr, left, ok);  
+        dfs(dfs, i + 1, curr + arr[i], left, ok); 
+        if(arr[i] <= 20 && fact[arr[i]] <= 1e16) {  
+            dfs(dfs, i + 1, curr + fact[arr[i]], left + 1, ok);
+        }
+   };
+   dfs(dfs, min(13LL, n), 0, 0, 0); 
+   dfs(dfs, 0, 0, 0, 1);
+   cout << res << endl;
 }
 
 signed main() {

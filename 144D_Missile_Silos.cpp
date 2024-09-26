@@ -377,12 +377,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -568,6 +564,50 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m, s; cin >> n >> m >> s;    
+    var(3) edges(m);    
+    vvpii graph(n + 1);   
+    for(auto& [u, v, c] : edges) {  
+        cin >> u >> v >> c; 
+        graph[u].pb(MP(v, c));  
+        graph[v].pb(MP(u, c));
+    }
+    auto dijkstra = [&](int source) -> vi {   
+        pq<pii, vpii, greater<pii>> minHeap;    
+        vi dp(n + 1, INF);
+        minHeap.push(MP(0, source));
+        dp[source] = 0; 
+        while(!minHeap.empty()) {   
+            auto [cost, node] = minHeap.top();  
+            minHeap.pop();
+            if(dp[node] != cost) continue;  
+            for(auto& [nei, c] : graph[node]) { 
+                int newCost = cost + c; 
+                if(newCost < dp[nei]) { 
+                    dp[nei] = newCost;  
+                    minHeap.push(MP(newCost, nei));
+                }
+            }
+        }
+        return dp;
+    };
+    int l; cin >> l;    
+    auto dp = dijkstra(s);
+    int res = 0;
+    for(int node = 1; node <= n; node++) {   
+        if(dp[node] == l) {    
+            res++;  
+            continue;
+        }
+        if(dp[node] > l) continue; 
+        for(auto& [nei, c] : graph[node]) { 
+            if(dp[node] + c <= l) continue;
+            int newCost = dp[nei] + dp[node] + c - l;   
+            if(newCost > l) res++;  
+            else if(newCost == l && nei < node) res++;
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -599,3 +639,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

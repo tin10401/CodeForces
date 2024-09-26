@@ -568,6 +568,32 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    vi arr(n); cin >> arr;  
+    while(!arr.empty() && arr.back() == 0) arr.pop_back();  
+    n = arr.size();
+    int left = n, right = INF, res = -1;    
+    auto isValid = [&](int x) -> int {  
+        int j = 0;  
+        vi a(arr);
+        for(int i = 0; i < m && j < n; i++) {   
+            int t = x - j;  
+            while(j < n && t) {  
+                if(t < a[j] + 1) {  
+                    a[j] -= t - 1;  
+                    break;
+                }
+                t -= a[j++] + 1;
+            }
+        }
+        return j == n;
+    };
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(isValid(middle)) res = middle, right = middle - 1;   
+        else left = middle + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {

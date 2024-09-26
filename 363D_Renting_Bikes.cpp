@@ -139,10 +139,8 @@ const static ll INF = 1LL << 60;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-const static string YES = "YES\n";  
-const static string yes = "Yes\n";  
-const static string NO = "NO\n";    
-const static string no = "No\n";
+const static string no = "NO\n";
+const static string yes = "YES\n";
 int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
@@ -160,7 +158,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-
+    
 template<typename T>
 class Treap {
 private:
@@ -377,12 +375,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -568,6 +562,35 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m, c; cin >> n >> m >> c;    
+    vi a(n), b(m); cin >> a >> b;   
+    srt(a), srt(b);
+    debug(a, b);
+    auto isValid = [&](int k) -> bool {  
+        int cost = 0;   
+        for(int i = 0; i < k; i++) {    
+            cost += max(0LL, b[i] - a[n - k + i]);
+        }
+        return cost <= c;
+    };
+    int left = 1, right = min(n, m), x = 0;  
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(isValid(middle)) x = middle, left = middle + 1; 
+        else right = middle - 1;
+    }
+    int cost = 0;   
+    for(int i = 0; i < x; i++) {    
+        int take = min(c, b[i]);    
+        c -= min(take, b[i]);  
+        b[i] -= take;
+        if(c == 0) {    
+            cost += b[i];
+        }
+    }
+    
+    cout << x << " " << cost << endl;
+
 }
 
 signed main() {
