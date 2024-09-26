@@ -568,6 +568,26 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n; cin >> n;    
+    DSU root(n);    
+    auto check = [](int x) -> bool { 
+        while(x) {  
+            if(x % 10 != 4 && x % 10 != 7) return false;    
+            x /= 10;
+        }
+        return true;
+    };
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b, c; cin >> a >> b >> c;    
+        a--, b--;
+        if(!check(c)) root.merge(a, b);
+    }
+    int res = 0;    
+    for(int i = 0; i < n; i++) {    
+        int x = n - root.getRank(i);    
+        res += x * (x - 1);
+    }
+    cout << res << endl;
 }
 
 signed main() {

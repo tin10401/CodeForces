@@ -139,10 +139,8 @@ const static ll INF = 1LL << 60;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-const static string YES = "YES\n";  
-const static string yes = "Yes\n";  
-const static string NO = "NO\n";    
-const static string no = "No\n";
+const static string no = "NO\n";
+const static string yes = "YES\n";
 int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
@@ -160,7 +158,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-
+    
 template<typename T>
 class Treap {
 private:
@@ -377,12 +375,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -422,37 +416,11 @@ class SGT {
     int n;  
     vt<T> root, lazy; 
     T DEFAULT;
-    SGT(vi& arr) {    
-        n = arr.size(); 
-        DEFAULT = INF;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = (1LL << 30) - 1;
         root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
-    }
-    
-    void build(iterator, vi& arr) { 
-        if(left == right) { 
-            root[i] = arr[left];    
-            return;
-        }
-        int middle = midPoint;  
-        build(lp, arr), build(rp, arr); 
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
-    void update(int id, int val) {  
-        update(entireTree, id, val);
-    }
-    
-    void update(iterator, int id, int val) {    
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
+        lazy.rsz(n * 4);
     }
 
     void update(int start, int end, int val) { 
@@ -475,15 +443,16 @@ class SGT {
     
     T merge(T left, T right) {  
         T res;  
+        res = left & right;
         return res;
     }
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
+        root[i] |= lazy[i];
         if(left != right) { 
-            lazy[lc] += lazy[i]; 
-            lazy[rc] += lazy[i];
+            lazy[lc] |= lazy[i];    
+            lazy[rc] |= lazy[i];
         }
         lazy[i] = 0;
     }
@@ -498,6 +467,16 @@ class SGT {
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
         return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+    
+    void print(iterator) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << " "; 
+            return;
+        }
+        int middle = midPoint;
+        print(lp), print(rp);
     }
 
 };
@@ -568,6 +547,26 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    SGT<int> root(n);
+    var(3) Q(m);    
+    for(int i = 0; i < m; i++) {    
+        auto& [l, r, c] = Q[i]; 
+        cin >> l >> r >> c; 
+        l--, r--;   
+        root.update(l, r, c);
+    }
+    for(int i = 0; i < m; i++) {    
+        auto& [l, r, c] = Q[i]; 
+        if(root.queries(l, r) != c) {   
+            cout << no; 
+            return;
+        }
+    }
+    cout << yes;    
+    root.print(entireTree); 
+    cout << endl;
+
 }
 
 signed main() {

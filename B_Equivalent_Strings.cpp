@@ -377,12 +377,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -568,6 +564,15 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    string s, t; cin >> s >> t; 
+    auto f = [](auto& f, string s) -> string {   
+        int n = s.size();   
+        if(n & 1) return s; 
+        string s1 = f(f, s.substr(0, n / 2));  
+        string s2 = f(f, s.substr(n / 2)); 
+        return s1 < s2 ? s1 + s2 : s2 + s1;
+    };
+    cout << (f(f, s) == f(f, t) ? YES : NO);
 }
 
 signed main() {

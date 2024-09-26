@@ -38,16 +38,21 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vll vt<ll>  
 #define vpll vt<pll>
 #define int long long
-#define vi vector<int>
+#define vc vt<char> 
+#define vvc vt<vc>
+#define vi vt<int>
+#define vvi vt<vi>
+#define vvvi vt<vvi>
 #define pii pair<int, int>
-#define vpii vector<pair<int, int>>
-#define vs vector<string>
-#define vb vector<bool>
-#define vvpii vector<vpii>
-#define vvi vector<vi>
-#define vd vector<db>
+#define vpii vt<pii>
+#define vs vt<string>
+#define vvs vt<vs>
+#define vb vt<bool>
+#define vvb vt<vb>
+#define vvpii vt<vpii>
+#define vd vt<db>
 #define ar(x) array<int, x>
-#define var(x) vector<ar(x)>
+#define var(x) vt<ar(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -134,10 +139,12 @@ const static ll INF = 1LL << 60;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-const static string no = "NO\n";
-const static string yes = "YES\n";
+const static string YES = "YES\n";  
+const static string yes = "Yes\n";  
+const static string NO = "NO\n";    
+const static string no = "No\n";
 int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -153,7 +160,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-    
+
 template<typename T>
 class Treap {
 private:
@@ -370,8 +377,12 @@ class DSU {
         return false;
     }
     
-    bool isConnected(int u, int v) {    
+    bool same(int u, int v) {    
         return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
     }
 };
     
@@ -567,11 +578,11 @@ signed main() {
     int t = 1;
     //cin >> t;
     for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << "i: ";  
+        //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

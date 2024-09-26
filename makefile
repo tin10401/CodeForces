@@ -18,6 +18,12 @@ run: $(SUBMIT)
 	./$(OUTPUT) < $(INPUT)
 	rm -f $(OUTPUT)
 
+run2: $(SUBMIT)
+	g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)
+	rm output.txt
+	./$(OUTPUT) < $(INPUT) >> output.txt
+	rm -f $(OUTPUT)
+	
 # Compile only
 compile: $(SUBMIT)
 	g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)

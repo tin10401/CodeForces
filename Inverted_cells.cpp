@@ -38,21 +38,16 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vll vt<ll>  
 #define vpll vt<pll>
 #define int long long
-#define vc vt<char> 
-#define vvc vt<vc>
-#define vi vt<int>
-#define vvi vt<vi>
-#define vvvi vt<vvi>
+#define vi vector<int>
 #define pii pair<int, int>
-#define vpii vt<pii>
-#define vs vt<string>
-#define vvs vt<vs>
-#define vb vt<bool>
-#define vvb vt<vb>
-#define vvpii vt<vpii>
-#define vd vt<db>
+#define vpii vector<pair<int, int>>
+#define vs vector<string>
+#define vb vector<bool>
+#define vvpii vector<vpii>
+#define vvi vector<vi>
+#define vd vector<db>
 #define ar(x) array<int, x>
-#define var(x) vt<ar(x)>
+#define var(x) vector<ar(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -139,12 +134,10 @@ const static ll INF = 1LL << 60;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-const static string YES = "YES\n";  
-const static string yes = "Yes\n";  
-const static string NO = "NO\n";    
-const static string no = "No\n";
+const static string no = "NO\n";
+const static string yes = "YES\n";
 int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -160,7 +153,7 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-
+    
 template<typename T>
 class Treap {
 private:
@@ -377,12 +370,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -568,6 +557,51 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    vt<vt<char>> grid(n + 1, vt<char>(m + 1));
+    vvi can1(n + 2, vi(m + 2)), can2(n + 2, vi(m + 2)), good(n + 2, vi(m + 2)); 
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= m; j++) cin >> grid[i][j];
+    }
+    can1[1][0] = true;
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= m; j++) {   
+            if(grid[i][j] == '.') can1[i][j] = can1[i - 1][j] || can1[i][j - 1];
+        }
+    }
+    can2[n + 1][m] = true; 
+    for(int i = n; i > 0; i--) {    
+        for(int j = m; j > 0; j--) {    
+            if(grid[i][j] == '.') can2[i][j] = can2[i + 1][j] || can2[i][j + 1];
+        }
+    }
+    vi cnt((n + 1) * (m + 1));
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= m; j++) {   
+            good[i][j] = can1[i][j] & can2[i][j];
+            cnt[i + j] += good[i][j];
+        }
+    }
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= m; j++) {   
+            if(grid[i][j] == '#') { 
+                if(can1[n][m]) cout << 1 << " ";    
+                else {  
+                    bool ok1 = can1[i - 1][j] || can1[i][j - 1], ok2 = can2[i + 1][j] || can2[i][j + 1];
+                    cout << (ok1 && ok2) << " ";
+                }
+            }
+            else {  
+                if(!can1[n][m]) cout << 0 << " ";
+                else {  
+                    if(good[i][j] && cnt[i + j] == 1) cout << 0 << " "; 
+                    else cout << 1 << " ";
+                }
+            }
+        }
+        cout << endl;
+    }
+
 }
 
 signed main() {
@@ -582,7 +616,7 @@ signed main() {
         solve();
     }
 
-    //endClock
+    endClock
     return 0;
 }
 

@@ -568,6 +568,41 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;  
+    const vi prime = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53};  
+    int M = prime.size();
+    int m = 61; 
+    vi bitmask(m);  
+    for(int i = 2; i < m; i++) {    
+        for(int j = 0; j < M; j++) {    
+            if(i % prime[j] == 0) bitmask[i] |= 1LL << j;
+        }
+    }
+    vi dp(1 << M);
+    vvi ans(n, vi(1 << M));
+    for(int i = n - 1; i >= 0; i--) {   
+        vi nxt(1 << M, INF);
+        for(int mask = 0; mask < 1 << M; mask++) {    
+            int& res = nxt[mask];
+            for(int j = 1; j < m; j++) {  
+                if((mask & bitmask[j]) == 0) {  
+                    int curr = abs(arr[i] - j) + dp[mask | bitmask[j]]; 
+                    if(curr < res) {    
+                        res = curr; 
+                        ans[i][mask] = j;
+                    }
+                }
+            }
+        }
+        swap(dp, nxt);
+    }
+    int mask = 0;   
+    for(int i = 0; i < n; i++) {    
+        cout << ans[i][mask] << " ";   
+        mask |= bitmask[ans[i][mask]];
+    }
+    cout << endl;
 }
 
 signed main() {

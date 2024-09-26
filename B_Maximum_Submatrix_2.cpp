@@ -377,12 +377,8 @@ class DSU {
         return false;
     }
     
-    bool same(int u, int v) {    
+    bool isConnected(int u, int v) {    
         return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
     }
 };
     
@@ -422,39 +418,13 @@ class SGT {
     int n;  
     vt<T> root, lazy; 
     T DEFAULT;
-    SGT(vi& arr) {    
-        n = arr.size(); 
+    SGT(int n) {    
+        this->n = n;
         DEFAULT = INF;
         root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
+        lazy.rsz(n * 4);
     }
     
-    void build(iterator, vi& arr) { 
-        if(left == right) { 
-            root[i] = arr[left];    
-            return;
-        }
-        int middle = midPoint;  
-        build(lp, arr), build(rp, arr); 
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
-    void update(int id, int val) {  
-        update(entireTree, id, val);
-    }
-    
-    void update(iterator, int id, int val) {    
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
-    }
-
     void update(int start, int end, int val) { 
         update(entireTree, start, end, val);
     }
@@ -475,12 +445,13 @@ class SGT {
     
     T merge(T left, T right) {  
         T res;  
+        res = min(left, right);
         return res;
     }
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
+        root[i] += lazy[i];
         if(left != right) { 
             lazy[lc] += lazy[i]; 
             lazy[rc] += lazy[i];
@@ -568,6 +539,33 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    vvc grid(n, vc(m)); cin >> grid;    
+    vvi arr(m, vi(m));
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            if(grid[i][j] == '0') continue; 
+            int k = j;  
+            while(k < m && grid[i][k] == '1') k++;  
+            while(j < k) {  
+                arr[j++][k - 1]++;
+            }
+        }
+    }
+    for(int i = 0; i < m; i++) {    
+        for(int j = m - 2; j >= i; j--) {   
+            arr[i][j] += arr[i][j + 1];
+        }
+    }
+    int res = 0;    
+    for(int i = 0; i < m; i++) {    
+        for(int j = i; j < m; j++) {    
+            int w = j - i + 1;  
+            int h = arr[i][j];  
+            res = max(res, w * h);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
