@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -612,6 +609,47 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s; 
+    s = ' ' + s;    
+    vi ans[2];  
+    for(int i = 1; i <= n; i += 2) {   
+        if(s[i] == s[i + 1]) continue;
+        int bits = s[i] - '0';  
+        if(ans[0].empty()) {    
+            ans[bits].pb(i);    
+            ans[!bits].pb(i + 1);
+        }
+        else {  
+            ans[!bits].pb(i);   
+            ans[bits].pb(i + 1);    
+            swap(ans[0], ans[1]);
+        }
+    }
+    auto ok = [&](vi& a) -> bool {  
+        auto flip = [](const char& ch) -> char {    
+            return ch == '0' ? '1' : '0';   
+        };
+        string t = s;   
+        for(auto& it : a) { 
+            t[it] = flip(t[it]);
+        }
+        for(int i = 1; i <= n; i += 2) {   
+            if(t[i] != t[i + 1]) return false;
+        }
+        return true;
+    };
+    for(int i = 0; i < 2; i++) {    
+        if(ok(ans[i])) {    
+            cout << ans[i].size() << endl;
+            for(auto& it : ans[i]) {    
+                cout << it << " ";
+            }
+            cout << endl;
+            return;
+        }
+    }
+    cout << -1 << endl;
 }
 
 signed main() {
@@ -620,7 +658,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

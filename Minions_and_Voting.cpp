@@ -145,17 +145,6 @@ const static string NO = "NO\n";
 const static string no = "No\n";
 int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vpii dirs_3_3 = { 
-        {0,1}, {0,3},
-        {1,0}, {1,2}, {1,4},
-        {2,1}, {2,5},
-        {3,0}, {3,4}, {3,6},
-        {4,1}, {4,3}, {4,5}, {4,7},
-        {5,2}, {5,4}, {5,8},
-        {6,3}, {6,7},
-        {7,4}, {7,6}, {7,8},
-        {8,5}, {8,7}
-};
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -257,39 +246,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,6 +568,23 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;
+    vi prefix(n + 1);   
+    for(int i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1] + arr[i - 1];
+    }
+    vi dp(n + 2);
+    for(int i = 0; i < n; i++) {    
+        int up = ub(all(prefix), prefix[i + 1] + arr[i]) - begin(prefix);
+        dp[i + 2]++, dp[up + 1]--;
+        int low = lb(all(prefix), prefix[i] - arr[i]) - begin(prefix);
+        dp[low]++;
+        dp[i + 1]--;
+    }
+    for(int i = 1; i <= n; i++) dp[i] += dp[i - 1]; 
+    for(int i = 1; i <= n; i++) cout << dp[i] << " ";   
+    cout << endl;
 }
 
 signed main() {
@@ -620,7 +593,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

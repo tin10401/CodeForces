@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -257,39 +254,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,6 +576,25 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, k; cin >> n >> k;    
+    vi arr(n); cin >> arr;
+    vi left(n), right(n);   
+    left[0] = arr[0], right[n - 1] = arr[n - 1];    
+    int curr = arr[0];  
+    for(int i = 1; i < n; i++) {    
+        curr = max(arr[i], curr + arr[i]);  
+        left[i] = max(left[i - 1], curr);
+    }
+    curr = arr.back();  
+    for(int i = n - 2; i >= 0; i--) {   
+        curr = max(arr[i], curr + arr[i]);  
+        right[i] = max(right[i + 1], curr);
+    }
+    int res = -INF;
+    for(int i = 0; i + k + 1 < n; i++) {    
+        res = max(res, left[i] + right[i + k + 1]);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -620,7 +603,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

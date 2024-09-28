@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -257,39 +254,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,6 +576,23 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vi arr(n); cin >> arr;
+    umap<int, int> dp;
+    for(int i = 0; i < n; i++) {    
+        int x = (i + 1) * (n - i) - 1;
+        dp[x]++;
+        if(i) { 
+            int x = i * (n - i);    
+            int val = arr[i] - arr[i - 1] - 1;  
+            dp[x] += val;
+        }
+    }
+    while(q--) {    
+        int x; cin >> x;
+        cout << (dp.count(x) ? dp[x] : 0) << " ";
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -620,7 +601,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

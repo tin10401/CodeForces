@@ -145,6 +145,17 @@ const static string NO = "NO\n";
 const static string no = "No\n";
 int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vpii dirs_3_3 = { 
+        {0,1}, {0,3},
+        {1,0}, {1,2}, {1,4},
+        {2,1}, {2,5},
+        {3,0}, {3,4}, {3,6},
+        {4,1}, {4,3}, {4,5}, {4,7},
+        {5,2}, {5,4}, {5,8},
+        {6,3}, {6,7},
+        {7,4}, {7,6}, {7,8},
+        {8,5}, {8,7}
+};
 int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
@@ -246,6 +257,39 @@ public:
     }
 };
     
+class Binary_Trie { 
+    public:
+    int T[MX][2];   
+    int ptr;    
+    Binary_Trie() {    
+        ptr = 0;    
+        mset(T, 0);
+    }
+    
+    void insert(int num) {  
+        int curr = 0;   
+        for(int i = 31; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
+            curr = T[curr][bits];
+        }
+    }
+        
+    int max_xor(int num) {  
+        int res = 0, curr = 0;
+        for(int i = 31; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(T[curr][!bits]) {    
+                curr = T[curr][!bits];
+                res |= (1LL << i);
+            }
+            else {  
+                curr = T[curr][bits];
+            }
+        }
+        return res;
+    }
+};
 class Trie {
 private:
     int root;
@@ -568,6 +612,39 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, m, k; cin >> n >> m >> k;    
+    vi arr(n); cin >> arr;  
+    vi prefix(n + 1);   
+    for(int i = 1; i <= n; i++) prefix[i] = prefix[i - 1] + arr[i - 1];
+    vi tmp(arr); srt(tmp);  
+    int bound = k - sum(arr);
+    auto isValid = [&](int x, int i) -> bool { 
+        int target = arr[i] + x + 1; 
+        int id = ub(all(tmp), arr[i] + x) - begin(tmp);
+        int left = 0, right = id, ans = id;
+        int pos = lb(all(tmp), arr[i]) - begin(tmp);    
+        auto ok = [&](int k) -> bool {  
+            int extra = pos >= k;
+            return target * (id - k - extra) - (prefix[id] - prefix[k] + extra * arr[i]) <= bound - x;
+        };
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(ok(middle)) ans = middle, right = middle - 1;    
+            else left = middle + 1;
+        }
+        if(pos > ans) return n - ans - 1 < m;
+        return n - ans < m;
+    };
+    for(int i = 0; i < n; i++) {    
+        int left = 0, right = bound, res = -1;
+        while(left <= right) {  
+            int middle = midPoint;
+            if(isValid(middle, i)) res = middle, right = middle - 1;   
+            else left = middle + 1;
+        }
+        cout << res << " ";
+    }
+    cout << endl;
 }
 
 signed main() {

@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -257,39 +254,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,15 +576,50 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    string target = "123456789";    
+    queue<string> q;    
+    q.push(target);  
+    umap<string, int> mp;
+    int step = 0;
+    mp[target]  =0;
+    while(!q.empty()) { 
+        int size = q.size();
+        while(size--) { 
+            auto curr = q.front(); q.pop(); 
+            for(auto& [a, b] : dirs_3_3) {  
+                int sm = curr[a] - '0' + curr[b] - '0';   
+                swap(curr[a], curr[b]);
+                if(primeBits[sm] && !mp.count(curr)) { 
+                    mp[curr] = step + 1;
+                    q.push(curr);
+                }
+                swap(curr[a], curr[b]);
+            }
+        }
+        step++;
+    }
+    int t; cin >> t;
+    while(t--) {    
+        string s;
+        for(int i = 0; i < 9; i++) {    
+            int x; cin >> x;    
+            s += (char)(x + '0');
+        }
+        if(mp.count(s)) {  
+            cout << mp[s] << endl;
+        }
+        else {  
+            cout << -1 << endl;
+        }
+    }
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
