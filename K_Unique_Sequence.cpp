@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -257,39 +254,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,6 +576,49 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, k; cin >> n >> k;    
+    vi arr(n); cin >> arr;  
+    map<int, int> mp;   
+    int seg = n / k;
+    for(auto& it : arr) {    
+        if(++mp[it] > seg) {  
+            cout << -1 << endl; 
+            return;
+        }
+    }
+    set<pair<int, int>> s;  
+    for(auto& it : mp) {    
+        s.insert(MP(it.ss, it.ff));
+    }
+    vvi block(seg);
+    for(int i = 0; i < seg; i++) {    
+        if(block[i].size() == k) continue;  
+        while(!s.empty() && s.rbegin()->ff == seg - i) {    
+            auto x = prev(s.end());
+            for(int j = i; j < seg; j++) {  
+                block[j].pb(x->ss);
+            }
+            mp.erase(x->ss);    
+            s.erase(x);
+        }
+        for(auto it = begin(mp); it != end(mp) && block[i].size() < k;) {   
+            block[i].pb(it->ff);    
+            s.erase(s.find(MP(it->ss, it->ff)));
+            if(--it->ss == 0) { 
+                it = mp.erase(it);  
+            }
+            else {  
+                s.insert(MP(it->ss, it->ff));
+                it++;
+            }
+        }
+    }
+    for(auto& it : block) { 
+        srt(it);    
+        for(auto& i : it) cout << i << " ";
+    }
+    cout << endl;
+
 }
 
 signed main() {
@@ -620,7 +627,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

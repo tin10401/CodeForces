@@ -612,6 +612,25 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int res = 0;    
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;  
+    vb ok(n, true); 
+    for(int i = 31; i >= 0; i--) {  
+        int cnt = 0;    
+        for(int j = 0; j < n; j++) {    
+            if(ok[j] && (arr[j] >> i) & 1) cnt++;
+        }
+        if(cnt >= 2) {  
+            res |= (1LL << i);  
+            for(int j = 0; j < n; j++) {    
+                if((arr[j] >> i) & 1) { 
+                    ok[j] = false;
+                }
+            }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {

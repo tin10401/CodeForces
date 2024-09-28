@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -257,39 +254,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,6 +576,29 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n, x; cin >> n >> x;    
+    vi arr(n); cin >> arr;  
+    srt(arr);   
+    int failed = n; 
+    for(auto& it : arr) {   
+        int y = (it + 1) / 2;
+        if(y <= x) { 
+            x -= y; 
+            it -= y;
+            failed--;
+        }
+        else break;
+    }
+    int success = 0;    
+    for(auto& it : arr) {   
+        if(it <= x) {   
+            success++;  
+            x -= it;
+        }
+        else break;
+    }
+    cout << failed << " " << success << endl;
+
 }
 
 signed main() {

@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -612,6 +609,29 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    string s; cin >> s; 
+    int x, y; cin >> x >> y;    
+    int cnt[2] = {}, c[2] = {}, n = s.size();
+    cnt[0] = count(all(s), 'a'), cnt[1] = n - cnt[0];
+    string res; 
+    auto update = [&](int i, bool reset = false) -> void {  
+        cnt[i]--;   
+        c[i] = reset ? 1 : c[i] + 1;
+        c[!i] = 0;
+    };
+    while(cnt[0] || cnt[1]) { 
+        if(cnt[0] >= cnt[1]) { 
+            if(c[0] < x) {    res += 'a'; update(0); }
+            else if(cnt[1]) {   res += 'b'; update(1); }
+            else {  res += "*a";    update(0, 1); }
+        }
+        else {  
+            if(c[1] < y) {    res += 'b'; update(1); }
+            else if(cnt[0]) {    res += 'a'; update(0); }
+            else {  res += "*b";    update(1, 1); }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -620,7 +640,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

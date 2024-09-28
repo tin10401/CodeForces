@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -257,39 +254,6 @@ public:
     }
 };
     
-class Binary_Trie { 
-    public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
-    void insert(int num) {  
-        int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
-            curr = T[curr][bits];
-        }
-    }
-        
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
-            int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
-                curr = T[curr][!bits];
-                res |= (1LL << i);
-            }
-            else {  
-                curr = T[curr][bits];
-            }
-        }
-        return res;
-    }
-};
 class Trie {
 private:
     int root;
@@ -612,6 +576,25 @@ vi manacher(string s, int start) {
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;  
+    pq<int, vi, greater<int>> minHeap;  
+    int one = 0;
+    for(auto& it : arr) {   
+        if(it == 1) one++;  
+        else minHeap.push(it);
+    }
+    int res = 1;    
+    int mod = 998244353;    
+    while(!minHeap.empty()) {   
+        int t = minHeap.top(); minHeap.pop();   
+        if(one && t % 2 == 0) {   
+            one--;  
+            t++;
+        }
+        res = (res * t) % mod;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -620,7 +603,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
