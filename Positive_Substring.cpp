@@ -646,6 +646,23 @@ class RabinKarp {
     };
 };
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s; 
+    vi prefix(n + 1), pos(2 * n + 1, -1), dp(n + 1);   
+    for(int i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1] + (s[i - 1] == '1' ? 1 : -1);
+    }
+    pos[n] = 0; 
+    for(int i = 1; i <= n; i++) {   
+        int id = pos[prefix[i] + n];   
+        if(s[i - 1] == '1') {   
+            if(id == -1) dp[i] = i; 
+            else dp[i] = i - id - 1 + dp[id];
+        }
+        else if(id != -1) dp[i] = dp[id];
+        pos[prefix[i] + n] = i;
+    }
+    debug(prefix, dp);
 }
 
 signed main() {
@@ -654,7 +671,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

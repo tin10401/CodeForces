@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -429,6 +426,14 @@ class DSU {
     int getRank(int x) {    
         return rank[find(x)];
     }
+    
+    int queries() { 
+        int res = 0;    
+        for(int i = 1; i < n; i++) {    
+            res += find(i) == i;
+        }
+        return res;
+    }
 };
     
 class FW {  
@@ -646,6 +651,33 @@ class RabinKarp {
     };
 };
 void solve() {
+    int n; cin >> n;    
+    vi arr(n); cin >> arr;  
+    vector<int> leftMost(n), rightMost(n);  
+    iota(begin(leftMost), end(leftMost), 0);    
+    iota(begin(rightMost), end(rightMost), 0);  
+    for(int i = 1; i < n; i++) {    
+        if(arr[i] > arr[i - 1]) leftMost[i] = leftMost[i - 1];
+    }
+    for(int i = n - 2; i >= 0; i--) {   
+        if(arr[i + 1] > arr[i]) rightMost[i] = rightMost[i + 1];
+    }
+    vi prefix(n + 1);   
+    for(int i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1] + arr[i - 1];
+    }
+    int ans = 0;
+    for(int i = 0; i < n; i++) {    
+        ans = max(ans, prefix[i + 1] - prefix[leftMost[i]]);    
+        ans = max(ans, prefix[rightMost[i] + 1] - prefix[i]);
+        if(i < n - 1 && arr[i] >= arr[i + 1]) {  
+            ans = max(ans, arr[i + 1] - 1 + prefix[rightMost[i + 1] + 1] - prefix[i + 1]);
+        }
+        if(i && i < n - 1 && arr[i - 1] + 1 < arr[i + 1]) { 
+            ans = max(ans, prefix[i] - prefix[leftMost[i - 1]] + prefix[rightMost[i + 1] + 1] - prefix[i + 1] + min(arr[i], arr[i + 1] - 1));
+        }
+    }
+    cout << ans << endl;
 }
 
 signed main() {

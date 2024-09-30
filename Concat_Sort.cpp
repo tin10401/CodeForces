@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -66,12 +63,12 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
-#define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
+#define SORTED(a) is_sorted(all(a))
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -646,6 +643,16 @@ class RabinKarp {
     };
 };
 void solve() {
+    int n; cin >> n;
+    vi arr(n); cin >> arr;
+    vi f(arr); srt(f);
+    vi g;
+    for(int i = 0, j = 0; i < n; i++) { 
+        if(arr[i] == f[j]) j++; 
+        else g.pb(arr[i]);
+    }
+    cout << (SORTED(g) ? YES : NO);
+
 }
 
 signed main() {
@@ -654,7 +661,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

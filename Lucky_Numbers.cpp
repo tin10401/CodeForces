@@ -646,6 +646,59 @@ class RabinKarp {
     };
 };
 void solve() {
+    int N; cin >> N;
+    string s = to_string(N);
+    int n = s.size();
+    auto getBig = [&]() -> ll {   
+        string ans = s; 
+        bool ok = false;
+        for(int i = 0; i < n; i++) {    
+            if(ok) {    
+                ans[i] = '1';   
+            }
+            else {  
+                int x = ans[i] - '0';   
+                if(x % 2 == 0) {    
+                    ans[i] = (x + 1) + '0';
+                    ok = true;
+                }
+            }
+        }
+        return stoll(ans);
+    };
+    auto getSmall = [&]() -> ll {   
+        auto check = [&]() -> int {  
+            for(auto& it : s) { 
+                int x = it - '0';   
+                if(x % 2 == 0) {    
+                    return x == 0;
+                }
+            }
+            return true;
+        };
+        if(check()) {   
+            string ans = string(n - 1, '9');    
+            return stoll(ans);
+        }
+        else {  
+            string ans = s; 
+            bool ok = false;
+            for(auto& ch : ans) {   
+                if(ok) ch = '9';    
+                else {  
+                    int x = ch - '0';   
+                    if(x % 2 == 0) {    
+                        ok = true;  
+                        ch--;
+                    }
+                }
+            }
+            return stoll(ans);
+        }
+    };
+    int x = getBig(), y = getSmall();   
+    if(abs(x - N) < abs(y - N)) cout << x << endl;  
+    else cout << y << endl;
 }
 
 signed main() {
