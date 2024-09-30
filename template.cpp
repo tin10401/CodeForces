@@ -66,6 +66,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
+#define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
 #define lcm(a, b) (a * b) / gcd(a, b)
@@ -611,6 +612,39 @@ vi manacher(string s, int start) {
     return result;
 }
 
+class RabinKarp {   
+    public: 
+    vpii prefix;    
+    vi pow;
+    int mod1, n, mod2, base1, base2;
+    RabinKarp(const string& s) {  
+        mod1 = 1e9 + 7, mod2 = 1e9 + 33, base1 = 26, base2 = 27;
+        n = s.size(); 
+        prefix.rsz(n + 1);
+        pow.rsz(n + 1);
+        pow[0] = 1;
+        buildHash(s);
+    }
+    
+    void buildHash(const string& s) {   
+        int hash1 = 0, hash2 = 0;
+        for(int i = 1; i <= n; i++) {   
+            hash1 = (hash1 * base1 + s[i - 1] - 'a') % mod1;    
+            hash2 = (hash2 * base2 + s[i - 1] - 'a') % mod2;
+            prefix[i].ff = hash1;    
+            prefix[i].ss = hash2;
+            pow[i] = (pow[i - 1] * 26) % mod1;
+        }
+    }
+    
+    pii getHash(int l, int r) { 
+        int hash1 = prefix[r].ff - (prefix[l].ff * pow[r - l] % mod1) % mod1;
+        hash1 = (hash1 + mod1) % mod1;  
+        int hash2 = prefix[r].ss - (prefix[l].ss * pow[r - l] % mod2) % mod2;   
+        hash2 = (hash2 * mod2) % mod2;  
+        return MP(hash1, hash2);
+    };
+};
 void solve() {
 }
 
