@@ -18,6 +18,9 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -464,39 +467,13 @@ class SGT {
     int n;  
     vt<T> root, lazy; 
     T DEFAULT;
-    SGT(vi& arr) {    
-        n = arr.size(); 
+    SGT(int n) {    
+        this->n = n;
         DEFAULT = INF;
-        root.rsz(n * 4);    
-        // lazy.rsz(n * 4);
-        build(entireTree, arr);
+        root.rsz(n * 4, INF);    
+        lazy.rsz(n * 4, INF);
     }
     
-    void build(iterator, vi& arr) { 
-        if(left == right) { 
-            root[i] = arr[left];    
-            return;
-        }
-        int middle = midPoint;  
-        build(lp, arr), build(rp, arr); 
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
-    void update(int id, int val) {  
-        update(entireTree, id, val);
-    }
-    
-    void update(iterator, int id, int val) {    
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
-    }
-
     void update(int start, int end, int val) { 
         update(entireTree, start, end, val);
     }
@@ -517,29 +494,30 @@ class SGT {
     
     T merge(T left, T right) {  
         T res;  
+        res = min(left, right);
         return res;
     }
     
     void push(iterator) {   
-        if(lazy[i] == 0) return;    
-        root[i] += (right - left + 1) * lazy[i];
+        if(lazy[i] == INF) return;  
+        root[i] = min(root[i], lazy[i]);    
         if(left != right) { 
-            lazy[lc] += lazy[i]; 
-            lazy[rc] += lazy[i];
+            lazy[lc] = min(lazy[lc], lazy[i]);  
+            lazy[rc] = min(lazy[rc], lazy[i]);
         }
-        lazy[i] = 0;
+        lazy[i] = INF;
     }
 
-    T queries(int start, int end) { 
-        return queries(entireTree, start, end);
+    T queries(int id) { 
+        return queries(entireTree, id);
     }
     
-    T queries(iterator, int start, int end) {   
-        pushDown;
-        if(left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[i];   
+    T queries(iterator, int id) {   
+        pushDown;   
+        if(left == right) return root[i];   
         int middle = midPoint;  
-        return merge(queries(lp, start, end), queries(rp, start, end));
+        if(id <= middle) return queries(lp, id);    
+        return queries(rp, id);
     }
 
 };
@@ -642,63 +620,22 @@ class RabinKarp {
         return MP(hash1, hash2);
     };
 };
-class LCA { 
-    public: 
-    int n;  
-    vvi dp; 
-    vi depth;
-    LCA(vvi& dp, vi& depth) {   
-        this->dp = dp;  
-        this->depth = depth;
-        n = depth.size();
-        init();
-    }
-    
-    void init() {  
-        for(int j = 1; j < MK; j++) {   
-            for(int i = 0; i < n; i++) {    
-                dp[i][j] = dp[dp[i][j - 1]][j - 1];
-            }
-        }
-    }
-    
-    int lca(int a, int b) { 
-        if(depth[a] > depth[b]) {   
-            swap(a, b);
-        }
-        int d = depth[b] - depth[a];    
-        for(int i = MK - 1; i >= 0; i--) {  
-            if((d >> i) & 1) {  
-                b = dp[b][i];
-            }
-        }
-        if(a == b) return a;    
-        for(int i = MK - 1; i >= 0; i--) {  
-            if(dp[a][i] != dp[b][i]) {  
-                a = dp[a][i];   
-                b = dp[b][i];
-            }
-        }
-        return dp[a][0];
-    }
-};
-
 void solve() {
     int n; cin >> n;    
-    vi a(n); cin >> a;  
-    vi prefix(2 * n + 1, -1);
-    vi dp(n + 1);
-    prefix[n] = 0;
-    for(int i = 1, c = n; i <= n; i++) {    
-        c += a[i - 1] == 1 ? 1 : -1;    
-        if(a[i - 1] == 1) { 
-            if(prefix[c] != -1) dp[i] = i - prefix[c] - 1 + dp[prefix[c]];  
-            else dp[i] = i;
-        } 
-        else if(prefix[c] != -1)dp[i] = dp[prefix[c]];
-        prefix[c] = i;
+    vi a(n), p(n); cin >> a >> p;   
+    vi dp(3);
+    for(int i = n - 1; i >= 0; i--) {   
+        vi nxt(3, INF);
+        for(int j = 0; j <= 2; j++) {   
+            for(int k = 0; k <= 2; k++) {   
+                if(i == n - 1 || a[i] + j != a[i + 1] + k) {  
+                    nxt[j] = min(nxt[j], dp[k] + j * p[i]);
+                }
+            }
+        }
+        swap(dp, nxt);
     }
-    cout << sum(dp) << endl;
+    cout << MIN(dp) << endl;
 }
 
 signed main() {
