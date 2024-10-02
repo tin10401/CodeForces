@@ -38,16 +38,21 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vll vt<ll>  
 #define vpll vt<pll>
 #define int long long
-#define vi vector<int>
+#define vc vt<char> 
+#define vvc vt<vc>
+#define vi vt<int>
+#define vvi vt<vi>
+#define vvvi vt<vvi>
 #define pii pair<int, int>
-#define vpii vector<pair<int, int>>
-#define vs vector<string>
-#define vb vector<bool>
-#define vvpii vector<vpii>
-#define vvi vector<vi>
-#define vd vector<db>
+#define vpii vt<pii>
+#define vs vt<string>
+#define vvs vt<vs>
+#define vb vt<bool>
+#define vvb vt<vb>
+#define vvpii vt<vpii>
+#define vd vt<db>
 #define ar(x) array<int, x>
-#define var(x) vector<ar(x)>
+#define var(x) vt<ar(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -61,6 +66,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
+#define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
 #define lcm(a, b) (a * b) / gcd(a, b)
@@ -134,11 +140,24 @@ const static ll INF = 1LL << 60;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-const static string no = "NO\n";
-const static string yes = "YES\n";
-constexpr int pct(int x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
-constexpr int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+const static string YES = "YES\n";  
+const static string yes = "Yes\n";  
+const static string NO = "NO\n";    
+const static string no = "No\n";
+int pct(int x) { return __builtin_popcountll(x); }
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vpii dirs_3_3 = { 
+        {0,1}, {0,3},
+        {1,0}, {1,2}, {1,4},
+        {2,1}, {2,5},
+        {3,0}, {3,4}, {3,6},
+        {4,1}, {4,3}, {4,5}, {4,7},
+        {5,2}, {5,4}, {5,8},
+        {6,3}, {6,7},
+        {7,4}, {7,6}, {7,8},
+        {8,5}, {8,7}
+};
+int modExpo(int base, int exp, int mod) { int res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 void multiply(int f[2][2], int m[2][2]) {   
     int res[2][2] = {}; 
     for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
@@ -153,7 +172,231 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
+
+template<typename T>
+class Treap {
+private:
+    struct TreapNode {
+        int pri, size;
+        T data;
+        TreapNode* left;
+        TreapNode* right;
+        
+        TreapNode(T data) : data(data), pri(rand()), size(1), left(nullptr), right(nullptr) {}
+    };
+
+    TreapNode* root;
+
+    int size(TreapNode* treap) {
+        if (!treap) return 0;
+        return treap->size;
+    }
+
+    void split(TreapNode* treap, TreapNode*& left, TreapNode*& right, int k) {
+        if (!treap) {
+            left = right = nullptr;
+            return;
+        }
+        if (size(treap->left) >= k) {
+            split(treap->left, left, treap->left, k);
+            right = treap;
+        } else {
+            split(treap->right, treap->right, right, k - size(treap->left) - 1);
+            left = treap;
+        }
+        treap->size = size(treap->left) + size(treap->right) + 1;
+    }
+
+    void merge(TreapNode*& treap, TreapNode* left, TreapNode* right) {
+        if (!left || !right) {
+            treap = left ? left : right;
+            return;
+        }
+        if (left->pri < right->pri) {
+            merge(left->right, left->right, right);
+            treap = left;
+        } else {
+            merge(right->left, left, right->left);
+            treap = right;
+        }
+        treap->size = size(treap->left) + size(treap->right) + 1;
+    }
+
+public:
+    Treap() : root(nullptr) {}
+
+    void insert(T ch) { 
+        merge(root, root, new TreapNode(ch));
+    }
     
+    void del(int left, int right) { 
+        TreapNode* A, *B, *C;   
+        split(root, A, B, left - 1); 
+        split(B, B, C, right - left + 1);   
+        merge(root, A, C);
+    }
+    
+    bool get(TreapNode* treap, int k, T& ans) {
+        if(!treap) return true;
+        int leftSize = size(treap->left);
+        if (k <= leftSize) {
+            if(get(treap->left, k, ans)) {  
+                ans = treap->data;
+            }
+            return false;
+        }
+        else if (k == leftSize + 1) {
+            ans = treap->data;  
+            return false;
+        }
+        else {
+            if(get(treap->right, k - leftSize - 1, ans)) {  
+                ans = treap->data;
+            }
+            return false;
+        }
+    }
+};
+    
+class Binary_Trie { 
+    public:
+    int T[MX][2];   
+    int ptr;    
+    Binary_Trie() {    
+        ptr = 0;    
+        mset(T, 0);
+    }
+    
+    void insert(int num) {  
+        int curr = 0;   
+        for(int i = 31; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
+            curr = T[curr][bits];
+        }
+    }
+        
+    int max_xor(int num) {  
+        int res = 0, curr = 0;
+        for(int i = 31; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(T[curr][!bits]) {    
+                curr = T[curr][!bits];
+                res |= (1LL << i);
+            }
+            else {  
+                curr = T[curr][bits];
+            }
+        }
+        return res;
+    }
+};
+class Trie {
+private:
+    int root;
+    int count = 0, n;
+    vector<int> dp;
+    string s;
+    int T[MX][26];       
+    int sfx[MX];         
+    int dict[MX];        
+    int id[MX];          
+    bool isEnd[MX];
+
+
+    int newNode() {
+        fill(T[count], T[count] + 26, -1); 
+        sfx[count] = dict[count] = 0;      
+        id[count] = -1; 
+        isEnd[count] = false;                    
+        return count++;                     
+    }
+
+public:
+    Trie(int n) {
+        this->n = n;
+        dp.rsz(n + 1, 1e9);
+        root = newNode(); 
+        sfx[root] = dict[root] = root; 
+    }
+
+    void insert(const string& word) {
+        int curr = root;
+        int l = 0;
+        for (char ch : word) {
+            int idx = ch - 'a';
+            if (T[curr][idx] == -1) {
+                T[curr][idx] = newNode();
+            }
+            curr = T[curr][idx];
+            l++;
+            if (id[curr] == -1) {
+                id[curr] = l; 
+            }
+        }
+        isEnd[curr] = true;
+    }
+
+    void aho_corasick() {
+        queue<int> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            int par = q.front();
+            q.pop();
+
+            for (int i = 0; i < 26; i++) {
+                int child = T[par][i];
+                if (child == -1) continue;
+
+                int suff = sfx[par];
+                while (suff != root && T[suff][i] == -1) {
+                    suff = sfx[suff];
+                }
+
+                if (par != root && T[suff][i] != -1) {
+                    sfx[child] = T[suff][i];
+                } else {
+                    sfx[child] = root;
+                }
+
+                dict[child] = (id[sfx[child]] == -1) ? dict[sfx[child]] : sfx[child];
+                q.push(child);
+            }
+        }
+    }
+
+    void queries(int& prev, int i, char ch) {
+        int idx = ch - 'a';
+        while (prev != root && T[prev][idx] == -1) {
+            prev = sfx[prev];
+        }
+
+        if (T[prev][idx] != -1) {
+            prev = T[prev][idx];
+            int curr = (id[prev] == -1) ? dict[prev] : prev;
+
+            while (id[curr] != -1) {
+                int j = id[curr];
+                dp[i] = min(dp[i], dp[i - j] + 1);
+                curr = dict[curr];
+            }
+        }
+    }
+
+    int get() {
+        dp[0] = 0;
+        int prev = root;
+
+        for (int i = 1; i <= n; i++) {
+            queries(prev, i, s[i - 1]);
+        }
+
+        return dp[n] == 1e9 ? -1 : dp[n];
+    }
+};
+
+
 class DSU { 
     public: 
     int n;  
@@ -179,8 +422,12 @@ class DSU {
         return false;
     }
     
-    bool isConnected(int u, int v) {    
+    bool same(int u, int v) {    
         return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
     }
 };
     
@@ -219,8 +466,10 @@ class SGT {
     public: 
     int n;  
     vt<T> root, lazy; 
+    T DEFAULT;
     SGT(vi& arr) {    
         n = arr.size(); 
+        DEFAULT = INF;
         root.rsz(n * 4);    
         // lazy.rsz(n * 4);
         build(entireTree, arr);
@@ -276,9 +525,10 @@ class SGT {
     
     void push(iterator) {   
         if(lazy[i] == 0) return;    
+        root[i] += (right - left + 1) * lazy[i];
         if(left != right) { 
-            lazy[lc] = lazy[i]; 
-            lazy[rc] = lazy[i];
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
         }
         lazy[i] = 0;
     }
@@ -289,7 +539,7 @@ class SGT {
     
     T queries(iterator, int start, int end) {   
         pushDown;
-        if(left > end || start > right) return 0;   
+        if(left > end || start > right) return DEFAULT;
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
         return merge(queries(lp, start, end), queries(rp, start, end));
@@ -297,25 +547,165 @@ class SGT {
 
 };
     
-void solve() {  
+vi KMP(const string& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
+
+vi Z_Function(const string& s) {    
+    int n = s.size();   
+    vi prefix(n);   
+    for(int i = 1, left = 0, right = 0; i < n; i++) {   
+        if(i > right) { 
+            left = right = i;   
+            while(right < n && s[right] == s[right - left]) right++;    
+            prefix[i] = right-- - left;
+        }
+        else {  
+            if(prefix[i - left] + i < right + 1) {  
+                prefix[i] = prefix[i - left];
+            }
+            else {  
+                left = i;   
+                while(right < n && s[right] == s[right - left]) right++;    
+                prefix[i] = right-- - left;
+            }
+        }
+    }
+    return prefix;
+}
+    
+vi manacher(string s, int start) {
+    string tmp;
+    for (auto& it : s) {
+        tmp += "#";
+        tmp += it;
+    }
+    tmp += "#";  
+    swap(s, tmp);
+    int n = s.size();
+    vector<int> p(n); 
+    int l = 0, r = 0;  
+    for (int i = 0; i < n; i++) {
+        if (i < r) {
+            p[i] = min(r - i, p[l + r - i]);
+        } else {
+            p[i] = 0;
+        }
+        while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
+            p[i]++;
+        }
+        if (i + p[i] > r) {
+            l = i - p[i] + 1;
+            r = i + p[i] - 1;
+        }
+    }
+    vi result;
+    for (int i = start; i < n; i += 2) {
+        result.push_back(p[i] / 2);
+    }
+    return result;
+}
+
+class RabinKarp {   
+    public: 
+    vpii prefix;    
+    vi pow;
+    int mod1, n, mod2, base1, base2;
+    RabinKarp(const string& s) {  
+        mod1 = 1e9 + 7, mod2 = 1e9 + 33, base1 = 26, base2 = 27;
+        n = s.size(); 
+        prefix.rsz(n + 1);
+        pow.rsz(n + 1);
+        pow[0] = 1;
+        buildHash(s);
+    }
+    
+    void buildHash(const string& s) {   
+        int hash1 = 0, hash2 = 0;
+        for(int i = 1; i <= n; i++) {   
+            hash1 = (hash1 * base1 + s[i - 1] - 'a') % mod1;    
+            hash2 = (hash2 * base2 + s[i - 1] - 'a') % mod2;
+            prefix[i].ff = hash1;    
+            prefix[i].ss = hash2;
+            pow[i] = (pow[i - 1] * 26) % mod1;
+        }
+    }
+    
+    pii getHash(int l, int r) { 
+        int hash1 = prefix[r].ff - (prefix[l].ff * pow[r - l] % mod1) % mod1;
+        hash1 = (hash1 + mod1) % mod1;  
+        int hash2 = prefix[r].ss - (prefix[l].ss * pow[r - l] % mod2) % mod2;   
+        hash2 = (hash2 * mod2) % mod2;  
+        return MP(hash1, hash2);
+    };
+};
+class LCA { 
+    public: 
+    int n;  
+    vvi dp; 
+    vi depth;
+    LCA(vvi& dp, vi& depth) {   
+        this->dp = dp;  
+        this->depth = depth;
+        n = depth.size();
+        init();
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+    
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+};
+
+void solve() {
     string s; cin >> s; 
     int n = s.size();   
-    int prefix[10] = {}, suffix[10] = {};
-    for(int i = 0; i < n; i++) {    
-        suffix[s[i] - '0']++;
+    vvi suffix(n, vi(10));  
+    vi cnt(10); 
+    for(int i = n - 1; i >= 0; i--) {    
+        cnt[s[i] - '0']++;  
+        suffix[i] = cnt;
     }
-    int res = 0;    
+    for(int i = 0; i < 10; i++) cnt[i] = 0;
+    int res = 0;
     for(int i = 0; i < n - 1; i++) {    
-        int x = s[i] - '0'; 
-        suffix[x]--;   
-        if(x == 9) continue;
-        int c1 = prefix[x]; 
-        int c2 = suffix[x + 1];
-        c2 = c2 * (c2 - 1) / 2; 
-        res = (res + c1 * c2 % MOD) % MOD;
-        prefix[x]++;
+        if(s[i] == '9') continue;   
+        int c1 = cnt[s[i] - '0']++;
+        int c2 = suffix[i + 1][s[i] - '0' + 1]; 
+        res = (res + c1 * ((c2 - 1) * c2 / 2)) % MOD;
+        debug(i, c1, c2);
     }
     cout << res << endl;
+
 }
 
 signed main() {
@@ -325,9 +715,12 @@ signed main() {
 
     int t = 1;
     cin >> t;
-    while(t--) solve();
+    for(int i = 1; i <= t; i++) {   
+        //cout << "Case #" << i << ": ";  
+        solve();
+    }
 
-    endClock
+    //endClock
     return 0;
 }
 

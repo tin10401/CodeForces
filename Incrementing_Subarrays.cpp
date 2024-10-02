@@ -18,6 +18,9 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -642,63 +645,18 @@ class RabinKarp {
         return MP(hash1, hash2);
     };
 };
-class LCA { 
-    public: 
-    int n;  
-    vvi dp; 
-    vi depth;
-    LCA(vvi& dp, vi& depth) {   
-        this->dp = dp;  
-        this->depth = depth;
-        n = depth.size();
-        init();
-    }
-    
-    void init() {  
-        for(int j = 1; j < MK; j++) {   
-            for(int i = 0; i < n; i++) {    
-                dp[i][j] = dp[dp[i][j - 1]][j - 1];
-            }
-        }
-    }
-    
-    int lca(int a, int b) { 
-        if(depth[a] > depth[b]) {   
-            swap(a, b);
-        }
-        int d = depth[b] - depth[a];    
-        for(int i = MK - 1; i >= 0; i--) {  
-            if((d >> i) & 1) {  
-                b = dp[b][i];
-            }
-        }
-        if(a == b) return a;    
-        for(int i = MK - 1; i >= 0; i--) {  
-            if(dp[a][i] != dp[b][i]) {  
-                a = dp[a][i];   
-                b = dp[b][i];
-            }
-        }
-        return dp[a][0];
-    }
-};
-
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;  
-    vi prefix(2 * n + 1, -1);
-    vi dp(n + 1);
-    prefix[n] = 0;
-    for(int i = 1, c = n; i <= n; i++) {    
-        c += a[i - 1] == 1 ? 1 : -1;    
-        if(a[i - 1] == 1) { 
-            if(prefix[c] != -1) dp[i] = i - prefix[c] - 1 + dp[prefix[c]];  
-            else dp[i] = i;
-        } 
-        else if(prefix[c] != -1)dp[i] = dp[prefix[c]];
-        prefix[c] = i;
+    int n, k; cin >> n >> k;    
+    vi arr(n); cin >> arr;  
+    vi dp(3);   
+    for(int i = 1; i < n; i++) {    
+        vi nxt(3);  
+        nxt[0] = dp[0] + (arr[i] % arr[i - 1]); 
+        nxt[1] = max(dp[0] + (arr[i] + k) % arr[i - 1], dp[1] + (arr[i] + k) % (arr[i - 1] + k));
+        nxt[2] = max(dp[2] + (arr[i] % arr[i - 1]), dp[1] + arr[i] % (arr[i - 1] + k));
+        swap(dp, nxt);
     }
-    cout << sum(dp) << endl;
+    cout << MAX(dp) << endl;
 }
 
 signed main() {

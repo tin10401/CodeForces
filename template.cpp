@@ -645,6 +645,47 @@ class RabinKarp {
         return MP(hash1, hash2);
     };
 };
+class LCA { 
+    public: 
+    int n;  
+    vvi dp; 
+    vi depth;
+    LCA(vvi& dp, vi& depth) {   
+        this->dp = dp;  
+        this->depth = depth;
+        n = depth.size();
+        init();
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+    
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+};
+
 void solve() {
 }
 

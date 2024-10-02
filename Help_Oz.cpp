@@ -18,6 +18,9 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -686,19 +689,25 @@ class LCA {
 void solve() {
     int n; cin >> n;    
     vi a(n); cin >> a;  
-    vi prefix(2 * n + 1, -1);
-    vi dp(n + 1);
-    prefix[n] = 0;
-    for(int i = 1, c = n; i <= n; i++) {    
-        c += a[i - 1] == 1 ? 1 : -1;    
-        if(a[i - 1] == 1) { 
-            if(prefix[c] != -1) dp[i] = i - prefix[c] - 1 + dp[prefix[c]];  
-            else dp[i] = i;
-        } 
-        else if(prefix[c] != -1)dp[i] = dp[prefix[c]];
-        prefix[c] = i;
+    auto ok = [&](int x) -> bool {   
+        int target = a[0] % x;  
+        for(int i = 1; i < n; i++) {    
+            if(a[i] % x != target) return false;
+        }
+        return true;
+    };
+    int bound = abs(a[0] - a[1]);
+    vi res;
+    for(int i = 1; i * i <= bound; i++) {  
+        if(bound % i == 0) {    
+            if(i != 1 && ok(i)) res.pb(i);    
+            if(ok(bound / i)) res.pb(bound / i);
+        }
     }
-    cout << sum(dp) << endl;
+    srtU(res);  
+    for(auto& it : res) cout << it << " ";
+    cout << endl;
+    
 }
 
 signed main() {
@@ -707,7 +716,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

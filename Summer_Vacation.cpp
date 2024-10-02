@@ -18,6 +18,9 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -684,21 +687,31 @@ class LCA {
 };
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;  
-    vi prefix(2 * n + 1, -1);
-    vi dp(n + 1);
-    prefix[n] = 0;
-    for(int i = 1, c = n; i <= n; i++) {    
-        c += a[i - 1] == 1 ? 1 : -1;    
-        if(a[i - 1] == 1) { 
-            if(prefix[c] != -1) dp[i] = i - prefix[c] - 1 + dp[prefix[c]];  
-            else dp[i] = i;
-        } 
-        else if(prefix[c] != -1)dp[i] = dp[prefix[c]];
-        prefix[c] = i;
+    int n, d; cin >> n >> d;
+    vpii a(n); cin >> a;  
+    vvvi dp(1 << n, vvi(3, vi(d + 1)));
+    for(int mask = 0; mask < 1 << n; mask++) {  
+        for(int j = 0; j < 3; j++) {    
+            dp[mask][j][d] = 1;
+        }
     }
-    cout << sum(dp) << endl;
+    for(int mask = (1 << n) - 1; mask >= 0; mask--) {  
+        for(int last = 0; last <= 2; last++) {   
+            for(int k = 0; k <= d; k++) {   
+                for(int j = 0; j < n; j++) { 
+                    if(a[j].ss == last || k - a[j].ff < 0 || ((mask >> j) & 1) == 0) continue;
+                    auto& curr = dp[mask ^ (1LL << j)][last][k - a[j].ff];  
+                    curr = (curr + dp[mask][a[j].ss][k]) % MOD;
+                }
+            }
+        }
+    }
+    int res = 0;    
+    for(int i = 0; i <= 2; i++) {   
+        res = (res + dp[0][i][0]) % MOD;
+    }
+    res = (res * modExpo(2, MOD - 2, MOD)) % MOD;
+    cout << res << endl;
 }
 
 signed main() {
