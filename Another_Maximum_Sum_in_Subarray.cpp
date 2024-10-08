@@ -134,11 +134,94 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+    
+    ll queries(vi& arr, int k) {    
+        vvi g(n), v(n);   
+        for(int i = 0; i < n; i++) {    
+            g[find(i)].pb(i);
+        }
+        for(int i = 0; i < n; i++) { 
+            auto& vec = v[i];
+            for(auto& i : g[i]) {   
+                vec.pb(arr[i]);
+            }
+            srtR(vec);
+        } 
+        ll res = 0;
+        for(int i = 0; i < n; i++) {    
+            ll sm = 0;
+            vi id(n);
+            for(int j = i; j < i + k; j++) {    
+                if(j == n) break;
+                sm += v[find(j)][id[find(j)]++];
+            }
+            res = max(res, sm);
+        }
+        return res;
+    }
+};
+
 void solve() {
+    int n, k; cin >> n >> k;
+    vi arr(n); cin >> arr;  
+    umap<int, int> mp;  
+    DSU root(n);
+    for(int i = 0; i < n; i++) {    
+        int x = arr[i]; 
+        for(int j = 2; j * j <= x; j++) {   
+            if(x % j == 0) {    
+                if(mp.count(j)) {   
+                    root.merge(mp[j], i);
+                }
+                mp[j] = i;
+                while(x % j == 0) x /= j;
+            }
+        }
+        if(x != 1) {    
+            if(mp.count(x)) {   
+                root.merge(mp[x], i);
+            }
+            mp[x] = i;
+        }
+    }
+    cout << root.queries(arr, k) << endl;
+
 }
 
 signed main() {
@@ -147,7 +230,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

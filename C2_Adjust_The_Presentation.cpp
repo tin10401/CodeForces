@@ -139,6 +139,44 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m, q; cin >> n >> m >> q;    
+    vi a(n), b(m); cin >> a >> b;
+    set<int> s[n + 1];  
+    vi f(n + 1, inf);
+    vi indices(n + 1);
+    for(int i = 0; i < n; i++) {    
+        indices[a[i]] = i + 1;
+    }
+    for(int i = 0; i < m; i++) {    
+        int x = indices[b[i]];  
+        if(f[x] == inf) f[x] = i;
+        s[b[i]].insert(i);
+    }
+    int bad = 0;
+    for(int i = 2; i <= n; i++) {    
+        bad += f[i] < f[i - 1];
+    }
+    cout << (bad == 0 ? "YA" : "TIDAK") << endl;
+    auto update = [&](int x, int v) -> void {   
+        if(f[x] == v) return;
+        if(x > 1 && f[x] < f[x - 1]) bad--; 
+        if(x < n && f[x] > f[x + 1]) bad--;
+        f[x] = v;   
+        if(x > 1 && f[x] < f[x - 1]) bad++; 
+        if(x < n && f[x] > f[x + 1]) bad++;
+    };
+    while(q--) {    
+        int id, v; cin >> id >> v;
+        int old = b[--id];
+        if(old != v) {    
+            s[old].erase(id);   
+            update(indices[old], s[old].empty() ? inf : *s[old].begin());
+            s[v].insert(id);    
+            update(indices[v], *s[v].begin());
+            b[id] = v;
+        }
+        cout << (bad == 0 ? "YA" : "TIDAK") << endl;
+    }
 }
 
 signed main() {
@@ -147,7 +185,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

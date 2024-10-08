@@ -139,6 +139,24 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k, x; cin >> n >> k >> x;    
+    vi a(n); cin >> a;  
+    int res = 0;
+    auto f = [&](int g) -> void { 
+        auto b(a);  
+        for(auto& i : b) {  
+            i = (g - (i % g)) % g;
+        }
+        for(int left = 0, right = 0, cnt = 0; right < n; right++) {  
+            cnt += b[right];    
+            while(cnt > k) {    
+                cnt -= b[left++];
+            }
+            res = max(res, right - left + 1);
+        }
+    };
+    for(int i = x + 1; i <= 100; i++) f(i);
+    cout << res << endl;
 }
 
 signed main() {

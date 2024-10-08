@@ -139,6 +139,29 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int m; cin >> m;    
+    int n = 2;  
+    vvi grid(n, vi(m)); cin >> grid;
+    vt<vvll> dp(n + 1, vvll(m + 1, vll(2, -INF)));
+    for(int i = n - 1; i >= 0; i--) {   
+        for(int j = m - 1; j >= 0; j--) {   
+            for(int skip = 0; skip <= 1; skip++) {  
+                ll& ans = dp[i][j][skip];
+                if(i == n - 1 && j == m - 1) {  
+                    ans = skip ? -INF : grid[i][j];
+                }
+                else {  
+                    if(!skip) {  
+                        ans = grid[i][j] + max({dp[i + 1][j][0], dp[i][j + 1][0], dp[i][j + 1][1]});
+                    }  
+                    else {  
+                        ans =  max(dp[i][j + 1][0], dp[i][j + 1][1]) - (j + 1);
+                    }
+                }
+            }
+        }
+    }
+    cout << dp[0][0][0] << endl;
 }
 
 signed main() {
@@ -147,7 +170,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

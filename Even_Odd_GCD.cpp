@@ -25,7 +25,6 @@ using namespace std;
 template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
 #define vt vector
 #define all(x) begin(x), end(x)
-#define allr(x) rbegin(x), rend(x)
 #define ub upper_bound
 #define lb lower_bound
 #define db double
@@ -134,11 +133,60 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    int m = MAX(a) + 1;
+    vi freq(m);
+    for(auto& it : a) freq[it]++;   
+    vi divisor;
+    int M = (n + 1) / 2;
+    for(int i = 2; i < m; i++) {    
+        int cnt = 0;    
+        for(int j = i; j < m; j += i) { 
+            cnt += freq[j];
+        }
+        if(cnt >= M) divisor.pb(i);
+    }
+    if(divisor.empty()) {   
+        cout << 2 << endl;  
+        return;
+    }
+    auto generate = [](vi& A, int g) -> void {   
+        int n = A.size();
+        for(int i = 0; i < min(10, n); i++) {    
+            int id = i, mx = 0; 
+            for(int j = i; j < n; j++) {    
+                int curr = gcd(g, A[j]);    
+                if(curr > mx) { 
+                    mx = curr;  
+                    id = j;
+                }
+            }
+            swap(A[i], A[id]);   
+            g = gcd(g, A[id]);
+        }
+    };
+    int res = 0;
+    for(auto& x : divisor) {    
+        int g = 0;  
+        vi A;
+        int c = 0;
+        for(auto& it : a) { 
+            if(it % x) g = gcd(g, it), c++;
+            else A.pb(it);
+        }
+        generate(A, g);
+        for(int j = 0; j < (int)A.size() && j + c < n / 2; j++) { 
+            g = gcd(g, A[j]);
+        }
+        res = max(res, x + g); 
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -147,7 +195,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

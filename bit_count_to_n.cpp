@@ -137,17 +137,51 @@ const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+vi primes;  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
+int lcd[MX];    
+auto preprocess() { 
+    fill(lcd, lcd + MX, -1);    
+    for(int i = 0; i < MX; i++) {   
+        if(!primeBits[i]) continue; 
+        for(int j = i; j < MX; j += i) {    
+            if(lcd[j] == -1) lcd[j] = i;
+        }
+    }
+}
 
 void solve() {
+    int n; cin >> n;    
+    int cnt[32] = {};   
+    while(n) {  
+        int msb = log2(n);  
+        ll c = 1LL << msb; 
+        cnt[msb] += n - c + 1;
+        for(int i = 0; i < msb; i++) {  
+            cnt[i] += c / 2;
+        }
+        n -= c;
+    }
+    int res = 0;    
+    for(int i = 0; i < 32; i++) {   
+        if(cnt[i] & 1) res |= (1LL << i);
+    }
+    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
+    preprocess();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

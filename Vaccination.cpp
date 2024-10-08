@@ -134,11 +134,64 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    vvi graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;
+        graph[a].pb(b); 
+        graph[b].pb(a);
+    }
+    vt<set<pii>> arr(n + 1);
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> int {  
+        auto& curr = arr[node];
+        int s = 0;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            int x = dfs(dfs, nei, node);
+            curr.insert(MP(x, nei));    
+            if(curr.size() > 2) curr.erase(*curr.begin());  
+            s = max(s, x);
+        } 
+        return s + 1;
+    };
+    dfs(dfs);
+    int minTime = inf, targetNode = 1;
+    auto dfs2 = [&](auto& dfs2, int node = 1, int par = -1) -> void {   
+        auto& curr = arr[node]; 
+        while(curr.size() > 2) curr.erase(*curr.begin());   
+        auto i = prev(curr.end());   
+        if(i->ff < minTime || (i->ff == minTime && node > targetNode)) {    
+            minTime = i->ff;    
+            targetNode = node;
+        }
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;
+            if(!curr.empty()) { 
+                auto it = prev(curr.end()); 
+                if(it->ss == nei) { 
+                    if(curr.size() > 1) {  
+                        it--;   
+                        arr[nei].insert(MP(it->ff + 1, node));
+                    }
+                    else {  
+                        arr[nei].insert(MP(1, node));
+                    }
+                }
+                else {  
+                    arr[nei].insert(MP(it->ff + 1, node));
+                }
+            }
+            dfs2(dfs2, nei, node);
+        }
+    };
+    dfs2(dfs2);
+    if(minTime == inf) minTime = 0;
+    cout << minTime << ' ' << targetNode << '\n';
 }
 
 signed main() {

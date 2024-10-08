@@ -134,11 +134,40 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    vi a(n * m); cin >> a;
+    srt(a); 
+    vvi grid(n, vi(m, inf));    
+    int s = 0, e = n * m - 1;
+    for(int i = 0; i < n; i++) {    
+        for(int j = i & 1; j < m; j += 2) { 
+            grid[i][j] = a[s++];
+            if(j + 1 < m && grid[i][j + 1] == inf) grid[i][j + 1] = a[e--]; 
+            if(i + 1 < n && grid[i + 1][j] == inf) grid[i + 1][j] = a[e--];
+        }
+    }
+    auto f = [&](int r, int c) -> int { 
+        int mn = inf;   
+        for(int i = 0; i < 4; i++) {  
+            int row = r + dirs[i][0], col = c + dirs[i][1]; 
+            if(row >= 0 && col >= 0 && row < n && col < m) {    
+                mn = min(mn, grid[r][c] + grid[row][col]);
+            }
+        }
+        return mn;
+    };
+    int ans = inf;  
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            ans = min(ans, f(i, j));
+        }
+    }
+    cout << ans << endl;
 }
 
 signed main() {
@@ -147,7 +176,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

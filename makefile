@@ -3,7 +3,7 @@ TEMPLATE = template.cpp
 SUBMIT = submit.cpp
 INPUT = input.txt
 OUTPUT = a.out
-FLAGS = -std=c++20 -DLOCAL -mcmodel=large
+FLAGS = -std=c++23 -DLOCAL
 
 # Targets
 .PHONY: new run clean compile

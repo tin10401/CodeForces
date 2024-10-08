@@ -134,11 +134,22 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    set<int> s = {6, 10, 15};    
+    int curr = 2;
+    while(s.size() < n) {   
+        if(curr % 6 == 0 || curr % 10 == 0 || curr % 15 == 0) s.insert(curr);  
+        curr++;
+    }
+    vi arr(all(s));
+    for(int i = 0; i < n; i++) {   
+        cout << arr[i] << (i == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -147,7 +158,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
