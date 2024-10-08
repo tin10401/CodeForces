@@ -139,6 +139,14 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll a, b; cin >> a >> b; 
+    ll res = 0;
+    while(a && b) { 
+        if(a < b) swap(a, b);   
+        res += a / b;   
+        a %= b;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -147,7 +155,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

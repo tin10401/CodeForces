@@ -139,6 +139,32 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    int m = 6;
+    vvll dp(m, vll(m)); 
+    for(int i = n - 1; i >= 0; i--) {   
+        vvll nxt(m, vll(m, INF));
+        for(int curr = 1; curr < m; curr++) {   
+            for(int last1 = 1; last1 < m; last1++) {    
+                for(int last2 = 1; last2 < m; last2++) {    
+                    if(pct(1 << curr | 1 << last1 | 1 << last2) == 3) { 
+                        ll& x = nxt[last1][last2]; 
+                        x = min(x, (ll)a[i] * (curr - 1) + dp[curr][last1]);
+                    }
+                }
+            }
+        }
+        swap(dp, nxt);
+    }
+    ll res = INF;   
+    for(int i = 1; i < m; i++) {    
+        for(int j = 1; j < m; j++) {    
+            res = min(res, dp[i][j]);
+        }
+    }
+    cout << res << endl;
+
 }
 
 signed main() {
@@ -147,7 +173,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

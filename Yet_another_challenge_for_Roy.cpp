@@ -132,13 +132,36 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll n, k; cin >> n >> k; 
+    vll a(n); cin >> a;  
+    int m = 40;
+    vvll bits(m, vll(2));
+    for(auto& x : a) {    
+        for(int j = 0; j < m; j++) {   
+            if((x >> j) & 1) bits[j][0] += (1LL << j);
+            else bits[j][1] += (1LL << j);
+        }
+    }
+    vvll dp(m, vll(2, -1));
+    auto dfs = [&](auto& dfs, int i, bool bound) -> ll {    
+        if(i < 0) return 0; 
+        ll& res = dp[i][bound];    
+        if(res != -1) return res;
+        int e = bound ? (k >> i) & 1 : 1;   
+        for(int j = 0; j <= e; j++) {   
+            res = max(res, bits[i][j] + dfs(dfs, i - 1, bound && j == e));
+        }
+        return res;
+    };
+    cout << dfs(dfs, m - 1, true) << endl;
+
 }
 
 signed main() {

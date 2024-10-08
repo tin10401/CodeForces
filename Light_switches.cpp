@@ -134,11 +134,42 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    vi child(n, -1), par(n, -1), ok(n), vis(n);
+    int comp = 0;
+    for(int i = 0; i < n; i++) {    
+        if(vis[i]) continue;
+        comp++;
+        int j = i;  
+        while(j < n) {   
+            vis[j] = true;
+            int x = a[j] + j;
+            if(x < n) { 
+                if(par[x] == j) {   
+                    break;
+                }
+                if(par[x] != -1) {  
+                    ok[x] = true;
+                    break;
+                }
+                child[j] = x;
+                par[x] = j;
+                j = x;
+            }
+            else break;
+        }
+    }
+    for(int i = 0; i < n; i++) {    
+        if(child[i] == -1 || ok[child[i]]) cout << comp << ' ';  
+        else cout << comp + 1 << ' ';
+    }
+    cout << '\n';
 }
 
 signed main() {
@@ -147,7 +178,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

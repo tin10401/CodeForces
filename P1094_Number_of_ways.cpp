@@ -18,6 +18,9 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -31,9 +34,9 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll int64_t
+#define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vvll vt<vll>
-#define pll pair<ll, ll>    
 #define vpll vt<pll>
 #define vc vt<char> 
 #define vvc vt<vc>
@@ -81,6 +84,10 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define iterator int i, int left, int right
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
+    
+//FW TREE   
+#define goUp id += (id & -id)   
+#define goDown id -= (id & -id)
 
 struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -134,11 +141,88 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+const static string YES = "YES\n";  
+const static string yes = "Yes\n";  
+const static string NO = "NO\n";    
+const static string no = "No\n";
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+const vpii dirs_3_3 = { 
+        {0,1}, {0,3},
+        {1,0}, {1,2}, {1,4},
+        {2,1}, {2,5},
+        {3,0}, {3,4}, {3,6},
+        {4,1}, {4,3}, {4,5}, {4,7},
+        {5,2}, {5,4}, {5,8},
+        {6,3}, {6,7},
+        {7,4}, {7,6}, {7,8},
+        {8,5}, {8,7}
+};
+int modExpo(ll base, ll exp, int mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+void multiply(int f[2][2], int m[2][2]) {   
+    int res[2][2] = {}; 
+    for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++)  {   for(int k = 0; k < 2; k++)  {   res[i][j] = (res[i][j] + f[i][k] * m[k][j]) % MOD; }   }   }   
+    for(int i = 0; i < 2; i++)  {   for(int j = 0; j < 2; j++) f[i][j] = res[i][j]; }   }
+int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
+    int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
+    while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
+vi primes;  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
+class Combinatoric {    
+    public: 
+    int n;  
+    vll fact, inv;   
+    Combinatoric(int n) {   
+        this->n = n;    
+        fact.rsz(n + 1), inv.rsz(n + 1);
+        init();
+    }
+        
+    void init() {   
+        fact[0] = 1;
+        for(int i = 1; i <= n; i++) {   
+            fact[i] = (fact[i - 1] * i) % MOD;
+        }
+        inv[n] = modExpo(fact[n], MOD - 2, MOD);
+        for(int i = n - 1; i >= 0; i--) {   
+            inv[i] = (inv[i + 1] * (i + 1)) % MOD;
+        }
+    }
+    
+    int choose(int a, int b) {  
+        return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
+    }
+};
 
 void solve() {
+    int n, k; cin >> n >> k;    
+    vi a(n); cin >> a;  
+    if(k == 0) {    
+        int ans = (modExpo(2, n, MOD) - 1 + MOD) % MOD; 
+        cout << ans << endl;
+        return;
+    }
+    int m = sum(a); 
+    if(m < k) { 
+        cout << 0 << endl;  
+        return;
+    }
+    ll res = 0;
+    Combinatoric comb(m);
+    int z = n - m;
+    for(int i = k; i <= m; i++) {   
+        ll t = comb.choose(m, i);  
+        t = (t * modExpo(2, z, MOD)) % MOD;
+        res = (res + t) % MOD;
+    }
+    res = (res - 1 + MOD) % MOD;    
+    cout << res << endl;
+
 }
 
 signed main() {
@@ -147,7 +231,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -134,11 +134,35 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k; cin >> n >> k;    
+    vi a(n); cin >> a;  
+    umap<int, int> mp;  
+    for(auto& it : a) mp[it]++; 
+    pq<int> maxHeap;    
+    for(auto& it : mp) maxHeap.push(it.ss);
+    int g = n / k, r = n % k;   
+    vi arr; 
+    for(int i = 0; i < k; i++) {    
+        arr.pb(i < r ? g + 1 : g);
+    }
+    int ans = 0;
+    for(auto& it : arr) {   
+        if(maxHeap.empty()) break;
+        int x = maxHeap.top(); maxHeap.pop();   
+        if(x >= it) {   
+            ans += it;  
+            if(x - it) maxHeap.push(x - it);
+        }
+        else {  
+            ans += x;
+        }
+    }
+    cout << n - ans << '\n';
 }
 
 signed main() {
@@ -147,7 +171,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -25,7 +25,6 @@ using namespace std;
 template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
 #define vt vector
 #define all(x) begin(x), end(x)
-#define allr(x) rbegin(x), rend(x)
 #define ub upper_bound
 #define lb lower_bound
 #define db double
@@ -134,11 +133,58 @@ const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
-int pct(ll x) { return __builtin_popcountll(x); }
+int pct(int x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    vt<uset<int>> graph(n + 1); 
+    vi a(n + 1);    
+    for(int i = 1; i <= n; i++) cin >> a[i];    
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        graph[u].insert(v); 
+        graph[v].insert(u);
+    }
+    queue<int> q;   
+    for(int i = 1; i <= n; i++) {   
+        if(graph[i].size() == 1 && a[i] == 0) q.push(i);
+    }
+    while(!q.empty()) { 
+        int node = q.front(); q.pop();  
+        int p = *graph[node].begin();   
+        graph[node].clear();    
+        graph[p].erase(node);
+        if(graph[p].size() == 1 && a[p] == 0) q.push(p);
+    }
+    auto dfs = [&](auto& dfs, int node, int par, int d, pii& c) -> void {  
+        if(d > c.ss) c = MP(node, d);
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            dfs(dfs, nei, node, d + 1, c);
+        }
+    };
+    pii c = {0, -1};   
+    for(int i = 1; i <= n; i++) {   
+        if(graph[i].size() == 1) {  
+            dfs(dfs, i, -1, 0, c); 
+            break;
+        }
+    }
+    int ans = 0;    
+    auto dfs2 = [&](auto& dfs2, int node, int par, int d, int& mx) -> void { 
+        mx = max(mx, d);    
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            ans += 2;   
+            dfs2(dfs2, nei, node, d + 1, mx);
+        }
+    };
+    int mx = 0; 
+    dfs2(dfs2, c.ff, -1, 0, mx);    
+    ans -= mx;  
+    cout << ans << endl;
 }
 
 signed main() {
@@ -147,7 +193,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
