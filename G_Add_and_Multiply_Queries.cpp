@@ -137,55 +137,82 @@ const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
     
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left);
+    }
+};
 
 void solve() {
-    int n, m; cin >> n >> m;
-    vi a(m + 1), b(m + 1), t[n + 1], id(n + 1), sm(m + 1);
-    const int B = sqrt(m) + 1;
-    vvi dp(B, vi(n + 1));
-    int ptr = 0;
-    for(int i = 1; i <= m; i++) {    
-        cin >> a[i] >> b[i];
-        t[b[i]].pb(i);
+    int n; cin >> n;    
+    vi a(n), b(n); cin >> a >> b;   
+    set<int> s = {n}; 
+    FW<ll> root(n); 
+    for(int i = 0; i < n; i++) {    
+        root.update(i + 1, a[i]);
+        if(b[i] >= 2) s.insert(i);
     }
-    for(int i = 1; i <= n; i++) {   
-        if(t[i].size() >= B) {  
-            id[i] = ++ptr;
-            for(int j = 1, u = 0; j <= m; j++) {   
-                sm[j] = sm[j - 1];  
-                if(u) sm[j] += a[j] - a[j - 1];
-                u ^= b[j] == i;
+    auto queries = [&](int l, int r) -> ll {   
+        ll ans = 0;
+        while(l <= r) { 
+            if(b[l] >= 2) { 
+                ans = max(ans + a[l], ans * b[l]);
+                l++;
             }
-            for(int j = 1; j <= n; j++) {   
-                auto& ans = dp[ptr][j];
-                for(int k = 1; k < (int)t[j].size(); k += 2) {   
-                    ans += sm[t[j][k]] - sm[t[j][k - 1]];
-                }
+            else {  
+                int nxt = min(r + 1, *s.ub(l));
+                ans += root.queries(l, nxt);    
+                l = nxt;
             }
         }
-    }
+        return ans;
+    };
     int q; cin >> q;    
     while(q--) {    
-        int A, b; cin >> A >> b;    
-        if(!id[A]) swap(A, b);  
-        if(id[A]) { 
-            cout << dp[id[A]][b] << endl;   
-            continue;
+        int op, l, r; cin >> op >> l >> r;  
+        if(op == 1) {   
+            l--;
+            ll v = r - a[l];
+            root.update(l + 1, v);  
+            a[l] = r;
         }
-        int Ans = 0;    
-        for(int i = 0, j = 0; i < (int)t[A].size() && j < (int)t[b].size();) {    
-            int startA = a[t[A][i]];    
-            int endA = a[t[A][i + 1]];  
-            int startB = a[t[b][j]];    
-            int endB = a[t[b][j + 1]];  
-            Ans += max(0, min(endA, endB) - max(startA, startB));   
-            if(endA < endB) i += 2; 
-            else j += 2;
+        else if(op == 2) {  
+            l--;    
+            if(b[l] >= 2) s.erase(l);    
+            b[l] = r;   
+            if(b[l] >= 2) s.insert(l);
         }
-        cout << Ans << endl;
+        else {  
+            l--, r--;
+            cout << queries(l, r) << endl;
+        }
     }
-    
 }
 
 signed main() {
