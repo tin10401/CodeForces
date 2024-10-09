@@ -137,55 +137,32 @@ const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-    
 
 void solve() {
     int n, m; cin >> n >> m;
-    vi a(m + 1), b(m + 1), t[n + 1], id(n + 1), sm(m + 1);
-    const int B = sqrt(m) + 1;
-    vvi dp(B, vi(n + 1));
-    int ptr = 0;
-    for(int i = 1; i <= m; i++) {    
-        cin >> a[i] >> b[i];
-        t[b[i]].pb(i);
+    vs s(n); cin >> s;
+    string t = "narek";
+    bool ok[26] = {};
+    for(auto& ch : t) ok[ch - 'a'] = true;
+    vi dp(5);   
+    for(int i = 0; i < 5; i++) {    
+        dp[i] = -2 * i;
     }
-    for(int i = 1; i <= n; i++) {   
-        if(t[i].size() >= B) {  
-            id[i] = ++ptr;
-            for(int j = 1, u = 0; j <= m; j++) {   
-                sm[j] = sm[j - 1];  
-                if(u) sm[j] += a[j] - a[j - 1];
-                u ^= b[j] == i;
+    for(int i = n - 1; i >= 0; i--) {   
+        auto nxt = dp;  
+        for(int letter = 0; letter < 5; letter++) { 
+            int take = 0, id = letter;
+            for(auto& ch : s[i]) {  
+                if(!ok[ch - 'a']) continue;
+                if(ch == t[id]) id = (id + 1) % 5, take++;
+                else take--;
             }
-            for(int j = 1; j <= n; j++) {   
-                auto& ans = dp[ptr][j];
-                for(int k = 1; k < (int)t[j].size(); k += 2) {   
-                    ans += sm[t[j][k]] - sm[t[j][k - 1]];
-                }
-            }
+            take += dp[id]; 
+            nxt[letter] = max(nxt[letter], take);
         }
+        swap(dp, nxt);
     }
-    int q; cin >> q;    
-    while(q--) {    
-        int A, b; cin >> A >> b;    
-        if(!id[A]) swap(A, b);  
-        if(id[A]) { 
-            cout << dp[id[A]][b] << endl;   
-            continue;
-        }
-        int Ans = 0;    
-        for(int i = 0, j = 0; i < (int)t[A].size() && j < (int)t[b].size();) {    
-            int startA = a[t[A][i]];    
-            int endA = a[t[A][i + 1]];  
-            int startB = a[t[b][j]];    
-            int endB = a[t[b][j + 1]];  
-            Ans += max(0, min(endA, endB) - max(startA, startB));   
-            if(endA < endB) i += 2; 
-            else j += 2;
-        }
-        cout << Ans << endl;
-    }
-    
+    cout << dp[0] << endl;
 }
 
 signed main() {
@@ -194,7 +171,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

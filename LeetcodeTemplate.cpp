@@ -77,10 +77,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define iterator int i, int left, int right
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
-    
-//FW TREE   
-#define goUp id += (id & -id)   
-#define goDown id -= (id & -id)
 
 struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -700,3 +696,22 @@ class Combinatoric {
         return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
     }
 };
+
+ll XOR_SUM(vi& a) { 
+    int m = 32, n = a.size(); 
+    vvi bits(2, vi(m)); 
+    fill(all(bits[0]), 1);
+    ll ans = 0; 
+    for(int i = 0, x = 0; i < n; i++) {    
+        x ^= a[i];
+        for(int j = 0; j < m; j++) {    
+            if((x >> j) & 1) bits[1][j]++;  
+            else bits[0][j]++;
+        }
+    }
+    for(int i = 0; i < m; i++) {    
+        ans += (1LL << i) * bits[0][i] * bits[1][i];
+    }
+    return ans;
+}
+

@@ -137,55 +137,72 @@ const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
     
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+    
+    bool queries() {    
+        int cnt = 0;    
+        for(int i = 0; i < n; i++) {    
+            if(find(i) == i && cnt++ == 1) return false;
+        }
+        return true;
+    }
+};
 
 void solve() {
-    int n, m; cin >> n >> m;
-    vi a(m + 1), b(m + 1), t[n + 1], id(n + 1), sm(m + 1);
-    const int B = sqrt(m) + 1;
-    vvi dp(B, vi(n + 1));
-    int ptr = 0;
-    for(int i = 1; i <= m; i++) {    
-        cin >> a[i] >> b[i];
-        t[b[i]].pb(i);
+    int n; cin >> n;    
+    var(3) arr(n); 
+    for(int i = 0; i < n; i++) {    
+        auto& [u, v, index] = arr[i]; cin >> u >> v;    
+        index = i;
     }
-    for(int i = 1; i <= n; i++) {   
-        if(t[i].size() >= B) {  
-            id[i] = ++ptr;
-            for(int j = 1, u = 0; j <= m; j++) {   
-                sm[j] = sm[j - 1];  
-                if(u) sm[j] += a[j] - a[j - 1];
-                u ^= b[j] == i;
-            }
-            for(int j = 1; j <= n; j++) {   
-                auto& ans = dp[ptr][j];
-                for(int k = 1; k < (int)t[j].size(); k += 2) {   
-                    ans += sm[t[j][k]] - sm[t[j][k - 1]];
-                }
+    srt(arr);   
+    debug(arr);
+    set<pii> s;
+    DSU root(n);
+    int i = 0;
+    for(auto& [u1, v1, i1] : arr) { 
+        while(i < n && arr[i][0] <= u1) s.insert({arr[i][1], arr[i++][2]});
+        for(auto it = s.ub(MP(u1, 0)); it != end(s) && it->ff < v1; it++) {    
+            if(!root.merge(it->ss, i1)) {   
+                cout << "NO" << endl;   
+                return;
             }
         }
     }
-    int q; cin >> q;    
-    while(q--) {    
-        int A, b; cin >> A >> b;    
-        if(!id[A]) swap(A, b);  
-        if(id[A]) { 
-            cout << dp[id[A]][b] << endl;   
-            continue;
-        }
-        int Ans = 0;    
-        for(int i = 0, j = 0; i < (int)t[A].size() && j < (int)t[b].size();) {    
-            int startA = a[t[A][i]];    
-            int endA = a[t[A][i + 1]];  
-            int startB = a[t[b][j]];    
-            int endB = a[t[b][j + 1]];  
-            Ans += max(0, min(endA, endB) - max(startA, startB));   
-            if(endA < endB) i += 2; 
-            else j += 2;
-        }
-        cout << Ans << endl;
-    }
-    
+    cout << (root.queries() ? "YES" : "NO") << endl;
+
 }
 
 signed main() {

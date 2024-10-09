@@ -137,55 +137,26 @@ const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-    
 
 void solve() {
-    int n, m; cin >> n >> m;
-    vi a(m + 1), b(m + 1), t[n + 1], id(n + 1), sm(m + 1);
-    const int B = sqrt(m) + 1;
-    vvi dp(B, vi(n + 1));
-    int ptr = 0;
-    for(int i = 1; i <= m; i++) {    
-        cin >> a[i] >> b[i];
-        t[b[i]].pb(i);
-    }
-    for(int i = 1; i <= n; i++) {   
-        if(t[i].size() >= B) {  
-            id[i] = ++ptr;
-            for(int j = 1, u = 0; j <= m; j++) {   
-                sm[j] = sm[j - 1];  
-                if(u) sm[j] += a[j] - a[j - 1];
-                u ^= b[j] == i;
-            }
-            for(int j = 1; j <= n; j++) {   
-                auto& ans = dp[ptr][j];
-                for(int k = 1; k < (int)t[j].size(); k += 2) {   
-                    ans += sm[t[j][k]] - sm[t[j][k - 1]];
-                }
-            }
+    int n; cin >> n;    
+    int m = 32; 
+    vvi bits(2, vi(m)); 
+    fill(all(bits[0]), 1);
+    ll ans = 0; 
+    for(int i = 0, x = 0; i < n; i++) {    
+        int v; cin >> v;    
+        x ^= v;
+        ans -= v;
+        for(int j = 0; j < m; j++) {    
+            if((x >> j) & 1) bits[1][j]++;  
+            else bits[0][j]++;
         }
     }
-    int q; cin >> q;    
-    while(q--) {    
-        int A, b; cin >> A >> b;    
-        if(!id[A]) swap(A, b);  
-        if(id[A]) { 
-            cout << dp[id[A]][b] << endl;   
-            continue;
-        }
-        int Ans = 0;    
-        for(int i = 0, j = 0; i < (int)t[A].size() && j < (int)t[b].size();) {    
-            int startA = a[t[A][i]];    
-            int endA = a[t[A][i + 1]];  
-            int startB = a[t[b][j]];    
-            int endB = a[t[b][j + 1]];  
-            Ans += max(0, min(endA, endB) - max(startA, startB));   
-            if(endA < endB) i += 2; 
-            else j += 2;
-        }
-        cout << Ans << endl;
+    for(int i = 0; i < m; i++) {    
+        ans += (1LL << i) * bits[0][i] * bits[1][i];
     }
-    
+    cout << ans << endl;
 }
 
 signed main() {
