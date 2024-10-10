@@ -139,31 +139,43 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n + 1);    
-    for(int i = 1; i <= n; i++) {   
-        cin >> a[i];    
-        a[i] += a[i - 1];
-    }
-    vpii arr;
-    for(int i = 0; i <= n; i++) {    
-        for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
-        }
-    }
-    srt(arr);   
-    int res = 0;    
+    int l, n, m; cin >> l >> n >> m;    
+    vi a(l); cin >> a;  
+    vi tmp(a); srtU(tmp);   
+    vi mp(tmp.back() + 1, -1);
+    int N = tmp.size();
+    for(int i = 0; i < N; i++) mp[tmp[i]] = i; 
+    vvi pos(N, vi(n, -1));
     for(int i = 0; i < n; i++) {    
-        for(int j = i; j < n; j++) {    
-            res += j - i;
+        for(int j = 0; j < m; j++) {    
+            int x; cin >> x;    
+            if(x > tmp.back() || mp[x] == -1) continue;
+            x = mp[x];
+            pos[x][i] = max(pos[x][i], j);
         }
     }
-    for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
-        else c = 0; 
-        res -= c;
+    for(auto& it : a) it = mp[it];
+    vi row(n + 1, -1);
+    bool ans = false;
+    for(int i = l - 1; i >= 0; i--) { 
+        vi newRows(n + 1, -1);  
+        ans = false;
+        int x = a[i];
+        for(int i = n - 1; i >= 0; i--) {   
+            int j = pos[x][i];
+            if(pos[x][i] == -1) continue;
+            if(row[i + 1] <= j) {   
+                ans = true; 
+                newRows[i] = j;
+            }
+        }
+        for(int i = n - 1; i >= 0; i--) {   
+            newRows[i] = max(newRows[i], newRows[i + 1]);
+        }
+        swap(row, newRows);
     }
-    cout << res << endl;
+    cout << (ans ? 'T' : 'N') << endl;
+    
 }
 
 signed main() {

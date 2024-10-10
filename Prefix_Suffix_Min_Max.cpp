@@ -139,31 +139,21 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n + 1);    
-    for(int i = 1; i <= n; i++) {   
-        cin >> a[i];    
-        a[i] += a[i - 1];
+    int n; cin >> n;
+    vi b(n), a; cin >> b;
+    ll sm = 0;  
+    for(int i = 1; i < n; i++) {  
+        ll tmp = b[i] - sm;    
+        a.pb(tmp);  
+        sm += tmp;
     }
-    vpii arr;
-    for(int i = 0; i <= n; i++) {    
-        for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
-        }
+    if(n == 1) {    
+        cout << 0 << endl;
+        return;
     }
-    srt(arr);   
-    int res = 0;    
-    for(int i = 0; i < n; i++) {    
-        for(int j = i; j < n; j++) {    
-            res += j - i;
-        }
-    }
-    for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
-        else c = 0; 
-        res -= c;
-    }
-    cout << res << endl;
+    cout << MAX(a) << ' ';  
+    for(auto& it : a) cout << it << ' ';    
+    cout << endl;
 }
 
 signed main() {

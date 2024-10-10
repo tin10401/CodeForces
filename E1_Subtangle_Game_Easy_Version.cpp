@@ -139,31 +139,27 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n + 1);    
-    for(int i = 1; i <= n; i++) {   
-        cin >> a[i];    
-        a[i] += a[i - 1];
-    }
-    vpii arr;
-    for(int i = 0; i <= n; i++) {    
-        for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
+    int l, n, m; cin >> l >> n >> m;    
+    vi a(l); cin >> a;  
+    vvi grid(n, vi(m)); cin >> grid;    
+    vvi dp(n, vi(m, -1));
+    for(int i = l - 1; i >= 0; i--) { 
+        vvi nxt(n, vi(m, -1));
+        for(int row = n - 1; row >= 0; row--) { 
+            for(int col = m - 1; col >= 0; col--) {    
+                int turn = i & 1;
+                if((row < n - 1 && nxt[row + 1][col] == turn)     
+                    || (col < m - 1 && nxt[row][col + 1] == turn)     
+                    || (grid[row][col] == a[i] && (row + 1 == n || col + 1 == m || i + 1 == l ||dp[row + 1][col + 1] == turn))) {   
+                    nxt[row][col] = turn; 
+                }
+                else nxt[row][col] = !turn;
+            }
         }
+        swap(dp, nxt);
     }
-    srt(arr);   
-    int res = 0;    
-    for(int i = 0; i < n; i++) {    
-        for(int j = i; j < n; j++) {    
-            res += j - i;
-        }
-    }
-    for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
-        else c = 0; 
-        res -= c;
-    }
-    cout << res << endl;
+    cout << (dp[0][0] ? 'N' : 'T') << endl;
+    
 }
 
 signed main() {

@@ -66,7 +66,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
-#define lcm(a, b) (a * b) / gcd(a, b)
+#define lcm(a, b) (a * b) / __gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
 
@@ -132,53 +132,66 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e7 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+vi primes;  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
 
 void solve() {
     int n; cin >> n;    
-    vi a(n + 1);    
-    for(int i = 1; i <= n; i++) {   
-        cin >> a[i];    
-        a[i] += a[i - 1];
-    }
-    vpii arr;
-    for(int i = 0; i <= n; i++) {    
-        for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
+    vi a(n); cin >> a;  
+    vi b(a);    
+    bitset<MX> bits;
+    srt(b);
+    ll x = INF, y = 1;
+    for(int i = 0; i < n - 1; i++) {    
+        if(b[i] == b[i + 1]) {  
+            x = y = b[i];
+            break;
         }
     }
-    srt(arr);   
-    int res = 0;    
-    for(int i = 0; i < n; i++) {    
-        for(int j = i; j < n; j++) {    
-            res += j - i;
+    for(auto& it : b) bits.set(it); 
+    for(ll i = 1; i < MX; i++) {    
+        for(ll j = i, nxt = -1; j < MX; j += i) {   
+            if(bits[j]) {   
+                if(nxt == -1) nxt = j;  
+                else {  
+                    if(lcm(nxt, j) < lcm(x, y)) {   
+                        x = nxt, y = j;
+                    }
+                    break;
+                }
+            }
         }
     }
-    for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
-        else c = 0; 
-        res -= c;
-    }
-    cout << res << endl;
+    int u = find(all(a), x) - begin(a); 
+    int v;
+    if(x == y) v = find(begin(a) + u + 1, end(a), y) - begin(a);
+    else v = find(all(a), y) - begin(a);
+    if(u > v) swap(u, v);   
+    cout << u + 1 << ' ' << v + 1 << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    //endClock
+    endClock
     return 0;
 }
 

@@ -140,30 +140,38 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 void solve() {
     int n; cin >> n;    
-    vi a(n + 1);    
-    for(int i = 1; i <= n; i++) {   
-        cin >> a[i];    
-        a[i] += a[i - 1];
+    vi a(n); cin >> a;  
+    vi b(n); cin >> b;
+    vvi suffix(n, vi(2));
+    for(int i = n - 1, ga = 0, gb = 0; i >= 0; i--) {   
+        ga = gcd(ga, a[i]); 
+        gb = gcd(gb, b[i]); 
+        suffix[i][0] = ga;  
+        suffix[i][1] = gb;
     }
-    vpii arr;
-    for(int i = 0; i <= n; i++) {    
-        for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
+    map<pii, ll> dp;   
+    dp[MP(0, 0)]++;
+    ll mx = 0, cnt = 0;
+    for(int i = 0, ga = 0, gb = 0; i < n; i++) {    
+        map<pii, ll> nxt;
+        nxt[MP(gcd(ga, b[i]), gcd(gb, a[i]))]++;    
+        for(auto& it : dp) {    
+            auto& [x, y] = it.ff;   
+            auto& f = it.ss;    
+            nxt[MP(gcd(x, b[i]), gcd(y, a[i]))] += f;   
+            int sm = gcd(x, suffix[i][0]) + gcd(y, suffix[i][1]);
+            if(sm >= mx) { 
+                if(sm > mx) cnt = f;    
+                else cnt += f;
+                mx = sm;
+            }
         }
+        ga = gcd(ga, a[i]); 
+        gb = gcd(gb, b[i]);
+        dp = move(nxt);
     }
-    srt(arr);   
-    int res = 0;    
-    for(int i = 0; i < n; i++) {    
-        for(int j = i; j < n; j++) {    
-            res += j - i;
-        }
-    }
-    for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
-        else c = 0; 
-        res -= c;
-    }
-    cout << res << endl;
+    cout << mx << ' ' << cnt << endl;
+
 }
 
 signed main() {

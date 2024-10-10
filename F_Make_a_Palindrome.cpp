@@ -145,10 +145,10 @@ void solve() {
         cin >> a[i];    
         a[i] += a[i - 1];
     }
-    vpii arr;
+    var(3) arr; 
     for(int i = 0; i <= n; i++) {    
         for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
+            arr.pb({a[i] + a[j], -i, -j});
         }
     }
     srt(arr);   
@@ -159,7 +159,7 @@ void solve() {
         }
     }
     for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
+        if(arr[i][0] == arr[i - 1][0]) c += arr[i - 1][1] == arr[i - 1][2] ? 1 : 2; 
         else c = 0; 
         res -= c;
     }
