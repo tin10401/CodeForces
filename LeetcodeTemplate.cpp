@@ -415,24 +415,25 @@ class DSU {
     }
 };
     
+template<class T>
 class FW {  
     public: 
     int n;  
-    vi root;    
+    vt<T> root;    
     FW(int n) { 
         this->n = n;    
         root.rsz(n + 1);
     }
     
-    void update(int id, int val) {  
+    void update(int id, T val) {  
         while(id <= n) {    
             root[id] += val;    
             id += (id & -id);
         }
     }
     
-    int get(int id) {   
-        int res = 0;    
+    T get(int id) {   
+        T res = 0;    
         while(id > 0) { 
             res += root[id];    
             id -= (id & -id);
@@ -440,7 +441,7 @@ class FW {
         return res;
     }
     
-    int queries(int left, int right) {  
+    T queries(int left, int right) {  
         return get(right) - get(left - 1);
     }
 };
