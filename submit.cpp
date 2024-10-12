@@ -50,6 +50,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vd vt<db>
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
+#define vvar(x) vt<var(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -136,34 +137,31 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
     int n; cin >> n;    
-    vi a(n + 1);    
-    for(int i = 1; i <= n; i++) {   
-        cin >> a[i];    
-        a[i] += a[i - 1];
-    }
-    vpii arr;
-    for(int i = 0; i <= n; i++) {    
-        for(int j = i; j <= n; j++) {    
-            arr.pb({a[i] + a[j], i == j ? 1 : 2});
-        }
-    }
-    srt(arr);   
-    int res = 0;    
+    vpii a(n);
+    for(auto& it : a) cin >> it.ff; 
+    for(auto& it : a) cin >> it.ss;
     for(int i = 0; i < n; i++) {    
-        for(int j = i; j < n; j++) {    
-            res += j - i;
-        }
+        a[i].ff -= i, a[i].ss -= i;
     }
-    for(int i = 1, c = 0; i < (int)arr.size(); i++) {   
-        if(arr[i].ff == arr[i - 1].ff) c += arr[i - 1].ss;
-        else c = 0; 
-        res -= c;
+    vpii A; 
+    for(auto& p : a) { 
+        auto it = ub(all(A), p);    
+        if(it == end(A)) A.pb(p);   
+        else *it = p;
     }
-    cout << res << endl;
+    vi B;   
+    for(auto& [_, x] : A) {  
+        auto it = ub(all(B), x);    
+        if(it == end(B)) B.pb(x);   
+        else *it = x;
+    }
+    debug(a, A, B);
+    cout << B.size() << endl;
 }
 
 signed main() {
@@ -172,7 +170,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

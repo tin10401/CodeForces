@@ -137,10 +137,20 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    string s; cin >> s; 
+    int n = s.size();   
+    ll res = 0; 
+    umap<int, ll> mp;   
+    mp[0] = 1;
+    for(int i = 0, curr = 0; i < n; i++) {    
+        curr += s[i] == '0' ? -1 : 1;   
+        res = (res + mp[curr] * (n - i)) % MOD;   
+        mp[curr] += i + 2;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +159,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

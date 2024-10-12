@@ -137,10 +137,34 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    vi v(n + 1);    
+    for(int i = 1; i <= n; i++) cin >> v[i];    
+    vvi graph(n + 1);   
+    for(int i = 2; i <= n; i++) {    
+        int x; cin >> x;    
+        graph[x].pb(i); 
+    }
+    auto dfs = [&](auto& dfs, int x, int curr = 0, int node = 1) -> bool {  
+        int curr_val = v[node] - curr;
+        if(curr > inf) return false;
+        if(graph[node].empty()) return curr_val >= x;
+        if(node != 1) curr += max(0, x - curr_val);
+        for(auto& nei : graph[node]) {  
+            if(!dfs(dfs, x, curr, nei)) return false;
+        }
+        return true;
+    };
+    int left = 0, right = inf, res = 0;    
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(dfs(dfs, middle)) res = middle, left = middle + 1;    
+        else right = middle - 1;
+    }
+    cout << res + v[1] << endl;
 }
 
 signed main() {
@@ -149,7 +173,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

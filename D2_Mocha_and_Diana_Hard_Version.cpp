@@ -50,7 +50,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vd vt<db>
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
-#define vvar(x) vt<var(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -137,10 +136,79 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[v]) swap(u, v);
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+    
+    int advance(int x) {    
+        return find(x) + 1;
+    }
+};
 void solve() {
+    int n, m, k; cin >> n >> m >> k;    
+    DSU g(n + 1), f(n + 1); 
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;
+        g.merge(u, v);
+    }
+    for(int i = 0; i < k; i++) {    
+        int u, v; cin >> u >> v;    
+        f.merge(u, v);
+    }
+    vpii ans;   
+    for(int i = 2; i <= n; i++) {   
+        if(!f.same(i, 1) && !g.same(i, 1)) {    
+            ans.pb(MP(1, i));   
+            f.merge(i, 1);  
+            g.merge(i, 1);
+        }
+    }
+    vi s1, s2;
+    for(int i = 2; i <= n; i++) {   
+        if(!f.same(i, 1) && f.find(i) == i) {   
+            s1.pb(i);
+        }
+        else if(!g.same(i, 1) && g.find(i) == i) {  
+            s2.pb(i);
+        }
+    }
+    if(s1.size() > s2.size()) swap(s1, s2);
+    cout << ans.size() + s1.size() << endl; 
+    for(auto& [u, v] : ans) cout << u << ' ' << v << endl;
+    for(int i = 0; i < (int)s1.size(); i++) {    
+        cout << s1[i] << ' ' << s2[i] << endl;
+    }
 }
 
 signed main() {

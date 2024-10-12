@@ -693,7 +693,8 @@ class Combinatoric {
         }
     }
     
-    int choose(int a, int b) {  
+    ll choose(int a, int b) {  
+		if(a < b) return 0;
         return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
     }
 };

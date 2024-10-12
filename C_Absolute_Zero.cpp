@@ -137,10 +137,34 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;  
+    if(sum(a) == 0) {   
+        cout << 0 << endl;  
+        return;
+    }
+    vi res; 
+    for(int bit = log2(MAX(a)); bit >= 0; bit--) {  
+        for(int i = 0; i < n; i++) {    
+            a[i] = abs(a[i] - (1LL << bit));
+        }
+        res.pb(1LL << bit);
+    }
+    int sm = sum(a);
+    if(a[0] == 1) { 
+        res.pb(1);  
+        sm -= n;
+    }
+    if(sm) {    
+        cout << -1 << endl; 
+        return;
+    }
+    cout << res.size() << endl; 
+    for(auto& it : res) cout << it << ' ';  
+    cout << endl;
 }
 
 signed main() {
@@ -149,7 +173,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

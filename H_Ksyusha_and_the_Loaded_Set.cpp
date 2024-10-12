@@ -133,14 +133,108 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e6 + 1;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    T DEFAULT;
+    vt<T> root;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res = max(left, right);   
+        return res;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];
+        int middle = midPoint;  
+        return max(queries(lp, start, end), queries(rp, start, end));
+    }
+    
+};
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;  
+    vi tmp(a);  
+    int q; cin >> q;    
+    vpii Q(q);  
+    for(int i = 0; i < q; i++) {    
+        auto& [a, b] = Q[i];    
+        char ch; cin >> ch;     
+        a = (ch == '+' ? 0 : (ch == '-' ? 1 : 2));
+        cin >> b;
+        tmp.pb(b);
+    }
+    set<int> s = {0, 2 * MX};  
+    tmp.pb(0);  
+    srtU(tmp);  
+    umap<int, int> mp;
+    int M = tmp.size();
+    SGT<int> root(M);   
+    for(int i = 0; i < M; i++) {    
+        mp[tmp[i]] = i;
+    }
+    auto insert = [&](int x) -> void {   
+        auto NEXT = s.ub(x);  
+        auto PREV = prev(NEXT);
+        root.update(mp[*PREV], x - *PREV - 1);
+        root.update(mp[x], *NEXT - x - 1);
+        s.insert(x);
+    };
+    auto remove = [&](int x) -> void {   
+        auto NEXT = s.ub(x);    
+        auto PREV = prev(prev(NEXT));
+        root.update(mp[x], 0);
+        root.update(mp[*PREV], *NEXT - *PREV - 1);
+        s.erase(x); 
+    };
+    auto queries = [&](int k) -> int {  
+        int left = 0, right = MX, res = 0;
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(root.queries(0, middle) >= k) res = middle, right = middle - 1;  
+            else left = middle + 1;
+        }
+        return tmp[res] + 1;
+    };
+    for(auto& x : a) insert(x);
+    for(auto& [op, x] : Q) {    
+        if(op == 0) insert(x);  
+        else if(op == 1) remove(x);  
+        else cout << queries(x) << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -149,13 +243,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    //endClock
+    endClock
     return 0;
 }
 

@@ -137,10 +137,58 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val = 1) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;    
+    vi dp(n + 1);
+    FW<int> root(n + 1); 
+    for(int i = 1; i <= n; i++) {   
+        int x; cin >> x;
+        int left = 1, right = n, ans = 1;   
+        while(left <= right) {  
+            int middle = midPoint;  
+            int a = root.get(middle);   
+            a /= middle;
+            if(a + 1 > x) left = middle + 1; 
+            else right = middle - 1, ans = middle;
+        }
+        dp[i] = ans;
+        root.update(dp[i], 1);
+    }
+    debug(dp);
+
 }
 
 signed main() {
