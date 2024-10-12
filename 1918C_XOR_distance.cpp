@@ -50,7 +50,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vd vt<db>
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
-#define vvar(x) vt<var(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -137,10 +136,28 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll a, b, r; cin >> a >> b >> r; 
+    ll x = 0;   
+    for(int i = 62; i >= 0; i--) {  
+        int aa = (a >> i) & 1;  
+        int bb = (b >> i) & 1;  
+        if((aa ^ bb) == 0) continue;
+        ll t = aa ? a : b;  
+        while(i) {  
+            i--;    
+            if(((a >> i) & 1) ^ ((b >> i) & 1)) {   
+                if((t >> i) & 1) {  
+                    if((x ^ (1LL << i)) <= r) { 
+                        x ^= (1LL << i);
+                    }
+                } 
+            }
+        }
+    }
+    cout << abs((a ^ x) - (b ^ x)) << endl;
 }
 
 signed main() {
@@ -149,7 +166,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

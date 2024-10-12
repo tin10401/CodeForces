@@ -137,10 +137,37 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+vi KMP(const string& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
 void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n); cin >> a;  
+    int sz = n % k ? n % k : k;
+    auto ok = [&](int x) -> int {   
+        vi dp(sz);
+        for(int i = 0; i < n; i++) {    
+            int j = i % k;  
+            if(j >= sz) continue;   
+            dp[j] = max(dp[j], (j == 0 ? 0 : dp[j - 1]) + (a[i] >= x));
+        }
+        return dp[sz - 1] > sz / 2;
+    };
+    int left = 0, right = inf, res = -1;    
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(ok(middle)) res = middle, left = middle + 1; 
+        else right = middle - 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +176,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

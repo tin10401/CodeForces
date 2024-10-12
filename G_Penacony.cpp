@@ -140,7 +140,104 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root; 
+    vi lazy;
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = {inf, 0};
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+        build(entireTree);
+    }
+    
+    void build(iterator) {  
+        if(left == right) { 
+            root[i] = {0, 1};
+            return;
+        }
+        int middle = midPoint;  
+        build(lp), build(rp);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        if(left.ff == right.ff) {   
+            res.ff = left.ff;   
+            res.ss = left.ss + right.ss;
+        }
+        else if(left.ff < right.ff) res = left; 
+        else res = right;
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i].ff += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    int get() { 
+        return root[0].ss;
+    } 
+};
+
 void solve() {
+    int n, m; cin >> n >> m;    
+    vvi v1(n), v2(n);   
+    SGT<pii> root(n);
+    vi a(m), b(m);
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;
+        if(u > v) swap(u, v);   
+        a[i] = u, b[i] = v;
+        v1[u].pb(i);
+        v2[v].pb(i);
+        root.update(u, v - 1, 1);
+    }
+    int res = n;
+    for(int i = 0; i < n; i++) {    
+        res = min(res, n - root.get());
+        for(auto& v : v1[i]) {   
+            root.update(a[v], b[v] - 1, -1);    
+            root.update(0, a[v] - 1, 1);    
+            root.update(b[v], n - 1, 1);
+        }
+        for(auto& v : v2[i]) {  
+            root.update(a[v], b[v] - 1, 1); 
+            root.update(0, a[v] - 1, -1);   
+            root.update(b[v], n - 1, -1);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +246,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

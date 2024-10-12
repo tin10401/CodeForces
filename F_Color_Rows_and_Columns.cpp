@@ -50,7 +50,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vd vt<db>
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
-#define vvar(x) vt<var(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -137,10 +136,29 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vpii A(n); cin >> A;    
+    vi dp(k + 1, inf);  
+    dp[0] = 0;  
+    for(auto& [a, b] : A) { 
+        vi op(a + b + 1, inf);  
+        for(int i = 0; i <= a; i++) {   
+            for(int j = 0; j <= b; j++) {   
+                op[i + j] = min(op[i + j], i * b + j * (a - i));
+            }
+        }
+        auto nxt = dp;
+        for(int i = 0; i <= k; i++) {   
+            for(int j = 0; i + j <= k && j <= a + b; j++) {   
+                nxt[i + j] = min(nxt[i + j], dp[i] + op[j]);
+            }
+        }
+        swap(dp, nxt);
+    }
+    cout << (dp[k] >= inf ? -1 : dp[k]) << endl;
 }
 
 signed main() {
@@ -149,7 +167,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

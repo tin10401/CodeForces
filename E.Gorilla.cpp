@@ -50,7 +50,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vd vt<db>
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
-#define vvar(x) vt<var(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -137,10 +136,41 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m, k; cin >> n >> m >> k;    
+    int N; cin >> N;    
+    vll a(N); cin >> a;  
+    vvll dp(n + 1, vll(m + 1));    
+    for(int i = 0; i + k <= n; i++) {    
+        for(int j = 0; j + k <= m; j++) {    
+            dp[i][j]++, dp[i][j + k]--, dp[i + k][j]--, dp[i + k][j + k]++;
+        }
+    }
+    for(int i = 0; i < n; i++) {    
+        for(int j = 1; j < m; j++) {    
+            dp[i][j] += dp[i][j - 1];
+        }
+    }
+    for(int i = 1; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            dp[i][j] += dp[i - 1][j];
+        }
+    }
+    vi f;   
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            f.pb(dp[i][j]);
+        }
+    }
+    srtR(f);    
+    srtR(a);    
+    ll res = 0; 
+    for(int i = 0; i < N; i++) {    
+        res += (ll)f[i] * a[i];
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +179,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

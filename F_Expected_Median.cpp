@@ -133,14 +133,56 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class Combinatoric {    
+    public: 
+    int n;  
+    vll fact, inv;   
+    Combinatoric(int n) {   
+        this->n = n;    
+        fact.rsz(n + 1), inv.rsz(n + 1);
+        init();
+    }
+        
+    void init() {   
+        fact[0] = 1;
+        for(int i = 1; i <= n; i++) {   
+            fact[i] = (fact[i - 1] * i) % MOD;
+        }
+        inv[n] = modExpo(fact[n], MOD - 2, MOD);
+        for(int i = n - 1; i >= 0; i--) {   
+            inv[i] = (inv[i + 1] * (i + 1)) % MOD;
+        }
+    }
+    
+    ll choose(int a, int b) {  
+        if(a < b) return 0;
+        return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
+    }
+};
+
+Combinatoric comb(MX);
 void solve() {
+    int n, k; cin >> n >> k;    
+    int one = 0, zero = 0;
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        if(x) one++;    
+        else zero++;
+    }
+    ll res = 0;
+    for(int i = (k + 1) / 2; i <= k; i++) { 
+        res += comb.choose(one, i) * comb.choose(zero, k - i);
+        res %= MOD;
+    }
+    cout << res << endl;
+    
+    
 }
 
 signed main() {
@@ -149,7 +191,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -172,3 +214,5 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+
+

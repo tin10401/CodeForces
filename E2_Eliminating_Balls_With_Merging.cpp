@@ -137,10 +137,52 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, x; cin >> n >> x;    
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    vll prefix(n + 1);   
+    for(int i = 1; i <= n; i++) prefix[i] = prefix[i - 1] + a[i];
+    auto dfs = [&](auto& dfs, int left, int right) -> int {    
+        ll sm = prefix[right] - prefix[left - 1];
+        int l = lb(all(prefix), prefix[left - 1] - sm) - begin(prefix);
+        l = max(l + 1, 1);
+        if(l != left) return dfs(dfs, l, right);
+        int r = ub(all(prefix), prefix[right] + sm) - begin(prefix);  
+        r--;    
+        if(r != right) return dfs(dfs, left, r);
+        return left == 1 ? right : -1;
+    };
+    vi dp(n + 1);
+    auto ok = [&](int left, int right) -> int { 
+        while(left > 1) {  
+            ll sm = prefix[right] - prefix[left - 1];
+            int l = lb(all(prefix), prefix[left - 1] - sm) - begin(prefix);
+            l = max(l + 1, 1);
+            if(l == left) return false;
+            left = l;
+        }
+        return true;
+    };
+    for(int i = 1; i <= n; i++) {    
+        int A = dfs(dfs, i, i); 
+        if(A == -1) continue;   
+        int left = i, right = A, ans = i - 1;  
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(ok(i, middle)) ans = middle - 1, right = middle - 1;  
+            else left = middle + 1;
+        }
+        dp[ans]++; 
+        dp[A]--;
+    }
+    for(int i = 0; i < n; i++) {    
+        if(i) dp[i] += dp[i - 1];   
+        cout << dp[i] << (i == n - 1 ? '\n' : ' ');
+    }
+    
 }
 
 signed main() {
@@ -149,7 +191,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -172,3 +214,5 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+
+

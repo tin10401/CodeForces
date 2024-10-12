@@ -137,10 +137,24 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    auto queries = [](int x, int y) -> int {    
+        cout << "? " << x << " " << y << endl;  
+        int area; cin >> area;  
+        return area;
+    };
+    int left = 2, right = 999, res = 1; 
+    while(left <= right) {   
+        int mid1 = left + (right - left) / 3;   
+        int mid2 = right - (right - left) / 3;
+        int area = queries(mid1, mid2); 
+        if(area == mid1 * mid2) left = mid2 + 1, res = mid2 + 1;    
+        else if(area == mid1 * (mid2 + 1)) left = mid1 + 1, right = mid2 - 1, res = mid1 + 1;   
+        else right = mid1 - 1, res = mid1;
+    }
+    cout << "! " << res << endl;
 }
 
 signed main() {
@@ -149,7 +163,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

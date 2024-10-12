@@ -141,7 +141,31 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll n, m; cin >> n >> m; 
+    vpll a(n);    
+    for(auto& it : a) cin >> it.ff; 
+    for(auto& it : a) cin >> it.ss; 
+    srt(a); 
+    ll res = 0; 
+    for(auto& [A, B] : a) { 
+        ll take = min(B, m / A);    
+        res = max(res, take * A);
+    }
+    for(int i = 0; i < n - 1; i++) {    
+        if(a[i].ff + 1 != a[i + 1].ff) continue;
+        ll curr = m;    
+        ll aa = min(curr / a[i].ff, a[i].ss);  
+        curr -= aa * a[i].ff;   
+        ll bb = min(curr / a[i + 1].ff, a[i + 1].ss);  
+        curr -= bb * a[i + 1].ff;
+        ll x = min({curr, aa, a[i + 1].ss - bb});    
+        curr -= x;  
+        res = max(res, m - curr);
+    }
+    cout << res << endl;
+
 }
+
 
 signed main() {
     IOS;
@@ -149,7 +173,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

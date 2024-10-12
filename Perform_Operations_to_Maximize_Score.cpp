@@ -137,10 +137,47 @@ const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
-const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+vi KMP(const string& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
 void solve() {
+    int n, k; cin >> n >> k;    
+    vpii a(n);  
+    for(auto& it : a) cin >> it.ff; 
+    for(auto& it : a) cin >> it.ss; 
+    srtR(a); 
+    ll median = 0; 
+    for(int bit = 30; bit >= 0; bit--) {  
+        ll t = median ^ (1LL << bit), curr = k, cnt = 0;
+        for(auto& [A, B] : a) {    
+            if(A < t) { 
+                if(curr >= t - A && B) {    
+                    cnt++;  
+                    curr -= t - A;
+                }
+            }
+            else cnt++;
+        }
+        if(cnt >= (n + 3) / 2) swap(t, median);
+    }
+    ll ans = median + a.front().ff;
+    for(auto& [A, B] : a) { 
+        if(B) { 
+            A += k;
+            break;
+        }
+    }
+    srt(a); 
+    ans = max(ans, (ll)a.back().ff + a[(n - 2) / 2].ff);  
+    cout << ans << endl;
 }
 
 signed main() {
@@ -149,7 +186,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
