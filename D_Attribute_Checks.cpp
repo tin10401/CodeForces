@@ -141,7 +141,37 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    cout << log2(2e6) * 5000 * 5000 << endl;
+    int n, m; cin >> n >> m;    
+    vi a(n); cin >> a;
+    vi indices; 
+    for(int i = 0; i < n; i++) {    
+        if(a[i] == 0) indices.pb(i);
+    }
+    indices.pb(n);
+    vi dp(m + 1, -inf);
+    dp[0] = 0; 
+    for(int score = 0, j = indices.front(); score <= m; score++) {   
+        vi next_dp(m + 1, -inf);
+        vi S, I;
+        while(j < indices[score]) { 
+            if(a[j]) {  
+                if(a[j] < 0) S.pb(-a[j]);   
+                else I.pb(a[j]);
+            }
+            j++;
+        }
+        srt(S), srt(I);
+        for(int s = score; s >= 0; s--) {   
+            if(dp[s] == -inf) continue;
+            int t = score - s; 
+            int S_score = ub(all(S), s) - S.begin(); 
+            int I_score = ub(all(I), t) - I.begin();
+            int total_passed = dp[s] + S_score + I_score;
+            dp[s] = max(dp[s], total_passed);
+            if(s + 1 <= m) dp[s + 1] = max(dp[s + 1], total_passed);
+        }
+    }
+    cout << MAX(dp) << endl;
 }
 
 signed main() {

@@ -139,18 +139,61 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+vi primes;  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
 
 void solve() {
-    cout << log2(2e6) * 5000 * 5000 << endl;
+    int n; cin >> n;
+    vvll a(3, vll(n)), prefix(3, vll(n + 1)); cin >> a;
+    for(int i = 0; i < 3; i++) {   
+        for(int j = 1; j <= n; j++) {    
+            prefix[i][j] = prefix[i][j - 1] + a[i][j - 1];
+        }
+    }
+    ll target = (sum(a[0]) + 2) / 3;
+    auto f = [&](int x, int y, int z) -> var(3) {    
+        for(int i = 0; i < n; i++) {    
+            int right = lb(all(prefix[x]), prefix[x][i] + target) - begin(prefix[x]);
+            if(right > n) break;
+            if(prefix[x][right] - prefix[x][i] < target) break;
+            if(prefix[y][i] >= target && prefix[z][n] - prefix[z][right] >= target) {   
+                return {{x, i + 1, right}, {y, 1, i}, {z, right + 1, n}};
+            }
+            if(prefix[z][i] >= target && prefix[y][n] - prefix[y][right] >= target) {   
+                return {{x, i + 1, right}, {y, right + 1, n}, {z, 1, i}};
+            }
+        }
+        return {};
+    };
+    auto compute = [&]() -> var(3) {    
+        vi A = {0, 1, 2};
+        do {    
+            auto ans = f(A[0], A[1], A[2]); 
+            if(!ans.empty()) return ans;
+        } while(next_permutation(all(A)));
+        return {};
+    };
+    auto res = compute();   
+    if(res.empty()) cout << -1 << endl; 
+    else {  
+        srt(res);   
+        for(auto& [_, x, y] : res) cout << x << ' ' << y << ' ';    
+        cout << endl;
+    }
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -173,3 +216,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

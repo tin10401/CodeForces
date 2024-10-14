@@ -133,15 +133,79 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+struct Node {   
+    Node* children[2];  
+    int id; 
+    Node() : children{}, id(-1) {}
+};
+static Node nodes[MX * MK]; 
+    
+class Trie {    
+    public: 
+    int ptr = 0;
+    Node* root; 
+    Trie() {    
+        root = newNode();
+    }
+    Node* newNode() {    
+        nodes[ptr] = Node();    
+        return &nodes[ptr++];
+    }
+    
+    void insert(int x, int Id) {    
+        Node* curr = root;  
+        for(int i = 31; i >= 0; i--) {  
+            int bits = (x >> i) & 1;    
+            if(!curr->children[bits]) curr->children[bits] = newNode(); 
+            curr = curr->children[bits];    
+            curr->id = Id;
+        }
+    }
+    
+    int search(int a, int b) {  
+        int res = 0;    
+        Node* curr = root;  
+        a ^= b;
+        for(int i = 31; i >= 0; i--) {  
+            int c = (a >> i) & 1;   
+            int yc = (b >> i) & 1;  
+            if(yc && curr->children[!c]) res = max(res, curr->children[!c]->id); 
+            curr = curr->children[c];   
+            if(!curr) break;
+        }
+        if(curr) res = max(res, curr->id);
+        return res;
+    }
+
+};
 void solve() {
-    cout << log2(2e6) * 5000 * 5000 << endl;
+    ll n, k; cin >> n >> k;    
+    vi a(n); cin >> a;  
+    auto f = [&](int x) -> bool {    
+        ll cnt = 0; 
+        Trie root;
+        for(int i = 0, curr = 0; i < n; i++) {    
+            curr = max(curr, root.search(a[i], x));
+            root.insert(a[i], i + 1);   
+            cnt += curr;
+        }
+        return cnt >= k;
+    };
+    int left = 0, right = INT_MAX, res = -1;    
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(f(middle)) res = middle, right = middle - 1; 
+        else left = middle + 1;
+    }
+    cout << res << endl;
+
 }
 
 signed main() {
@@ -150,7 +214,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
