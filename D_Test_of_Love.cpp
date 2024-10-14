@@ -141,7 +141,26 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    cout << log2(2e6) * 5000 * 5000 << endl;
+    int n, m, k; cin >> n >> m >> k;    
+    string s; cin >> s; 
+    s = 'L' + s + 'L';
+    int curr = 0, swim = 0;
+    auto getIndex = [&](char ch) -> int {    
+        for(int i = min(curr + m, n + 1); i > curr; i--) if(s[i] == ch) return i;
+        return -1;
+    };
+    while(curr <= n && swim <= k) {  
+        if(s[curr] == 'C') break;   
+        if(s[curr] == 'W') {   
+            curr++, swim++; 
+            continue;
+        }
+        int i = getIndex('L');  
+        if(i != -1) curr = i;   
+        else curr = getIndex('W');
+        if(curr == -1) break;
+    }
+    cout << (curr > n && swim <= k ? "YES" : "NO") << endl;
 }
 
 signed main() {
@@ -150,7 +169,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -141,7 +141,24 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    cout << log2(2e6) * 5000 * 5000 << endl;
+    int n; cin >> n;    
+    string s = to_string(n);    
+    int N = s.size();   
+    vpii ans;   
+    for(int len = 1; len <= 6; len++) { 
+        int v = 0;   
+        for(int i = 0; i < len; i++) {  
+            v = v * 10 + s[i % N] - '0';
+        }
+        for(int a = 1; a <= 10000; a++) {   
+            int b = n * a - v;
+            if(b >= 1 && b <= 10000) {  
+                ans.pb(MP(a, b));
+            }
+        }
+    }
+    cout << ans.size() << endl; 
+    for(auto& [a, b] : ans) cout << a << ' ' << b << endl;
 }
 
 signed main() {
@@ -150,7 +167,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
