@@ -142,20 +142,6 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-
-vi countBit(ll n) { 
-    vi cnt(62);
-    while(n) {  
-        int msb = log2(n);  
-        ll c = 1LL << msb; 
-        cnt[msb] += n - c + 1;
-        for(int i = 0; i < msb; i++) {  
-            cnt[i] += c / 2;
-        }
-        n -= c;
-    }
-    return cnt;
-}
     
 template<typename T>
 class Treap {
@@ -717,3 +703,16 @@ ll XOR_SUM(vi& a) {
     return ans;
 }
 
+vi countBit(ll n) { 
+    vi cnt(62);
+    while(n) {  
+        int msb = log2(n);  
+        ll c = 1LL << msb; 
+        cnt[msb] += n - c + 1;
+        for(int i = 0; i < msb; i++) {  
+            cnt[i] += c / 2;
+        }
+        n -= c;
+    }
+    return cnt;
+}

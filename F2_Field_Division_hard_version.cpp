@@ -141,36 +141,49 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
-                }
-                last++;
+    int n, m, k; cin >> n >> m >> k;    
+    var(3) a(k);    
+    for(int i = 0; i < k; i++) {    
+        auto& [r, c, id] = a[i]; cin >> r >> c; 
+        id = i + 1;
+    }
+    a.pb({0, 0, 0}); 
+    srtR(a);
+    pii last = MP(m + 1, n);   
+    ll res = 0;
+    vll ans(k + 1);
+    int lastId = -1;
+    for(auto& [r, c, id] : a) { 
+        res += (ll)(last.ff - 1) * (last.ss - r);
+        if(c < last.ff) {   
+            if(r == last.ss && lastId != -1) ans[lastId] = 0;
+            ans[id] = 1;
+            last.ff = c;
+        }
+        lastId = id;
+        last.ss = r;
+    }
+    last = MP(m + 1, n);
+    for(int i = 0; i < k; i++) {   
+        auto& [r, c, id] = a[i];    
+        if(ans[id]) {   
+            pii tmp = last;
+            auto& A = ans[id];
+            tmp.ss = r;
+            A = 0;
+            for(int j = i + 1; j <= k; j++) {   
+                auto& [row, col, _] = a[j];
+                A += ((ll)tmp.ff - c) * (tmp.ss - row);
+                tmp.ff = min(tmp.ff, col);  
+                tmp.ss = row;
+                if(col <= c) break;
             }
         }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
-        }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
-        }
-        k++;
-        last = i + 1;
+        last = min(last, MP(c, r));
     }
-    cout << MAX(dp) << endl;
+    cout << res << endl;
+    for(int i = 1; i <= k; i++) cout << ans[i] << ' ';  
+    cout << endl;
 }
 
 signed main() {
@@ -179,7 +192,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -202,3 +215,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

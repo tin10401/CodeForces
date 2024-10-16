@@ -141,36 +141,47 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
-                }
-                last++;
-            }
-        }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
-        }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
-        }
-        k++;
-        last = i + 1;
+    int n, q; cin >> n >> q;    
+    vvar(3) graph(n + 1);   
+    for(int i = 0; i < q; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb({b, i, 1}); 
+        graph[b].pb({a, i, 0});
     }
-    cout << MAX(dp) << endl;
+    vb vis(n + 1), used(q);
+    vvpii edges(n + 1);
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1, int ID = -1, bool XX = false) -> bool { 
+        if(vis[node]) return false;
+        vis[node] = true;   
+        for(auto& [nei, id, isX] : graph[node]) {  
+            if(nei == par || dfs(dfs, nei, node, id, !isX) || used[id]) continue; 
+            used[id] = true;
+            edges[node].pb(MP(id, isX)); 
+        }
+        if(ID != -1 && edges[node].size() & 1) {    
+            used[ID] = true;
+            edges[node].pb(MP(ID, XX));    
+            return true;
+        }
+        return false;
+    };
+    for(int i = 1; i <= n; i++) {   
+        if(!vis[i]) dfs(dfs, i);
+    }
+    vt<tuple<int, char, char>> ans;
+    for(int i = 1; i <= n; i++) {    
+        srt(edges[i]);
+        char x = '+', y = '-';
+        for(auto& [a, b] : edges[i]) {  
+            ans.pb({a, x, b ? 'x' : 'y'});
+            debug(a, x, b);
+            swap(x, y);
+        }
+    }
+    srt(ans);   
+    for(auto& [_, op, x] : ans) {   
+        cout << x << op << endl;
+    }
 }
 
 signed main() {

@@ -141,36 +141,30 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
+    int n; cin >> n;
     vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
+    ll res = 0; 
+    for(int i = 0; i < n; i++) {    
+        int left = max(0, i - 100), right = min(n - 1, i + 100);
+        for(int j = left; j <= right; j++) { 
+            ll diff = abs(a[i] - a[j]);
+            ll len = abs(i - j);   
+            if(diff == len) res += len + 1; 
+            else if(diff > len) {   
+                ll k = i + j - diff;   
+                if(k % 2 == 0) {    
+                    k /= 2; 
+                    if(k >= 0 && k < n && k < min(i, j)) res++;
                 }
-                last++;
+                k = i + j + diff;   
+                if(k % 2 == 0) {    
+                    k /= 2; 
+                    if(k >= 0 && k < n && k > max(i, j)) res++;
+                }
             }
         }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
-        }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
-        }
-        k++;
-        last = i + 1;
     }
-    cout << MAX(dp) << endl;
+    cout << res << endl;
 }
 
 signed main() {
@@ -179,7 +173,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

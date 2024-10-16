@@ -142,35 +142,36 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 void solve() {
     int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
-                }
-                last++;
-            }
-        }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
-        }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
-        }
-        k++;
-        last = i + 1;
+    int N = n + m + 1;  
+    vi a(N), b(N); cin >> a >> b;   
+    vpii programmer, tester;
+    for(int i = 0; i < N; i++) {    
+        if((int)tester.size() == m + 1) programmer.pb(MP(a[i], i)); 
+        else if((int)programmer.size() == n + 1) tester.pb(MP(b[i], i));    
+        else if(a[i] > b[i]) programmer.pb(MP(a[i], i));    
+        else tester.pb(MP(b[i], i));
     }
-    cout << MAX(dp) << endl;
+    ll sm = 0;  
+    for(auto& [x, y] : programmer) sm += x; 
+    for(auto& [x, y] : tester) sm += x;
+    vll ans(N, sm);
+    if((int)programmer.size() == n + 1) {   
+        for(auto& [x, id] : programmer) ans[id] -= x;   
+        int ID = programmer.back().ss;
+        for(auto& [x, id] : tester) {   
+            ans[id] = ans[id] - x - a[ID] + b[ID];
+        }
+    }
+    else {  
+        for(auto& [x, id] : tester) ans[id] -= x;
+        int ID = tester.back().ss;
+        for(auto& [x, id] : programmer) {   
+            ans[id] = ans[id] - x - b[ID] + a[ID]; 
+        }
+    }
+    for(auto& it : ans) cout << it << ' ';  
+    cout << endl;
+
 }
 
 signed main() {
@@ -179,7 +180,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
