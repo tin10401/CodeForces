@@ -141,36 +141,27 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
-                }
-                last++;
-            }
-        }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
-        }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
-        }
-        k++;
-        last = i + 1;
+    int n; cin >> n;    
+    vvi graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    cout << MAX(dp) << endl;
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1, int d = 0, db pb = 1) -> db {    
+        if(graph[node].size() == 1 && node != 1) {  
+            return d * pb;
+        }
+        db res = 0; 
+        int l = graph[node].size() - (par != -1);
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            res += dfs(dfs, nei, node, d + 1, pb / l);
+        }
+        return res;
+    };
+    cout << fixed << setprecision(15) << dfs(dfs) << endl;
+
 }
 
 signed main() {

@@ -141,36 +141,28 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
-                }
-                last++;
-            }
+    int n; cin >> n;    
+    vvc grid(2, vc(n)); cin >> grid;
+    auto ok = [&](vpii a) -> bool {  
+        int cnt = 0;
+        for(auto& [x, y] : a) { 
+            if(x >= n || y >= n) return false;  
+            cnt += grid[x][y] == 'A';
         }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
+        return cnt >= 2;
+    };
+    vvi dp(n + 4, vi(3));   
+    for(int i = n - 1; i >= 0; i--) {   
+        for(int offSet = 0; offSet <= 2; offSet++) {   
+            int j = i + offSet - 1;
+            if(j < 0) continue;
+            int& ans = dp[i][offSet];
+            ans = ok({{0, i}, {0, i + 1}, {0, i + 2}}) + ok({{1, j}, {1, j + 1}, {1, j + 2}}) + dp[i + 3][offSet];
+            if(i == j || i + 1 == j) ans = max(ans, ok({{0, i}, {1, j}, {0, i + 1}}) + dp[i + 2][i != j]);  
+            if(i == j || j + 1 == i) ans = max(ans, ok({{0, i}, {1, j}, {1, j + 1}}) + dp[i + 1][i == j ? 2 : 1]);
         }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
-        }
-        k++;
-        last = i + 1;
     }
-    cout << MAX(dp) << endl;
+    cout << dp[0][1] << endl;
 }
 
 signed main() {
@@ -179,7 +171,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

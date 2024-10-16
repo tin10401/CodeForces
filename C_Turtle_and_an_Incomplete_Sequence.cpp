@@ -141,36 +141,57 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
+    int n; cin >> n;    
     vi a(n); cin >> a;  
-    vi dp(m + 2, -inf);   
-    dp[0] = 0;  
-    a.pb(0);
-    for(int i = 0, last = -1, k = 0; i <= n; i++) {  
-        if(a[i]) continue;
-        vi strength(k + 1), intel(k + 1);
-        if(k) {    
-            while(last < i) {   
-                int x = abs(a[last]);
-                if(x <= k) {  
-                    if(a[last] < 0) strength[x]++;  
-                    else intel[x]++;
-                }
-                last++;
+    auto f = [&](int l, int r) -> void { 
+        auto g = [](int x) -> int { 
+            if(x == 1) return 2;    
+            return x / 2;
+        };
+        if(l == -1 && r == n) {   
+            for(int i = 0; i < n; i++) {    
+                a[i] = i & 1 ? 2 : 1;
             }
         }
-        for(int j = 1; j <= k; j++) {   
-            strength[j] += strength[j - 1]; 
-            intel[j] += intel[j - 1];
+        else if(l == -1) {   
+            for(int i = r; i; i--) {    
+                a[i - 1] = g(a[i]); 
+            }
         }
-        for(int s = k; s >= 0; s--) {   
-            dp[s] += strength[s] + intel[k - s];
-            dp[s + 1] = max(dp[s + 1], dp[s]);
+        else if(r == n) {    
+            for(int i = l; i < n - 1; i++) {    
+                a[i + 1] = g(a[i]);
+            }
         }
-        k++;
-        last = i + 1;
+        else {  
+            while(l + 1 < r) {  
+                if(a[l] >= a[r]) {   
+                    a[l + 1] = g(a[l]);
+                    l++;
+                }
+                else {  
+                    a[r - 1] = g(a[r]);
+                    r--;
+                }
+            }
+        }
+    };
+    for(int left = -1, right = 0; right <= n; right++) { 
+        if(right == n || a[right] != -1) {  
+            f(left, right);
+            left = right;
+        }
     }
-    cout << MAX(dp) << endl;
+    bool ok = true; 
+    for(int i = 0; i < n - 1; i++) {    
+        ok &= a[i] / 2 == a[i + 1] || a[i + 1] / 2 == a[i];
+    }
+    if(!ok) {   
+        cout << -1 << endl; 
+        return;
+    }
+    for(auto& it : a) cout << it << ' ';    
+    cout << endl;
 }
 
 signed main() {
@@ -179,7 +200,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
