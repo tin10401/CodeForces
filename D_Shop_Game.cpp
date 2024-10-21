@@ -148,6 +148,31 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, k; cin >> n >> k;    
+    vi a(n), b(n); cin >> a >> b;   
+    vi id(n);   
+    iota(all(id), 0);   
+    auto cmp = [&](const int i, const int j) -> bool {  
+        return b[i] < b[j];
+    };
+    sort(all(id), cmp);
+    vll prefix(n + 1);   
+    for(int i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1] + max(0, b[id[i - 1]] - a[id[i - 1]]);
+    }
+    ll ans = 0, sm = 0; 
+    pq<int> maxHeap;
+    for(int i = n; i >= 0; i--) {   
+        if(i < n) { 
+            maxHeap.push(a[id[i]]); 
+            sm += a[id[i]]; 
+        }
+        while((int)maxHeap.size() > k) { 
+            sm -= maxHeap.top(); maxHeap.pop();
+        }
+        if((int)maxHeap.size() == k) ans = max(ans, prefix[i] - sm);
+    }
+    cout << ans << endl;
 }
 
 signed main() {
@@ -156,7 +181,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

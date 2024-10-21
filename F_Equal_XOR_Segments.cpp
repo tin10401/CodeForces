@@ -148,6 +148,35 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, q; cin >> n >> q;    
+    vi a(n + 1);    
+    umap<int, vi> mp;
+    for(int i = 1; i <= n; i++) {   
+        int x; cin >> x;
+        a[i] = a[i - 1] ^ x;
+        mp[a[i]].pb(i);
+    }
+    auto f = [&](int i, int x) -> int { 
+        if(!mp.count(x)) return inf;    
+        auto& curr = mp[x]; 
+        auto it = ub(all(curr), i); 
+        if(it == end(curr)) return inf; 
+        return *it;
+    };
+    while(q--) {    
+        int l, r; cin >> l >> r;    
+        int A = a[r] ^ a[l - 1];    
+        if(A == 0) {    
+            cout << "YES" << endl;  
+            continue;
+        }
+        int j = f(l - 1, A ^ a[l - 1]);    
+        bool ok = j < r;
+        int k = f(j, A ^ a[j]);   
+        ok &= k < r;    
+        cout << (ok ? "YES" : "NO") << endl;
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -156,7 +185,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

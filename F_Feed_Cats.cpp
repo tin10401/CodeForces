@@ -147,7 +147,87 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+    
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i] += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+    
+    T get() {   
+        return root[0];
+    }
+
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vvi start(n + 1);   
+    vi end(n + 1);
+    vpii a(m);
+    for(int i = 0; i < m; i++) {    
+        int A, B; cin >> A >> B;
+        start[A].pb(B); 
+        end[B]++;
+    }
+    vi dp(n + 1);   
+    map<int, int> s;
+    for(int i = 1, cat = 0; i <= n; i++) {    
+        dp[i] = max(dp[i], dp[i - 1]);
+        for(auto& it : start[i]) {  
+            s[it]++;
+            cat++;
+        }
+        if(cat) {   
+            int r = s.rbegin()->ff;    
+            dp[r] = max(dp[r], cat + dp[i - 1]);
+        }
+        if(s.count(i)) {    
+            s[i] -= end[i];    
+            cat -= end[i];
+            if(s[i] == 0) s.erase(i);
+        }
+    }
+    cout << dp[n] << endl;
 }
 
 signed main() {
@@ -156,7 +236,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

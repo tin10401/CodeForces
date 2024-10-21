@@ -147,7 +147,83 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = inf;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+    
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i] += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i];    
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+};
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    vi s(n + 1, -1), e(n + 1, -1);  
+    int res = 0;    
+    SGT<int> seg_tree(n);
+    for(int i = 0, pre = 0; i < n; i++) {   
+        seg_tree.update(s[a[i]] + 1, e[a[i]], -1);  
+        seg_tree.update(e[a[i]] + 1, i, 1);   
+        if(seg_tree.queries(pre, i) == 0) { 
+            res++;  
+            pre = i + 1;
+        }
+        s[a[i]] = e[a[i]];
+        e[a[i]] = i;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -156,7 +232,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

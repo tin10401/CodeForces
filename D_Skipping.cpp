@@ -147,7 +147,80 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = INF;
+        root.rsz(n * 4, INF);    
+        lazy.rsz(n * 4, INF);
+        update(0, 0, 0);
+    }
+    
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == INF) return;    
+        root[i] = min(root[i], lazy[i]);
+        if(left != right) { 
+            lazy[lc] = min(lazy[lc], lazy[i]);  
+            lazy[rc] = min(lazy[rc], lazy[i]);
+        }
+        lazy[i] = INF;
+    }
+
+    T queries(int i) { 
+        return queries(entireTree, i);
+    }
+    
+    T queries(iterator, int id) {   
+        pushDown;
+        if(left == right) return root[i];   
+        int middle = midPoint;  
+        if(id <= middle) return queries(lp, id);    
+        return queries(rp, id);
+    }
+
+};
 void solve() {
+    int n; cin >> n;    
+    vi a(n), b(n); cin >> a >> b;   
+    ll ans = 0, running_sum = 0;   
+    SGT<ll> root(n);
+    for(int i = 0; i < n; i++) {    
+        running_sum += a[i];
+        auto cost = root.queries(i);
+        if(cost == INF) continue;   
+        ans = max(ans, running_sum - cost);
+        root.update(0, b[i] - 1, cost + a[i]);
+    }
+    cout << ans << endl;
 }
 
 signed main() {
@@ -156,7 +229,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

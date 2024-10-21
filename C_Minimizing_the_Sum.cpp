@@ -148,6 +148,19 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n); cin >> a; 
+    vvll dp(n + 1, vll(k + 1, INF));
+    fill(all(dp[n]), 0);
+    for(int i = n - 1; i >= 0; i--) {   
+        for(int op = 0; op <= k; op++) {    
+            for(int j = i, curr = inf; j < min(n, i + op + 1); j++) {   
+                curr = min(curr, a[j]); 
+                dp[i][op] = min(dp[i][op], (ll)curr * (j - i + 1) + dp[j + 1][op - (j - i)]);
+            }
+        }
+    }
+    cout << dp[0][k] << endl;
 }
 
 signed main() {
@@ -156,7 +169,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

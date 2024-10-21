@@ -148,6 +148,24 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vpii a;
+    auto output = [&](int op, int x) -> void {    
+        cout << op << ' ' << x << ' ';
+        for(int i = 1; i <= n; i++) {   
+            cout << i << (i == n ? '\n' : ' ');
+        }
+    };
+    int sm = 0; 
+    for(int i = n; i; i--) {    
+        sm += i * i * 2 - i;
+    }
+    cout << sm << ' ' << 2 * n << endl;
+    for(int i = n; i; i--) {   
+        for(int j = 1; j <= 2; j++) {   
+            output(j, i);
+        }
+    }
 }
 
 signed main() {
@@ -156,7 +174,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

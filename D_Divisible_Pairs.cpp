@@ -148,6 +148,18 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, x, y; cin >> n >> x >> y;    
+    vi a(n); cin >> a;  
+    ll res = 0;    
+    map<pii, int> mp;
+    for(int i = 0; i < n; i++) {    
+        pii key = MP((x - (a[i] % x)) % x, (y + a[i] % y) % y);
+        res += mp[key]; 
+        key = MP(a[i] % x, a[i] % y);   
+        mp[key]++;
+    }
+    // (a % x + b % x) % x == 0 && (a % x - b % x) % y == 0
+    cout << res << endl;
 }
 
 signed main() {
@@ -156,7 +168,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -148,6 +148,33 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vvi grid(n, vi(m)); cin >> grid;        
+    queue<ar(3)> minHeap;
+    minHeap.push({0, 0, 0});    
+    vvi dp(n, vi(m, inf));
+    dp[0][0] = 0;
+    while(!minHeap.empty()) {   
+        auto [cost, i, j] = minHeap.front(); minHeap.pop();
+        int ii = (i + 2) % n;
+        if(!grid[(i + 1) % n][j] && !grid[ii][j] && dp[ii][j] == inf) { 
+            dp[ii][j] = cost + 1;   
+            minHeap.push({cost + 1, ii, j});
+        }
+        ii = (i + 1) % n;   
+        if(j < m - 1 && !grid[ii][j + 1] && dp[ii][j + 1] == inf) {  
+            dp[ii][j + 1] = cost + 1;   
+            minHeap.push({cost + 1, ii, j + 1});
+        }
+    }
+    int res = inf;
+    for(int i = 0; i < n; i++) {    
+        if(dp[i][m - 1] >= inf) continue;
+        int t = dp[i][m - 1];
+        int exact_row = ((i - t) % n + n) % n; 
+        res = min(res, dp[i][m - 1] + (exact_row + 1) % n);
+    }
+    cout << (res >= inf ? -1 : res) << endl;
 }
 
 signed main() {
@@ -156,7 +183,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
