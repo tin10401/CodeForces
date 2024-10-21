@@ -148,6 +148,26 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n + 1);    
+    for(int i = 1; i <= n; i++) cin >> a[i];    
+    int M = MAX(a); 
+    vi seg(M + 1);  
+    for(int i = 1; i <= n; i++) {   
+        int l = a[i - 1], r = a[i]; 
+        if(l >= r) continue;    
+        seg[l]++;   
+        seg[r]--;
+    }
+    for(int i = 1; i <= M; i++) seg[i] += seg[i - 1];
+    for(int k = 1; k <= M; k++) {    
+        ll ans = 0;
+        for(int j = 0; j <= M; j += k) {    
+            ans += seg[j];
+        }
+        cout << ans << (k == M ? '\n' : ' ');
+    }
+
 }
 
 signed main() {

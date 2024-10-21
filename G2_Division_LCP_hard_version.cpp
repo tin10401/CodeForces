@@ -147,7 +147,73 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+vi KMP(const string s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
+    
+vi Z_Function(const string& s) {    
+    int n = s.size();   
+    vi prefix(n);   
+    for(int i = 1, left = 0, right = 0; i < n; i++) {   
+        if(i > right) { 
+            left = right = i;   
+            while(right < n && s[right] == s[right - left]) right++;    
+            prefix[i] = right-- - left;
+        }
+        else {  
+            if(prefix[i - left] + i < right + 1) {  
+                prefix[i] = prefix[i - left];
+            }
+            else {  
+                left = i;   
+                while(right < n && s[right] == s[right - left]) right++;    
+                prefix[i] = right-- - left;
+            }
+        }
+    }
+    return prefix;
+}
+
 void solve() {
+    int n, l, r; cin >> n >> l >> r;    
+    string s; cin >> s;
+    auto prefix = Z_Function(s);
+    prefix[0] = n + 1;
+    vi dp(n + 1, -1);
+    auto f = [&](int x) -> int {    
+        if(dp[x] != -1) return dp[x];
+        int cnt = 0;
+        for(int i = 0; i < n; i++) {    
+            if(prefix[i] >= x) { 
+                cnt++;  
+                i += x - 1;
+            }
+        }
+        return dp[x] = cnt;
+    };
+    auto queries = [&](int k) -> int {  
+        int left = 1, right = n, res = 0;   
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(f(middle) >= k) res = middle, left = middle + 1;  
+            else right = middle - 1;
+        }
+        return res;
+    };
+    vi ans(n + 1);
+    for(int i = 1; i * i <= n; i++) {   
+        ans[f(i)] = max(ans[f(i)], i);
+    }
+    for(int i = n - 1; i >= 0; i--) ans[i] = max(ans[i], ans[i + 1]);   
+    for(int i = l; i <= r; i++) {   
+        cout << ans[i] << (i == r ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -156,7 +222,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -179,3 +245,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

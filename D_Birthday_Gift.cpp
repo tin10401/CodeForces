@@ -148,6 +148,28 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, x; cin >> n >> x;    
+    vi a(n); cin >> a;  
+    auto f = [&](int mask) -> int {    
+        int k = 0, curr = 0;
+        for(auto& i : a) {  
+            curr ^= i;  
+            if((curr | mask) == mask) { 
+                curr = 0;   
+                k++;
+            }
+        }
+        return curr == 0 ? k : -1;
+    };
+    int res = f(x);
+    for(int i = 0; i < 30; i++) {    
+        if((x >> i) & 1) {  
+            int mask = ((x ^ (1LL << i)) | ((1LL << i) - 1));
+            res = max(res, f(mask));
+        }
+    }
+    if(((x + 1) & x) == 0) res = max(res, f(x));  
+    cout << res << endl;
 }
 
 signed main() {
@@ -156,7 +178,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

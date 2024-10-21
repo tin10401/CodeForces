@@ -148,6 +148,40 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    auto f = [](const string& s) -> int {   
+        int i = s.size() - 1;   
+        int cnt = 0;    
+        while(i >= 0 && s[i] == '0') {  
+            cnt++;  
+            i--;
+        }
+        return cnt;
+    };
+    pq<pii> maxHeap;
+    for(int i = 0; i < n; i++) {    
+        string x; cin >> x; 
+        maxHeap.push(MP(f(x), (int)x.size()));
+    }
+    int turn = 1;
+    while(!maxHeap.empty()) { 
+        if(turn) {  
+            auto [sz, c] = maxHeap.top(); maxHeap.pop();    
+            maxHeap.push(MP(0, c - sz));
+        }
+        else {  
+            auto [_, s1] = maxHeap.top(); maxHeap.pop();    
+            auto [__, s2] = maxHeap.top(); maxHeap.pop();   
+            maxHeap.push(MP(__, s1 + s2));
+        }
+        turn ^= 1;
+        if(((int)maxHeap.size() == 1 && turn == 0) || (!maxHeap.empty() && maxHeap.top().ff == 0)) break;
+    }
+    int N = 0;  
+    while(!maxHeap.empty()) {   
+        N += maxHeap.top().ss; maxHeap.pop();
+    }
+    cout << (N <= m ? "Anna" : "Sasha") << endl;
 }
 
 signed main() {
@@ -156,7 +190,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

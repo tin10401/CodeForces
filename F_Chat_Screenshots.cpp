@@ -148,6 +148,31 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    vvi g(m, vi(n)); cin >> g;
+    vvi graph(n + 1);
+    for(int i = 0; i < m; i++) {    
+        for(int j = 1; j < n - 1; j++) {    
+            graph[g[i][j] - 1].pb(g[i][j + 1] - 1); 
+        }
+    }
+    vi degree(n);   
+    for(int i = 0; i < n; i++) {    
+        for(auto& j : graph[i]) degree[j]++;
+    }
+    queue<int> q;   
+    int cnt = 0;    
+    for(int i = 0; i < n; i++) {    
+        if(degree[i] == 0) q.push(i);
+    }
+    while(!q.empty()) { 
+        int node = q.front(); q.pop();  
+        cnt++;  
+        for(auto& nei : graph[node]) {  
+            if(--degree[nei] == 0) q.push(nei);
+        }
+    }
+    cout << (cnt == n ? "YES" : "NO") << endl;
 }
 
 signed main() {
@@ -156,7 +181,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

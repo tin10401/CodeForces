@@ -133,7 +133,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -148,6 +148,31 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    string s; cin >> s; 
+    int n = s.size();   
+    int res = 0;
+    auto ok = [&](char a, char b) -> bool {  
+        return a == b || a == '?' || b == '?';
+    };
+    for(int len = (n & 1 ? n - 1 : n); len && res == 0; len -= 2) {  
+        int c = 0;
+        for(int i = len / 2, j = 0; i < len; i++, j++) {  
+            c += ok(s[i], s[j]);
+        }
+        if(c == len / 2) {  
+            res = len;  
+            break;
+        }
+        for(int i = len, j = len / 2, k = 0; i < n; i++, j++, k++) { 
+            c -= ok(s[j], s[k]);    
+            c += ok(s[i], s[j]);
+            if(c == len / 2) {  
+                res = len;  
+                break;
+            }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -156,7 +181,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

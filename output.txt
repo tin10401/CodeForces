@@ -1,3 +1,8 @@
-1 2 3
-1 2 3 8 5 36
-1 2 3 8 5 36 7
+Case #1: C
+Case #2: C
+Case #3: F
+Case #4: 0
+Case #5: C
+Case #6: F
+Case #7: 0
+Case #8: C

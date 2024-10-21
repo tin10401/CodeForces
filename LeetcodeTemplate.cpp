@@ -504,6 +504,20 @@ class SGT {
         lazy[i] = 0;
     }
 
+	T queries(int id) {
+		return queries(entireTree, id);
+	}
+	
+	T queries(iterator, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries(lp, id);
+		return queries(rp, id);
+	}
+
     T queries(int start, int end) { 
         return queries(entireTree, start, end);
     }
@@ -515,6 +529,10 @@ class SGT {
         int middle = midPoint;  
         return merge(queries(lp, start, end), queries(rp, start, end));
     }
+	
+	T get() {
+		return root[0];
+	}
 
 };
     

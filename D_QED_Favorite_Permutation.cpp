@@ -148,6 +148,40 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, q; cin >> n >> q;    
+    vi a(n); cin >> a;  
+    string s; cin >> s; 
+    vi prefix_max(n), prefix_min(n);    
+    for(int i = 0, curr = 0; i < n; i++) {    
+        curr = max(curr, a[i]); 
+        prefix_max[i] = curr;
+    }
+    for(int i = n - 1, curr = inf; i >= 0; i--) {   
+        curr = min(curr, a[i]); 
+        prefix_min[i] = curr;
+    }
+    int bad = 0;    
+    for(int i = 1; i < n; i++) {    
+        if(s[i - 1] == 'L' && s[i] == 'R' && prefix_max[i - 1] > prefix_min[i]) bad++;
+    }
+    auto change = [&](int i) -> void {   
+        auto f = [&](int x, int v) -> void {    
+            if(x - 1 < 0 || x >= n) return;
+            if(s[x - 1] == 'L' && s[x] == 'R' && prefix_max[x - 1] > prefix_min[x]) bad += v;
+        };
+        auto flip = [](char ch) -> char {   
+            return ch == 'L' ? 'R' : 'L';
+        };
+        f(i, -1), f(i + 1, -1); 
+        s[i] = flip(s[i]);
+        f(i, 1), f(i + 1, 1);
+    };
+    while(q--) {    
+        int id; cin >> id;  
+        change(--id);
+        cout << (bad == 0 ? "YES" : "NO") << endl;
+    }
+    
 }
 
 signed main() {
@@ -156,7 +190,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
