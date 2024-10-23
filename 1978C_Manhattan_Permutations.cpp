@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -148,35 +148,25 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
-                }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
-                }
-            }
-        }
+    ll n, k; cin >> n >> k;    
+    ll sm = 0; 
+    for(int i = 1; i <= n; i++) {    
+        sm += abs(i - (n - i + 1));
     }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
-        }
-        else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
-            }
-            cout << ans << (k == n ? '\n' : ' ');
-        }
+    if(k % 2 || k > sm) {   
+        cout << "NO" << endl;   
+        return;
+    }
+    vi a(n + 1); iota(all(a), 0);   
+    k /= 2;
+    for(ll i = 1, r = n; i <= n / 2; i++, r--) {   
+        ll mn = min(k, r - i);
+        swap(a[i], a[i + mn]);  
+        k -= mn;
+    }
+    cout << "YES" << endl;
+    for(int i = 1; i <= n; i++) {   
+        cout << a[i] << (i == n ? '\n' : ' ');
     }
 }
 
@@ -186,7 +176,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

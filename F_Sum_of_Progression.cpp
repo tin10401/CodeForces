@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -148,36 +148,45 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
-                }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
-                }
+    int n, q; cin >> n >> q;    
+    vll a(n + 1);    
+    for(int i = 1; i <= n; i++) cin >> a[i];    
+    int block = (int)sqrt(n);
+    vll ans(q);
+    vvar(3) Q(block + 1);
+    for(int i = 0; i < q; i++) {    
+        int s, d, k; cin >> s >> d >> k;    
+        if(d > block) { 
+            for(int j = s, c = 1; j <= s + (k - 1) * d; j += d, c++) {  
+                ans[i] += a[j] * c;
+            }
+            continue;
+        }  
+        Q[d].pb({s, k, i});
+    }
+    for(int d = 1; d <= block; d++) {   
+        auto& curr = Q[d];  
+        if(curr.empty()) continue;  
+        vll prefix(n + 1), running_sum(n + 1);
+        for(int i = 1; i <= n; i++) {   
+            prefix[i] = a[i];   
+            int c = (i - 1) / d + 1;
+            running_sum[i] = a[i] * c; 
+            if(i >= d) {    
+                prefix[i] += prefix[i - d];
+                running_sum[i] += running_sum[i - d];
             }
         }
-    }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
-        }
-        else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
-            }
-            cout << ans << (k == n ? '\n' : ' ');
+        for(auto& [s, k, id] : curr) {  
+            ll prefix_sum = prefix[s + (k - 1) * d] - (s >= d ? prefix[s - d] : 0); 
+            ll sm = running_sum[s + (k - 1) * d] - (s >= d ? running_sum[s - d] : 0);
+            ll c = (s - 1) / d;
+            ans[id] = sm - prefix_sum * c;
         }
     }
+    for(auto& i : ans) cout << i << ' ';    
+    cout << endl;
+
 }
 
 signed main() {
@@ -186,7 +195,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
