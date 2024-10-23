@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -148,36 +148,31 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
-                }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
-                }
+    int n, x, y; cin >> n >> x >> y;    
+    vpii a(n); cin >> a;
+    vvi dp(x + 1, vi(n, inf)); 
+    dp[0][0] = 0;
+    for(int i = n - 1; i >= 0; i--) {   
+        auto nxt = dp;  
+        auto &[sweet, salty] = a[i];
+        for(int j = 0; j + sweet <= x; j++) {    
+            for(int k = 0; k < n - 1; k++) {   
+                auto& A = nxt[j + sweet][k + 1];
+                A = min(A, dp[j][k] + salty);
+            }
+        }
+        swap(dp, nxt);
+    }
+    int res = 0;
+    for(int i = 0; i <= x; i++) {   
+        for(int j = n - 1; j >= 0; j--) {   
+            if(dp[i][j] <= y) {  
+                res = max(res, j + 1);
+                break;
             }
         }
     }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
-        }
-        else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
-            }
-            cout << ans << (k == n ? '\n' : ' ');
-        }
-    }
+    cout << res << endl;
 }
 
 signed main() {

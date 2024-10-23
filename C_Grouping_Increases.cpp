@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -149,35 +149,32 @@ void generatePrime() {  primeBits.set(2);
 
 void solve() {
     int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
-                }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
-                }
-            }
-        }
-    }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
+    vi a, b;    
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        if(b.empty()) { 
+            if(a.empty() || a.back() >= x) a.pb(x); 
+            else b.pb(x);
         }
         else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
+            bool ok1 = a.back() >= x, ok2 = b.back() >= x;  
+            if(ok1 == ok2) {    
+                if(a.back() > b.back()) b.pb(x);    
+                else a.pb(x);
             }
-            cout << ans << (k == n ? '\n' : ' ');
+            else if(ok1) a.pb(x);   
+            else b.pb(x);
         }
     }
+    auto f = [](const vi& a) -> int {   
+        int n = a.size();   
+        int ans = 0;    
+        for(int i = 0; i < n - 1; i++) {    
+            ans += a[i] < a[i + 1];
+        }
+        return ans;
+    };
+    cout << f(a) + f(b) << endl;
 }
 
 signed main() {
@@ -186,7 +183,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -148,36 +148,35 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
-                }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
+    int n, m; cin >> n >> m;    
+    vvi g(n + 1), f(n + 1);
+    for(int i = 0; i < m; i++) {    
+        int a, b; cin >> a >> b;    
+        g[a].pb(b); 
+        f[b].pb(a);
+    }
+    auto dfs = [](vvi& graph) -> vi {  
+        vi dp(graph.size(), inf); 
+        dp[1] = 0;
+        queue<int> q;   
+        q.push(1);  
+        while(!q.empty()) { 
+            int node = q.front(); q.pop();  
+            for(auto& nei : graph[node]) {  
+                if(dp[nei] == inf) {    
+                    dp[nei] = dp[node] + 1; 
+                    q.push(nei);
                 }
             }
         }
+        return dp;
+    };
+    auto a = dfs(f), b = dfs(g);    
+    int res = inf;  
+    for(int i = 2; i <= n; i++) {   
+        res = min(res, a[i] + b[i]);
     }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
-        }
-        else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
-            }
-            cout << ans << (k == n ? '\n' : ' ');
-        }
-    }
+    cout << (res == inf ? -1 : res) << endl;
 }
 
 signed main() {

@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -148,36 +148,22 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
-                }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
-                }
-            }
-        }
+    ll n; cin >> n;    
+    vi bits;    
+    for(int i = 0; 1LL << i <= n; i++) {    
+        if((n >> i) & 1) bits.pb(i);
     }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
-        }
-        else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
-            }
-            cout << ans << (k == n ? '\n' : ' ');
-        }
+    if(bits.size() == 1) {  
+        cout << 1 << endl;  
+        cout << n << endl;
+        return;
     }
+    rev(bits);  
+    cout << bits.size() + 1 << endl;    
+    for(auto& i : bits) {   
+        cout << (n ^ (1LL << i)) << ' ';
+    }
+    cout << n << endl;
 }
 
 signed main() {
@@ -186,7 +172,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

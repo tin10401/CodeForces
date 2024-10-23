@@ -134,7 +134,7 @@ const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
@@ -149,35 +149,33 @@ void generatePrime() {  primeBits.set(2);
 
 void solve() {
     int n; cin >> n;    
-    vi a(n); cin >> a;
-    map<int, int> dp[n][n + 1];
-    for(int i = 1; i < n; i++) {    
-        for(int k = 2; k <= n; k++) {   
-            for(int j = 0; j < i; j++) {    
-                int d = a[i] - a[j];    
-                if(k == 2) {    
-                    dp[i][k][d]++;  
+    vpii a(n); cin >> a;    
+    int target = 0; 
+    for(auto& [x, y] : a) target += y;  
+    if(target % 3) {    
+        cout << -1 << endl; 
+        return;
+    }
+    target /= 3;    
+    vvi dp(target + 1, vi(target + 1, inf));
+    dp[0][0] = 0;
+    for(auto& [t, x] : a) { 
+        vvi nxt(target + 1, vi(target + 1, inf));    
+        for(int t1 = 0; t1 <= target; t1++) {   
+            for(int t2 = 0; t2 <= target; t2++) {   
+                int c1 = t != 1, c2 = t != 2, c3 = t != 3;
+                nxt[t1][t2] = min(nxt[t1][t2], dp[t1][t2] + c3);
+                if(t1 + x <= target) {  
+                    nxt[t1 + x][t2] = min(nxt[t1 + x][t2], dp[t1][t2] + c1);
                 }
-                else {
-                    dp[i][k][d] = (dp[i][k][d] + dp[j][k - 1][d]) % MOD;
+                if(t2 + x <= target) {  
+                    nxt[t1][t2 + x] = min(nxt[t1][t2 + x], dp[t1][t2] + c2);
                 }
             }
         }
+        swap(dp, nxt);
     }
-    for(int k = 1; k <= n; k++) {    
-        if(k == 1) {    
-            cout << n << ' ';  
-        }
-        else {  
-            ll ans = 0; 
-            for(int i = 0; i < n; i++) {    
-                for(auto& it : dp[i][k]) {  
-                    ans = (ans + it.ss) % MOD;
-                }
-            }
-            cout << ans << (k == n ? '\n' : ' ');
-        }
-    }
+    cout << (dp[target][target] >= inf ? -1 : dp[target][target]) << endl;
 }
 
 signed main() {
