@@ -132,7 +132,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
-const static int MK = 25;
+const static int MK = 20;
 const static int MX = 1 << 20;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -148,23 +148,32 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n, q; cin >> n >> q;    
-    vi a(n); cin >> a;  
-    vi left(n), right(n);   
-    iota(all(left), 0), iota(all(right), 0);
-    for(int i = 1; i < n; i++) {    
-        if(a[i] == a[i - 1]) left[i] = left[i - 1];
+    int n; cin >> n;    
+    vi a(MX);   
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        a[x]++;
     }
-    for(int i = n - 2; i >= 0; i--) {   
-        if(a[i] == a[i + 1]) right[i] = right[i + 1];
+    vi POW(n + 1); 
+    POW[0] = 1; 
+    for(int i = 1; i <= n; i++) {   
+        POW[i] = (POW[i - 1] * 2) % MOD;
     }
-    while(q--) {    
-        int l, r, k; cin >> l >> r >> k;
-        l--, r--;   
-        int j = l + (r - l + 1) / 2;
-        l = max(l, left[j]), r = min(r, right[j]);  
-        cout << (r - l + 1 >= k ? a[j] : -1) << endl;
+    for(int j = 0; j < 20; j++) {   
+        for(int mask = 0; mask < 1 << 20; mask++) { 
+            if((mask >> j) & 1) {    
+                a[mask ^ (1 << j)] += a[mask];
+            }
+        }
     }
+    ll res = 0; 
+    for(int mask = 0; mask < 1 << 20; mask++) {   
+        int p = pct(mask) % 2;  
+        int x = POW[a[mask]];
+        if(p == 0) res = (res + x) % MOD;    
+        else res = (res - x + MOD) % MOD;
+    }
+    cout << res << endl;
 }
 
 signed main() {
