@@ -132,8 +132,8 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
-const static int MK = 25;
-const static int MX = 1 << 20;
+const static int MK = 20;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -146,24 +146,85 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = inf;
+        root.rsz(n * 4, inf);    
+        lazy.rsz(n * 4, inf);
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = min(root[i], val);
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
 
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == inf) return;    
+        root[i] = min(root[i], lazy[i]);
+        if(left != right) { 
+            lazy[lc] = min(lazy[lc], lazy[i]);  
+            lazy[rc] = min(lazy[rc], lazy[i]);
+        }
+        lazy[i] = inf;
+    }
+
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+};
 void solve() {
     int n, q; cin >> n >> q;    
-    vi a(n); cin >> a;  
-    vi left(n), right(n);   
-    iota(all(left), 0), iota(all(right), 0);
-    for(int i = 1; i < n; i++) {    
-        if(a[i] == a[i - 1]) left[i] = left[i - 1];
+    vpii a;
+    umap<int, int> mp;  
+    for(int i = 1; i <= n; i++) {    
+        int x; cin >> x;    
+        if(mp.count(x)) a.pb(MP(mp[x], i)); 
+        mp[x] = i;
     }
-    for(int i = n - 2; i >= 0; i--) {   
-        if(a[i] == a[i + 1]) right[i] = right[i + 1];
+    srt(a); 
+    SGT<int> f(n + 1), g(n + 1);
+    for(auto& [start, end] : a) {   
+        int x = f.queries(start + 1, end - 1);  
+        if(x < 0) g.update(-x, end);  
+        f.update(end, -start);
     }
     while(q--) {    
-        int l, r, k; cin >> l >> r >> k;
-        l--, r--;   
-        int j = l + (r - l + 1) / 2;
-        l = max(l, left[j]), r = min(r, right[j]);  
-        cout << (r - l + 1 >= k ? a[j] : -1) << endl;
+        int l, r; cin >> l >> r;    
+        int x = g.queries(l, r);    
+        cout << (x <= r ? "NO" : "YES") << endl;
     }
 }
 
@@ -173,7 +234,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -132,8 +132,8 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
-const static int MK = 25;
-const static int MX = 1 << 20;
+const static int MK = 20;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -148,22 +148,41 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n, q; cin >> n >> q;    
-    vi a(n); cin >> a;  
-    vi left(n), right(n);   
-    iota(all(left), 0), iota(all(right), 0);
-    for(int i = 1; i < n; i++) {    
-        if(a[i] == a[i - 1]) left[i] = left[i - 1];
+    int n; cin >> n;    
+    vvi graph(n + 1);   
+    vi subtree(n + 1, 1);
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        graph[u].pb(v); 
+        graph[v].pb(u);
     }
-    for(int i = n - 2; i >= 0; i--) {   
-        if(a[i] == a[i + 1]) right[i] = right[i + 1];
-    }
-    while(q--) {    
-        int l, r, k; cin >> l >> r >> k;
-        l--, r--;   
-        int j = l + (r - l + 1) / 2;
-        l = max(l, left[j]), r = min(r, right[j]);  
-        cout << (r - l + 1 >= k ? a[j] : -1) << endl;
+    auto f = [&](auto& f, int node = 1, int par = -1) -> void { 
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;
+            f(f, nei, node);
+            subtree[node] += subtree[nei];
+        }
+    };
+    auto F = [&](auto& F, int node = 1, int par = -1) -> int { 
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            if(2 * subtree[nei] > n) return F(F, nei, node);
+        }
+        return node;
+    };
+    f(f);   
+    int center = F(F);
+    vi order;
+    auto dfs = [&](auto& dfs, int node, int par) -> void {   
+        for(auto& nei : graph[node]) {  
+            if(nei != par) dfs(dfs, nei, node);
+        }
+        order.pb(node);
+    };
+    dfs(dfs, center, -1);
+    int len = n / 2;    
+    for(int i = 0; i < len; i++) {   
+        cout << order[i] << ' ' << order[i + len] << endl;
     }
 }
 

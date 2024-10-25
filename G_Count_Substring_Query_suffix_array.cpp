@@ -132,8 +132,8 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
-const static int MK = 25;
-const static int MX = 1 << 20;
+const static int MK = 20;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -146,26 +146,92 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
-
-void solve() {
-    int n, q; cin >> n >> q;    
-    vi a(n); cin >> a;  
-    vi left(n), right(n);   
-    iota(all(left), 0), iota(all(right), 0);
-    for(int i = 1; i < n; i++) {    
-        if(a[i] == a[i - 1]) left[i] = left[i - 1];
+string s;
+int n, gap, tmp[MX], pos[MX], sa[MX];
+bool comp(int x, int y)
+{
+    if(pos[x] != pos[y]) return pos[x] < pos[y];
+    x += gap, y += gap;
+    return x < n && y < n ? pos[x] < pos[y] : x > y;
+}
+ 
+void suffix()
+{
+    for(int i = 0; i < n; i++)
+    {
+        sa[i] = i, pos[i] = s[i];
     }
-    for(int i = n - 2; i >= 0; i--) {   
-        if(a[i] == a[i + 1]) right[i] = right[i + 1];
-    }
-    while(q--) {    
-        int l, r, k; cin >> l >> r >> k;
-        l--, r--;   
-        int j = l + (r - l + 1) / 2;
-        l = max(l, left[j]), r = min(r, right[j]);  
-        cout << (r - l + 1 >= k ? a[j] : -1) << endl;
+    for(gap = 1; ; gap <<= 1)
+    {
+        sort(sa, sa + n, comp);
+        for(int i = 0; i < n - 1; i++)
+        {
+            tmp[i + 1] = tmp[i] + comp(sa[i], sa[i + 1]);
+        }
+        for(int i = 0; i < n; i++)
+        {
+            pos[sa[i]] = tmp[i];
+        }
+        if(tmp[n - 1] == n - 1) break;
     }
 }
+ 
+int check(const string& x, int m)
+{
+    int found = -1, j = sa[m];
+    if(n - j >= (int)x.size()) found = 0;
+    for(int i = 0; i < min(n, (int)x.size()); i++)
+    {
+        if(s[i + j] < x[i]) return -1;
+        if(s[i + j] > x[i]) return 1;
+    }
+    return found;
+}
+void solve()
+{
+    cin >> s;
+    n = s.size();
+    suffix();
+    int q; cin >> q;
+    while(q--)
+    {
+        string x; cin >> x;
+        int left = 0, right = n - 1, ans = -1;
+        while(left <= right)
+        {
+            int middle = left + (right - left) / 2;
+            int val = check(x, middle);
+            if(val == 0)
+            {
+                ans = middle;
+                right = middle - 1;
+            }
+            else if(val == -1) left = middle + 1;
+            else right = middle - 1;
+        }
+        if(ans == -1) 
+        {
+            cout << 0 << endl;
+            continue;
+        }
+        int start;
+        start = ans, left = ans, right = n - 1;
+        while(left <= right)
+        {
+            int middle = left + (right - left) / 2;
+            int val = check(x, middle);
+            if(val == 0)
+            {
+                ans = middle;
+                left = middle + 1;
+            }
+            else if(val == -1) left = middle + 1;
+            else right = middle - 1;
+        }
+        cout << ans - start + 1 << endl;
+    }
+}
+
 
 signed main() {
     IOS;
