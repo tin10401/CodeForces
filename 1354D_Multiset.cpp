@@ -153,6 +153,24 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, q; cin >> n >> q;    
+    vi a(n), b(q); cin >> a >> b;   
+    srt(a);
+    auto f = [&](int x) -> int {    
+        int c = ub(all(a), x) - begin(a);
+        for(auto& k : b) { 
+            if(k > 0 && k <= x) c++;    
+            else if(k < 0 && abs(k) <= c) c--;
+        }
+        return c > 0;
+    };
+    int left = 0, right = inf, res = 0; 
+    while(left <= right) {  
+        int middle = midPoint;
+        if(f(middle)) res = middle, right = middle - 1; 
+        else left = middle + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {

@@ -153,6 +153,33 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;
+    vll a(n); cin >> a;
+    auto f = [](ll x) -> pll {    
+        ll c = 0;  
+        while(x % 2 == 0) {  
+            x /= 2; 
+            c++;
+        }
+        return MP(x, c);
+    };
+    ll sm = 0;
+    stack<pll> s;
+    for(auto& x : a) {  
+        auto [num, p] = f(x);
+        while(!s.empty()) { 
+            auto [b, q] = s.top();  
+            if(b > (num << p)) break;
+            sm = (sm - b * modExpo(2, q, MOD) + b) % MOD;
+            sm = (sm + MOD) % MOD;
+            p += q;
+            s.pop();
+        }
+        sm = (sm + num * modExpo(2, p, MOD)) % MOD;
+        s.push(MP(num, p));
+        cout << sm << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -161,7 +188,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

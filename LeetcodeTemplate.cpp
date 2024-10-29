@@ -37,6 +37,8 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define pll pair<ll, ll>    
 #define vll vt<ll>  
 #define vpll vt<pll>
+#define vvpll vt<vpll>
+#define vvvll vt<vvll>
 #define vi vector<int>
 #define pii pair<int, int>
 #define vpii vector<pair<int, int>>
@@ -135,13 +137,19 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-vi primes;  
+vi primes, first_divisor(MX);  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
-    for(int i = 3; i * i < MX; i += 2) {    if(primeBits[i]) {  for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); } } }
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
+
     
 template<typename T>
 class Treap {
@@ -262,110 +270,73 @@ class Binary_Trie {
     }
 };
 
-class Trie {
-private:
-    int root;
-    int count = 0, n;
-    vector<int> dp;
-    string s;
-    int T[MX][26];       
-    int sfx[MX];         
-    int dict[MX];        
-    int id[MX];          
-    bool isEnd[MX];
+struct TrieNode
+{
+    TrieNode* sfx, *dict, *children[26];
+    int id = -1;
+};
 
+static TrieNode nodes[(int)5e4 + 1];
 
-    int newNode() {
-        fill(T[count], T[count] + 26, -1); 
-        sfx[count] = dict[count] = 0;      
-        id[count] = -1; 
-        isEnd[count] = false;                    
-        return count++;                     
+class Trie
+{
+    public:
+    TrieNode* root;
+    int count = 0;
+    TrieNode* newTrieNode() {
+        nodes[count] = TrieNode();
+        return &nodes[count++];
     }
 
-public:
-    Trie(int n) {
-        this->n = n;
-        dp.rsz(n + 1, 1e9);
-        root = newNode(); 
-        sfx[root] = dict[root] = root; 
-    }
+    Trie(vector<string>& words, vector<int>& costs, string target) {
+        root = newTrieNode();
+        root->sfx = root->dict = root;
 
-    void insert(const string& word) {
-        int curr = root;
-        int l = 0;
-        for (char ch : word) {
-            int idx = ch - 'a';
-            if (T[curr][idx] == -1) {
-                T[curr][idx] = newNode();
-            }
-            curr = T[curr][idx];
-            l++;
-            if (id[curr] == -1) {
-                id[curr] = l; 
-            }
+    }
+    
+    void insert(const string& s) {  
+        TrieNode* curr = root;
+        for(auto& ch : s) {
+            if(!curr->children[ch - 'a']) curr->children[ch - 'a'] = newTrieNode();
+            curr = curr->children[ch - 'a'];
         }
-        isEnd[curr] = true;
+
     }
-
-    void aho_corasick() {
-        queue<int> q;
+    
+    void aho_corasick() {   
+        queue<TrieNode*> q;
         q.push(root);
-
-        while (!q.empty()) {
-            int par = q.front();
+        while(!q.empty()) {
+            TrieNode* par = q.front();
             q.pop();
+            for(int i = 0; i < 26; i++) {
+                TrieNode* child = par->children[i];
+                if(!child) continue;
+                TrieNode* suff = par->sfx;
+                while(suff != root && !suff->children[i]) suff = suff->sfx;
+                if(par != root && suff->children[i]) child->sfx = suff->children[i];
+                else child->sfx = root;
 
-            for (int i = 0; i < 26; i++) {
-                int child = T[par][i];
-                if (child == -1) continue;
-
-                int suff = sfx[par];
-                while (suff != root && T[suff][i] == -1) {
-                    suff = sfx[suff];
-                }
-
-                if (par != root && T[suff][i] != -1) {
-                    sfx[child] = T[suff][i];
-                } else {
-                    sfx[child] = root;
-                }
-
-                dict[child] = (id[sfx[child]] == -1) ? dict[sfx[child]] : sfx[child];
+                child->dict = child->sfx->id == -1 ? child->sfx->dict : child->sfx;
                 q.push(child);
             }
         }
     }
 
-    void queries(int& prev, int i, char ch) {
-        int idx = ch - 'a';
-        while (prev != root && T[prev][idx] == -1) {
-            prev = sfx[prev];
-        }
-
-        if (T[prev][idx] != -1) {
-            prev = T[prev][idx];
-            int curr = (id[prev] == -1) ? dict[prev] : prev;
-
-            while (id[curr] != -1) {
-                int j = id[curr];
-                dp[i] = min(dp[i], dp[i - j] + 1);
-                curr = dict[curr];
+    void queries(TrieNode*& prev, int i, char ch)
+    {
+        while(prev != root && !prev->children[ch - 'a']) prev = prev->sfx;
+        if(prev->children[ch - 'a']) {
+            prev = prev->children[ch - 'a'];
+            TrieNode* curr = prev->id == -1 ? prev->dict : prev;
+            while(curr->id != -1){
+                int j = curr->id;
+                curr = curr->dict;
             }
         }
     }
-
-    int get() {
-        dp[0] = 0;
-        int prev = root;
-
-        for (int i = 1; i <= n; i++) {
-            queries(prev, i, s[i - 1]);
-        }
-
-        return dp[n] == 1e9 ? -1 : dp[n];
-    }
 };
+
 
 class DSU { 
     public: 
@@ -456,11 +427,11 @@ class SGT {
         root[i] = merge(root[lc], root[rc]);
     }
     
-    void update(int id, int val) {  
+    void update(int id, T val) {  
         update(entireTree, id, val);
     }
     
-    void update(iterator, int id, int val) {    
+    void update(iterator, int id, T val) {    
         if(left == right) { 
             root[i] = val;  
             return;
@@ -471,11 +442,11 @@ class SGT {
         root[i] = merge(root[lc], root[rc]);
     }
 
-    void update(int start, int end, int val) { 
+    void update(int start, int end, T val) { 
         update(entireTree, start, end, val);
     }
     
-    void update(iterator, int start, int end, int val) {    
+    void update(iterator, int start, int end, T val) {    
         pushDown;   
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
@@ -638,13 +609,32 @@ class RabinKarp {
 class LCA { 
     public: 
     int n;  
-    vvi dp; 
-    vi depth;
-    LCA(vvi& dp, vi& depth) {   
-        this->dp = dp;  
-        this->depth = depth;
-        n = depth.size();
+    vvi dp, graph; 
+    vi depth, parent;
+    vi startTime, endTime;
+    int timer = 0;
+    LCA(vvi& graph) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        parent.rsz(n, 1);
+        startTime.rsz(n);   
+        endTime.rsz(n);
+        dfs();
         init();
+    }
+    
+    void dfs(int node = 1, int par = -1) {   
+        startTime[node] = timer++;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+            dfs(nei, node);
+        }
+        endTime[node] = timer - 1;
     }
     
     void init() {  
@@ -655,6 +645,10 @@ class LCA {
         }
     }
     
+    bool isAncestor(int u, int v) { 
+        return startTime[u] <= startTime[v] && startTime[v] <= endTime[u]; 
+    }
+
     int lca(int a, int b) { 
         if(depth[a] > depth[b]) {   
             swap(a, b);
@@ -675,6 +669,8 @@ class LCA {
         return dp[a][0];
     }
 };
+
+
 
 class Combinatoric {    
     public: 
@@ -697,7 +693,7 @@ class Combinatoric {
         }
     }
     
-    ll choose(int a, int b) {  
+    ll choose(ll a, ll b) {  
 		if(a < b) return 0;
         return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
     }
@@ -721,16 +717,18 @@ ll XOR_SUM(vi& a) {
     return ans;
 }
 
-vi countBit(ll n) { 
-    vi cnt(62);
-    while(n) {  
-        int msb = log2(n);  
-        ll c = 1LL << msb; 
-        cnt[msb] += n - c + 1;
-        for(int i = 0; i < msb; i++) {  
-            cnt[i] += c / 2;
-        }
+vll countBit(ll n) { 
+    vll cnt(62);
+    while(n > 0) {  
+        ll msb = log2(n);
+        ll c = (1LL << msb); 
+        cnt[msb] = (cnt[msb] + n - c + 1) % MOD;
         n -= c;
+        c >>= 1;
+        for(int i = 0; i < msb; i++) {  
+            cnt[i] = (cnt[i] + c) % MOD;
+        }
     }
     return cnt;
 }
+

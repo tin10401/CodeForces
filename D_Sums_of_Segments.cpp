@@ -153,6 +153,33 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n; cin >> n;
+    vll a(n); cin >> a;  
+    vll prefix(n + 1), PREFIX(n + 1), len(n + 1);    
+    for(ll i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1] + a[i - 1];
+        PREFIX[i] = PREFIX[i - 1] + (ll)a[i - 1] * (n - i + 1);
+        len[i] = len[i - 1] + n - i + 1;
+    }
+    auto f = [&](ll l, ll r) -> ll { 
+        ll s = prefix[r] - prefix[l - 1];  
+        ll S = PREFIX[r] - PREFIX[l - 1];
+        return S - s * (n - r);
+    };
+    vll group(n + 1);    
+    for(ll i = 1; i <= n; i++) {   
+        group[i] = group[i - 1] + f(i, n);
+    }
+    auto queries = [&](ll index) -> ll {   
+        ll id = lb(all(len), index) - begin(len) - 1;  
+        ll left = id + 1, right = id + (len[id] == 0 ? index : index % len[id]);
+        return f(left, right) + group[id];
+    };
+    ll q; cin >> q;    
+    while(q--) {    
+        ll l, r; cin >> l >> r;
+        cout << (ll)queries(r) - queries(l - 1) << endl;
+    }
 }
 
 signed main() {

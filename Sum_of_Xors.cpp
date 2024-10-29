@@ -153,15 +153,19 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n, m; cin >> n >> m;
+    ll x = n * m;   
+    ll res = 2 * x - 2 * (x / 4) - (n != 2 && m != 2 ? x / 2 - 4 : 0);
+    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

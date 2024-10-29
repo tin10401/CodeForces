@@ -153,6 +153,29 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    ll k; cin >> k;
+    vi a(n); cin >> a;
+    for(auto& x : a) x--;
+    vi ans(n);  
+    vb used(n); 
+    for(int i = 0; i < n; i++) {    
+        if(used[i]) continue;
+        vi cycle;   
+        int node = i;
+        while(!used[node]) {    
+            used[node] = true;  
+            cycle.pb(node);
+            node = a[node];
+        }
+        int N = cycle.size();
+        int start = modExpo(2, k, N);
+        for(int j = 0; j < N; j++) {    
+            ans[cycle[j]] = cycle[start++ % N];
+        }
+    }
+    for(auto& x : ans) cout << ++x << ' ';  
+    cout << endl;
 }
 
 signed main() {

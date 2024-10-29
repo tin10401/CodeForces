@@ -153,6 +153,39 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vll a(n), b(m); cin >> a >> b;
+    vll prefix(n + 1);  
+    for(int i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1] + a[i - 1];
+    }
+    vt<vpll> dp(n + 1, vpll(m + 1, MP(INF, 1)));
+    fill(all(dp[n]), MP(0, 1));
+    auto f = [&](pll a, pll b) -> pll {   
+        if(a.ff != b.ff) return min(a, b);  
+        return {a.ff, (a.ss + b.ss) % MOD};
+    };
+    vvll prefix_dp(m + 1, vll(n + 2));
+    for(int k = 0; k < m; k++) prefix_dp[k][n] = 1; 
+    for(int i = n - 1; i >= 0; i--) {   
+        for(int j = m - 1; j >= 0; j--) {   
+            int id = ub(all(prefix), prefix[i] + b[j]) - begin(prefix) - 1; 
+            int left = i + 1, right = id, next = id;
+            while(left <= right) {  
+                int middle = midPoint;  
+                if(dp[middle][j].ff == dp[id][j].ff) right = middle - 1, next = middle;
+                else left = middle + 1;
+            }
+            pll option = MP(m - j - 1 + dp[id][j].ff, ((prefix_dp[j][next] - prefix_dp[j][id + 1]) % MOD + MOD) % MOD);
+            dp[i][j] = f(dp[i][j + 1], option);
+        }
+        for(int k = 0; k < m; k++) {    
+            prefix_dp[k][i] = (dp[i][k].ss + prefix_dp[k][i + 1]);
+        }
+    }
+    auto [cost, way] = dp[0][0];    
+    if(cost >= INF) cout << -1 << endl; 
+    else cout << cost << ' ' << way << endl;
 }
 
 signed main() {
@@ -161,7 +194,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

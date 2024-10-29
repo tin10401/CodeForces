@@ -153,6 +153,23 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    vvi dp(n, vi(n, inf));   
+    for(int i = 0; i < n; i++) {    
+        dp[i][i] = 1;   
+        if(i) dp[i][i - 1] = 1;
+    }
+    for(int len = 2; len <= n; len++) { 
+        for(int i = 0; i + len <= n; i++) { 
+            int j = i + len - 1;    
+            if(a[i] == a[j]) dp[i][j] = dp[i + 1][j - 1];
+            for(int k = i; k < j; k++) {    
+                dp[i][j] = min(dp[i][j], dp[i][k] + dp[k + 1][j]);
+            }
+        }
+    }
+    cout << dp[0][n - 1] << endl;
 }
 
 signed main() {
