@@ -152,22 +152,70 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
-void solve() {
-    int n, s; cin >> n >> s;    
-    vi a(n); cin >> a;  
-    if(sum(a) < s) {    
-        cout << -1 << endl; 
-        return;
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
     }
-    int res = 0;    
-    for(int left = 0, right = 0, c = 0; right < n; right++) {  
-        c += a[right];
-        while(c > s) {  
-            c -= a[left++];
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
         }
-        res = max(res, right - left + 1);
+        return false;
     }
-    cout << n - res << endl;
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    auto find_mex = [&]() -> int {  
+        set<int> s(all(a)); 
+        int j = 0;  
+        while(s.count(j)) j++;
+        return j;
+    };
+    vi ans;
+    while(!SORTED(a)) {   
+        int mex = find_mex();   
+        if(mex == n) {  
+            for(int i = n - 1; i >= 0; i--) {    
+                if(a[i] != i) { 
+                    ans.pb(i + 1);  
+                    a[i] = mex;
+                    break;
+                }
+            }
+        }
+        else {  
+            a[mex] = mex;
+            ans.pb(mex + 1);
+        }
+    }
+    cout << ans.size() << endl; 
+    for(auto& x : ans) cout << x << ' ';    
+    cout << endl;
+
 }
 
 signed main() {

@@ -153,21 +153,22 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    int n, s; cin >> n >> s;    
+    int n, k; cin >> n >> k;    
     vi a(n); cin >> a;  
-    if(sum(a) < s) {    
+    set<int> s(all(a)); 
+    int rem = k - s.size();
+    if(rem < 0) {  
         cout << -1 << endl; 
         return;
     }
-    int res = 0;    
-    for(int left = 0, right = 0, c = 0; right < n; right++) {  
-        c += a[right];
-        while(c > s) {  
-            c -= a[left++];
+    cout << n * k << endl;  
+    for(int i = 0; i < n; i++) {    
+        for(auto& x : s) cout << x << ' ';  
+        for(int j = 0; j < rem; j++) { 
+            cout << 1 << ' ';
         }
-        res = max(res, right - left + 1);
     }
-    cout << n - res << endl;
+    cout << endl;
 }
 
 signed main() {
