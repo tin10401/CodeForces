@@ -130,7 +130,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 60;
+const static ll INF = 3e18;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -153,6 +153,44 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll q, k; cin >> q >> k;
+    ordered_set<ll> s;
+    s.insert(-INF); 
+    s.insert(INF);
+    set<ll> smallest_element = {-INF, INF};
+    auto add = [&](ll x) -> void {  
+        auto nnext = s.ub(x);   
+        auto pprev = prev(nnext);
+        if(x - *pprev > k) {    
+            smallest_element.insert(x);
+        }
+        if(*nnext - x <= k) {   
+            smallest_element.erase(*nnext);
+        }
+        s.insert(x);
+    };
+        
+    auto remove = [&](ll x) -> void {   
+        s.erase(x); 
+        auto nnext = s.ub(x);   
+        auto pprev = prev(nnext);
+        if(*nnext - *pprev > k) {   
+            smallest_element.insert(*nnext);
+        }
+        smallest_element.erase(x);
+    };
+    while(q--) {    
+        ll op, x; cin >> op >> x;
+        if(op == 1) {   
+            if(s.find(x) != end(s)) remove(x);   
+            else add(x);
+        }
+        else {  
+            auto right = smallest_element.ub(x);
+            auto left = prev(right);
+            cout << s.order_of_key(*right) - s.order_of_key(*left) << endl;
+        }
+    }
 }
 
 signed main() {

@@ -136,7 +136,7 @@ const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 vi primes, first_divisor(MX);  
@@ -153,6 +153,35 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n, m, k; cin >> n >> m >> k;
+    int R, C; cin >> R >> C;    
+    R--, C--;   
+    vvll grid(n, vll(m)); cin >> grid;
+    ll ans = grid[R][C] * k;
+    vvll dp(n, vll(m, -INF));
+    dp[R][C] = 0;   
+    ll N = n * m;
+    for(int kk = 1; kk <= min(N, k); kk++) {    
+        vvll next(n, vll(m, -INF));
+        for(int i = 0; i < n; i++) {    
+            for(int j = 0; j < m; j++) {    
+                for(auto& it : dirs) {  
+                    int row = i + it[0], col = j + it[1];   
+                    if(row >= 0 && col >= 0 && row < n && col < m) {    
+                        next[i][j] = max(next[i][j], dp[row][col] + grid[i][j]);
+                    }
+                }
+            }
+        }
+        swap(dp, next);
+        for(int i = 0; i < n; i++) {    
+            for(int j = 0; j < m; j++) {    
+                if(dp[i][j] < 0) continue;
+                ans = max(ans, dp[i][j] + grid[i][j] * (k - kk));
+            }
+        }
+    }
+    cout << ans << endl;
 }
 
 signed main() {

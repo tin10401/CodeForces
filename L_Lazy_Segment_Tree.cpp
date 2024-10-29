@@ -152,7 +152,115 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+struct Node {   
+    ll one, zero, inversion;
+    Node(ll one = 0, ll zero = 0) : one(one), zero(zero), inversion(0) {}
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root; 
+    vi lazy;
+    T DEFAULT;
+    SGT(vi& arr) {    
+        n = arr.size(); 
+        DEFAULT = Node();
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+        build(entireTree, arr);
+    }
+    
+    void build(iterator, vi& a) { 
+        if(left == right) { 
+            root[i] = Node(a[left] == 1, a[left] == 0);
+            return;
+        }
+        int middle = midPoint;  
+        build(lp, a), build(rp, a); 
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    void update(int id, int x) {  
+        update(entireTree, id, x);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = Node(val == 1, val == 0);  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res.zero = left.zero + right.zero;  
+        res.one = left.one + right.one; 
+        res.inversion = left.inversion + right.inversion + left.one * right.zero;
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i].inversion = root[i].zero * root[i].one - root[i].inversion; 
+        swap(root[i].zero, root[i].one);
+        if(left != right) { 
+            lazy[lc] ^= lazy[i]; 
+            lazy[rc] ^= lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    ll queries(int start, int end) { 
+        return queries(entireTree, start, end).inversion;
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+};
+
 void solve() {
+    int n, q; cin >> n >> q;    
+    vi a(n); cin >> a;  
+    SGT<Node> root(a);
+    while(q--) {    
+        int op, l, r; cin >> op >> l >> r;  
+        l--, r--;   
+        if(op == 1) root.update(l, r, 1);   
+        else cout << root.queries(l, r) << endl;
+    }
 }
 
 signed main() {

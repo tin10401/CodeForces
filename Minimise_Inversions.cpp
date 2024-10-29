@@ -152,7 +152,101 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+struct Node {   
+    ll one, zero, inversion;
+    Node(ll one = 0, ll zero = 0) : one(one), zero(zero), inversion(0) {}
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root; 
+    vi lazy;
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = Node();
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+    
+    void update(int id, int x) {  
+        update(entireTree, id, x);
+    }
+    
+    void update(iterator, int id, int val) {    
+        if(left == right) { 
+            root[i] = Node(val == 1, val == 0);  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res.zero = left.zero + right.zero;  
+        res.one = left.one + right.one; 
+        res.inversion = left.inversion + right.inversion + left.one * right.zero;
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i].inversion = root[i].zero * root[i].one - root[i].inversion; 
+        swap(root[i].zero, root[i].one);
+        if(left != right) { 
+            lazy[lc] ^= lazy[i]; 
+            lazy[rc] ^= lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+	ll get() {
+		return root[0].inversion;
+	}
+};
+
 void solve() {
+    int n, k; cin >> n >> k;    
+    string s; cin >> s;
+    int f = s.rfind('0');   
+    int g = s.find('1');
+    if(f == -1 || g == -1) {   
+        cout << 0 << endl;  
+        return;
+    }
+    SGT<Node> root(n);
+    for(int i = 0; i < n; i++) {    
+        if(s[i] == '1') root.update(i, 1);  
+        else root.update(i, 0);
+    }
+    vi Z;    
+    for(int i = 0; i < n; i++) {    
+        if(s[i] == '0') Z.pb(i);
+    }
+    string t = s;
+    vi arr;
+    for(int i = g; i < f && k; i++) {   
+        if(s[i] == '1') {   
+            root.update(i, 0);
+            k--;
+            arr.pb(i);
+        }
+    }
+    ll res = root.get();
+    auto it = lb(all(Z), f);
+    for(int i = arr.size() - 1; i >= 0; i--) {  
+        root.update(arr[i], 1);
+        root.update(*it, 1);
+        res = min(res, root.get());
+        if(it == begin(Z)) break;
+        it--;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -161,7 +255,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
