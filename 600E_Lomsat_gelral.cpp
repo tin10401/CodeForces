@@ -152,22 +152,54 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+struct Data {   
+    map<int, int> mp;   
+    ll ans = 0; 
+    int v = 0;
+    Data(int a) {   
+        ans = a;    
+        v = 1;  
+        mp[a]++;
+    }
+};
 void solve() {
-    int n, s; cin >> n >> s;    
-    vi a(n); cin >> a;  
-    if(sum(a) < s) {    
-        cout << -1 << endl; 
-        return;
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        a--, b--;   
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    int res = 0;    
-    for(int left = 0, right = 0, c = 0; right < n; right++) {  
-        c += a[right];
-        while(c > s) {  
-            c -= a[left++];
+    auto merge = [&](Data& a, Data& b) -> void {    
+        if(a.mp.size() < b.mp.size()) swap(a, b); 
+        for(auto& it : b.mp) { 
+            auto& A = a.mp[it.ff]; 
+            A += it.ss;
+            if(A > a.v) {   
+                a.v = A;
+                a.ans = it.ff;
+            }
+            else if(A == a.v) { 
+                a.ans += it.ff;
+            }
         }
-        res = max(res, right - left + 1);
-    }
-    cout << n - res << endl;
+    };
+    vll ANS(n);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> Data {  
+        Data curr(a[node]);
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            auto t = dfs(dfs, nei, node);
+            merge(curr, t);
+        }
+        ANS[node] = curr.ans;
+        return curr;
+    };
+    dfs(dfs);
+    for(auto& it : ANS) cout << it << ' ';  
+    cout << endl;
 }
 
 signed main() {
@@ -176,7 +208,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
