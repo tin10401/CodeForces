@@ -152,22 +152,103 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
-void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy; 
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
     }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
         }
-        f1[a[i]]++; 
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
     }
-    cout << res << endl;
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = left + right;
+        return res;
+    }
+    
+    void push(iterator) {   
+        int& x = lazy[i];    
+        if(x == 0) return;    
+        root[i] = max(0, (right - left + 1) * x);
+        if(left != right) { 
+            lazy[lc] = x; 
+            lazy[rc] = x;
+        }
+        x = 0;
+    }
+    
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+};
+
+void solve() {
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    s = ' ' + s;
+    vt<SGT<int>> root(26, SGT<int>(n + 2));
+    for(int i = 1; i <= n; i++) {   
+        root[s[i] - 'a'].update(i, i, 1);
+    }
+    auto queries = [&](int l, int r, int k) -> void {  
+        int id = l; 
+        for(int i = (k == 0 ? 25 : 0); i < 26 && i >= 0; i += (k == 0 ? -1 : 1)) {   
+            int x = root[i].queries(l, r);
+            if(x == 0) continue;
+            root[i].update(l, r, -1);
+            root[i].update(id, id + x - 1, 1);
+            id += x;
+        }
+    };
+    auto f = [&]() -> void {    
+        for(int i = 1; i <= n; i++) {   
+            for(int j = 0; j < 26; j++) {   
+                int t = root[j].queries(i, i);  
+                if(t > 0) { 
+                    cout << (char)(j + 'a');    
+                    break;
+                }
+            }
+        }
+        cout << endl;
+    };
+    while(q--) {    
+        int l, r, k; cin >> l >> r >> k;    
+        queries(l, r, k);
+    }
+    f();
 }
 
 signed main() {

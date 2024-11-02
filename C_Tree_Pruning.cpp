@@ -153,21 +153,29 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
+    int n; cin >> n;    
+    vvi graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {    
+        int a, b; cin >> a >> b;    
+        a--, b--;
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    vi depth(n), f(n), mx(n);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void { 
+        mx[node] = depth[node];
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;   
+            depth[nei] = depth[node] + 1;   
+            dfs(dfs, nei, node);
+            mx[node] = max(mx[node], mx[nei]);
         }
-        f1[a[i]]++; 
-    }
-    cout << res << endl;
+        f[depth[node]]++;
+        if(mx[node] + 1 < n) f[mx[node] + 1]--;
+    };
+    dfs(dfs);
+    for(int i = 1; i < n; i++) f[i] += f[i - 1];
+    cout << n - MAX(f) << endl;
 }
 
 signed main() {
@@ -176,7 +184,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

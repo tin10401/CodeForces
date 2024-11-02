@@ -152,22 +152,76 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
-void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
+class MO {  
+    public: 
+    int n, q;  
+    int block;
+    vi a;   
+    var(3) Q;
+    MO(vi& a, var(3)& Q) {  
+        n = a.size();
+        q = Q.size();
+        this->a = a;    
+        this->Q = Q;
+        block = sqrt(n);
     }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+
+    vll queries() {    
+        auto cmp = [&](const ar(3)& a, const ar(3)& b) -> bool {    
+            if(a[0] / block != b[0] / block) return a[0] / block < b[0] / block;
+            int d = a[0] / block;   
+            if(d & 1) return a[1] > b[1];
+            return a[1] < b[1];
+        };
+        sort(all(Q), cmp);
+        vi pos(a);  
+        srtU(pos); 
+        umap<int, int> mp;  
+        int N = pos.size();
+        for(int i = 0; i < N; i++) mp[pos[i]] = i;
+        for(auto& it : a) it = mp[it];
+
+        vi dp(N);
+        ll ans = 0;
+        auto modify = [&](int x, int v) -> void {    
+            if(pos[x] == 0) return;
+            if(dp[x] == pos[x]) ans--;  
+            dp[x] += v; 
+            if(dp[x] == pos[x]) ans++;
+        };
+
+        vll res(q);
+        int left = 1, right = 0;    
+        for(auto& [l, r, id] : Q) { 
+            while(left <= l) {  
+                modify(a[left++], -1);
+            }
+            while(left > l) {   
+                modify(a[--left], 1);
+            }
+            while(right > r) {   
+                modify(a[--right], -1);
+            }
+            while(right <= r) { 
+                modify(a[right++], 1);
+            }
+            res[id] = ans;
         }
-        f1[a[i]]++; 
+        return res;
     }
-    cout << res << endl;
+};
+void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n + 1);    
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    var(3) Q(q);    
+    for(int i = 0; i < q; i++) {    
+        auto& [l, r, id] = Q[i]; cin >> l >> r;
+        id = i;
+    }
+    MO root(a, Q);  
+    auto res = root.queries();  
+    for(auto& x : res) cout << x << endl;
 }
 
 signed main() {

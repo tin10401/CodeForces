@@ -153,21 +153,30 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
+    int n, m; cin >> n >> m;    
+    vvi graph(n + 1);   
+    for(int i = 0; i < m; i++) {    
+        int a, b; cin >> a >> b;    
+        graph[a].pb(b); 
+        graph[b].pb(a);
     }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    pq<int, vi, greater<int>> minHeap;
+    minHeap.push(1);    
+    vi vis(n + 1);  
+    vi ans; 
+    while(!minHeap.empty()) {   
+        auto node = minHeap.top(); minHeap.pop();   
+        if(vis[node]) continue; 
+        vis[node] = true;
+        cout << node << ' ';
+        for(auto& nei : graph[node]) {  
+            if(!vis[nei]) { 
+                minHeap.push(nei);
+            }
         }
-        f1[a[i]]++; 
     }
-    cout << res << endl;
+    cout << endl;
+
 }
 
 signed main() {

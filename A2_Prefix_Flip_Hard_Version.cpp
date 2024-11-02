@@ -152,22 +152,149 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
-void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
+template<typename T>
+class Treap {
+private:
+    struct TreapNode {
+        int pri, size;
+        T bit = 0;
+        T f = 0;
+        T v = 0;
+        TreapNode* left;
+        TreapNode* right;
+        
+        TreapNode(T bit) : v(0), f(0), bit(bit), pri(rand()), size(1), left(nullptr), right(nullptr) {}
+    };
+
+    TreapNode* root;
+
+    int size(TreapNode* treap) {
+        if (!treap) return 0;
+        return treap->size;
     }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    
+    void unite(TreapNode* treap) {  
+        treap->size = size(treap->left) + size(treap->right) + 1;
+    }
+
+    T flip(T bit) { 
+        return !bit;
+    }
+
+    void apply(TreapNode* treap) {  
+        if(!treap) return;
+        if(treap->f) {  
+            swap(treap->left, treap->right);
+            if(treap->left) treap->left->f ^= 1;    
+            if(treap->right) treap->right->f ^= 1;
+            treap->f = 0;
         }
-        f1[a[i]]++; 
+        if(treap->v) {  
+            treap->bit = flip(treap->bit);
+            if(treap->left) treap->left->v ^= 1;    
+            if(treap->right) treap->right->v ^= 1;
+            treap->v = 0;
+        }
     }
-    cout << res << endl;
+
+    void split(TreapNode* treap, TreapNode*& left, TreapNode*& right, int k) {
+        if (!treap) {
+            left = right = nullptr;
+            return;
+        }
+        apply(treap);
+        if (size(treap->left) >= k) {
+            split(treap->left, left, treap->left, k);
+            right = treap;
+        } else {
+            split(treap->right, treap->right, right, k - size(treap->left) - 1);
+            left = treap;
+        }
+        unite(treap);
+    }
+
+    void merge(TreapNode*& treap, TreapNode* left, TreapNode* right) {
+        if (!left || !right) {
+            treap = left ? left : right;
+            return;
+        }
+        apply(treap);
+        if (left->pri < right->pri) {
+            merge(left->right, left->right, right);
+            treap = left;
+        } else {
+            merge(right->left, left, right->left);
+            treap = right;
+        }
+        unite(treap);
+    }
+
+public:
+    Treap() : root(nullptr) {}
+
+    void insert(T ch) { 
+        merge(root, root, new TreapNode(ch));
+    }
+    
+    void split_and_reverse(int k) { 
+        TreapNode* A, *B;
+        split(root, A, B, k); 
+        if(A) { 
+            A->f ^= 1;  
+            A->v ^= 1;
+            apply(A);
+        }
+        merge(root, A, B);
+    }
+    
+    T get(int k) {  
+        TreapNode* A, *B, *C;   
+        split(root, A, B, k - 1);
+        split(B, B, C, 1);  
+        T ans = B->bit;
+        merge(root, A, B);  
+        merge(root, root, C);
+        return ans;
+    }
+    
+    void print() {  
+        print(root);
+        cout << endl;
+    }
+    void print(TreapNode* treap) {  
+        if(!treap) return;
+        print(treap->left); 
+        cout << treap->bit;
+        print(treap->right);
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    string s, t; cin >> s >> t;
+    if(s == t) {    
+        cout << 0 << endl;  
+        return;
+    }
+    Treap<int> treap;    
+    for(auto& ch : s) treap.insert(ch - '0');
+    vi ans; 
+    for(int i = n - 1; i > 0; i--) {   
+        int currBit = treap.get(i + 1); 
+        if(currBit == t[i] - '0') continue;
+        int firstBit = treap.get(1);
+        if(firstBit == t[i] - '0') {  
+            treap.split_and_reverse(1);
+            ans.pb(1);
+        }
+        treap.split_and_reverse(i + 1);
+        ans.pb(i + 1);
+    }
+    int firstBit = treap.get(1);    
+    if(firstBit != t[0] - '0') ans.pb(1);
+    cout << ans.size() << ' ';  
+    for(auto& x : ans) cout << x << ' ';
+    cout << endl;
 }
 
 signed main() {
@@ -176,7 +303,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

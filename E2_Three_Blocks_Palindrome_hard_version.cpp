@@ -153,19 +153,27 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
-    }
-    ll res = 0;
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    int M = MAX(a) + 1; 
+    vvi pos(M);  
     for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+        pos[a[i]].pb(i);
+    }
+    int res = 0;
+    for(int i = 0; i < M; i++) {    
+        res = max(res, (int)pos[i].size());
+        for(int j = 0; j < M; j++) {    
+            if(i == j || pos[i].empty() || pos[j].empty()) continue;    
+            auto& f = pos[i], &g = pos[j];
+            int left = 0, right = f.size() - 1, curr = 2, l = lb(all(g), f[0]) - begin(g), r = ub(all(g), f[right]) - begin(g) - 1;   
+            while(left < right && l <= r) {  
+                while(l <= r && g[l] <= f[left]) l++; 
+                while(l <= r && g[r] >= f[right]) r--;
+                res = max(res, curr + r - l + 1);
+                left++, right--, curr += 2;
+            }
         }
-        f1[a[i]]++; 
     }
     cout << res << endl;
 }
@@ -176,7 +184,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
