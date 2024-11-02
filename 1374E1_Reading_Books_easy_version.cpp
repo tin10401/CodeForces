@@ -153,21 +153,48 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
-    }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    int n, k; cin >> n >> k;
+    var(3) a(n);    
+    for(auto& [t, x, y] : a) cin >> t >> x >> y;
+    srt(a);
+    vi alice, bob;
+    int totalTime = 0;
+    int A = 0, B = 0;
+    for(auto& [t, x, y] : a) {  
+        if(x && y) {    
+            if(A == k && B == k && !alice.empty() && !bob.empty() && alice.back() + bob.back() > t) {  
+                totalTime -= alice.back() + bob.back(); 
+                alice.pop_back();   
+                bob.pop_back(); 
+                totalTime += t;
+            }
+            else if(A < k || B < k) {   
+                if(B == k && !bob.empty()) { 
+                    B--;
+                    totalTime -= bob.back();    
+                    bob.pop_back();
+                }
+                if(A == k && !alice.empty()) {  
+                    A--;
+                    totalTime -= alice.back();  
+                    alice.pop_back();
+                }
+                A++, B++;   
+                totalTime += t;
+            }
         }
-        f1[a[i]]++; 
+        else if(x && A < k) {    
+            A++;    
+            totalTime += t; 
+            alice.pb(t);
+        }
+        else if(y && B < k) {  
+            B++;    
+            totalTime += t; 
+            bob.pb(t);
+        }
     }
-    cout << res << endl;
+    cout << (A >= k && B >= k ? totalTime : -1) << endl;
 }
 
 signed main() {

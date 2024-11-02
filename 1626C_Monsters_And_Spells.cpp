@@ -153,20 +153,20 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
-    }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    int n; cin >> n;
+    vi a(n), b(n); cin >> a >> b;   
+    auto f = [&](ll x) -> ll {  
+        return x * (x + 1) / 2;
+    };
+    ll left = inf + 1, right = inf, res = 0; 
+    for(int i = n - 1; i >= 0; i--) {   
+        if(a[i] < left) {  
+            res += f(right - left + 1);
+            right = a[i];   
         }
-        f1[a[i]]++; 
+        left = fmin(left, a[i] - b[i] + 1);
     }
+    res += f(right - left + 1);
     cout << res << endl;
 }
 
@@ -176,7 +176,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

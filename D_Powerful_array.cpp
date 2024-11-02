@@ -153,21 +153,60 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
-    ll n, k; cin >> n >> k;
-    vll a(n); cin >> a;
-    umap<ll, ll> f1, f2;
-    for(auto& x : a) {  
-        f2[x]++;
+    int n, q; cin >> n >> q;
+    vll a(n + 1);   
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    var(3) Q(q);
+    for(int i = 0; i < q; i++) {    
+        auto& [l, r, id] = Q[i]; cin >> l >> r; 
+        id = i;
     }
-    ll res = 0;
-    for(int i = 0; i < n; i++) {    
-        f2[a[i]]--;
-        if(a[i] % k == 0 && f1.count(a[i] / k) && f2.count(a[i] * k)) { 
-            res += f1[a[i] / k] * f2[a[i] * k];
+    int block = sqrt(n);
+    auto cmp = [&](const ar(3)& a, const ar(3)& b) -> bool {    
+        if(a[0] / block != b[0] / block) {  
+            return a[0] / block < b[0] / block;
+        } 
+        if((a[0] / block) & 1) return a[1] > b[1];
+        return a[1] < b[1];
+    };
+    sort(all(Q), cmp);
+    vll pos(a);  
+    srtU(pos);  
+    umap<int, int> mp;  
+    int N = pos.size();
+    for(int i = 0; i < N; i++) {    
+        mp[pos[i]] = i;
+    }
+    for(auto& x : a) x = mp[x];
+    vll ans(q);
+    ll total = 0;
+    vll pref(N), curr(N);
+    auto modify = [&](int x, int v) -> void {   
+        pref[x] = curr[x];
+        curr[x] += v;   
+        total -= pref[x] * pref[x] * pos[x];    
+        total += curr[x] * curr[x] * pos[x];
+    };
+    int left = 1, right = 0;
+    for(auto& [l, r, id] : Q) { 
+        while(left <= l) {  
+            modify(a[left++], -1);
         }
-        f1[a[i]]++; 
+        while(left > l) {   
+            modify(a[--left], 1);
+        }
+        while(right > r) {  
+            modify(a[--right], -1);
+        }
+        while(right <= r) { 
+            modify(a[right++], 1);
+        }
+        debug(left, right, l, r);
+        ans[id] = total;
     }
-    cout << res << endl;
+    for(auto& x : ans) {    
+        cout << x << endl;
+    }
 }
 
 signed main() {
