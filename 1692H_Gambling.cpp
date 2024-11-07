@@ -157,6 +157,32 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;
+    umap<int, vi> mp;  
+    for(int i = 1; i <= n; i++) {   
+        int x; cin >> x;    
+        mp[x].pb(i);
+    }
+    int mx = -1, ans = -1, left = 1, right = 1;
+    for(auto& [_, curr] : mp) {    
+        int running_sum = 0, last = curr[0], min_sum = inf, min_left = curr[0];
+        for(auto& x : curr) {  
+            running_sum++;  
+            running_sum -= x - last;    
+            last = x + 1;
+            if(running_sum < min_sum) {     
+                min_sum = running_sum;  
+                min_left = x;
+            }
+            if(running_sum - min_sum > mx) {        
+                mx = running_sum - min_sum;    
+                ans = _;
+                left = min_left;    
+                right = x;
+            }
+        }
+    }
+    cout << ans << ' ' << left << ' ' << right << endl;
 }
 
 signed main() {
@@ -165,7 +191,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

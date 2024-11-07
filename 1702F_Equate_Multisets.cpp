@@ -146,10 +146,6 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
@@ -157,6 +153,27 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    umap<int, int> a;
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        while(x % 2 == 0) x >>= 1;
+        a[x]++;
+    }
+    vi b;
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        b.pb(x);
+    }
+    for(auto& x : b) {  
+        while(x && a.find(x) == a.end()) x >>= 1;
+        if(!x) {    
+            cout << "NO" << endl;   
+            return;
+        }
+        if(--a[x] == 0) a.erase(x);
+    }
+    cout << "YES" << endl;
 }
 
 signed main() {
@@ -165,7 +182,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -133,7 +133,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -156,16 +156,45 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+
 void solve() {
+    int n; cin >> n;    
+    map<ll, ll> mp; 
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        mp[x]++;
+    }
+    ll res = 0; 
+    for(auto& [x, cnt] : mp) {  
+        res += cnt * (cnt - 1) * (cnt - 2);
+        for(int b = 1; b * b * b <= x; b++) {   
+            if(x % b) continue;
+            if(b > 1 && x % (b * b) == 0) { 
+                ll a = x / b;   
+                ll c = a / b;   
+                if(mp.count(a) && mp.count(c)) {    
+                    res += cnt * mp[a] * mp[c];
+                }
+            }
+            ll c = (ll)sqrt(x / b);
+            if(c > 1 && c * c * b == x && c != b) {   
+                ll b2 = b * c;
+                if(mp.count(b) && mp.count(b2)) {   
+                    res += cnt * mp[b] * mp[b2];
+                }
+            }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

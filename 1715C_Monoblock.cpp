@@ -146,10 +146,6 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
@@ -157,6 +153,35 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    ll ans = n * (n + 1) / 2;
+    set<int> s; 
+    for(int i = 1; i < n; i++) {    
+        if(a[i] != a[i - 1]) {  
+            ans += i * (n - i);
+        }
+    }
+    auto modify = [&](int i, ll v) -> void {  
+        if(i) { 
+            if(a[i] != a[i - 1]) {  
+                ans += v * i * (n - i); 
+            }
+        }
+        if(i < n - 1) { 
+            if(a[i + 1] != a[i]) {  
+                ans += v * (i + 1) * (n - (i + 1));
+            }
+        }
+    };
+    while(q--) {    
+        int i, x; cin >> i >> x;    
+        i--;    
+        modify(i, -1);  
+        a[i] = x;   
+        modify(i, 1);
+        cout << ans << endl;
+    }
 }
 
 signed main() {

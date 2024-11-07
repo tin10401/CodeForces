@@ -157,6 +157,19 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n, x; cin >> n >> x;
+    vll dp(3);
+    ll res = 0;
+    for(int i = 0; i < n; i++) {    
+        vll next(3);
+        ll k; cin >> k;
+        next[0] = max(k, dp[0] + k);
+        next[1] = max(k * x, k * x + max(dp[0], dp[1]));
+        next[2] = max(dp[1], dp[2]) + k;
+        swap(dp, next);
+        res = max(res, MAX(dp));
+    }
+    cout << res << endl;
 }
 
 signed main() {

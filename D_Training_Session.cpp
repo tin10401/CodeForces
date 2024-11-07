@@ -130,7 +130,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -146,10 +146,6 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
@@ -157,6 +153,17 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n; cin >> n;    
+    vpll a(n); cin >> a;    
+    ll res = n * (n - 1) * (n - 2) / 6;
+    vll A(n + 1), B(n + 1);   
+    for(auto& [x, y] : a) { 
+        A[x]++, B[y]++;
+    }
+    for(auto& [x, y] : a) { 
+        res -= (A[x] - 1) * (B[y] - 1);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +172,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

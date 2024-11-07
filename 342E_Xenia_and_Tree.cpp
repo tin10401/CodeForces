@@ -146,17 +146,135 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class LCA { 
+    public: 
+    int n;  
+    vvi dp, graph; 
+    vi depth, parent;
+    vi startTime, endTime;
+    int timer = 0;
+    LCA(vvi& graph) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        parent.rsz(n, 1);
+        startTime.rsz(n);   
+        endTime.rsz(n);
+        dfs();
+        init();
+    }
+    
+    void dfs(int node = 1, int par = -1) {   
+        startTime[node] = timer++;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+            dfs(nei, node);
+        }
+        endTime[node] = timer - 1;
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+    
+    bool isAncestor(int u, int v) { 
+        return startTime[u] <= startTime[v] && startTime[v] <= endTime[u]; 
+    }
+
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+    
+    int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    int k = sqrt(m);
+    vvi graph(n + 1);
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    vi red(n + 1);
+    red[1] = true;
+    vi dp(n + 1, inf);
+    auto rebuild = [&]() -> void {  
+        queue<int> q; 
+        for(int i = 1; i <= n; i++) {   
+            if(red[i]) {    
+                dp[i] = 0;
+                q.push(i);  
+                red[i] = true;
+            }
+        }
+        while(!q.empty()) { 
+            int node = q.front(); q.pop(); 
+            for(auto& nei : graph[node]) {      
+                if(dp[nei] > dp[node] + 1) {    
+                    dp[nei] = dp[node] + 1; 
+                    q.push(nei);
+                }
+            }
+        }
+    };
+    vi add;
+    LCA root(graph);
+    auto queries = [&](int x) -> int {      
+        int& ans = dp[x];    
+        for(auto& v : add) {    
+            ans = min(ans, root.dist(x, v));
+        }
+        return ans;
+    };
+    for(int i = 0; i < m; i++) {    
+        if(i % k == 0) {    
+            rebuild();  
+            add = {};
+        }
+        int op, x; cin >> op >> x;
+        if(op == 1) {   
+            red[x] = true;  
+            add.pb(x);
+        }
+        else {  
+            cout << queries(x) << endl;
+        }
+    }
 }
 
 signed main() {

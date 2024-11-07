@@ -157,6 +157,35 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;
+    vi a(n), b(n); cin >> a >> b;
+    int r; cin >> r;
+    umap<int, int> mp;  
+    for(int i = 0; i < r; i++) {    
+        int x; cin >> x;    
+        mp[x]++;
+    }
+    bool ok = true;
+    for(int i = 0; i < n; i++) {    
+        if(a[i] < b[i]) {   
+            ok = false; 
+            break;
+        }
+    }
+    vi s;
+    for(int i = 0; i < n && ok; i++) {    
+        int A = a[i], B = b[i]; 
+        while(!s.empty() && s.back() < B) s.pop_back();
+        if(A == B) continue;    
+        if(!s.empty() && s.back() == B) continue;
+        if(mp[B] == 0) {    
+            ok = false; 
+            break;
+        }
+        mp[B]--;
+        s.pb(B);
+    }
+    cout << (ok ? "YES" : "NO") << endl;
 }
 
 signed main() {
@@ -165,7 +194,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

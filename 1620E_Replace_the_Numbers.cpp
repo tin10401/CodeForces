@@ -157,6 +157,31 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int q; cin >> q;    
+    vi actual(MX);  
+    iota(all(actual), 0);
+    vi ans; 
+    var(3) Q(q);    
+    for(auto& [i, j, k] : Q) {  
+        cin >> i >> j;  
+        if(i == 2) cin >> k;    
+        else ans.pb(j);
+    }
+    int j = ans.size() - 1; 
+    rev(Q);
+    for(auto& [op, x, y] : Q) { 
+        if(op == 2) {   
+            actual[x] = actual[y];
+        }
+        else {  
+            ans[j] = actual[x];    
+            j--;
+        }
+    }
+    for(auto& x : ans) {    
+        cout << x << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {

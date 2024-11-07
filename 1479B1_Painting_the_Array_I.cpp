@@ -157,6 +157,24 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    int a = -1, b = -1; 
+    int res = 0;
+    while(n--) {    
+        int x; cin >> x;    
+        if(a == x) {    
+            if(b != x) {    
+                res++;
+                b = x;
+            }
+        }
+        else {  
+            if(a != b && b != x) b = -1;
+            res++;  
+            a = x;
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {

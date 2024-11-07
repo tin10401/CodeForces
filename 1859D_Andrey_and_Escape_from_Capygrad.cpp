@@ -156,7 +156,93 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        return max(left, right);
+    }
+    
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+
+};
+
 void solve() {
+    int n; cin >> n;
+    vpii a(n);
+    for(auto& [l, r] : a) { 
+        int x; cin >> l >> x >> x >> r;
+    }
+    srt(a);
+    vi dp(n);   
+    SGT<int> root(n);
+    for(int i = n - 1; i >= 0; i--) {   
+        int left = i, right = n - 1, id = i;
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(a[middle].ff <= a[i].ss) id = middle, left = middle + 1; 
+            else right = middle - 1;
+        }
+        dp[i] = max(a[i].ss, root.queries(i, id));
+        root.update(i, dp[i]);
+    }
+    int q; cin >> q;
+    vi mx(n);   
+    int M = 0;  
+    for(int i = 0; i < n; i++) {    
+        M = max(M, a[i].ss);    
+        mx[i] = M;
+    }
+    auto queries = [&](int x) -> int {  
+        int left = 0, right = n - 1, ans = x;    
+        while(left <= right) {  
+            int middle = midPoint;
+            if(mx[middle] >= x) {   
+                if(a[middle].ff <= x) ans = max(ans, dp[middle]);   
+                right = middle - 1;
+            }
+            else left = middle + 1;
+        }
+        return ans;
+    };
+    while(q--) {    
+        int x; cin >> x;
+        cout << queries(x) << (q == 0 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -165,7 +251,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
