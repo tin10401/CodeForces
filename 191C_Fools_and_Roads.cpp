@@ -156,7 +156,88 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class LCA { 
+    public: 
+    int n;  
+    vvi dp; 
+    vvpii graph; 
+    vi depth;
+    int timer = 0;
+    LCA(vvpii& graph) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        dfs();
+        init();
+    }
+    
+    void dfs(int node = 1, int par = -1) {   
+        for(auto& [nei, i] : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            dfs(nei, node);
+        }
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+	
+};
+
 void solve() {
+    int n; cin >> n;    
+    vvpii graph(n + 1);   
+    for(int i = 0; i < n - 1; i++) {   
+        int u, v; cin >> u >> v;    
+        graph[u].pb(MP(v, i));     
+        graph[v].pb(MP(u, i));    
+    }
+    LCA root(graph);
+    int m; cin >> m;    
+    vi dp(n + 1);
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;    
+        dp[u]++, dp[v]++, dp[root.lca(u, v)] -= 2;
+    }
+    vi ans(n - 1);
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void { 
+        for(auto& [nei, i] : graph[node]) {    
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+            ans[i] = dp[nei];
+            dp[node] += dp[nei];
+        }
+    };
+    dfs(dfs);   
+    for(auto& x : ans) cout << x << ' ';    
+    cout << endl;
 }
 
 signed main() {

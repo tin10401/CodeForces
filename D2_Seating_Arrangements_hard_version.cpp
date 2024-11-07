@@ -156,7 +156,75 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    auto f = [](vpii& a, int N) -> ll {  
+        ll res = 0;
+        FW<int> root(N);
+        srt(a);
+        for(auto& [_, i] : a) { 
+            i = abs(i) + 1;
+            res += root.get(i); 
+            root.update(i, 1);
+        }
+        return res;
+    };
+    vpii arr(n * m); 
+    for(int i = 0; i < n * m; i++) {    
+        cin >> arr[i].ff;   
+        arr[i].ss = i;
+    }
+    srt(arr);
+    for(auto& it : arr) {   
+        it.ss = -it.ss;
+    }
+    vvpii a(n, vpii(m)); 
+    int k = 0;
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            a[i][j] = arr[k++];
+        }
+    }
+    ll res = 0;
+    for(int i = 0; i < n; i++) {    
+        res += f(a[i], n * m);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +233,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

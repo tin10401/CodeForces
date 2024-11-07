@@ -157,6 +157,24 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m, k; cin >> n >> m >> k;    
+    vi a(k); cin >> a;
+    int curr = k;   
+    int space = n * m - 2;
+    set<int> s;
+    for(auto& x : a) {  
+        s.insert(x);    
+        if(s.count(curr)) { 
+            if(space < 2) {    
+                cout << "TIDAK" << endl;
+                return;
+            }
+            curr--; 
+            while(s.count(curr)) curr--, space++;
+        }
+        else space--;
+    }
+    cout << "YA" << endl;
 }
 
 signed main() {
@@ -165,7 +183,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -156,7 +156,94 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class MO {  
+    public: 
+    int n, q;  
+    int block;
+    vi a;   
+    var(4) Q;
+    MO(vi& a, var(4)& Q) {  // 1 base index array
+        n = a.size();
+        q = Q.size();
+        this->a = a;    
+        this->Q = Q;
+        block = sqrt(n);
+    }
+
+    vll queries() {    
+        auto cmp = [&](const ar(4)& a, const ar(4)& b) -> bool {    
+            if(a[0] / block != b[0] / block) return a[0] / block < b[0] / block;
+            int d = a[0] / block;   
+            if(d & 1) return a[1] > b[1];
+            return a[1] < b[1];
+        };
+        sort(all(Q), cmp);
+        int N = MAX(a) + 1;
+        vll dp(n + 1), cnt(N);
+        auto add = [&](int x) -> void {    
+            dp[++cnt[x]]++;
+        };
+    
+        auto remove = [&](int x) -> void {  
+            dp[cnt[x]--]--;
+        };
+
+        vll res(q);
+        int left = 0, right = 0;    // modify to 0 as needed "left = 0" 
+        for(auto& [l, r, id, k] : Q) { 
+            while(left < l) {  
+                remove(a[left++]);
+            }
+            while(left > l) {   
+                add(a[--left]);
+            }
+            while(right > r) {   
+                remove(a[--right]);
+            }
+            while(right <= r) { 
+                add(a[right++]);
+            }
+            res[id] = k > n ? 0 : dp[k];
+        }
+        return res;
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    vi v(n); cin >> v;  
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;   
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    vi startTime(n), endTime(n);
+    int timer = 0;
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void { 
+        startTime[node] = timer++;  
+        for(auto& nei : graph[node]) {  
+            if(nei != par) dfs(dfs, nei, node);
+        }
+        endTime[node] = timer - 1;
+    };
+    dfs(dfs);
+    vi a(n);    
+    for(int i = 0; i < n; i++) {    
+        a[startTime[i]] = v[i];
+    }
+    var(4) Q(q);    
+    for(int i = 0; i < q; i++) {    
+        int u; cin >> u;
+        u--;
+        auto& [l, r, id, k] = Q[i];
+        cin >> k;
+        l = startTime[u], r = endTime[u];
+        id = i;
+    }
+    MO mo(a, Q);
+    for(auto& x : mo.queries()) cout << x << endl;
 }
 
 signed main() {

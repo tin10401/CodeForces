@@ -116,7 +116,8 @@ const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+
 const vpii dirs_3_3 = { 
         {0,1}, {0,3},
         {1,0}, {1,2}, {1,4},
@@ -144,25 +145,28 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+
     
 template<typename T>
 class Treap {
 private:
     struct TreapNode {
-        int pri, size;
-        T bit = 0;
-        T f = 0;
-        T v = 0;
+        int pri, size, f;
+        T val;
         TreapNode* left;
         TreapNode* right;
         
-        TreapNode(T bit) : v(0), f(0), bit(bit), pri(rand()), size(1), left(nullptr), right(nullptr) {}
+        TreapNode(char val) : f(0), val(val), pri(rand()), size(1), left(nullptr), right(nullptr) {}
     };
 
     TreapNode* root;
@@ -187,12 +191,6 @@ private:
             if(treap->left) treap->left->f ^= 1;    
             if(treap->right) treap->right->f ^= 1;
             treap->f = 0;
-        }
-        if(treap->v) {  
-            treap->bit = flip(treap->bit);
-            if(treap->left) treap->left->v ^= 1;    
-            if(treap->right) treap->right->v ^= 1;
-            treap->v = 0;
         }
     }
 
@@ -228,29 +226,41 @@ private:
         unite(treap);
     }
 
+    void destroy(TreapNode* treap) {
+        if (!treap) return;
+        destroy(treap->left);
+        destroy(treap->right);
+        delete treap;
+    }
+
 public:
     Treap() : root(nullptr) {}
+    
+    ~Treap() {
+        destroy(root);
+    }
 
     void insert(T ch) { 
         merge(root, root, new TreapNode(ch));
     }
     
-    void split_and_reverse(int k) { 
+    void split_and_reverse(int l, int r) { 
         TreapNode* A, *B;
-        split(root, A, B, k); 
+        split(root, root, A, l - 1); 
+        split(A, A, B, r - l + 1);
         if(A) { 
             A->f ^= 1;  
-            A->v ^= 1;
             apply(A);
         }
-        merge(root, A, B);
+        merge(root, root, A);   
+        merge(root, root, B);
     }
     
     T get(int k) {  
         TreapNode* A, *B, *C;   
         split(root, A, B, k - 1);
         split(B, B, C, 1);  
-        T ans = B->bit;
+        T ans = B->val;
         merge(root, A, B);  
         merge(root, root, C);
         return ans;
@@ -260,13 +270,16 @@ public:
         print(root);
         cout << endl;
     }
+	
     void print(TreapNode* treap) {  
+        apply(treap);
         if(!treap) return;
         print(treap->left); 
-        cout << treap->bit;
+        cout << treap->val;
         print(treap->right);
     }
 };
+
 
 
 class DSU { 
@@ -550,6 +563,23 @@ class LCA {
         }
         return dp[a][0];
     }
+	
+	int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	int k_ancestor(int a, int k) {
+        for(int i = MK - 1; i >= 0; i--) {   
+            if((k >> i) & 1) {  
+                a = dp[a][i];
+            }
+            if(a == 0) return -1;
+        }
+        return a;
+    }
+
+
 };
 
 
@@ -559,7 +589,7 @@ class MO {
     int block;
     vi a;   
     var(3) Q;
-    MO(vi& a, var(3)& Q) {  
+    MO(vi& a, var(3)& Q) {  // 1 base index array
         n = a.size();
         q = Q.size();
         this->a = a;    
@@ -592,9 +622,9 @@ class MO {
         };
 
         vll res(q);
-        int left = 1, right = 0;    
+        int left = 0, right = 0;    // modify to 0 as needed "left = 0"
         for(auto& [l, r, id] : Q) { 
-            while(left <= l) {  
+            while(left < l) {  
                 modify(a[left++], -1);
             }
             while(left > l) {   
@@ -625,7 +655,10 @@ class SparseTable {
     void init() {   
         for(int j = 1; j < MK; j++) {    
             for(int i = 0; i + (1LL << j) <= n; i++) {    
-                dp[i][j] = gcd(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+				//dp[i][j] = gcd(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+                //dp[i][j] = min(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+                //dp[i][j] = max(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+
             }
         }
     }

@@ -130,7 +130,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 60;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -146,6 +146,10 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }

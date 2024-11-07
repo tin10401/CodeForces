@@ -156,7 +156,135 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+    
+class LCA { 
+    public: 
+    int n;  
+    vvpii dp, graph;
+    vi depth;
+    int timer = 0;
+    LCA(vvpii& graph) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vpii(MK));
+        depth.rsz(n);
+        dfs();
+        init();
+    }
+    
+    void dfs(int node = 1, int par = -1) {   
+        for(auto& [nei, w] : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = MP(node, w);
+            dfs(nei, node);
+        }
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                auto& [p, w] = dp[i][j - 1];
+                dp[i][j].ff = dp[p][j - 1].ff;
+                dp[i][j].ss = max(dp[p][j - 1].ss, dp[i][j - 1].ss);
+            }
+        }
+    }
+
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        int ans = 0;
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                ans = max(ans, dp[b][i].ss);
+                b = dp[b][i].ff;
+            }
+        }
+        if(a == b) return ans;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i].ff != dp[b][i].ff) {  
+                ans = max({ans, dp[a][i].ss, dp[b][i].ss});
+                a = dp[a][i].ff;   
+                b = dp[b][i].ff;
+            }
+        }
+        ans = max({ans, dp[a][0].ss, dp[b][0].ss});     
+        return ans;
+    }
+	
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    var(4) a(m);    
+    for(int i = 0; i < m; i++) {    
+        auto& [w, u, v, id] = a[i]; 
+        cin >> u >> v >> w;
+        id = i;
+    }
+    srt(a);
+    vvpii graph(n + 1);
+    vll ans(m);
+    auto f = [&]() -> ll {   
+        DSU root(n + 1);    
+        ll res = 0;
+        for(auto& [w, u, v, id] : a) { 
+            if(root.merge(u, v)) {  
+                res += w;
+                graph[u].pb(MP(v, w)); 
+                graph[v].pb(MP(u, w));
+                ans[id] = 1;
+            }
+        }
+        return res;
+    };
+    ll mst = f();
+    LCA root(graph);
+    for(auto& [w, u, v, id] : a) {  
+        if(ans[id]) {   
+            ans[id] = mst;  
+            continue;
+        }
+        int max_weight = root.lca(u, v);    
+        ans[id] = mst - max_weight + w;
+    }
+    for(auto& x : ans) cout << x << endl;
 }
 
 signed main() {

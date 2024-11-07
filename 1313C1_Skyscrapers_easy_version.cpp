@@ -130,7 +130,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -146,10 +146,6 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
@@ -157,6 +153,44 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vll a(n); cin >> a;
+    auto f = [&](int v) -> vll {   
+        vll ans(n);
+        stack<pll> s;
+        for(int i = (v == -1 ? n - 1 : 0); i < n && i >= 0; i += v) {    
+            auto& curr = ans[i];
+            curr = a[i];
+            if(i - v >= 0 && i - v < n) curr += ans[i - v];
+            ll cnt = 1;
+            while(!s.empty() && s.top().ff > a[i]) {    
+                auto [x, c] = s.top(); s.pop();
+                curr -= x * c;
+                curr += c * a[i];
+                cnt += c;
+            }
+            s.push(MP(a[i], cnt));
+        }
+        return ans;
+    };
+    auto left = f(1);
+    auto right = f(-1);
+    ll best = 0, id = 0;    
+    for(int i = 0; i < n; i++) {    
+        ll curr = left[i] + right[i] - a[i];    
+        if(curr > best) {   
+            best = curr;    
+            id = i;
+        }
+    }
+    for(int i = id - 1; i >= 0; i--) {  
+        a[i] = min(a[i], a[i + 1]);
+    }
+    for(int i = id + 1; i < n; i++) {  
+        a[i] = min(a[i], a[i - 1]);
+    }
+    for(auto& x : a) cout << x << ' ';  
+    cout << endl;
 }
 
 signed main() {

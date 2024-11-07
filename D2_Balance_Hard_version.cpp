@@ -130,7 +130,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1LL << 60;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -146,10 +146,6 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
@@ -157,6 +153,42 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int q; cin >> q;    
+    uset<ll> s = {0};    
+    umap<ll, set<ll>> minHeap, a;
+    umap<ll, ll> MEX;    
+    while(q--) {    
+        char op; cin >> op; 
+        ll x; cin >> x; 
+        if(op == '+') { 
+            s.insert(x);    
+            continue;
+        }
+        if(op == '-') { 
+            s.erase(x); 
+            for(auto& y : a[x]) {   
+                minHeap[y].insert(x);
+            }
+            continue;
+        }
+        if(minHeap.count(x)) {  
+            auto& curr = minHeap[x];    
+            while(!curr.empty() && s.count(*curr.begin())) {   
+                curr.erase(curr.begin());
+            }
+            if(!curr.empty()) { 
+                cout << *curr.begin() << endl;
+                continue;
+            }
+            minHeap.erase(x);
+        }
+        auto& curr = MEX[x];    
+        while(s.count(curr)) {  
+            curr += x;  
+            a[curr].insert(x);
+        }
+        cout << curr << endl;
+    }
 }
 
 signed main() {

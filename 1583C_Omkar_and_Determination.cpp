@@ -136,7 +136,7 @@ const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi dirs = {{-1, 0}, {0, -1}};
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 vi primes, first_divisor(MX);  
@@ -156,7 +156,48 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class SparseTable { 
+    public: 
+    int n;  
+    vvll dp; 
+    SparseTable(vvll& dp) {  
+        n = dp.size();  
+        this->dp = dp;
+        init();
+    }
+    
+    void init() {   
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                //dp[i][j] = gcd(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+                //dp[i][j] = min(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+                //dp[i][j] = max(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+            }
+        }
+    }
+    
+    ll queries(int left, int right) {  
+        int j = log2(right - left + 1);
+        return max(dp[left][j], dp[right - (1LL << j) + 1][j]);
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vvc grid(n, vc(m)); cin >> grid;    
+    vi dp(m);   
+    for(int i = 1; i < n; i++) {    
+        for(int j = 1; j < m; j++) {    
+            if(grid[i - 1][j] == 'X' && grid[i][j - 1] == 'X') dp[j] = 1;
+        }
+    }
+    for(int i = 1; i < m; i++) dp[i] += dp[i - 1];
+    int q; cin >> q;    
+    while(q--) {    
+        int l, r; cin >> l >> r;    
+        l--, r--;   
+        cout << (dp[r] - dp[l] ? "NO" : "YES") << endl;
+    }
 }
 
 signed main() {

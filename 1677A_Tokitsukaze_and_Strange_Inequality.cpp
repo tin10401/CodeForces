@@ -146,17 +146,66 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
             for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;  
+    // a < c && b > d
+    ll res = 0;
+    for(int i = 0; i < n; i++) {    
+        FW<ll> suffix(n + 1), prefix(n + 1);
+        for(int j = i + 1; j < n; j++) {    
+            suffix.update(a[j], 1);
+        }
+        for(int j = i + 1, sm = 0; j < n; j++) {    
+            sm -= prefix.queries(a[j], n);
+            prefix.update(a[j], 1);
+            if(a[i] < a[j]) res += sm; 
+            suffix.update(a[j], -1);
+            sm += suffix.get(a[j] - 1);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +214,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
