@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -157,6 +157,30 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n, T, x, y; cin >> n >> T >> x >> y;
+    vpll a(n);  
+    for(auto& it : a) cin >> it.ss; 
+    for(auto& it : a) cin >> it.ff;
+    ll easy_total = 0, hard_total = 0;
+    for(auto& it : a) { 
+        if(it.ss == 0) easy_total++;    
+        else hard_total++;
+    }
+    ll res = 0, easy_cnt = 0, hard_cnt = 0;
+    a.pb({T + 1, 0});   
+    srt(a);
+    for(auto& [t, type] : a) {  
+        ll has = t - 1 - easy_cnt * x - hard_cnt * y; 
+        if(has >= 0) {  
+            ll extra_easy = min(has / x, easy_total - easy_cnt);
+            has -= extra_easy * x;
+            ll extra_hard = min(has / y, hard_total - hard_cnt);
+            res = max(res, easy_cnt + hard_cnt + extra_hard + extra_easy);
+        }
+        if(type == 0) easy_cnt++;
+        else hard_cnt++; 
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +189,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

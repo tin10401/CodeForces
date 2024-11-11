@@ -156,7 +156,88 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vi lazy;
+    T DEFAULT;
+    SGT(vi& arr) {    
+        n = arr.size(); 
+        DEFAULT = MP(inf, -inf);
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+        build(entireTree, arr);
+    }
+    
+    void build(iterator, vi& arr) { 
+        if(left == right) { 
+            root[i] = MP(arr[left], arr[left]);
+            return;
+        }
+        int middle = midPoint;  
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res.ff = min(left.ff, right.ff);    
+        res.ss = max(left.ss, right.ss);  
+        return res;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+};
+
 void solve() {
+    int n; cin >> n;    
+    vi a(n), b(n); cin >> a >> b;
+    umap<int, vi> indices;  
+    for(int i = 0; i < n; i++) {    
+        indices[a[i]].pb(i);
+    }
+    SGT<pii> root1(a), root2(b);
+    bool ok = true;
+    for(int i = 0; i < n; i++) {    
+        if(a[i] > b[i]) {   
+            ok = false; 
+            break;
+        }
+        if(a[i] == b[i]) continue;
+        auto& curr = indices[b[i]];
+        auto it = lb(all(curr), i);
+        bool left = true, right = true;
+        if(it != end(curr)) { 
+            auto [_, mx] = root1.queries(i + 1, *it);
+            auto [mn, __] = root2.queries(i + 1, *it);
+            if(mx > b[i] || mn < b[i]) right = false;
+        }
+        else right = false;
+        if(it != begin(curr)) { 
+            int pos = *prev(it);    
+            auto [_, mx] = root1.queries(pos, i - 1);
+            auto [mn, __] = root2.queries(pos, i - 1);
+            if(mx > b[i] || mn < b[i]) left = false;
+        }
+        else left = false;
+        if(!left && !right) {   
+            ok = false; 
+            break;
+        }
+    }
+    cout << (ok ? "YES" : "NO") << endl;
 }
 
 signed main() {
@@ -165,7 +246,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

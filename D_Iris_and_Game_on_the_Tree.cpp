@@ -157,6 +157,43 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    string s; cin >> s; 
+    int c[2] = {};  
+    int question_mark = 0;
+    int extra = 0;
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {  
+        if(graph[node].size() == 1 && node) {   
+            if(s[node] == '?') question_mark++; 
+            else c[s[node] - '0']++;
+        }
+        extra ^= s[node] == '?';
+        for(auto& nei : graph[node]) {  
+            if(nei != par) dfs(dfs, nei, node);
+        }
+    };
+    auto f = [&](int x, int v) -> int { 
+        return c[!x] + (question_mark + v) / 2;
+    };
+    dfs(dfs);
+    if(s[0] != '?') {   
+        cout << f(s[0] - '0', 1) << endl;
+        return;
+    } 
+    int ans = max(c[0], c[1]) + question_mark / 2;
+    if(c[0] == c[1] && extra) {  
+        ans += question_mark & 1;
+    }
+    cout << ans << endl;
+    
+
 }
 
 signed main() {
@@ -165,7 +202,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

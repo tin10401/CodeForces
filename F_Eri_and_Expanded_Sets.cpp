@@ -156,7 +156,60 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class SparseTable { 
+    public: 
+    int n;  
+    vvll dp; 
+    SparseTable(vvll& dp) {  
+        n = dp.size();  
+        this->dp = dp;
+        init();
+    }
+    
+    void init() {   
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+				dp[i][j] = gcd(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+            }
+        }
+    }
+    
+    ll queries(int left, int right) {  
+        int j = log2(right - left + 1);
+        return gcd(dp[left][j], dp[right - (1LL << j) + 1][j]);
+    }
+};
+
 void solve() {
+    ll n; cin >> n;    
+    vi a(n); cin >> a;  
+    ll res = n * (n + 1) / 2;
+    n--;
+    vvll dp(n, vll(MK, 0)); 
+    vi diff;
+    for(int i = 0; i < n; i++) {    
+        int d = abs(a[i] - a[i + 1]);   
+        while(d && d % 2 == 0) d >>= 1; 
+        diff.pb(d);
+        dp[i][0] = d;
+    }
+    SparseTable table(dp);
+    ll v = 1;
+    for(int i = 0; i < n; i++) {    
+        if(diff[i] == 0) {  
+            v++;    
+            continue;
+        }
+        ll left = i, right = n - 1, leftMost = i - 1;  
+        while(left <= right) {  
+            ll middle = midPoint;  
+            if(table.queries(i, middle) <= 1) right = middle - 1;    
+            else left = middle + 1, leftMost = middle;
+        }
+        res -= v * (leftMost - i + 1);
+        v = 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +218,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

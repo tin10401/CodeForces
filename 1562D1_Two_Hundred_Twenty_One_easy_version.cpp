@@ -157,6 +157,25 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, q; cin >> n >> q;    
+    string s; cin >> s; 
+    vi prefix(n + 1);   
+    for(int i = 1; i <= n; i++) {   
+        prefix[i] = prefix[i - 1];  
+        int t = (i & 1) ? 1 : -1;
+        t *= s[i - 1] == '+' ? 1 : -1;
+        prefix[i] += t;
+    }
+    while(q--) {    
+        int l, r; cin >> l >> r;    
+        if(prefix[r] - prefix[l - 1] == 0) {    
+            cout << 0 << endl;
+        }
+        else {  
+            int len = r - l + 1;    
+            cout << (len % 2 == 0 ? 2 : 1) << endl;
+        }
+    }
 }
 
 signed main() {
@@ -165,7 +184,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -157,6 +157,25 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi t, m;    
+    for(int i = 0; i < n; i++) {    
+        char ch; cin >> ch;
+        if(ch == 'T') t.pb(i);  
+        else m.pb(i);
+    }
+    int N = t.size(), M = m.size(); 
+    if(N != M * 2) {    
+        cout << "NO" << endl;   
+        return;
+    }
+    for(int i = 0; i < M; i++) {    
+        if(t[i] > m[i] || t[i + M] < m[i]) {    
+            cout << "NO" << endl;
+            return;
+        }
+    }
+    cout << "YES" << endl;
 }
 
 signed main() {
@@ -165,7 +184,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

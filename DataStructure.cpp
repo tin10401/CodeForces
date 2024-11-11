@@ -499,6 +499,7 @@ void reset() {
         root[i] = 0, T[i] = 0;  
         child[i] = MP(0, 0);
     }
+	ptr = 0;
 }
 
 class LCA { 

@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -157,6 +157,27 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    ll n, p, k; cin >> n >> p >> k;
+    vll a(n); cin >> a;  
+    srt(a);
+    ll res = 0;    
+    ll curr = 0;
+    for(int i = 0; i < k; i++) {    
+        ll c = 0;
+        ll t = curr;
+        for(int jj = i + k - 1; jj < n; jj += k) {  
+            t += a[jj];  
+            if(t <= p) { 
+                c = jj + 1;
+            }
+        }
+        curr += a[i];
+        if(curr <= p) { 
+            res = max(res, (ll)i + 1);
+        }
+        res = max(res, c);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +186,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

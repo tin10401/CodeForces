@@ -157,6 +157,52 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m, k; cin >> n >> m >> k;
+    vi a(k); cin >> a;
+    vvi graph(n + 1);   
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;    
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    auto bfs = [&](int source) -> vi { 
+        vi dp(n + 1, -1);
+        dp[source] = 0;
+        queue<int> q;   
+        q.push(source);
+        int step = 0;   
+        while(!q.empty()) { 
+            int size = q.size();    
+            while(size--) { 
+                int node = q.front(); q.pop();  
+                for(auto& nei : graph[node]) {  
+                    if(dp[nei] == -1) { 
+                        q.push(nei);
+                        dp[nei] = step + 1;
+                    }
+                }
+            }
+            step++;
+        }
+        return dp;
+    };
+    auto dp1 = bfs(1);  
+    auto dp2 = bfs(n);
+    vpii special;   
+    for(auto& x : a) {  
+        special.pb(MP(dp1[x], dp2[x]));
+    }
+    srt(special);
+    int res = 0;    
+    for(int i = k - 2; i >= 0; i--) {   
+        special[i].ss = max(special[i + 1].ss, special[i].ss);
+    }
+    for(int i = 0; i < k - 1; i++) {    
+        int d = special[i].ff + special[i + 1].ss + 1;  
+        d = min(d, dp1[n]); 
+        res = max(res, d);
+    }
+    cout << res << endl;
 }
 
 signed main() {

@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -157,6 +157,42 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vvi a(n + 2, vi(n + 2)), b(n + 2, vi(n + 2)), c(n + 2, vi(n + 2)), d(n + 2, vi(n + 2));    
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= n; j++) {   
+            char ch; cin >> ch; 
+            a[i][j] = ch - '0';
+        }
+    }
+    for(int i = n; i; i--) {    
+        for(int j = 1; j <= n; j++) {   
+            a[i][j] ^= a[i - 1][j];
+        }
+    }
+    int res = 0;    
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= n; j++) {   
+            if(b[i][j]) {   
+                a[i][j] ^= 1;   
+                b[i + 1][j - 1] ^= 1;   
+            }
+            if(c[i][j]) {   
+                a[i][j] ^= 1;
+                c[i + 1][j + 1] ^= 1;
+            }
+            if(d[i][j]) {   
+                a[i][j] ^= 1;   
+                d[i + 1][j] ^= 1;
+            }
+            if(a[i][j]) {   
+                res++;  
+                b[i + 1][j - 1] ^= 1;   
+                c[i + 1][j + 1] ^= 1;
+            }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +201,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

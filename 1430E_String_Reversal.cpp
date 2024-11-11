@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -156,7 +156,64 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+};
+
 void solve() {
+    int n; cin >> n;    
+    string s; cin >> s;
+    deque<int> d[26];  
+    for(int i = 0; i < n; i++) {    
+        d[s[i] - 'a'].push_back(i);
+    }
+    vi a(n);    
+    rev(s); 
+    int j = 0;
+    for(auto& ch : s) { 
+        int id = d[ch - 'a'].front();   
+        d[ch - 'a'].pop_front();
+        a[id] = j++;
+    }
+    FW<int> root(n);    
+    ll res = 0; 
+    for(int i = n - 1; i >= 0; i--) {   
+        res += root.get(a[i] + 1);  
+        root.update(a[i] + 1, 1);
+    }
+    cout << res << endl;
+    
 }
 
 signed main() {
