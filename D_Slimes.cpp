@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -156,7 +156,69 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+class SparseTable { 
+    public: 
+    int n;  
+    vvpii dp; 
+    SparseTable(vvpii& dp) {  
+        n = dp.size();  
+        this->dp = dp;
+        init();
+    }
+    
+    void init() {   
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 1; i + (1LL << j) <= n; i++) {    
+                dp[i][j].ff = min(dp[i][j - 1].ff, dp[i + (1LL << (j - 1))][j - 1].ff);
+                dp[i][j].ss = max(dp[i][j - 1].ss, dp[i + (1LL << (j - 1))][j - 1].ss);
+
+            }
+        }
+    }
+    
+    bool isSame(int left, int right, int x) {  
+        int j = log2(right - left + 1);
+        int mn = min(dp[left][j].ff, dp[right - (1LL << j) + 1][j].ff);
+        int mx = max(dp[left][j].ss, dp[right - (1LL << j) + 1][j].ss); 
+        if(mx > x) return false;
+        return mn == mx && left != right;
+    }
+};
 void solve() {
+    int n; cin >> n;
+    vll prefix(n + 1), a(n + 1);  
+    vvpii dp(n + 1, vpii(MK));  
+    for(int i = 1; i <= n; i++) {   
+        cin >> a[i];
+        prefix[i] = prefix[i - 1] + a[i];
+        dp[i][0] = MP(a[i], a[i]);
+    }
+    SparseTable table(dp);
+    for(int i = 1; i <= n; i++) {    
+        int left = 1, right = i - 1, res = inf;
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(prefix[i - 1] - prefix[middle - 1] > a[i] && !table.isSame(middle, i - 1, a[i])) { 
+                res = min(res, i - middle); 
+                left = middle + 1;
+            }
+            else {  
+                right = middle - 1;
+            }
+        }
+        left = i + 1, right = n;    
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(prefix[middle] - prefix[i] > a[i] && !table.isSame(i + 1, middle, a[i])) { 
+                res = min(res, middle - i); 
+                right = middle - 1;
+            } 
+            else {  
+                left = middle + 1;
+            }
+        }
+        cout << (res == inf ? -1 : res) << (i == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -165,7 +227,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

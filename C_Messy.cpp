@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -157,6 +157,31 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    string s; cin >> s; 
+    string t;   
+    while(t.size() < (k - 1) * 2) { 
+        t += "()";
+    }
+    int leftOver = (n - t.size()) / 2;    
+    t += string(leftOver, '(');
+    t += string(leftOver, ')');
+    vpii a;
+    for(int i = 0; i < n; i++) {    
+        if(s[i] == t[i]) continue;
+        int j = i;  
+        while(j < n && s[j] != t[i]) {   
+            j++;
+        }
+        j = min(j, n - 1);
+        reverse(begin(s) + i, begin(s) + j + 1);
+        a.pb(MP(i + 1, j + 1));
+    }
+    debug(s, t);
+    cout << a.size() << endl;   
+    for(auto& [l, r] : a) { 
+        cout << l << ' ' << r << endl;
+    }
 }
 
 signed main() {
@@ -165,7 +190,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

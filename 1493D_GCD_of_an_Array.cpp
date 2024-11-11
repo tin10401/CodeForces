@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -133,7 +133,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -157,12 +157,37 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vt<map<int, int>> f(MX);
+    map<pii, int> mp;
+    ll g = 1;
+    auto update = [&](int i, int x) -> void {   
+        auto add = [&](ll b) -> void { 
+            if(++mp[MP(b, ++f[i][b])] == n) {   
+                g = (g * b) % MOD;
+            }
+        };
+        while(x > 1) {  
+            int t = first_divisor[x];
+            add(t);
+            x /= t;
+        }
+    };
+    for(int i = 1; i <= n; i++) {   
+        int x; cin >> x;    
+        update(i, x);
+    }
+    while(q--) {    
+        int i, x; cin >> i >> x;    
+        update(i, x);   
+        cout << g << endl;
+    }
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;

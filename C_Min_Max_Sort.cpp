@@ -157,6 +157,30 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    vi pos(n + 1);  
+    for(int i = 0; i < n; i++) {    
+        pos[a[i]] = i;
+    }
+    vi dp1(n + 1, true), dp2(n + 1, true);   
+    int mid = (n + 1) / 2;
+    for(int i = mid; i > 0; i--) {   
+        dp1[i] = dp1[i + 1] && pos[i] < pos[i + 1];
+    }
+    for(int i = mid + (n % 2 == 0); i <= n; i++) { 
+        dp2[i] = dp2[i - 1] && pos[i] > pos[i - 1];
+    }
+    debug(dp1, dp2);
+    int res = 0;
+    for(int i = 1, j = n; i < j; i++, j--) {   
+        if(dp1[i] && dp2[j])  { 
+            cout << res << endl;    
+            return;
+        }
+        res++;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -165,7 +189,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

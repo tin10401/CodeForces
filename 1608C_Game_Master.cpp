@@ -60,7 +60,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
+#define sum(x) accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
@@ -157,6 +157,42 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n), b(n); cin >> a >> b;
+    set<ar(3)> s, t;    
+    for(int i = 0; i < n; i++) {    
+        s.insert({a[i], b[i], i});  
+        t.insert({b[i], a[i], i});
+    }
+    auto f = [](const vi& a, const vi& b, set<ar(3)> s, set<ar(3)> t) -> vi {  
+        vi lost;
+        int ii = max_element(all(a)) - begin(a);    
+        int curr = inf;
+        for(auto it = t.lb({b[ii], a[ii], ii}); it != end(t);) {    
+            auto [B, A, id] = *it;
+            s.erase({A, B, id});
+            it = t.erase(it);
+            if(A < curr) {  
+                curr = A;   
+                ii = id;
+            }
+        }
+        for(auto it = s.lb({a[ii], b[ii], ii}); it != end(s);) {   
+            auto [A, B, id] = *it;  
+            t.erase({A, B, id});
+            it = s.erase(it);
+        }
+        for(auto it : s) {  
+            lost.pb(it[2]);
+        }
+        return lost;
+    };
+    vi lost(n); 
+    for(auto& x : f(a, b, s, t)) lost[x]++;   
+    for(auto& x : f(b, a, t, s)) lost[x]++;
+    for(int i = 0; i < n; i++) {    
+        cout << (lost[i] == 2 ? 0 : 1) << (i == n - 1 ? "\n" : "");
+    }
 }
 
 signed main() {
@@ -165,7 +201,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

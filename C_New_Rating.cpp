@@ -157,6 +157,20 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    auto f = [](int x, int y) -> int {  
+        int v = (x == y ? 0 : (y > x ? 1 : -1));    
+        return x + v;
+    };
+    vi dp(3);   
+    for(int i = 0; i < n; i++) {  
+        int x = a[i];
+        if(i) dp[2] = f(max(dp[1], dp[2]), x);
+        dp[1] = max(dp[1], dp[0]);
+        dp[0] = f(dp[0], x);
+    }
+    cout << max(dp[1], dp[2]) << endl;
 }
 
 signed main() {
@@ -165,7 +179,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

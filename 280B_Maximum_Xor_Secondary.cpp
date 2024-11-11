@@ -157,6 +157,21 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    stack<int> s;   
+    int res = 0;
+    for(auto& x : a) {  
+        while(!s.empty() && s.top() < x) {  
+            res = max(res, x ^ s.top());    
+            s.pop();
+        }
+        if(!s.empty()) {    
+            res = max(res, x ^ s.top());
+        }
+        s.push(x);
+    }
+    cout << res << endl;
 }
 
 signed main() {

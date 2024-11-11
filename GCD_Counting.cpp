@@ -133,7 +133,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -156,14 +156,58 @@ void generatePrime() {  primeBits.set(2);
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 }
 
+vi DIV[MX]; 
+void preprocess() { 
+    for(int i = 2; i < MX; i++) {   
+        if(!primeBits[i]) continue;
+        for(int j = i; j < MX; j += i) {    
+            DIV[j].pb(i);
+        }
+    }
+}
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;   
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    int ans = 0;
+    vt<map<int, int>> dp(n);
+    auto dfs = [&](auto& dfs, int node, int par, int v) -> int {   
+        if(a[node] % v) return 0;
+        if(dp[node].count(v)) return dp[node][v];
+        multiset<int> s;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue; 
+            s.insert(dfs(dfs, nei, node, v));
+            if(s.size() > 2) s.erase(s.begin());
+        }
+        int sm = 0; 
+        for(auto& it : s) { 
+            sm += it;
+        }
+        ans = max(ans, sm + 1); 
+        return dp[node][v] = (s.empty() ? 0 : *s.rbegin()) + 1;
+    };
+    for(int i = 0; i < n; i++) {    
+        if(a[i] == 1) continue;
+        for(auto& j : DIV[a[i]]) {  
+            dfs(dfs, i, -1, j);
+        }
+    }
+    cout << ans << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
+    preprocess();
     int t = 1;
     //cin >> t;
     for(int i = 1; i <= t; i++) {   

@@ -157,6 +157,17 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    srt(a);
+    vvll dp(n, vll(n)); 
+    for(int len = 1; len < n; len++) {    
+        for(int i = 0; i + len < n; i++) {  
+            int j = i + len;    
+            dp[i][j] = a[j] - a[i] + min(dp[i + 1][j], dp[i][j - 1]);
+        }
+    }
+    cout << dp[0][n - 1] << endl;
 }
 
 signed main() {
