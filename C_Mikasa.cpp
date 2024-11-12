@@ -139,7 +139,7 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-vi primes, first_divisor(MX), DIV[MX];
+vi primes, first_divisor(MX);  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
@@ -154,16 +154,18 @@ void generatePrime() {  primeBits.set(2);
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-    for(int i = 2; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            DIV[j].pb(i);
-        }
-    }
 }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    m++;
+    int k = 0;  
+    for(int bit = 30; bit >= 0 && n < m; bit--) {   
+        if((n >> bit) & 1 && (m >> bit) & 1) continue;
+        if((m >> bit) & 1) k |= (1LL << bit), n |= (1LL << bit);
+    }
+    cout << k << endl;
+
 }
 
 signed main() {
@@ -172,7 +174,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

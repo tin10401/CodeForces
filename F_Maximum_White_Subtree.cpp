@@ -139,7 +139,7 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-vi primes, first_divisor(MX), DIV[MX];
+vi primes, first_divisor(MX);  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
@@ -154,16 +154,49 @@ void generatePrime() {  primeBits.set(2);
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-    for(int i = 2; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            DIV[j].pb(i);
-        }
-    }
 }
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;  
+    for(auto& x : a) {  
+        if(x == 0) x = -1;
+    }
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    vi ans(n);  
+    vi dp(n);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void { 
+        dp[node] = a[node]; 
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            dfs(dfs, nei, node);    
+            dp[node] += max(dp[nei], 0);
+        }
+    };
+    auto dfs2 = [&](auto& dfs2, int node = 0, int par = -1) -> void {   
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            dp[node] -= max(0, dp[nei]);    
+            dp[nei] += max(0, dp[node]);    
+            dfs2(dfs2, nei, node);    
+            dp[nei] -= max(0, dp[node]);    
+            dp[node] += max(0, dp[nei]);    
+        }
+        ans[node] = dp[node];
+    };
+    dfs(dfs);   
+    dfs2(dfs2);
+    for(auto& x : ans) {    
+        cout << x << ' ';
+    }
+    cout << endl;
+
 }
 
 signed main() {

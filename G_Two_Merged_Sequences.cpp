@@ -164,6 +164,26 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    vi b(n);    
+    int mx = -inf, mn = inf;    
+    for(int i = 0; i < n; i++) {    
+        if(a[i] > mx && ((i < n - 1 && a[i] < a[i + 1]) || a[i] >= mn)) {   
+            mx = a[i];
+            continue;
+        }
+        if(a[i] < mn) { 
+            mn = a[i];  
+            b[i] = true;    
+            continue;
+        }
+        cout << "NO" << endl;
+        return;
+    }
+    cout << "YES" << endl;
+    for(auto& x : b) cout << x << ' ';  
+    cout << endl;
 }
 
 signed main() {

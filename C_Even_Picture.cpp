@@ -136,7 +136,7 @@ const static int MK = 20;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
-const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi dirs = {{-1, 0}, {0, 1}, {1, 0}};
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 vi primes, first_divisor(MX), DIV[MX];
@@ -164,6 +164,19 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;
+    vpii a = {{0, 0}};
+    int row = 0, col = 0;
+    while(n-- >= 0) {    
+        a.pb({row + 1, col});   
+        a.pb({row + 1, col + 1});   
+        a.pb({row, col + 1});
+        row++, col++;
+    }
+    cout << a.size() << endl;   
+    for(auto& [r, c] : a) { 
+        cout << r << ' ' << c << endl;
+    }
 }
 
 signed main() {

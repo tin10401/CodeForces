@@ -164,6 +164,23 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;    
+    string s, t; cin >> s >> t;
+    vi a(n);    
+    for(int i = n - 1; i >= 0; i--) {   
+        a[i] += s[i] - 'a' + t[i] - 'a';    
+        if(i && a[i] >= 26) {    
+            a[i] -= 26; 
+            a[i - 1]++;
+        }
+    }
+    string res;
+    for(int i = 0; i < n; i++) {    
+        if(a[i] % 2 && i < n - 1) a[i + 1] += 26;   
+        a[i] >>= 1;
+        res += (char)a[i] + 'a';
+    }
+    cout << res << endl;
 }
 
 signed main() {

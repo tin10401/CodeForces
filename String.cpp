@@ -166,34 +166,58 @@ vi manacher(string s, int start) {
 
 class RabinKarp {   
     public: 
-    vpii prefix;    
-    vi pow;
-    int mod1, n, mod2, base1, base2;
+    vvll prefix, pow;
+    vll base, mod;
+    int n, m;
     RabinKarp(const string& s) {  
-        mod1 = 1e9 + 7, mod2 = 1e9 + 33, base1 = 26, base2 = 27;
+        m = 3;
+        base = {26, 28, 30};    
+        mod = {(int)1e9 + 7, (int)1e9 + 33, (int)1e9 + 73};
         n = s.size(); 
-        prefix.rsz(n + 1);
-        pow.rsz(n + 1);
-        pow[0] = 1;
+        pow.rsz(m), prefix.rsz(m); 
+        for(int i = 0; i < m; i++) {    
+            pow[i].rsz(n + 1, 1);  
+            prefix[i].rsz(n + 1);
+        }
         buildHash(s);
     }
     
     void buildHash(const string& s) {   
-        int hash1 = 0, hash2 = 0;
-        for(int i = 1; i <= n; i++) {   
-            hash1 = (hash1 * base1 + s[i - 1] - 'a') % mod1;    
-            hash2 = (hash2 * base2 + s[i - 1] - 'a') % mod2;
-            prefix[i].ff = hash1;    
-            prefix[i].ss = hash2;
-            pow[i] = (pow[i - 1] * 26) % mod1;
+        for(int j = 1; j <= n; j++) {   
+            int x = s[j - 1] - 'a' + 1;
+            for(int i = 0; i < m; i++) {    
+                prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];   
+                pow[i][j] = (pow[i][j - 1] * base[i]) % mod[i];
+            }
         }
     }
     
-    pii getHash(int l, int r) { 
-        int hash1 = prefix[r].ff - (prefix[l].ff * pow[r - l] % mod1) % mod1;
-        hash1 = (hash1 + mod1) % mod1;  
-        int hash2 = prefix[r].ss - (prefix[l].ss * pow[r - l] % mod2) % mod2;   
-        hash2 = (hash2 * mod2) % mod2;  
-        return MP(hash1, hash2);
+    int getHash(int l, int r) { 
+		if(l < 0 || r > n || l > r) return -1;
+        int hash = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % mod[0]) % mod[0];
+        hash = (hash + mod[0]) % mod[0];
+        return hash;
+		
+//        if(l < 0 || r > n || l > r) return {-1, -1};
+//        vll ans;    
+//        for(int i = 0; i < m; i++) {    
+//            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
+//            hash = (hash + mod[i]) % mod[i];
+//            ans.pb(hash);
+//        }
+//        return MP(ans[0], ans[1]);
     };
+
+    
+	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
+        int left = 0, right = n, rightMost = -1;    
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(a.getHash(offSet, middle + offSet) == getHash(0, middle)) rightMost = middle, left = middle + 1; 
+            else right = middle - 1;
+        }
+        return a.getHash(rightMost + 1 + offSet, offSet + n) == getHash(rightMost + 1, n);
+    }
+
 };
+
