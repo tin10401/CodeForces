@@ -133,7 +133,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2750132;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -164,12 +164,33 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n; cin >> n;
+    multiset<int> s;    
+    for(int i = 0; i < 2 * n; i++) {    
+        int x; cin >> x;    
+        s.insert(x);
+    }
+    while(n--) {    
+        int x = *s.rbegin();    
+        s.erase(s.find(x)); 
+        if(primeBits[x]) {  
+            int y = lb(all(primes), x) - begin(primes) + 1;   
+            s.erase(s.find(y));
+            cout << y << ' ';
+        }
+        else {  
+            int y = x / first_divisor[x];   
+            s.erase(s.find(y));
+            cout << x << ' ';
+        }
+    }
+    cout << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;

@@ -133,13 +133,13 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-vi primes, first_divisor(MX), DIV[MX];
+vi primes, first_divisor(MX);  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
@@ -154,7 +154,10 @@ void generatePrime() {  primeBits.set(2);
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
 
+vi DIV[MX];
+void preprocess() { 
     for(int i = 2; i < MX; i++) {   
         if(!primeBits[i]) continue;
         for(int j = i; j < MX; j += i) {   
@@ -163,13 +166,87 @@ void generatePrime() {  primeBits.set(2);
     }
 }
 
+class SparseTable { 
+    public: 
+    int n;  
+    vvi dp; 
+    SparseTable(vvi& dp) {  
+        n = dp.size();  
+        this->dp = dp;
+        init();
+    }
+    
+    void init() {   
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                dp[i][j] = min(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+            }
+        }
+    }
+    
+    ll queries(int left, int right) {  
+        int j = log2(right - left + 1);
+        return min(dp[left][j], dp[right - (1LL << j) + 1][j]);
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;    
+    vi a(n); cin >> a;
+    int m = MAX(a);
+    vi dp(m + 1, n);
+    vi far(n, n);
+    vvi t(n, vi(MK));
+    for(int i = n - 1; i >= 0; i--) {   
+        for(auto& x : DIV[a[i]]) {  
+            far[i] = min(far[i], dp[x]);
+            dp[x] = i;
+        } 
+        t[i][0] = far[i];
+    }
+    SparseTable DP(t);
+    vi id(n, -1);
+    vvi arr;
+    vi linked;
+    for(int i = 0; i < n; i++) {    
+        if(id[i] != -1) continue;
+        vi curr;    
+        int idx = i;    
+        bool ok = false;
+        while(idx < n) {    
+            if(id[idx] != -1) { 
+                ok = true;  
+                linked.pb(idx);
+                break;
+            }
+            if(id[idx] != -1) break;
+            curr.pb(idx);
+            id[idx] = arr.size();
+            idx = DP.queries(idx, far[idx] - 1);
+        }
+        arr.pb(curr);
+        if(!ok) linked.pb(-1);
+    }
+    while(q--) {    
+        int l, r; cin >> l >> r;    
+        l--, r--;   
+        int res = 0;
+        while(l <= r) { 
+            int j = id[l];
+            auto& curr = arr[j];
+            res += ub(all(curr), r) - lb(all(curr), l);
+            if(linked[j] == -1 || linked[j] > r) break;
+            l = linked[j];
+        }
+        cout << res << endl;
+    }
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
+    preprocess();
 
     int t = 1;
     //cin >> t;

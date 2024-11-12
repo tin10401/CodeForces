@@ -139,7 +139,7 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-vi primes, first_divisor(MX), DIV[MX];
+vi primes, first_divisor(MX);  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
@@ -154,16 +154,41 @@ void generatePrime() {  primeBits.set(2);
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-    for(int i = 2; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            DIV[j].pb(i);
-        }
-    }
 }
 
 void solve() {
+    int n; cin >> n;    
+    vs a, b;    
+    for(int i = 0; i < 3; i++) {    
+        string s; cin >> s; 
+        if(count(all(s), '0') >= n) a.pb(s);  
+        else b.pb(s);
+    }
+    auto f = [](const string& a, const string& b, int x) -> string { 
+        vi s = {-1}, t = {-1};    
+        int N = a.size();
+        int n = N / 2;
+        for(int i = 0; i < N; i++) {    
+            if(a[i] - '0' == x) s.pb(i);    
+            if(b[i] - '0' == x) t.pb(i);
+        }
+        string res;
+        for(int i = 0; i < n; i++) {    
+            int len = max(s[i + 1] - s[i] - 1, t[i + 1] - t[i] - 1);
+            res += string(len, !x + '0');
+            res += x + '0';
+        }
+        if((int)s.size() >= n) { 
+            res += a.substr(s[n] + 1);
+        }
+        if((int)t.size() >= n) { 
+            res += b.substr(t[n] + 1);
+        }
+        return res;
+    };
+    if(a.size() >= 2) cout << f(a[0], a[1], 0) << endl; 
+    else cout << f(b[0], b[1], 1) << endl;
+
 }
 
 signed main() {
@@ -172,7 +197,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

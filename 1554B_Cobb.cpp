@@ -139,7 +139,7 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-vi primes, first_divisor(MX), DIV[MX];
+vi primes, first_divisor(MX);  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
@@ -154,16 +154,37 @@ void generatePrime() {  primeBits.set(2);
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-    for(int i = 2; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            DIV[j].pb(i);
-        }
-    }
 }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vpii dp(2 * n, {-1, -1});
+    int N = 0;
+    auto combine = [&](pii a, pii b) -> pii { 
+        vi arr = {a.ff, a.ss, b.ff, b.ss};  
+        srtR(arr);
+        return MP(arr[0], arr[1]);
+    };
+    for(int i = 1; i <= n; i++) {   
+        int x; cin >> x;    
+        dp[x] = combine(dp[x], MP(i, -1));
+        N = max(N, (int)log2(x));
+    }
+    for(int bit = 0; bit <= N; bit++) { 
+        for(int mask = 0; mask < 2 * n; mask++) {   
+            if((mask >> bit) & 1) {   
+                dp[mask] = combine(dp[mask], dp[mask ^ (1LL << bit)]);
+            }
+        }
+    }
+    ll res = -inf;
+    for(int mask = 0; mask < 2 * n; mask++) {   
+        auto& [x, y] = dp[mask];    
+        if(y != -1) {   
+            res = max(res, (ll)x * y - (ll)k * mask);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -172,7 +193,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

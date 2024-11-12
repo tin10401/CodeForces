@@ -164,6 +164,36 @@ void generatePrime() {  primeBits.set(2);
 }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vvi graph(n + 1);    
+    vpii edges;
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;    
+        graph[u].pb(v); 
+        graph[v].pb(u);
+        edges.pb({u, v});
+    }
+    vi color(n + 1, -1);    
+    auto dfs = [&](auto& dfs, int node, int par, int c) -> bool {   
+        color[node] = c;    
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;
+            if(color[nei] == -1 && !dfs(dfs, nei, node, !c)) return false;
+            if(color[nei] == c) return false;
+        }
+        return true;
+    };
+    for(int i = 1; i <= n; i++) {   
+        if(color[i] == -1 && !dfs(dfs, i, -1, 0)) { 
+            cout << "NO" << endl;
+            return;
+        }
+    }
+    cout << "YES" << endl;
+    for(auto& [u, v] : edges) { 
+        cout << (color[u] < color[v]);
+    }
+    cout << endl;
 }
 
 signed main() {

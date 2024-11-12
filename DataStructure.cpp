@@ -18,9 +18,6 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#pragma GCC optimize("Ofast")
-#pragma GCC optimize ("unroll-loops")
-#pragma GCC target("popcnt")
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 using namespace __gnu_pbds;
@@ -33,22 +30,27 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lb lower_bound
 #define db double
 #define ld long db
-#define ll long long
-#define pll pair<ll, ll>    
+#define ll int64_t
 #define vll vt<ll>  
+#define vvll vt<vll>
+#define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
-#define vvvll vt<vvll>
-#define vi vector<int>
+#define vc vt<char> 
+#define vvc vt<vc>
+#define vi vt<int>
+#define vvi vt<vi>
+#define vvvi vt<vvi>
 #define pii pair<int, int>
-#define vpii vector<pair<int, int>>
-#define vs vector<string>
-#define vb vector<bool>
-#define vvpii vector<vpii>
-#define vvi vector<vi>
-#define vd vector<db>
+#define vpii vt<pii>
+#define vs vt<string>
+#define vvs vt<vs>
+#define vb vt<bool>
+#define vvb vt<vb>
+#define vvpii vt<vpii>
+#define vd vt<db>
 #define ar(x) array<int, x>
-#define var(x) vector<ar(x)>
+#define var(x) vt<ar(x)>
+#define vvar(x) vt<var(x)>
 #define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
@@ -58,10 +60,11 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define MP make_pair
 #define MT make_tuple
 #define rsz resize
-#define sum(x) accumulate(all(x), 0LL)
+#define sum(x) (ll)accumulate(all(x), 0LL)
 #define srt(x) sort(all(x))
 #define srtR(x) sort(allr(x))
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
+#define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
 #define lcm(a, b) (a * b) / gcd(a, b)
@@ -79,6 +82,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define iterator int i, int left, int right
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
+
 
 struct custom {
     static const uint64_t C = 0x9e3779b97f4a7c15; const uint32_t RANDOM = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -138,7 +142,7 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-vi primes, first_divisor(MX);  
+vi primes, first_divisor(MX), DIV[MX];  
 bitset<MX> primeBits;
 void generatePrime() {  primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
@@ -153,7 +157,15 @@ void generatePrime() {  primeBits.set(2);
         }
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+
+    for(int i = 2; i < MX; i++) {   
+        if(!primeBits[i]) continue;
+        for(int j = i; j < MX; j += i) {   
+            DIV[j].pb(i);
+        }
+    }
 }
+
 
 
     
@@ -667,6 +679,36 @@ class SparseTable {
     ll queries(int left, int right) {  
         int j = log2(right - left + 1);
         return gcd(dp[left][j], dp[right - (1LL << j) + 1][j]);
+    }
+};
+
+class TWO_DIMENSIONAL_RANGE_QUERY {   
+    public: 
+    vvi prefix, grid; 
+    int n, m;
+    TWO_DIMENSIONAL_RANGE_QUERY(vvi& grid) {  
+        n = grid.size(), m = grid[0].size();
+        this->grid = grid;
+        prefix.assign(n + 1, vi(m + 1));  
+        init();
+    }
+    
+    ll getSum(int r1, int r2, int c1, int c2) {   
+        int bottomRight = prefix[r2][c2];   
+        int topLeft = prefix[r1 - 1][c1 - 1];
+        int topRight = prefix[r1 - 1][c2];  
+        int bottomLeft = prefix[r2][c1 - 1];
+        return bottomRight - topRight - bottomLeft + topLeft;
+    }
+
+    void init() {   
+         for(int i = 1; i <= n; i++) {  
+             ll sm = 0;
+             for(int j = 1; j <= m; j++) {  
+                 sm += grid[i - 1][j - 1];
+                 prefix[i][j] = sm + prefix[i - 1][j];
+             }
+         }
     }
 };
 
