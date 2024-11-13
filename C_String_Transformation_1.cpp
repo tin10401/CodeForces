@@ -141,6 +141,35 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    string s, t; cin >> s >> t; 
+    vvi graph(26);  
+    for(int i = 0; i < n; i++) {    
+        if(s[i] != t[i]) {  
+            if(s[i] > t[i]) {   
+                cout << -1 << endl; 
+                return;
+            }
+            int u = s[i] - 'a', v = t[i] - 'a'; 
+            graph[u].pb(v); 
+            graph[v].pb(u);
+        }
+    }
+    vb vis(26); 
+    auto dfs = [&](auto& dfs, int node) -> void {   
+        vis[node] = true;   
+        for(auto& nei : graph[node]) {  
+            if(!vis[nei]) dfs(dfs, nei);
+        }
+    };
+    int res = 26;   
+    for(int i = 0; i < 26; i++) {   
+        if(!vis[i]) {   
+            res--;  
+            dfs(dfs, i);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +178,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

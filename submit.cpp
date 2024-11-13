@@ -139,31 +139,30 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-vi primes, first_divisor(MX), DIV[MX];
-bitset<MX> primeBits;
-void generatePrime() {  primeBits.set(2);   
-    for(int i = 3; i < MX; i += 2) primeBits.set(i);
-    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
-        if(primeBits[i]) {  
-            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
-            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
-        }
-    }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-    for(int i = 2; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            DIV[j].pb(i);
-        }
-    }
-}
 
 void solve() {
+    int n; cin >> n;    
+    vs s(n); cin >> s;  
+    set<string> dp[2];
+    bool ok = false;
+    for(auto& x : s) {  
+        if(x.size() == 1) { 
+            ok = true;  
+            break;
+        }
+        int N = x.size() - 2;
+        if(N) {  
+            string t = x.substr(1); 
+            rev(t); 
+            ok |= dp[0].count(t);
+            t = x.substr(0, 2); 
+            dp[1].insert(t);
+        }
+        dp[N].insert(x);
+        rev(x); 
+        ok |= dp[N].count(x) || dp[!N].count(x);
+    }
+    cout << (ok ? "YES" : "NO") << endl;
 }
 
 signed main() {
@@ -172,7 +171,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

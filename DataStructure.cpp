@@ -142,30 +142,6 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-vi primes, first_divisor(MX), DIV[MX];  
-bitset<MX> primeBits;
-void generatePrime() {  primeBits.set(2);   
-    for(int i = 3; i < MX; i += 2) primeBits.set(i);
-    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
-        if(primeBits[i]) {  
-            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
-        }
-    }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
-            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
-        }
-    }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-    for(int i = 2; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            DIV[j].pb(i);
-        }
-    }
-}
-
 
 
     
@@ -520,7 +496,8 @@ class LCA {
     vvi dp, graph; 
     vi depth, parent;
     vi startTime, endTime;
-    int timer = 0;
+	vi subtree;
+    int timer = 0, centroid1 = -1, centroid2 = -1, mn = inf;
     LCA(vvi& graph) {   
         this->graph = graph;
         n = graph.size();
@@ -529,20 +506,28 @@ class LCA {
         parent.rsz(n, 1);
         startTime.rsz(n);   
         endTime.rsz(n);
+        subtree.rsz(n);
         dfs();
         init();
     }
     
     void dfs(int node = 1, int par = -1) {   
         startTime[node] = timer++;
+		subtree[node] = 1;
+        int mx = 0;
         for(auto& nei : graph[node]) {  
             if(nei == par) continue;    
             depth[nei] = depth[node] + 1;   
             dp[nei][0] = node;
             parent[nei] = node;
             dfs(nei, node);
+			subtree[node] += subtree[nei];
+			mx = max(mx, subtree[nei]);
         }
         endTime[node] = timer - 1;
+        mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
+		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;
+		else if(mx == mn) centroid2 = node;
     }
     
     void init() {  
@@ -594,6 +579,7 @@ class LCA {
 
 
 };
+
 
 
 class MO {  
