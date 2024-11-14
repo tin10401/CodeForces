@@ -208,7 +208,6 @@ class RabinKarp {
 //        return MP(ans[0], ans[1]);
     };
 
-    
 	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
         int left = 0, right = n, rightMost = -1;    
         while(left <= right) {  

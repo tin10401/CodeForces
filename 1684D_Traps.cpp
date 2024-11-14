@@ -141,18 +141,19 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
+    // jumping over trap cost 1 more damage
+    int n, k; cin >> n >> k;    
     vi a(n); cin >> a;  
-    auto b(a);
-    srt(b); 
-    int res = 0;    
-    for(auto& x : b) {  
-        if(x > m) break;    
-        m -= x; 
-        res++;
+    ll res = sum(a);    
+    for(int i = 0; i < n; i++) {    
+        a[i] -= n - i - 1;
     }
-    if(res && res != n && m + b[res - 1] >= a[res]) res++;  
-    cout << n - res + 1 << endl;
+    srtR(a);
+    for(int i = 0; i < k; i++) {    
+        res -= a[i] + i;
+    }
+    cout << res << endl;
+
 }
 
 signed main() {

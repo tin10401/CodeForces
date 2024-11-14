@@ -142,8 +142,6 @@ void multiply(int f[2][2], int m[2][2]) {
 int fib(int n)  {       if(n == 0) return 0;        if(n == 1) return 1;    
     int f[2][2] = {{1, 1}, {1, 0}}; int res[2][2] = {{1, 0}, {0, 1}};       
     while(n)    {   if(n & 1) multiply(res, f); multiply(f, f); n >>= 1;    }   return res[0][1] % MOD; }   
-
-
     
 template<typename T>
 class Treap {
@@ -267,8 +265,6 @@ public:
         print(treap->right);
     }
 };
-
-
 
 class DSU { 
     public: 
@@ -442,8 +438,8 @@ class SGT {
 	T get() {
 		return root[0];
 	}
-
 };
+
 // PERSISTENT SEGTREE
 int T[MX * MK * 4], root[MX * MK * 4], ptr, n, m; 
 pii child[MX * MK * 4];
@@ -576,11 +572,7 @@ class LCA {
         }
         return a;
     }
-
-
 };
-
-
 
 class MO {  
     public: 
@@ -657,7 +649,6 @@ class SparseTable {
 				//dp[i][j] = gcd(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
                 //dp[i][j] = min(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
                 //dp[i][j] = max(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
-
             }
         }
     }

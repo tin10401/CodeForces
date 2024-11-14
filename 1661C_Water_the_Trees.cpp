@@ -141,18 +141,34 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    auto b(a);
-    srt(b); 
-    int res = 0;    
-    for(auto& x : b) {  
-        if(x > m) break;    
-        m -= x; 
-        res++;
-    }
-    if(res && res != n && m + b[res - 1] >= a[res]) res++;  
-    cout << n - res + 1 << endl;
+    // water on odd day : +1, water on even day : +2, find min days
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    auto f = [&](int target) -> ll {    
+        ll left = 0, right = INF, res = -1; 
+        auto g = [&](ll x) -> bool {   
+            ll c1 = (x + 1) / 2, c2 = x / 2;   
+            for(auto& v : a) {  
+                ll diff = target - v;  
+                ll need = min(diff / 2, c2);   
+                diff -= need * 2;
+                c2 -= need;
+                ll mn = min(diff, c1); 
+                diff -= mn; 
+                c1 -= mn;   
+                if(diff) return false;
+            }
+            return true;
+        };
+        while(left <= right) {  
+            ll middle = midPoint;  
+            if(g(middle)) res = middle, right = middle - 1; 
+            else left = middle + 1;
+        }
+        return res;
+    };
+    int m = MAX(a); 
+    cout << min(f(m), f(m + 1)) << endl;
 }
 
 signed main() {
