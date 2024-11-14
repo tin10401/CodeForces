@@ -141,18 +141,24 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    auto b(a);
-    srt(b); 
-    int res = 0;    
-    for(auto& x : b) {  
-        if(x > m) break;    
-        m -= x; 
-        res++;
+    // water from 1 - k, +1 +2 +3 +4 +5...+k, min day for a[i] >= b[i] for all i
+    int n, k; cin >> n >> k;
+    vll a(n); cin >> a; 
+    ll res = 0, sm = 0, c = 0; 
+    vll closed(n);
+    for(int i = n - 1; i >= 0; i--) {   
+        sm -= c;    
+        c -= closed[i]; 
+        a[i] -= sm; 
+        if(a[i] <= 0) continue;
+        int e = min(i + 1, k);  
+        ll need = (a[i] + e - 1) / e;   
+        sm += need * e;
+        c += need;
+        res += need;
+        if(i - k >= 0) closed[i - k] += need;
     }
-    if(res && res != n && m + b[res - 1] >= a[res]) res++;  
-    cout << n - res + 1 << endl;
+    cout << res << endl;
 }
 
 signed main() {
@@ -161,7 +167,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -141,18 +141,54 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    auto b(a);
-    srt(b); 
-    int res = 0;    
-    for(auto& x : b) {  
-        if(x > m) break;    
-        m -= x; 
-        res++;
+    // can cycle shift each column, compute maximum sum
+    int n, m; cin >> n >> m;
+    vvi grid(n, vi(m)); cin >> grid;    
+    vvi col(m);  
+    for(int i = 0; i < n; i++) {    
+        for(int j = 0; j < m; j++) {    
+            col[j].pb(grid[i][j]);
+        }
     }
-    if(res && res != n && m + b[res - 1] >= a[res]) res++;  
-    cout << n - res + 1 << endl;
+    for(int i = 0; i < m; i++) {    
+        auto& c = col[i];   
+        auto it = max_element(all(c));
+        rotate(begin(c), it, end(c));
+    }
+    auto cmp = [](const vi& a, const vi& b) -> bool {   
+        return a[0] > b[0];
+    };
+    sort(all(col), cmp);    
+    while((int)col.size() > n) col.pop_back();
+    m = col.size(); 
+    vi dp(1 << n);
+    for(int i = 0; i < m; i++) {   
+        vi cost(1 << n);
+        for(int mask = 1; mask < 1 << n; mask++) {    
+            for(int r = 0; r < n; r++) {    
+                int curr = 0;
+                for(int j = 0; j < n; j++) {    
+                    if((mask >> j) & 1) {   
+                        curr += col[i][(j + r) % n];
+                    }
+                }
+                cost[mask] = max(cost[mask], curr);
+            }
+        }
+        if(i == 0) {    
+            swap(dp, cost); 
+            continue;
+        }
+        vi next(1 << n);
+        for(int mask = 0; mask < 1 << n; mask++) {  
+            for(int sub = mask; sub > 0; sub = (sub - 1) & mask) { 
+                int other = sub ^ mask; 
+                next[mask] = max(next[mask], dp[sub] + cost[other]);
+            }
+        }
+        swap(dp, next);
+    }
+    cout << dp.back() << endl;
 }
 
 signed main() {

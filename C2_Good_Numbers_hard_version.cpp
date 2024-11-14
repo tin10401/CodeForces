@@ -130,7 +130,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 2e18;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -140,25 +140,47 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    auto b(a);
-    srt(b); 
-    int res = 0;    
-    for(auto& x : b) {  
-        if(x > m) break;    
-        m -= x; 
-        res++;
+vll a;
+void preprocess() { 
+    ll x = 1;
+    while(x < INF) {    
+        a.pb(x);
+        x *= 3;
     }
-    if(res && res != n && m + b[res - 1] >= a[res]) res++;  
-    cout << n - res + 1 << endl;
+}
+void solve() {
+    ll n; cin >> n;
+    int N = a.size();
+    int left = 0, right = N - 1, id = -1;   
+    auto f = [](int r, ll n) -> bool { 
+        for(int i = r; i >= 0; i--) {   
+            n -= a[i];  
+            if(n <= 0) return true;
+        }
+        return false;
+    };
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(f(middle, n)) id = middle, right = middle - 1;  
+        else left = middle + 1;
+    }
+    ll res = 0; 
+    for(int i = 0; i <= id; i++) {  
+        res += a[i];
+    }
+    for(int i = id; i >= 0; i--) {  
+        if(res - a[i] >= n) {   
+            res -= a[i];
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
     //generatePrime();
+    preprocess();
 
     int t = 1;
     cin >> t;

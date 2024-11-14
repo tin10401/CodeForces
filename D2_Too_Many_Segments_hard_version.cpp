@@ -133,26 +133,123 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, m; cin >> n >> m;    
-    vi a(n); cin >> a;  
-    auto b(a);
-    srt(b); 
-    int res = 0;    
-    for(auto& x : b) {  
-        if(x > m) break;    
-        m -= x; 
-        res++;
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vi lazy;
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
     }
-    if(res && res != n && m + b[res - 1] >= a[res]) res++;  
-    cout << n - res + 1 << endl;
+    
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i] += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int id) {
+		return queries(entireTree, id);
+	}
+	
+	T queries(iterator, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries(lp, id);
+		return queries(rp, id);
+	}
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+};
+
+void solve() {
+    int n, k; cin >> n >> k;
+    SGT<int> root(MX);  
+    int mx = 0;
+    var(3) a(n);
+    for(int i = 0; i < n; i++) {    
+        auto& [l, r, id] = a[i];
+        cin >> l >> r;  
+        id = i + 1;
+        root.update(l, r, 1);
+        mx = max(mx, r);
+    }
+    srt(a);
+    vi res;
+    set<pii> s;
+    for(int i = 1, j = 0; i <= mx; i++) {   
+        while(j < n && a[j][0] <= i) {  
+            s.insert({a[j][1], a[j][2]});
+            j++;
+        }
+        while(!s.empty() && s.begin()->ff < i) s.erase(s.begin());
+        int c = root.queries(i);
+        while(c-- > k) {    
+            auto it = prev(s.end());
+            res.pb(it->ss);
+            root.update(i, it->ff, -1);
+            s.erase(it);
+        }
+    }
+    srt(res);
+    cout << res.size() << endl;
+    for(auto& it : res) {   
+        cout << it << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -161,7 +258,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
