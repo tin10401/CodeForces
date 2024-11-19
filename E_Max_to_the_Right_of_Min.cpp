@@ -132,7 +132,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
-const static int MK = 20;
+const static int MK = 22;
 const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -140,7 +140,81 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    vt<T> root; 
+    vi lazy;
+    int n;  
+    SGT(int n) {    
+        this->n = n;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4, -1);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = left + right;
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == -1) return;    
+        root[i] = (right - left + 1) * lazy[i];
+        if(left != right) { 
+            lazy[lc] = lazy[i]; 
+            lazy[rc] = lazy[i];
+        }
+        lazy[i] = -1;
+    }
+	
+	T get() {
+		return root[0];
+	}
+};
+
 void solve() {
+    // find subarray with mx_index > mn_index
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    ll res = 0;
+    stack<int> s, t;
+    s.push(0), t.push(0);
+    SGT<int> root(n);
+    for(int i = 1; i < n; i++) {    
+        while(!s.empty() && a[s.top()] > a[i]) s.pop();
+        while(!t.empty() && a[t.top()] < a[i]) t.pop();
+        if(a[i] < a[i - 1]) {   
+            int l = s.empty() ? 0 : s.top() + 1;
+            root.update(l, i - 1, 0);
+        }
+        else {  
+            int l = t.empty() ? 0 : t.top() + 1;
+            root.update(l, i - 1, 1);
+        }
+        res += root.get();
+        s.push(i);  
+        t.push(i);
+    }
+    cout << res << endl;
 }
 
 signed main() {

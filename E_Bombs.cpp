@@ -140,7 +140,90 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vi lazy;
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i] += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+	
+	T get() {
+		return root[0];
+	}
+    
+    void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iterator) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+};
+
 void solve() {
+    // each time add a value in the remove, you have to remove the largest bomb up till now, find out answer for each i
+    int n; cin >> n;
+    vi p(n + 1), q(n + 1), id(n + 1);
+    for(int i = 1; i <= n; i++) cin >> p[i], id[p[i]] = i;    
+    for(int i = 1; i <= n; i++) cin >> q[i];
+    SGT<int> root(n + 1);
+    int curr = n;   
+    root.update(1, id[curr], 1);
+    for(int i = 1; i <= n; i++) {   
+        cout << curr << (i == n ? '\n' : ' ');
+        if(i == n) break;
+        root.update(1, q[i], -1);
+        while(root.get() <= 0) {    
+            root.update(1, id[--curr], 1);
+        }
+    }
 }
 
 signed main() {

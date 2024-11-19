@@ -140,7 +140,55 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n; cin >> n;    
+    DSU root(n * 2 + 10);
+    string s; cin >> s; 
+    for(int i = 0; i < n; i++) {    
+        if(s[i] == 'L') {   
+            root.merge(i, i + n);
+        }
+        else {  
+            root.merge(i, i + 2 + n);
+        }
+    }
+    for(int i = 0; i <= n; i++) {    
+        cout << root.getRank(i) << (i == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -149,7 +197,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

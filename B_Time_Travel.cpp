@@ -141,6 +141,40 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // have multiple graph, changing directions each second, find min time to reach 1 to n
+    int n, k; cin >> n >> k;    
+    vvpii graph(n);
+    for(int i = 0; i < k; i++) {    
+        int m; cin >> m;    
+        while(m--) {    
+            int u, v; cin >> u >> v;    
+            u--, v--;   
+            graph[u].pb({v, i});    
+            graph[v].pb({u, i});
+        }
+    }
+    vvi pos(k);  
+    int m; cin >> m;
+    for(int i = 0; i < m; i++) {    
+        int x; cin >> x;    
+        pos[--x].pb(i);
+    }
+    pq<pii, vpii, greater<pii>> minHeap;    
+    minHeap.push({0, 0});   
+    vi dp(n, -1);   
+    while(!minHeap.empty()) {   
+        auto [d, node] = minHeap.top(); minHeap.pop();
+        if(dp[node] != -1) continue;    
+        dp[node] = d;
+        for(auto& [nei, i] : graph[node]) { 
+            if(dp[nei] != -1) continue;
+            auto it = lb(all(pos[i]), d);
+            if(it != end(pos[i])) { 
+                minHeap.push({*it + 1, nei});
+            }
+        }
+    }
+    cout << dp[n - 1] << endl;
 }
 
 signed main() {

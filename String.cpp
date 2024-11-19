@@ -1,15 +1,11 @@
+int T[MX][2];
+int ptr;
 class Binary_Trie { 
     public:
-    int T[MX][2];   
-    int ptr;    
-    Binary_Trie() {    
-        ptr = 0;    
-        mset(T, 0);
-    }
-    
+    int m = 30;
     void insert(int num) {  
         int curr = 0;   
-        for(int i = 31; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             if(!T[curr][bits]) T[curr][bits] = ++ptr;   
             curr = T[curr][bits];
@@ -18,7 +14,7 @@ class Binary_Trie {
         
     int max_xor(int num) {  
         int res = 0, curr = 0;
-        for(int i = 31; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             if(T[curr][!bits]) {    
                 curr = T[curr][!bits];
@@ -27,10 +23,36 @@ class Binary_Trie {
             else {  
                 curr = T[curr][bits];
             }
+            if(!curr) break;
+        }
+        return res;
+    }
+        
+    int min_xor(int num) {  
+        int res = num, curr = 0;
+        for(int i = m - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(T[curr][bits]) {    
+                curr = T[curr][bits];
+                if(bits) res ^= (1LL << i);
+            }
+            else {  
+                curr = T[curr][!bits];
+                if(!bits) res ^= (1LL << i);
+            }
+            if(!curr) break;
         }
         return res;
     }
 };
+    
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        T[i][0] = T[i][1] = 0;
+    }
+    ptr = 0;
+}
+
 
 struct TrieNode
 {
@@ -132,37 +154,80 @@ vi Z_Function(const string& s) {
     return prefix;
 }
     
-vi manacher(string s, int start) {
-    string tmp;
-    for (auto& it : s) {
-        tmp += "#";
-        tmp += it;
+class MANACHER {    
+    public: 
+    string s;   
+    string ans; 
+    MANACHER(const string& s) { 
+        string odd = get_max_palindrome(s, 1);  
+        string even = get_max_palindrome(s, 0);
+        ans = odd.size() > even.size() ? odd : even;
     }
-    tmp += "#";  
-    swap(s, tmp);
-    int n = s.size();
-    vector<int> p(n); 
-    int l = 0, r = 0;  
-    for (int i = 0; i < n; i++) {
-        if (i < r) {
-            p[i] = min(r - i, p[l + r - i]);
-        } else {
-            p[i] = 0;
-        }
-        while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
-            p[i]++;
-        }
-        if (i + p[i] > r) {
-            l = i - p[i] + 1;
-            r = i + p[i] - 1;
-        }
+    
+    string get() {  
+        return ans;
     }
-    vi result;
-    for (int i = start; i < n; i += 2) {
-        result.push_back(p[i] / 2);
+
+    vi get_manacher(string s, int start) { // odd size palindrome start with 1, even start with 0
+        string tmp;
+        for (auto& it : s) {
+            tmp += "#";
+            tmp += it;
+        }
+        tmp += "#";  
+        swap(s, tmp);
+        int n = s.size();
+        vector<int> p(n); 
+        int l = 0, r = 0;  
+        for (int i = 0; i < n; i++) {
+            if (i < r) {
+                p[i] = min(r - i, p[l + r - i]);
+            } else {
+                p[i] = 0;
+            }
+            while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
+                p[i]++;
+            }
+            if (i + p[i] > r) {
+                l = i - p[i] + 1;
+                r = i + p[i] - 1;
+            }
+        }
+        vi result;
+        for (int i = start; i < n; i += 2) {
+            result.push_back(p[i] / 2);
+        }
+        if(start == 0) { // for even size, shift by one index to the right
+            for(int i = 1; i < (int)result.size(); i++) {    
+                swap(result[i - 1], result[i]);
+            }
+            result.pop_back();
+        }
+        return result;
     }
-    return result;
-}
+        
+    string get_max_palindrome(const string& s, bool odd) {  
+        auto manacher = get_manacher(s, odd);
+        int N = manacher.size();
+        int start = 0, max_len = 0;
+        for(int i = 0; i < N; i++) {    
+            int len = manacher[i] * 2 - odd;
+            if(len < max_len) continue;
+            if(i - manacher[i] + 1 == 0) {  // max prefix_palindrome
+                max_len = len;  
+                start = 0;
+            }
+            else if(i + manacher[i] + !odd == N) { // max_suffix_palindrome
+                max_len = len;  
+                start = i - manacher[i] + 1;
+            }
+            //start = i - manacher[i] + 1; // max_palindrome overall
+            //max_len = len;
+        }
+        return s.substr(start, max_len);
+    };
+};
+
 
 class RabinKarp {   
     public: 

@@ -133,23 +133,79 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 4e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+vi primes, first_divisor(MX);  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
+
+vi DIV[MX];
+void preprocess() { 
+    for(int i = 2; i < MX; i++) {   
+        if(!primeBits[i]) continue; 
+        for(int j = i; j < MX; j += i) {    
+            DIV[j].pb(i);
+        }
+    }
+}
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    int p = -1;
+    for(auto& x : a) {  
+        if(primeBits[x]) {  
+            if(p != -1) {   
+                cout << -1 << endl; 
+                return;
+            }
+            p = x;
+        }
+    }
+    if(p == -1 || p == 2) { 
+        cout << 2 << endl;  
+        return;
+    }
+    srt(a); 
+    if(lb(all(a), p * 2) - begin(a) - 1) { 
+        cout << -1 << endl; 
+        return;
+    }
+    for(auto& x : a) {  
+        if(x == p || x % 2 == 0) continue;
+        if(x - first_divisor[x] < 2 * p) {  
+            cout << -1 << endl; 
+            return;
+        }
+    }
+    cout << p << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
+    preprocess();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

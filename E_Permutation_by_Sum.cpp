@@ -141,6 +141,35 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // construct an array where value from l to r is equal to sum
+    int n, l, r, s; cin >> n >> l >> r >> s;    
+    l--, r--;   
+    int k = r - l + 1;    
+    vi v(k);
+    iota(all(v), 1);    
+    s -= sum(v);    
+    rev(v); 
+    int plus = s / k, extra = s % k;
+    for(int i = 0; i < k; i++) {    
+        v[i] += plus + (extra-- > 0);
+    }
+    if(s < 0 || v[0] > n) {  
+        cout << -1 << endl; 
+        return;
+    }
+    set<int> ss;    
+    for(int i = 1; i <= n; i++) {   
+        ss.insert(i);
+    }
+    for(auto& i : v) ss.erase(i);   
+    for(int i = 0; i < n; i++) {    
+        if(l <= i && i <= r) cout << v[i - l];  
+        else {  
+            cout << *ss.begin();
+            ss.erase(ss.begin());
+        }
+        cout << (i == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -149,7 +178,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

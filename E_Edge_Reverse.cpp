@@ -140,7 +140,108 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class SCC {
+    public:
+    int n, curr_comp;
+    vvi graph, revGraph;
+    vi vis, comp, degree;
+    stack<int> s;
+ 
+    SCC(int n) {
+        this->n = n;
+        curr_comp = 0;
+        graph.resize(n), revGraph.resize(n), vis.resize(n), comp.resize(n, -1), degree.rsz(n);
+    }
+ 
+    void add(int a, int b) {    
+        graph[a].pb(b); 
+        revGraph[b].pb(a);
+    }
+ 
+    void dfs(int node) {
+        if(vis[node]) return;
+        vis[node] = true;
+        for(auto& nei : graph[node]) dfs(nei);
+        s.push(node);
+    }
+ 
+    void dfs2(int node) {
+        if(comp[node] != -1) return;
+        comp[node] = curr_comp;
+        for(auto& nei : revGraph[node]) dfs2(nei);
+    }
+ 
+    void generate() {
+        for(int i = 0; i < n; i++) dfs(i);
+        while(!s.empty()) {
+            int node = s.top(); s.pop();
+            if(comp[node] != -1) continue;
+            dfs2(node);
+            curr_comp++;
+        }
+    }
+    
+    vvi condense() {    
+        vvi g(curr_comp);   
+        for(int i = 0; i < n; i++) {    
+            for(auto& j : graph[i]) {   
+                if(comp[i] != comp[j]) {    
+                    g[comp[i]].pb(comp[j]);
+                    degree[comp[j]]++;
+                }
+            }
+        }
+        for(auto& it : g) srtU(it);
+        return g;
+    }
+};
+
 void solve() {
+    // minimum cost to reverse edge so one node can reach all other nodes
+    int n, m; cin >> n >> m;
+    var(3) edges(m);    
+    for(auto& [u, v, w] : edges) {  
+        cin >> u >> v >> w;
+        u--, v--;
+    }
+    auto cmp = [](ar(3)& a, ar(3)& b) -> bool { 
+        return a[2] < b[2]; 
+    };
+    sort(all(edges), cmp);
+    auto f = [&](int x) -> bool {   
+        SCC g(n);
+        vvi graph(n);
+        for(int i = 0; i < m; i++) {    
+            auto& [u, v, w] = edges[i];
+            g.add(u, v);
+            if(i < x) g.add(v, u);
+        }
+        g.generate();
+        auto G = g.condense();
+        int N = G.size();
+        if(N == 1) return true;
+        int s = -1;
+        for(int i = 0; i < N; i++) {    
+            if(g.degree[i] == 0) s = i;
+        }
+        vb vis(N);
+        auto dfs = [&](auto& dfs, int node) -> void {   
+            if(vis[node]) return;   
+            vis[node] = true;   
+            for(auto& nei : G[node]) {  
+                dfs(dfs, nei);
+            }
+        };
+        dfs(dfs, s);    
+        return sum(vis) == N;
+    };
+    int left = 0, right = m, res = -1;
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(f(middle)) res = (middle == 0 ? 0 : edges[middle - 1][2]), right = middle - 1; 
+        else left = middle + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +250,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

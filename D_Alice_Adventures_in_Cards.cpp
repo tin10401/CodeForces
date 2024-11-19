@@ -141,6 +141,44 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    int m = 3;  
+    vvi a(m, vi(n)); cin >> a;
+    vpii mn(3, MP(0, n));  
+    vpii dp(n, {-1, -1});
+    for(int i = n - 1; i >= 0; i--) {   
+        bool ok = false;
+        for(int j = 0; j < 3; j++) {    
+            if(a[j][i] > mn[j].ff) {   
+                ok = true;  
+                dp[i] = MP(j, mn[j].ss);
+                break;
+            }
+        } 
+        if(!ok) continue;   
+        for(int j = 0; j < 3; j++) {    
+            auto x = MP(a[j][i], i);
+            if(mn[j].ss == n) mn[j] = x;    
+            else mn[j] = min(mn[j], x);
+        }
+    }
+    if(dp[0].ff == -1) { 
+        cout << "NO" << endl;
+        return;
+    }
+    cout << "YES" << endl;
+    vi ans = {0};
+    while(ans.back() < n - 1) { 
+        int u = ans.back();
+        ans.pb(dp[u].ss);
+    }
+    ans.pop_back();
+    cout << ans.size() << endl; 
+    string s = "qkj";
+    for(auto& x : ans) {    
+        auto& [i, id] = dp[x];  
+        cout << s[i] << ' ' << id + 1 << endl;
+    }
 }
 
 signed main() {
@@ -149,7 +187,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

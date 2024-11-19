@@ -141,6 +141,33 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll n, m; cin >> n >> m;
+    vi a(n - 1), b(n); cin >> a >> b;
+    multiset<int, greater<int>> A(all(a));
+    auto f = [&](int m) -> ll {    
+        ll ans = 0;
+        A.insert(m);
+        multiset<int> s(all(b));
+        for(auto& x : A) {  
+            auto it = s.ub(x);  
+            if(it == end(s)) ans++;
+            else s.erase(it);
+        }
+        A.erase(A.find(m));
+        return ans;
+    };
+    // matching pair of a[i] < b[i] for all i, find min deletion across all m from 1 to m
+    // 1 to r - 1 the answer doesn't change, but from r to m, the answer increases by 1, binary search on the answer
+    ll k = f(1);
+    ll left = 1, right = m + 1, r = m + 1;  
+    while(left <= right) {  
+        int middle = midPoint;  
+        if(f(middle) > k) r = middle, right = middle - 1;
+        else left = middle + 1;
+    }
+    ll ans = (r - 1) * k + (m - r + 1) * (k + 1);   
+    debug(k, r);
+    cout << ans << endl;
 }
 
 signed main() {
@@ -149,7 +176,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

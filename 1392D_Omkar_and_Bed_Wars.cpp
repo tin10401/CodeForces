@@ -141,6 +141,27 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // bed war, if one get attack, should attack, left, otherwise can attack any, find min change in directions
+    int n; cin >> n;
+    string s; cin >> s; 
+    vt<pair<char, int>> a = {{s[0], 1}};
+    for(int i = 1; i < n; i++) {    
+        if(s[i] == s[i - 1]) a.back().ss++; 
+        else a.pb(MP(s[i], 1));
+    }
+    if(a.size() == 1) { 
+        cout << (n + 2) / 3 << endl;    
+        return;
+    }
+    if(a.back().ff == a.front().ff) {   
+        a.front().ss += a.back().ss;    
+        a.pop_back();
+    }
+    int res = 0;    
+    for(auto& [_, x] : a) { 
+        res += x / 3;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +170,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -141,6 +141,35 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m; cin >> n >> m;    
+    vi a(n), b(n); cin >> a >> b;   
+    vi arr[2];  
+    for(int i = 0; i < n; i++) {    
+        arr[b[i] - 1].pb(a[i]);
+    }
+    swap(a, arr[0]), swap(b, arr[1]);
+    auto f = [&](vi& A, int v) -> int {    
+        srtR(A);
+        int N = A.size();
+        for(int i = 0, curr = m; i < N; i++) {    
+            curr -= A[i];   
+            if(curr <= 0) return (i + 1) * v;
+        }
+        return inf;
+    };
+    int N = a.size(), M = b.size();
+    int sm = sum(b), extra = b.size() * 2, res = min(f(a, 1), f(b, 2));
+    rev(b);
+    for(int i = 0, j = 0; i <= N; i++) {    
+        while(j < M && sm - b[j] >= m) {   
+            sm -= b[j++];
+            extra -= 2;
+        }
+        if(sm >= m) res = min(res, extra + i);
+        if(i == N) break;
+        sm += a[i];
+    }
+    cout << (res >= inf ? -1 : res) << endl;
 }
 
 signed main() {
@@ -149,7 +178,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

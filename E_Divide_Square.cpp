@@ -133,14 +133,74 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+};
+
 void solve() {
+    // draw vertical and horizontal lines, find out how many segment is created from the grid
+    int n, m; cin >> n >> m;
+    vvpii add(MX), queries(MX);
+    ll res = 1;
+    int k = 1e6;
+    for(int i = 0; i < n; i++) {    
+        int x, l, r; cin >> x >> l >> r;    
+        if(l == 0 && r == k) res++;
+        l++, r++, x++;   
+        add[l].pb({x, 1});  
+        add[r + 1].pb({x, -1});
+    }
+    for(int i = 0; i < m; i++) {    
+        int x, l, r; cin >> x >> l >> r;
+        if(l == 0 && r == k) res++;
+        l++, r++;
+        queries[++x].pb({l, r});
+    }
+    FW<int> root(MX);   
+    for(int i = 1; i <= k; i++) { 
+        for(auto& [l, x] : add[i]) {    
+            root.update(l, x);
+        }
+        for(auto& [l, r] : queries[i]) {    
+            res += root.queries(l, r);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {

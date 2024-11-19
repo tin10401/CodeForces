@@ -141,6 +141,23 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    string s; cin >> s; 
+    vt<pair<int, string>> res;
+    int n = s.size();
+    string back1 = string(1, s[n - 1]), back2;  
+    res.pb({1, back1});
+    for(int i = n - 2; i >= 0; i--) { 
+        string cur = s[i] == s[i + 1] ? min(s[i] + back1, back2) : s[i] + back1;   
+        if (cur.size() <= 10) res.pb({cur.size(), cur});
+        else res.pb({cur.size(), cur.substr(0, 5) + "..." + cur.substr((int)cur.size()-2)});
+ 
+        back2 = back1;
+        back1 = cur;
+    }
+    rev(res);   
+    for(auto& [l, x] : res) {   
+        cout << l << ' ' << x << endl;
+    }
 }
 
 signed main() {
@@ -172,3 +189,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

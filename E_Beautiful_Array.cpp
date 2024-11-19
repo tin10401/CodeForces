@@ -141,6 +141,50 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    map<int, vi> mp;
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        mp[x % k].pb(x);
+    }
+    int res = 0;    
+    int odd = 0;
+    auto f = [](vi& a, int k) -> ll {  
+        ll res = 0; 
+        int n = a.size();
+        for(int i = 0; i < n; i += 2) {    
+            res += (a[i + 1] - a[i]) / k;
+        }
+        return res;
+    };
+    auto g = [](vi& a, int k) -> ll {    
+        int n = a.size();   
+        ll curr = 0;    
+        for(int i = 1; i < n; i += 2) { 
+            curr += a[i + 1] - a[i];
+        }
+        ll res = curr;  
+        for(int i = 1; i < n; i += 2) { 
+            curr -= a[i + 1] - a[i];    
+            curr += a[i] - a[i - 1];
+            res = min(res, curr);
+        }
+        return res / k;
+    };
+    for(auto& it : mp) {    
+        auto& a = it.ss;
+        srt(a);
+        if(a.size() % 2 == 0) res += f(a, k);   
+        else {  
+            if(++odd > 1) break;
+            res += g(a, k);
+        }
+    }
+    if(odd > 1) {   
+        cout << -1 << endl;
+        return;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +193,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
