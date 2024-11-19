@@ -133,23 +133,59 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 5e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+vi DIV[MX];
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+
+    for(int i = 1; i < MX; i++) {   
+        for(int j = i; j < MX; j += i) {   
+            DIV[j].pb(i);
+        }
+    }
+}
+
 void solve() {
+    int n; cin >> n;    
+    map<int, map<int, int>> dp;
+    ll res = 0;
+    for(int i = 1; i <= n; i++) {   
+        int a; cin >> a;    
+        int b = i;  
+        int g = gcd(a, b);  
+        a /= g; 
+        b /= g; 
+        for(auto& it : DIV[a]) {    
+            if(dp.count(it) && dp[it].count(b)) {   
+                res += dp[it][b];
+            }
+        }
+        for(auto& it : DIV[a]) {    
+            dp[b][it]++;
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

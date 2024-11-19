@@ -141,6 +141,27 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // infinite concatenation of string s, given x, return total prefix cnt0 - cnt1 == x
+    int n, x; cin >> n >> x;
+    string s; cin >> s;
+    int total = 0;
+    for(auto& y : s) {  
+        total += (y == '0' ? 1 : -1);   
+    }
+    int sm = 0, res = 0;
+    for(auto& y : s) {  
+        if(total == 0) {    
+            if(sm == x) {    
+                cout << -1 << endl; 
+                return;
+            }
+        }
+        else if((x - sm) % total == 0) {    
+            if((x - sm) / total >= 0) res++;
+        }
+        sm += (y == '0' ? 1 : -1);   
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +170,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

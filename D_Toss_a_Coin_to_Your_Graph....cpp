@@ -141,6 +141,54 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll n, m, k; cin >> n >> m >> k;
+    vll a(n); cin >> a;
+    vvi graph(n);  
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;   
+        graph[u].pb(v); 
+    }
+    vi degree(n), dp(n, 1);
+    queue<int> q;
+    auto f = [&](ll lim) -> bool { 
+        for(int i = 0; i < n; i++) {    
+            if(a[i] > lim) continue;    
+            for(auto& nei : graph[i]) {  
+                if(a[nei] <= lim) degree[nei]++;
+            }
+        }
+        for(int i = 0; i < n; i++) {    
+            if(degree[i] == 0 && a[i] <= lim) { 
+                q.push(i);
+            } 
+        }
+        while(!q.empty()) { 
+            int node = q.front();   
+            q.pop();    
+            for(auto& nei : graph[node]) {  
+                if(a[nei] > lim) continue;
+                dp[nei] = max(dp[nei], dp[node] + 1);   
+                if(--degree[nei] == 0) {    
+                    q.push(nei);
+                }
+            }
+        }
+        bool cycle = MAX(dp) >= k; 
+        for(int i = 0; i < n; i++) {    
+            if(a[i] <= lim && degree[i] > 0) cycle = true;
+            degree[i] = 0;
+            dp[i] = 1;
+        }
+        return cycle;
+    };
+    ll left = MIN(a), right = MAX(a), res = -1;    
+    while(left <= right) {  
+        ll middle = midPoint;  
+        if(f(middle)) res = middle, right = middle - 1; 
+        else left = middle + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {

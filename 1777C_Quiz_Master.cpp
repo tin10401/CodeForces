@@ -140,16 +140,59 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+vi primes, first_divisor(MX), DIV[MX];  
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+
+    for(int i = 1; i < MX; i++) {   
+        for(int j = i; j < MX; j += i) {   
+            DIV[j].pb(i);
+        }
+    }
+}
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n), c(m + 1); cin >> a;
+    int res = inf;
+    srt(a);
+    for(int i = 0, r = 0, need = m; i < n; i++) { 
+        while(r < n && need) {  
+            for(auto& j : DIV[a[r]]) {  
+                if(j > m) break;    
+                if(++c[j] == 1) need--;
+            }
+            r++;
+        }
+        if(need) break; 
+        res = min(res, a[r - 1] - a[i]);
+        for(auto& j : DIV[a[i]]) {  
+            if(j > m) break;    
+            if(--c[j] == 0) need++;
+        }
+    }
+    cout << (res >= inf ? -1 : res) << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

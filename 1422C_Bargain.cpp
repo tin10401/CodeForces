@@ -141,6 +141,29 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // delete any substring, what is the final result of the sum of all possible substrings
+    string s; cin >> s; 
+    int n = s.size();
+    vll pow(n + 1);  
+    pow[0] = 1; 
+    for(int i = 1; i <= n; i++) {   
+        pow[i] = (pow[i - 1] * 10LL) % MOD;
+    }
+    vll a(n + 1);   
+    for(ll i = 1; i <= n; i++) {   
+        a[i] = (i * pow[i - 1] + a[i - 1]) % MOD;
+    }
+    ll res = 0; 
+    // formula : suppose at index i, contribution will be s[i] * (len of remaining = 4 for example, will * 4321, 3 will be * 321) + s[i] * i * (i + 1) / 2 * pow[n - i - 1] for all possible substring of prefix
+    for(ll i = 0; i < n; i++) {    
+        ll p = pow[n - i - 1];
+        ll x = s[i] - '0';
+        ll curr = (p * x) % MOD;
+        ll prefix = i * (i + 1) / 2;
+        res = (res + curr * prefix) % MOD;
+        res = (res + x * a[n - i - 1]) % MOD;
+    }
+    cout << res << endl;
 }
 
 signed main() {

@@ -141,6 +141,25 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    ll n; cin >> n;    
+    vi a(n); cin >> a;  
+    umap<int, int> last, first;    
+    ll res = 0;
+    for(int i = 0; i < n; i++) {    
+        last[a[i]] = i;
+        if(!first.count(a[i])) first[a[i]] = i;
+    }
+    int good = first.size();
+    for(int i = n - 1; i >= 0; i--) {    
+        if(last[a[i]] == i) {   
+            res += good;
+        }
+        if(first.count(a[i]) && first[a[i]] == i) { 
+            good--; 
+            first.erase(a[i]);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -149,7 +168,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

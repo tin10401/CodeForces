@@ -140,7 +140,78 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    vpii a;
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1), a.rsz(n);
+        for(int i = 0; i < n; i++) {    
+            a[i] = MP(i, i);
+        }
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    pii combine(pii a, pii b) { 
+        return {min(a.ff, b.ff), max(a.ss, b.ss)};
+    }
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(u > v) swap(u, v);
+            a[u] = combine(a[u], a[v]);
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+    
+    int queries() { 
+        int res = 0;    
+        set<int> s; 
+        for(int i = 0; i < n; i++) {    
+            if(find(i) == i) s.insert(i);
+        }
+        while(!s.empty()) { 
+            int x = *s.begin();  
+            if(rank[x] == a[x].ss - a[x].ff + 1) {  
+                s.erase(x);
+                continue;
+            }
+            int v = *next(s.begin());   
+            s.erase(v);
+            merge(x, v);
+            res++;
+        }
+        return res;
+    }
+};
+
 void solve() {
+    // merge component so that for each l < m < r, l-l+1-l+2,...,r is connected
+    int n, m; cin >> n >> m;    
+    DSU root(n);
+    for(int i = 0; i < m; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;
+        root.merge(u, v);
+    }
+    cout << root.queries() << "\n";
 }
 
 signed main() {

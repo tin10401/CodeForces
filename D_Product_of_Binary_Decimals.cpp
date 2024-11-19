@@ -133,23 +133,55 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+vi a;
+int dp[MX];
+void preprocess() { 
+    for(int i = 2; i < MX; i++) {   
+        bool ok = true; 
+        int x = i;  
+        while(x) {  
+            if(x % 10 > 1) {    
+                ok = false; 
+                break;
+            }
+            x /= 10;
+        }
+        if(ok) a.pb(i);
+    }
+}
+    
 void solve() {
+    int n; cin >> n;
+    auto dfs = [&](auto& dfs, int x) -> int {  
+        if(x == 1) return true;
+        auto& res = dp[x];  
+        if(res != -1) return res;   
+        for(auto& d : a) {  
+            if(x % d == 0) { 
+                if(dfs(dfs, x / d)) return res = true;
+            }
+        }
+        return res = false;
+    };
+    cout << (dfs(dfs, n) ? "YES" : "NO") << endl;
 }
 
 signed main() {
     IOS;
     startClock
     //generatePrime();
+    preprocess();
+    mset(dp, -1);
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

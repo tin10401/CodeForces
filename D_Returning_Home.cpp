@@ -141,6 +141,53 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // can use teleport if same x or same y, find min cost
+    int n, m; cin >> n >> m;
+    var(3) a(m);
+    pii s, f; cin >> s >> f;
+    for(int i = 0; i < m; i++) {    
+        auto& [l, r, id] = a[i];    
+        cin >> l >> r;  
+        id = i;
+    }
+    vvpii graph(m);
+    auto process = [&]() -> void {  
+        srt(a);
+        for(int i = 0; i < m - 1; i++) {    
+            int w = (a[i + 1][0] - a[i][0]);  
+            int u = a[i][2], v = a[i + 1][2];
+            graph[u].pb({v, w}); 
+            graph[v].pb({u, w});
+        }
+    };
+    pq<pll, vpll, greater<pll>> q;
+    vll dp(m);
+    for(auto& [l, r, u] : a) {  
+        int w = min(abs(l - s.ff), abs(r - s.ss));  
+        dp[u] = w;  
+        q.push({dp[u], u});
+    }
+    process();
+    for(auto& [l, r, id] : a) swap(l, r);
+    process();
+    for(auto& [l, r, id] : a) swap(l, r);
+    while(!q.empty()) { 
+        auto [cost, node] = q.top(); q.pop();
+        debug(node, cost);
+        if(dp[node] != cost) continue;
+        for(auto& [nei, w] : graph[node]) {   
+            ll newCost = dp[node] + w;
+            if(newCost < dp[nei]) { 
+                dp[nei] = newCost;  
+                q.push({newCost, nei});
+            }
+        }
+    }
+    ll res = abs(s.ff - f.ff) + abs(s.ss - f.ss);
+    for(auto& [l, r, u] : a) {  
+        res = min(res, dp[u] + abs(l - f.ff) + abs(r - f.ss));
+    }
+    cout << res << endl;
 }
 
 signed main() {

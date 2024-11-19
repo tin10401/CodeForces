@@ -140,7 +140,92 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+vi manacher(string s, int start) { // odd size palindrome start with 1, even start with 0
+    string tmp;
+    for (auto& it : s) {
+        tmp += "#";
+        tmp += it;
+    }
+    tmp += "#";  
+    swap(s, tmp);
+    int n = s.size();
+    vector<int> p(n); 
+    int l = 0, r = 0;  
+    for (int i = 0; i < n; i++) {
+        if (i < r) {
+            p[i] = min(r - i, p[l + r - i]);
+        } else {
+            p[i] = 0;
+        }
+        while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
+            p[i]++;
+        }
+        if (i + p[i] > r) {
+            l = i - p[i] + 1;
+            r = i + p[i] - 1;
+        }
+    }
+    vi result;
+    for (int i = start; i < n; i += 2) {
+        result.push_back(p[i] / 2);
+    }
+    if(start == 0) { // for even size, shift by one index to the right
+        for(int i = 1; i < (int)result.size(); i++) {    
+            swap(result[i - 1], result[i]);
+        }
+        result.pop_back();
+    }
+    return result;
+}
+
 void solve() {
+    string s; cin >> s; 
+    int n = s.size();
+    int l = 0, r = n - 1;   
+    while(l <= r && s[l] == s[r]) { 
+        l++, r--;
+    }
+    if(l > r) { 
+        cout << s << endl;  
+        return;
+    }
+    string t = s.substr(l, r - l + 1);
+    auto odd = manacher(t, 1);  
+    auto even = manacher(t, 0);
+    int startOdd = 0, startEven = 0, oddLen = 0, evenLen = 0;   
+    int N = odd.size(), M = even.size();    
+    for(int i = 0; i < N; i++) {    
+        int len = odd[i] * 2 - 1;
+        if(len < oddLen) continue;
+        if(i - odd[i] + 1 == 0) {   
+            oddLen = odd[i] * 2 - 1;    
+            startOdd = 0;
+        }
+        else if(i + odd[i] == N) {  
+            oddLen = odd[i] * 2 - 1;
+            startOdd = i - odd[i] + 1;
+        }
+    }
+    for(int i = 0; i < M; i++) {    
+        int len = even[i] * 2;
+        if(len < max(evenLen, oddLen)) continue;
+        if(i - even[i] + 1 == 0) {  
+            evenLen = even[i] * 2;
+            startEven = 0;
+        }
+        else if(i + even[i] + 1 == M) { 
+            evenLen = even[i] * 2;  
+            startEven = i - even[i] + 1;
+        }
+    }
+    if(evenLen > oddLen) {  
+        t = t.substr(startEven, evenLen);
+    }
+    else {  
+        t = t.substr(startOdd, oddLen);
+    }
+    s = s.substr(0, l);
+    cout << s + t + string(rbegin(s), rend(s)) << endl;
 }
 
 signed main() {
@@ -149,7 +234,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

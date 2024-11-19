@@ -141,6 +141,45 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;    
+    vi a(n), b(n); cin >> a >> b;    
+    vi pos(n + 1), p(n + 1);  
+    for(int i = 0; i < n; i++) {    
+        p[b[i]] = i;
+        pos[a[i]] = i;
+    }
+    auto f = [&](int i, int x, int y) -> void {    
+        int p = pos[y];
+        swap(pos[x], pos[y]);
+        swap(a[i], a[p]);
+    };
+    int res = 0;
+    vpii ans;
+    for(int i = 0; i < n; i++) {    
+        if(a[i] == b[i]) continue; 
+        int j = i;  
+        while(j < n && a[j] != b[i]) j++;
+        res += j - i;
+        if(a[i] == b[j]) {  
+            ans.pb({i, j});
+            f(i, a[i], a[j]);
+            continue;
+        }
+        int ii = j - 1;
+        while(ii >= i) { 
+            if(ii == i || p[a[ii]] >= j) { 
+                ans.pb({ii, j});
+                f(ii, a[ii], a[j]);
+                j = ii;
+            }
+            ii--;
+        }
+    }
+    cout << res << endl;
+    cout << ans.size() << endl;
+    for(auto& [i, j] : ans) {   
+        cout << i + 1 << ' ' << j + 1 << endl;
+    }
 }
 
 signed main() {

@@ -141,6 +141,28 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // can change a[u] to l[u] or r[u], maximum abs(a[u] - a[v]) sum?
+    int n; cin >> n;
+    vpii a(n); cin >> a;    
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;
+        graph[u].pb(v); 
+        graph[v].pb(u);
+    }
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> pll { 
+        pll ans;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            auto [A, B] = dfs(dfs, nei, node);
+            ans.ff += max(abs(a[node].ff - a[nei].ff) + A, abs(a[node].ff - a[nei].ss) + B);
+            ans.ss += max(abs(a[node].ss - a[nei].ff) + A, abs(a[nei].ss - a[node].ss) + B);
+        }
+        return ans;
+    };
+    auto [A, B] = dfs(dfs); 
+    cout << max(A, B) << endl;
 }
 
 signed main() {
@@ -149,7 +171,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -265,40 +265,6 @@ public:
         print(treap->right);
     }
 };
-
-class DSU { 
-    public: 
-    int n;  
-    vi root, rank;  
-    DSU(int n) {    
-        this->n = n;    
-        root.rsz(n, -1), rank.rsz(n, 1);
-    }
-    
-    int find(int x) {   
-        if(root[x] == -1) return x; 
-        return root[x] = find(root[x]);
-    }
-    
-    bool merge(int u, int v) {  
-        u = find(u), v = find(v);   
-        if(u != v) {    
-            if(rank[v] > rank[u]) swap(u, v);   
-            rank[u] += rank[v]; 
-            root[v] = u;
-            return true;
-        }
-        return false;
-    }
-    
-    bool same(int u, int v) {    
-        return find(u) == find(v);
-    }
-    
-    int getRank(int x) {    
-        return rank[find(x)];
-    }
-};
     
 template<class T>
 class FW {  
@@ -405,6 +371,9 @@ class SGT {
         if(left != right) { 
             lazy[lc] += lazy[i]; 
             lazy[rc] += lazy[i];
+//            int middle = midPoint;  
+//            root[lc] = (ll)(middle - left + 1) * lazy[i];
+//            root[rc] = (ll)(right - middle) * lazy[i];
         }
         lazy[i] = 0;
     }
@@ -438,6 +407,22 @@ class SGT {
 	T get() {
 		return root[0];
 	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iterator) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
 };
 
 // PERSISTENT SEGTREE
@@ -485,94 +470,6 @@ void reset() {
     }
 	ptr = 0;
 }
-
-class LCA { 
-    public: 
-    int n;  
-    vvi dp, graph; 
-    vi depth, parent;
-    vi startTime, endTime;
-	vi subtree;
-    int timer = 0, centroid1 = -1, centroid2 = -1, mn = inf;
-    LCA(vvi& graph) {   
-        this->graph = graph;
-        n = graph.size();
-        dp.rsz(n, vi(MK));
-        depth.rsz(n);
-        parent.rsz(n, 1);
-        startTime.rsz(n);   
-        endTime.rsz(n);
-        subtree.rsz(n);
-        dfs();
-        init();
-    }
-    
-    void dfs(int node = 1, int par = -1) {   
-        startTime[node] = timer++;
-		subtree[node] = 1;
-        int mx = 0;
-        for(auto& nei : graph[node]) {  
-            if(nei == par) continue;    
-            depth[nei] = depth[node] + 1;   
-            dp[nei][0] = node;
-            parent[nei] = node;
-            dfs(nei, node);
-			subtree[node] += subtree[nei];
-			mx = max(mx, subtree[nei]);
-        }
-        endTime[node] = timer - 1;
-        mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
-		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;
-		else if(mx == mn) centroid2 = node;
-    }
-    
-    void init() {  
-        for(int j = 1; j < MK; j++) {   
-            for(int i = 0; i < n; i++) {    
-                dp[i][j] = dp[dp[i][j - 1]][j - 1];
-            }
-        }
-    }
-    
-    bool isAncestor(int u, int v) { 
-        return startTime[u] <= startTime[v] && startTime[v] <= endTime[u]; 
-    }
-
-    int lca(int a, int b) { 
-        if(depth[a] > depth[b]) {   
-            swap(a, b);
-        }
-        int d = depth[b] - depth[a];    
-        for(int i = MK - 1; i >= 0; i--) {  
-            if((d >> i) & 1) {  
-                b = dp[b][i];
-            }
-        }
-        if(a == b) return a;    
-        for(int i = MK - 1; i >= 0; i--) {  
-            if(dp[a][i] != dp[b][i]) {  
-                a = dp[a][i];   
-                b = dp[b][i];
-            }
-        }
-        return dp[a][0];
-    }
-	
-	int dist(int u, int v) {    
-        int a = lca(u, v);  
-        return depth[u] + depth[v] - 2 * depth[a];
-    }
-	
-	int k_ancestor(int a, int k) {
-        for(int i = MK - 1; i >= 0; i--) {   
-            if((k >> i) & 1) {  
-                a = dp[a][i];
-            }
-            if(a == 0) return -1;
-        }
-        return a;
-    }
-};
 
 class MO {  
     public: 
