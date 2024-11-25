@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -141,35 +140,42 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+struct DATA {   
+    int l, r, v;
+    DATA(int l = 0, int r = 0, int v = 0) : l(l), r(r), v(v) {}
+};
+
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    deque<DATA> q;  
+    vi vis(n + 1), cnt(2 * n + 1);
+    ll res = 0;
     for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+        auto& x = a[i]; cin >> x;
+        while(vis[x]) { 
+            auto curr = q.front();  
+            q.pop_front();    
+            cnt[curr.l + curr.v - 1]--; 
+            vis[a[curr.l]] = 0;
+            if(curr.l != curr.r) {  
+                q.push_front(DATA(curr.l + 1, curr.r, curr.v));
+                cnt[curr.l + curr.v]++;
+            }
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        int leftMost = i;
+        while(!q.empty() && q.back().v < x) {   
+            leftMost = q.back().l;  
+            cnt[q.back().l + q.back().v - 1]--;
+            q.pop_back();
+        }
+        vis[x] = true;
+        q.push_back(DATA(leftMost, i, x));
+        cnt[leftMost + x - 1]++;
+        res += cnt[i];
+        debug(cnt, leftMost + x - 1, leftMost);
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << res << endl;
 }
 
 signed main() {
@@ -178,13 +184,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

@@ -142,34 +142,34 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    ll n, s; cin >> n >> s;    
+    vpll a(n); cin >> a;
+    srtR(a);
+    auto f = [&](ll x) -> bool {    
+        ll curr = s;    
+        int c = 0;
+        vll arr;
+        for(auto& [l, r] : a) {    
+            if(r < x) curr -= l;   
+            else if(l >= x) curr -= l, c++;
+            else arr.pb(l);
         }
-        return true;
+        int N = arr.size();
+        ll need = (n + 1) / 2;
+        if(c + N < need) return false;
+        for(int i = 0; i < N; i++) {    
+            curr -= (i + c >= need ? arr[i] : x);
+        } 
+        return curr >= 0;
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
+    debug(a, f(68));
+    ll left = 0, right = inf, res = -1;   
     while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        ll middle = midPoint;   
+        if(f(middle)) res = middle, left = middle + 1;  
+        else right = middle - 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << res << endl;
 }
 
 signed main() {

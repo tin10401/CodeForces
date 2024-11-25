@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -141,35 +140,87 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vi lazy;
+    T DEFAULT;
+    SGT(vll& arr) {    
+        n = arr.size(); 
+        DEFAULT = INF;
+        root.rsz(n * 4, inf);    
+        lazy.rsz(n * 4);
+        build(entireTree, arr);
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    
+    void build(iterator, vll& arr) { 
+        if(left == right) { 
+            root[i] = arr[left];    
+            return;
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
         int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        build(lp, arr), build(rp, arr); 
+        root[i] = merge(root[lc], root[rc]);
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
     }
-    cout << endl;
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i] += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+    
+    T get() {   
+        return root[0];
+    }
+};
+
+void solve() {
+    // partition into k segment, each segment cost will be sum of (last_occurrence[x] - first_occurrence[x]) for all value in a single segment, find min_cost
+    int n, K; cin >> n >> K;    
+    vi a(n); cin >> a;  
+    vll dp(n + 1, inf); 
+    dp[0] = 0;
+    for(int k = 0; k < K; k++) {    
+        vi last(n + 1, -1);
+        SGT<ll> root(dp);
+        for(int i = 0; i < n; i++) {    
+            int& x = last[a[i]];
+            if(x != -1) root.update(0, x, i - x);   
+            x = i;  
+            dp[i + 1] = root.get();
+        }
+    }
+    cout << dp[n] << endl;
 }
 
 signed main() {
@@ -178,13 +229,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

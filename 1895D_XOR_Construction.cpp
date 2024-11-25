@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -141,33 +140,75 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+int T[MX][2];
+int ptr;
+class Binary_Trie { 
+    public:
+    int m = 30;
+    void insert(int num) {  
+        int curr = 0;   
+        for(int i = m - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
+            curr = T[curr][bits];
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+        
+    int max_xor(int num) {  
+        int res = 0, curr = 0;
+        for(int i = m - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(T[curr][!bits]) {    
+                curr = T[curr][!bits];
+                res |= (1LL << i);
+            }
+            else {  
+                curr = T[curr][bits];
+            }
+            if(!curr) break;
+        }
+        return res;
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
+        
+    int min_xor(int num) {  
+        int res = num, curr = 0;
+        for(int i = m - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(T[curr][bits]) {    
+                curr = T[curr][bits];
+                if(bits) res ^= (1LL << i);
+            }
+            else {  
+                curr = T[curr][!bits];
+                if(!bits) res ^= (1LL << i);
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+    
+};
+
+void solve() {
+    int n; cin >> n;    
+    vi a(n - 1); cin >> a;
+    Binary_Trie root;
+    for(int i = 0, x = 0; i < n - 1; i++) {    
+        int v = a[i];
+        x ^= v; 
+        root.insert(x);
+    }
+    int x = 0;  
+    for(int i = 0; i < n; i++) {    
+        if(root.max_xor(i) <= n - 1) {  
+            x = i;  
+            break;
+        }
+    }
+    cout << x << ' ';   
+    for(auto& v : a) {  
+        x ^= v; 
+        cout << x << ' ';
     }
     cout << endl;
 }
@@ -178,13 +219,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

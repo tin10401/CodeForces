@@ -5,8 +5,8 @@ class GRAPH {
     vi depth, parent;
     vi startTime, endTime, low, tin;
 	vi subtree;
-    int timer = 0, centroid1 = -1, centroid2 = -1, mn = inf;
-    LCA(vvi& graph) {   
+    int timer = 0, centroid1 = -1, centroid2 = -1, mn = inf, diameter = 0;
+    GRAPH(vvi& graph) {   
         this->graph = graph;
         n = graph.size();
         dp.rsz(n, vi(MK));
@@ -21,19 +21,22 @@ class GRAPH {
         init();
     }
     
-    void dfs(int node = 1, int par = -1) {   
+    int dfs(int node = 1, int par = -1) {   
         startTime[node] = timer++;
 		subtree[node] = 1;
-        int mx = 0;
+        int mx = 0, a = 0, b = 0;
         for(auto& nei : graph[node]) {  
             if(nei == par) continue;    
             depth[nei] = depth[node] + 1;   
             dp[nei][0] = node;
             parent[nei] = node;
-            dfs(nei, node);
+			int v = dfs(nei, node);
+            if(v > a) b = a, a = v; 
+            else b = max(b, v);
 			subtree[node] += subtree[nei];
 			mx = max(mx, subtree[nei]);
         }
+		diameter = max(diameter, a + b); // might be offset by 1
         endTime[node] = timer - 1;
         mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
 		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;

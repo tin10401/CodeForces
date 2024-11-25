@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,33 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
-        }
-        return true;
+    int n; cin >> n;    
+    auto ask = [](int l, int r) -> int {    
+        if(l == r) return -1;
+        cout << "? " << l << ' ' << r << endl;  
+        int ans; cin >> ans;    
+        if(ans == -1) exit(0);
+        return ans;
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+    auto output = [](int x) -> void {    
+        cout << "! " << x << endl;  
+    };
+    int left = 1, right = n, curr = ask(1, n);
+    while(left + 1 < right) {  
+        int middle = midPoint;
+        if(ask(left, middle) == curr) {    
+            right = middle; 
+        }
+        else {  
+            int v = ask(middle, right);
+            if(v == curr) left = middle;    
+            else {  
+                right = middle; 
+                curr = v;
+            }
+        }
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    output(ask(left, right) == left ? right : left);
 }
 
 signed main() {
@@ -178,13 +176,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

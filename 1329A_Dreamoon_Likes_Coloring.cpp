@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,33 +141,28 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+    // have to determine how to paint such that each cell is colored and each color appear exactly once
+    int n, m; cin >> n >> m;
+    vll a(m); cin >> a; 
+    ll k = sum(a);  
+    if(k < n) { 
+        cout << -1 << endl; 
+        return;
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    vll ans; 
+    ll p0 = 0, p1 = 0;
+    for(auto& x : a) {  
+        ll t = p1 - min(p1 - p0, k - (n - p1));
+        ans.pb(t);
+        p0 = t + 1; 
+        p1 = t + x;
+        if(p1 > n) {    
+            cout << -1 << endl; 
+            return;
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        k -= x;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
+    for(auto& x : ans) cout << x + 1 << ' ';
     cout << endl;
 }
 
@@ -178,13 +172,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

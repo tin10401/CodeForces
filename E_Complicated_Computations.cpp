@@ -141,35 +141,78 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    T DEFAULT;
+    SGT(int n) {    
+        this->n = n;
+        DEFAULT = inf;
+        root.rsz(n * 4, -1);    
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
         int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
     }
-    cout << endl;
+    
+    T queries(iterator, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+};
+
+void solve() {
+    // find the mex of all mex in all subarray  
+    // approach : keep track of the last occurence of each number, if number from 1 to x - 1 appeared before x, then mex was seen
+    int n; cin >> n;    
+    SGT<int> root(n + 10);
+    vi seen(n + 10), last(n + 10, -1);
+    int c = 0;
+    for(int i = 0; i < n; i++) {    
+        int x; cin >> x;    
+        if(root.queries(1, x - 1) > last[x]) {  
+            seen[x] = true;
+        }
+        last[x] = i;
+        root.update(x, i);
+        c += x == 1;
+    }
+    if(c == n) {    
+        cout << 1 << endl;  
+        return;
+    }
+    for(int i = 2; i < n + 10; i++) {   
+        if(root.queries(1, i - 1) > last[i]) seen[i] = true;
+    }
+    int mex = 2;    
+    while(seen[mex]) mex++; 
+    cout << mex << endl;
 }
 
 signed main() {
@@ -178,7 +221,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,38 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+    string s; cin >> s; 
+    int n = s.size();
+    s = ' ' + s;
+    vi prefix(n + 1);   
+    vvi dp(n + 1, vi(26));  
+    if(n >= 2) dp[1][s[2] - 'a'] = 1;
+    for(int i = 2, j = 0; i <= n; i++) {   
+        while(j && s[i] != s[j + 1]) j = prefix[j]; 
+        if(s[i] == s[j + 1]) j++;   
+        prefix[i] = j;  
+        dp[i] = dp[j];
+        if(i < n) dp[i][s[i + 1] - 'a'] = i;
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    int q; cin >> q;
+    while(q--) {    
+        string t; cin >> t; 
+        int m = t.size();   
+        s += t; 
+        for(int i = n + 1, j = prefix[n]; i <= n + m; i++) {   
+            while(j > n && s[i] != s[j + 1]) j = prefix[j];
+            if(j && s[j + 1] != s[i]) j = dp[j][s[i] - 'a'];
+            if(s[j + 1] == s[i]) j++;   
+            prefix.pb(j);   
+            cout << j << ' '; 
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        cout << endl;   
+        for(int i = 0; i < m; i++) {    
+            prefix.pop_back();  
+            s.pop_back();
+        }
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+
 }
 
 signed main() {
@@ -178,13 +181,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

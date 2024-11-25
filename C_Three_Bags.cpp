@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,25 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
-        }
-        return true;
+    // having 3 bags(a, b, c), one move can assign a[i] - b[j], b[i] - c[j], c[i] - b[j] or whatever you want, what is the maximum sum?
+    int n, m, k; cin >> n >> m >> k;    
+    vll a(n), b(m), c(k); cin >> a >> b >> c;    
+    srt(a), srt(b), srt(c);
+    auto f = [](vvll all) -> ll { 
+        ll x = sum(all[2]);
+        ll y = sum(all[1]) - all[1][0]; 
+        ll z = sum(all[0]) - all[0][0];
+        all[0][0] -= x + y; 
+        all[1][0] -= z; 
+        return abs(all[0][0]) + abs(all[1][0]);
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
-    }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    vt<vll*> all = {&a, &b, &c};
+    ll res = 0;
+    do {    
+        vvll p = {*all[0], *all[1], *all[2]};
+        res = max(res, f(p));
+    } while(next_permutation(all.begin(), all.end()));
+    cout << res << endl;
 }
 
 signed main() {
@@ -178,13 +168,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

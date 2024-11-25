@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,26 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
+    // 1 0 1 0 0 1, find minimum shifting value so that all the initial occupied 1 become 0
+    int n; cin >> n;    
     vi a(n); cin >> a;  
-    vi bad; 
+    vi pos; 
     for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+        if(a[i]) pos.pb(i);
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    int k = pos.size();
+    vll dp(k + 1, INF);  
+    dp[k] = 0;
+    for(int i = n - 1; i >= 0; i--) {   
+        if(a[i]) continue;
+        auto next = dp;
+        for(int j = k - 1; j >= 0; j--) {    
+            if(dp[j + 1] == INF) break;
+            next[j] = min(next[j], dp[j + 1] + abs(pos[j] - i));
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        swap(dp, next);
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << dp[0] << endl;
 }
 
 signed main() {
@@ -178,13 +169,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

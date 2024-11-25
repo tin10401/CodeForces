@@ -53,7 +53,6 @@ void reset() {
     ptr = 0;
 }
 
-
 struct TrieNode
 {
     TrieNode* sfx, *dict, *children[26];
@@ -67,16 +66,23 @@ class Trie
     public:
     TrieNode* root;
     int count = 0;
-    TrieNode* newTrieNode() {
+	
+	TrieNode* newTrieNode() {
         nodes[count] = TrieNode();
         return &nodes[count++];
     }
-
-    Trie(vector<string>& words, vector<int>& costs, string target) {
-        root = newTrieNode();
-        root->sfx = root->dict = root;
-
+	
+	Trie() {    
+        count = 0;
+        root = newTrieNode();   
     }
+
+//    Trie(vector<string>& words, vector<int>& costs, string target) {
+//        root = newTrieNode();
+//        root->sfx = root->dict = root;
+//
+//    }
+
     
     void insert(const string& s) {  
         TrieNode* curr = root;
@@ -129,6 +135,39 @@ vi KMP(const string& s) {
         if(s[i] == s[j]) prefix[i] = ++j;
     }
     return prefix;
+	
+//    int n = s.size(); // for jumping with large size of s
+//    s = ' ' + s;
+//    vi prefix(n + 1);   
+//    vvi dp(n + 1, vi(26));  
+//    if(n >= 2) dp[1][s[2] - 'a'] = 1;
+//    for(int i = 2, j = 0; i <= n; i++) {   
+//        while(j && s[i] != s[j + 1]) j = prefix[j]; 
+//        if(s[i] == s[j + 1]) j++;   
+//        prefix[i] = j;  
+//        dp[i] = dp[j];
+//        if(i < n) dp[i][s[i + 1] - 'a'] = i;
+//    }
+//    int q; cin >> q;
+//    while(q--) {    
+//        string t; cin >> t; 
+//        int m = t.size();   
+//        s += t; 
+//        for(int i = n + 1, j = prefix[n]; i <= n + m; i++) {   
+//            while(j > n && s[i] != s[j + 1]) j = prefix[j];
+//            if(j && s[j + 1] != s[i]) j = dp[j][s[i] - 'a'];
+//            if(s[j + 1] == s[i]) j++;   
+//            prefix.pb(j);   
+//            cout << j << ' '; 
+//        }
+//        cout << endl;   
+//        for(int i = 0; i < m; i++) {    
+//            prefix.pop_back();  
+//            s.pop_back();
+//        }
+//    }
+
+
 }
 
 vi Z_Function(const string& s) {    
@@ -284,4 +323,22 @@ class RabinKarp {
     }
 
 };
+
+int lcs(const string& s, const string& t) { // longest common subsequences
+    int n = s.size(), m = t.size(); 
+    vvi dp(n + 1, vi(m + 1));
+    for(int i = 1; i <= n; i++) {   
+        for(int j = 1; j <= m; j++) {   
+            if(s[i - 1] == t[j - 1]) {  
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            }
+            else {  
+                dp[i][j] = max({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
+            }
+        }
+    }
+    //return n + m - 2 * dp[n][m];
+    return dp[n][m];
+}
+
 

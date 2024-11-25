@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,29 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    string s, t; cin >> s >> t;
+    int N = s.size(), M = t.size(); 
+    for(int split = 3; split <= 3; split++) {   
+        vi dp(split + 1, -1);
+        dp[0] = 0;  
+        for(auto& x : s) { 
+            for(int left = split; left >= 0; left--) {  
+                if(dp[left] == -1) continue;
+                if(left < split && t[left] == x) { 
+                    dp[left + 1] = max(dp[left + 1], dp[left]);
+                }
+                if(dp[left] < M - split && t[split + dp[left]] == x) {  
+                    dp[left]++;
+                }
+            }
+            debug(dp);
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        if(dp[split] >= M - split) {    
+            cout << "YES" << endl;  
+            return;
+        }
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << "NO" << endl;
 }
 
 signed main() {
@@ -184,7 +178,7 @@ signed main() {
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

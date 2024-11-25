@@ -142,34 +142,27 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    // have a 0, b 1, c 2, d 4, construct an array where abs(a[i] - a[i + 1]) == 1
+    int a, b, c, d; cin >> a >> b >> c >> d;
+    auto f = [](var(2) a, int n) -> void {  
+        vi ans(n);  
+        for(int i = 0, last = -1; i < n; i++) {    
+            auto& c = (i % 2 == 0 ? (a[0][0] ? a[0] : a[2]) : (a[1][0] ? a[1] : a[3]));
+            if(c[0]-- <= 0) return;
+            if(last != -1 && abs(c[1] - last) != 1) return;
+            ans[i] = c[1];
+            last = ans[i];
         }
-        return true;
+        cout << "YES" << endl;
+        for(auto& x : ans) cout << x << ' ';    
+        cout << endl;
+        exit(0);
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
-    }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    var(2) arr = {{a, 0}, {b, 1}, {c, 2}, {d, 3}};
+    do {    
+        f(arr, a + b + c + d);
+    } while(next_permutation(all(arr)));
+    cout << "NO" << endl;
 }
 
 signed main() {
@@ -178,7 +171,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
