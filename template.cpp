@@ -35,6 +35,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
+#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -155,7 +156,7 @@ signed main() {
         solve();
     }
 
-    //endClock
+    endClock
     return 0;
 }
 

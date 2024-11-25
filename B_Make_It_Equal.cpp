@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,35 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
+    int n; cin >> n;    
     vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    ll sm = sum(a);
+    auto f = [&](ll x) -> bool {    
+        ll t = sm;  
+        vi b(a);
+        while(t >= x * n) {   
+            bool ok = true; 
+            for(int i = 0; i < n; i++) {    
+                if(b[i] < x) ok = false;    
+                else if(b[i] > x) {  
+                    ok = false;
+                    ll v = (b[i] - x + 1) / 2;
+                    b[i] -= 2 * v;  
+                    t -= v; 
+                    b[(i + 1) % n] += v;
+                }
+            }
+            if(ok) return true;
         }
-        return true;
+        return false;
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
+    ll left = MIN(a), right = MAX(a), res = -1;    
     while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        ll middle = midPoint;  
+        if(f(middle)) res = sm - middle * n, left = middle + 1; 
+        else right = middle - 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << res << endl;
 }
 
 signed main() {
@@ -184,7 +184,7 @@ signed main() {
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

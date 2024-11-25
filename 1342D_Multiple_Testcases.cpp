@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -141,35 +140,95 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        root[id] = val;
+        while(id <= n) {    
+            root[id] = max(root[id], val);
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res = max(res, root[id]);
+            id -= (id & -id);
+        }
+        return res;
+    }
+};
+
+class SparseTable { 
+    public: 
+    int n;  
+    vvpii dp; 
+    SparseTable(vvpii& dp) {  
+        n = dp.size();  
+        this->dp = dp;
+        init();
+    }
+    
+    void init() {   
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                dp[i][j] = min(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+            }
+        }
+    }
+    
+    pii queries(int left, int right) {  
+        int j = log2(right - left + 1);
+        return min(dp[left][j], dp[right - (1LL << j) + 1][j]);
+    }
+};
+
 void solve() {
     int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
+    vi a(n), b(k); cin >> a >> b;  
+    vvpii dp(k, vpii(MK));
+    for(int i = 0; i < k; i++) {    
+        dp[i][0] = {b[i], i};    
+    } 
+    SparseTable s(dp);
+    FW<int> root(n);
+    vvi order(n);
     for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+        root.update(i + 1, k);
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    srtR(a);    
+    int mx = 0;
+    for(auto& x : a) {  
+        int left = 0, right = n - 1, i = -1;
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(root.get(middle + 1) >= x) i = middle, right = middle - 1;   
+            else left = middle + 1;
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        mx = max(mx, i + 1);
+        order[i].pb(x);
+        int N = order[i].size();
+        auto [v, id] = s.queries(0, x - 1);
+        if(v <= N) {    
+            root.update(i + 1, id);
+        }
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+    cout << mx << endl; 
+    for(int i = 0; i < mx; i++) {   
+        auto& curr = order[i];  
+        cout << curr.size() << ' '; 
+        for(auto& x : curr) cout << x << ' ';   
+        cout << endl;
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
 }
 
 signed main() {
@@ -178,13 +237,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

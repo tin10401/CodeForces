@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,23 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+    // given queries of type [l, r] find the number of integer x such that (x % a) % b != (x % b) % a
+    int a, b, q; cin >> a >> b >> q;    
+    int n = a * b;
+    vll dp(n + 1);   
+    for(int x = 1; x <= n; x++) {    
+        dp[x] = dp[x - 1];
+        if((x % a) % b != (x % b) % a) dp[x]++;
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
-        }
-        return true;
+    auto queries = [&](ll x) -> ll {   
+        ll c = x / n;   
+        ll rem = x % n; 
+        return dp[n] * c + dp[rem];
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+    while(q--) {    
+        ll l, r; cin >> l >> r; 
+        cout << queries(r) - queries(l - 1) << (q == 0 ? '\n' : ' ');
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
 }
 
 signed main() {
@@ -184,7 +172,7 @@ signed main() {
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

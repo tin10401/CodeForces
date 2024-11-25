@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -141,35 +140,50 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+class SparseTable { 
+    public: 
+    int n;  
+    vvi dp; 
+    SparseTable(vvi& dp) {  
+        n = dp.size();  
+        this->dp = dp;
+        init();
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    
+    void init() {   
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+				dp[i][j] = gcd(dp[i][j - 1], dp[i + (1LL << (j - 1))][j - 1]);
+            }
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+    
+    ll queries(int left, int right) {  
+        int j = log2(right - left + 1);
+        return gcd(dp[left][j], dp[right - (1LL << j) + 1][j]);
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
+};
+
+void solve() {
+    // find all bad segment l - r such that gcd(a[l], ..., a[r]) == r - l + 1
+    int n; cin >> n;    
+    vvi dp(n, vi(MK));
+    for(int i = 0; i < n; i++) {    
+        cin >> dp[i][0];
     }
-    cout << endl;
+    SparseTable t(dp);
+    int res = 0;    
+    int mx = -1;    
+    for(int i = 0, r = 0; i < n; i++) {  
+        while(r < i && t.queries(r, i) < i - r + 1) r++;
+        if(t.queries(r, i) == i - r + 1) {    
+            if(r > mx) {    
+                res++;  
+                mx = i;
+            }
+        }
+        cout << res << (i == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -178,13 +192,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

@@ -142,34 +142,34 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+    int n, m; cin >> n >> m;    
+    string s; cin >> s;
+    vvi cost(m + 1, vi(m + 1)); 
+    for(int i = 0; i < n - 1; i++) {    
+        int u = s[i] - 'a', v =  s[i + 1] - 'a';    
+        cost[u][v]++;   
+        cost[v][u]++;
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    vvi dp(m + 1, vi(1 << m, -1));
+    auto dfs = [&](auto& dfs, int k = 0, int mask = 0) -> int { 
+        if(k == m || mask == (1 << m) - 1) return 0;
+        auto& res = dp[k][mask];
+        if(res != -1) return res;
+        res = inf;
+        for(int i = 0; i < m; i++) {    
+            if((mask >> i) & 1) continue;
+            int next = mask | (1LL << i);
+            int del = 0;
+            for(int j = 0; j < m; j++) {    
+                if(i == j) continue;
+                if((mask >> j) & 1) del += cost[i][j] * k;  // if choosing i now, just take k * cost[i][j] for all the j that has been chosen
+                else del -= cost[i][j] * k; // if j is not in the current mask, future j will have cost[i][j] * future_k - cost[i][j] * k so that why we subtract from current k
+            }
+            res = min(res, dfs(dfs, k + 1, next) + del);
         }
-        return true;
+        return res;
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
-    }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {
@@ -178,7 +178,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

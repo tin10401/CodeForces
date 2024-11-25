@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,48 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    string s, t; cin >> s >> t; 
+    int n = s.size(), m = t.size(); 
+    int N = n + m + 1;
+    vvvi dp(n + 1, vvi(m + 1, vi(N, inf))); 
+    vvvi op(n + 1, vvi(m + 1, vi(N))); 
+    iota(all(dp[n][m]), 0);
+    for(int i = n; i >= 0; i--) {   
+        for(int j = m; j >= 0; j--) {   
+            if(i == n && j == m) {  
+                continue;
+            }
+            for(int k = N - 1; k >= 0; k--) {   
+                int open = inf, close = inf;    
+                if(k + 1 < N) { 
+                    open = dp[i + (i < n && s[i] == '(')][j + (j < m && t[j] == '(')][k + 1] + 1;
+                }
+                if(k - 1 >= 0) { 
+                    close = dp[i + (i < n && s[i] == ')')][j + (j < m && t[j] == ')')][k - 1] + 1;
+                }
+                op[i][j][k] = open < close;  
+                dp[i][j][k] = min(open, close);
+            }
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+    int need = 0, i = 0, j = 0; 
+    string res;
+    while(i < n || j < m) { 
+        int k = op[i][j][need];
+        res += (k ? '(' : ')');
+        if(k) { 
+            i += (i < n && s[i] == '(');
+            j += (j < m && t[j] == '(');
+            need++;
+        }
+        else {  
+            i += (i < n && s[i] == ')');
+            j += (j < m && t[j] == ')');
+            need--;
+        }
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    res += string(need, ')');
+    cout << res << endl;
 }
 
 signed main() {
@@ -178,13 +191,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

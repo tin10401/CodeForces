@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,46 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
+    int n; cin >> n;    
+    int m = 62;
+    vvi c(m);
     for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+        ll x; cin >> x; 
+        for(int b = 0; b < m; b++) {    
+            if((x >> b) & 1) c[b].pb(i);
+            if(c[b].size() == 3) {  
+                cout << 3 << endl;  
+                return;
+            }
         }
-        return true;
+    }
+    vt<set<int>> graph(n);   
+    for(int i = 0; i < m; i++) {    
+        if(c[i].size() == 2) {  
+            int u = c[i][0], v = c[i][1];   
+            graph[u].insert(v); 
+            graph[v].insert(u);
+        }
+    }
+    int res = inf;
+    vi vis(n), dp(n);
+    auto dfs = [&](auto& dfs, int node, int par, int lv = 0) -> void {   
+        if(lv >= res) return;
+        if(vis[node] == -1) {   
+            res = lv;
+            return;
+        }
+        vis[node] = -1;  
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            dfs(dfs, nei, node, lv + 1);
+        }
+        vis[node] = 1;
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+    for(int i = 0; i < n; i++) {    
+        dfs(dfs, i, -1);
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << (res >= inf ? -1 : res) << endl;
 }
 
 signed main() {
@@ -178,13 +189,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,61 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
+    // count the number of vertex that starting from this vertex u, every path to the other node only contain distinct value
+    int n; cin >> n;    
+    map<int, int> cnt;  
     vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+    for(auto& x : a) cnt[x]++;
+    vvi graph(n);   
+    for(int i = 0; i < n - 1; i++) {    
+        int u, v; cin >> u >> v;    
+        u--, v--;
+        graph[u].pb(v); 
+        graph[v].pb(u);
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    vi dp(n);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> map<int, int> {   
+        map<int, int> s;
+        int x = a[node];
+        s[x] = 1;
+        int to = -1;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            auto t = dfs(dfs, nei, node);    
+            if(t[x]) {  
+                if(to != -1) {  
+                    cout << 0 << endl;  
+                    exit(0);
+                }
+                to = nei;
+            }
+            if(t[x]) to = nei;
+            if(t.size() > s.size()) swap(s, t);
+            for(auto& it : t) { 
+                s[it.ff] += it.ss;
+            }
         }
-        return true;
+        if(cnt[x] > 1) {    
+            if(s[x] == cnt[x]) dp[0]++, dp[to]--;   
+            else if(s[x] == 1) dp[node]++;
+            else {  
+                cout << 0 << endl;  
+                exit(0);
+            }
+        }
+        return s;
     };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
-    }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    int res = 0;
+    auto dfs2 = [&](auto& dfs2, int node = 0, int par = -1, int curr = 0) -> void {   
+        curr += dp[node];    
+        res += curr == 0;   
+        for(auto& nei : graph[node]) {  
+            if(nei != par) dfs2(dfs2, nei, node, curr);
+        }
+    };
+    dfs(dfs);
+    dfs2(dfs2);
+    cout << res << endl;
 }
 
 signed main() {
@@ -178,13 +204,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

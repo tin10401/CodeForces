@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -142,34 +141,22 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
+    // can merge a subarray into consecutive color, what's the min cost to make the whole array same color?
+    int n; cin >> n;    
     vi a(n); cin >> a;  
-    vi bad; 
+    a.erase(unique(all(a)), end(a));
+    n = a.size();
+    vvi dp(n, vi(n, inf));
     for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
+        dp[i][i] = 0;
     }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    for(int len = 2; len <= n; len++) { 
+        for(int i = 0; i + len <= n; i++) { 
+            int j = i + len - 1;    
+            dp[i][j] = min({a[i] == a[j] ? dp[i + 1][j - 1] : inf, dp[i + 1][j], dp[i][j - 1]}) + 1;
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+    cout << dp[0][n - 1] << endl;
 }
 
 signed main() {
@@ -178,13 +165,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

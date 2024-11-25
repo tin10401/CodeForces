@@ -142,34 +142,30 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    int n; cin >> n;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    int r = -1;
+    for(int i = n / 2; i >= 1; i--) {   
+        if(a[i] > a[i + 1]) {   
+            r = i;  
+            break;
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+    int l = r; 
+    for(int i = 1; i < r; i++) {    
+        if(a[i] > a[i + 1]) {   
+            l = i;  
+            break;
+        }
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
+    for(int i = l + 1; i < r; i++) {    
+        if(a[i] > a[i + 1] && i - l > l && r - i > l) {  
+            cout << l << ' ' << i - l << ' ' << r - i << endl;
+            return;
+        }
     }
-    cout << endl;
+    cout << 0 << ' ' << 0 << ' ' << 0 << endl;
 }
 
 signed main() {

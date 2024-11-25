@@ -35,7 +35,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
 #define vpll vt<pll>
-#define vvpll vt<vpll>
 #define vc vt<char> 
 #define vvc vt<vc>
 #define vi vt<int>
@@ -135,56 +134,90 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 1e9 + 7;
+const static int MOD = 998244353;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+vi primes;
+bitset<MX> primeBits;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+}
+
+vi factorize(ll n) {    
+    vi f;   
+    for(auto& p : primes) { 
+        if(p * p > n) break;
+        if(n < MX && primeBits[n]) {    
+            break;
+        }
+        if(n % p) continue; 
+        f.pb(p);    
+        while(n % p == 0) { 
+            n /= p;
+        }
     }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
+    if(n > 1) f.pb(n);
+    srt(f);
+    return f;
+}
+
+void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;
+    int m = MAX(a); 
+    vll c(m + 1), dp(n);
+    ll res = 1;
+    for(int i = 0; i < n; i++) {    
+        int x = a[i];   
+        auto f = factorize(x);
+        int N = f.size();   
+        for(int mask = 1; mask < 1 << N; mask++) {  
+            ll A = 1;   
+            for(int j = 0; j < N; j++) {    
+                if((mask >> j) & 1) {   
+                    A *= f[j];
+                }
+            }
+            if(pct(mask) & 1) res = (res + c[A]) % MOD; 
+            else res = (res - c[A] + MOD) % MOD;
+        }
+        if(i == n - 1) break;
+        for(int mask = 1; mask < 1 << N; mask++) {  
+            ll A = 1;   
+            for(int j = 0; j < N; j++) {    
+                if((mask >> j) & 1) {   
+                    A *= f[j];
+                }
+            }
+            c[A] = (c[A] + res) % MOD;
+        }
+        res = 0;
     }
-    cout << endl;
+    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
-    endClock
+    //endClock
     return 0;
 }
 

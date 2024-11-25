@@ -133,43 +133,41 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
-const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MK = 275;
+const static int MX = 5e5 + 1;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+int total[MK][MK];
+int a[MX];
 void solve() {
-    int n, k; cin >> n >> k;    
-    vi a(n); cin >> a;  
-    vi bad; 
-    for(int i = 0; i < n; i++) {    
-        if(a[i] > k) bad.pb(i); 
-    }
-    auto f = [&](int x) -> int {    
-        int curr = k;   
-        for(int i = x; i < n; i++) {    
-            if(curr == 0) return false;
-            if(a[i] > curr) curr--;
+    int q; cin >> q;    
+    while(q--) {    
+        int t; cin >> t;
+        int x, y; cin >> x >> y;    
+        if(t == 1) {    
+            a[x] += y;  
+            for(int i = 1; i < MK; i++) {   
+                total[i][x % i] += y;
+            }
         }
-        return true;
-    };
-    int N = bad.size(); 
-    int left = 0, right = N - 1, leftMost = n; 
-    while(left <= right) {  
-        int middle = midPoint;  
-        if(f(bad[middle])) leftMost = bad[middle], right = middle - 1;    
-        else left = middle + 1;
+        else {  
+            if(x < MK) {    
+                cout << total[x][y] << endl;
+            }
+            else {  
+                ll res = 0;    
+                for(int i = y; i < MX; i += x) {    
+                    res += a[i];
+                }
+                cout << res << endl;
+            }
+        }
     }
-    for(int i = 0; i < leftMost; i++) { 
-        cout << (a[i] > k ? 0 : 1);
-    }
-    for(int i = leftMost; i < n; i++) { 
-        cout << 1;
-    }
-    cout << endl;
+
 }
 
 signed main() {
@@ -178,7 +176,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
