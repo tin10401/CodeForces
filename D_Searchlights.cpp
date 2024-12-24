@@ -145,6 +145,22 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vpii a(n), b(m); cin >> a >> b;
+    const int N = 1e6 + 5;
+    vi bad(N, -1);
+    for(auto& [a1, a2] : a) {
+        for(auto& [b1, b2] : b) {
+            int x = b1 - a1, y = b2 - a2;
+            if(y >= 0) bad[y] = max(bad[y], x);
+        }
+    }
+    int res = inf;
+    for(int i = N - 1, curr = -1; i >= 0; i--) {
+        curr = max(curr, bad[i]);
+        res = min(res, i + curr + 1);
+    }
+    cout << res << endl;
 }
 
 signed main() {
