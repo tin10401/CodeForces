@@ -18,8 +18,32 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#include <bits/stdc++.h>
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <queue>
+#include <ctime>
+#include <cassert>
+#include <complex>
+#include <string>
+#include <cstring>
+#include <chrono>
+#include <random>
+#include <bitset>
+#include <iomanip>
+#include <functional>
+#include <numeric>
+#include <stack>
+#include <array>
 #include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
 using namespace __gnu_pbds;
 using namespace std;
 template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
@@ -30,7 +54,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lb lower_bound
 #define db double
 #define ld long db
-#define ll int64_t
+#define ll long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -52,7 +76,9 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
 #define vvar(x) vt<var(x)>
-#define pq priority_queue
+#define al(x) array<ll, x>
+#define vall(x) vt<al(x)>
+#define vvall(x) vt<vall(x)>
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
 #define ff first
@@ -80,7 +106,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define entireTree 0, 0, n - 1
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
-#define iterator int i, int left, int right
+#define iter int i, int left, int right
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 
@@ -89,12 +115,15 @@ struct custom {
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
+template<class T> using max_heap = priority_queue<T>;
+template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
 }
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -106,8 +135,6 @@ auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
     for (const auto &[key, value] : m) { if (i++) o << " , "; o << key << " : " << value; }
     return o << "}";
 }
-    
-template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
 
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)

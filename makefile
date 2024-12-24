@@ -1,30 +1,34 @@
 # Variables
 TEMPLATE = template.cpp
 SUBMIT = submit.cpp
+GENERATOR = generator.cpp
 INPUT = input.txt
 OUTPUT = a.out
-FLAGS = -std=c++23 -DLOCAL
+FLAGS = -std=c++23 -O2 -DLOCAL
 
 # Targets
-.PHONY: new run clean compile run2
+.PHONY: new run clean run2
 
 # Create new problem setup
 new:
-	cp $(TEMPLATE) $(SUBMIT)
-	> $(INPUT)
+	@cp $(TEMPLATE) $(SUBMIT)
+	@> $(INPUT)
 
 # Run with input redirection
 run: $(SUBMIT)
-	g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)
-	./$(OUTPUT) < $(INPUT)
-	rm -f $(OUTPUT)
+	@g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)
+	@./$(OUTPUT) < $(INPUT)
+	@rm -f $(OUTPUT)
 
-# Run interactively for debugging
-run2: $(SUBMIT)
-	g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)
-	./$(OUTPUT)
+# Run generator and then run the submit solution
+run2: $(GENERATOR) $(SUBMIT)
+	@g++ $(FLAGS) -o generator $(GENERATOR)
+	@./generator > $(INPUT)
+	@g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)
+	@./$(OUTPUT) < $(INPUT)
+	@rm -f $(OUTPUT) generator
 
 # Clean up compiled files
 clean:
-	rm -f $(OUTPUT)
+	@rm -f $(OUTPUT) generator
 

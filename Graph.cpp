@@ -21,7 +21,7 @@ class GRAPH {
         init();
     }
     
-    int dfs(int node = 1, int par = -1) {   
+    int dfs(int node = 0, int par = -1) {   
         startTime[node] = timer++;
 		subtree[node] = 1;
         int mx = 0, a = 0, b = 0;
@@ -41,6 +41,7 @@ class GRAPH {
         mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
 		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;
 		else if(mx == mn) centroid2 = node;
+		return a + 1;
     }
     
     void init() {  
@@ -90,13 +91,13 @@ class GRAPH {
         return a;
     }
 	
-	void bridge_dfs(int node = 1, int par = -1) {
+	void bridge_dfs(int node = 0, int par = -1) {
         low[node] = tin[node] = timer++; 
         subtree[node] = 1;
         for(auto& nei : graph[node]) {  
             if(nei == par) continue;
             if(!tin[nei]) {   
-                bridge_dfs(bridge_dfs, nei, node);
+                bridge_dfs(nei, node);
                 subtree[node] += subtree[nei];
                 low[node] = min(low[node], low[nei]);   
                 if(low[nei] > tin[node]) {  
@@ -156,6 +157,7 @@ class SCC {
         this->n = n;
         curr_comp = 0;
         graph.resize(n), revGraph.resize(n), vis.resize(n), comp.resize(n, -1), degree.rsz(n);
+		// don't forget to generate after adding edges
     }
  
     void add(int a, int b) {    
@@ -200,3 +202,56 @@ class SCC {
         return g;
     }
 };
+
+struct line {
+    ll m, b;
+    mutable function<const line*()> succ;
+    bool operator<(const line& rhs) const {
+        if (rhs.b != -INF) return m < rhs.m;
+        const line* s = succ();
+        if (!s) return 0;
+        ll x = rhs.m;
+        return b - s->b < (s->m - m) * x;
+    }
+};
+ 
+struct CHT : public multiset<line> { // will maintain upper hull for maximum
+    // do update in this form : a + mx -> insert_line(m, -a)
+    // do queries in this form : x - queries(condition)
+    // example : dp[i] = dp[j] + i * j
+    // update : insert_line(j, -dp[j])
+    // queries : dp[i] = cht.queries(i)
+
+    bool bad(iterator y) {
+        auto z = next(y);
+        if (y == begin()) {
+            if (z == end()) return 0;
+            return y->m == z->m && y->b <= z->b;
+        }
+        auto x = prev(y);
+        if (z == end()) return y->m == x->m && y->b <= x->b;
+ 
+		/* compare two lines by slope, make sure denominator is not 0 */
+        ll v1 = (x->b - y->b);
+        if (y->m == x->m) v1 = x->b > y->b ? INF : -INF;
+        else v1 /= (y->m - x->m);
+        ll v2 = (y->b - z->b);
+        if (z->m == y->m) v2 = y->b > z->b ? INF : -INF;
+        else v2 /= (z->m - y->m);
+        return v1 >= v2;
+    }
+    void insert_line(ll m, ll b) {
+        auto y = insert({ m, b });
+        y->succ = [this, y] {
+            return next(y) == end() ? nullptr : &*next(y);
+        };
+        if (bad(y)) { erase(y); return; }
+        while (next(y) != end() && bad(next(y))) erase(next(y));
+        while (y != begin() && bad(prev(y))) erase(prev(y));
+    }
+    ll queries(ll x) {
+        auto l = *lower_bound((line) { x, -INF });
+        return l.m * x + l.b;
+    }
+};
+

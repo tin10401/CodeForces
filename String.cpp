@@ -1,22 +1,33 @@
-int T[MX][2];
-int ptr;
+int T[MX * MK][2], cnt[MX * MK], ptr;
 class Binary_Trie { 
     public:
     int m = 30;
-    void insert(int num) {  
+    void insert(ll num, int v = 1) {  
         int curr = 0;   
         for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr;   
+            if(!T[curr][bits]) T[curr][bits] = ++ptr, cnt[ptr] = 0;   
             curr = T[curr][bits];
+			cnt[curr] += v;
         }
+		// dfs_insert(0, num, m - 1);
     }
+	
+	void dfs_insert(int curr, ll num, int bit) {
+        int b = (num >> bit) & 1;
+        if(!T[curr][b]) T[curr][b] = ++ptr;
+        int nxt = T[curr][b];
+        if(bit == 0) cnt[nxt] = 1;
+        else dfs_insert(nxt, num, bit - 1);
+        cnt[curr] = cnt[nxt] + (T[curr][!b] ? cnt[T[curr][!b]] : 0);
+    }
+
         
-    int max_xor(int num) {  
-        int res = 0, curr = 0;
+    ll max_xor(ll num) {  
+        ll res = 0, curr = 0;
         for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
-            if(T[curr][!bits]) {    
+            if(T[curr][!bits] && cnt[T[curr][!bits]]) {    
                 curr = T[curr][!bits];
                 res |= (1LL << i);
             }
@@ -28,11 +39,11 @@ class Binary_Trie {
         return res;
     }
         
-    int min_xor(int num) {  
-        int res = num, curr = 0;
+    ll min_xor(ll num) {  
+        ll res = num, curr = 0;
         for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
-            if(T[curr][bits]) {    
+            if(T[curr][bits] && cnt[T[curr][bits]]) {    
                 curr = T[curr][bits];
                 if(bits) res ^= (1LL << i);
             }
@@ -43,6 +54,41 @@ class Binary_Trie {
             if(!curr) break;
         }
         return res;
+    }
+	
+	ll count_less_than(ll a, ll b) {
+        int curr = 0;
+        ll res = 0;
+        for(int i = m - 1; i >= 0; i--) {
+            int bits = (a >> i) & 1;
+            int b_bits = (b >> i) & 1;
+            if(b_bits) {
+                res += cnt[T[curr][bits]];
+                curr = T[curr][!bits];
+            }
+            else {
+                curr = T[curr][bits];
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+	
+	ll find_mex(ll x) { // find a first missing number
+        ll mex = 0, curr = 0;
+        for(int i = m - 1; i >= 0; i--) {
+            int bit = (x >> i) & 1;
+            int c = T[curr][bit] ? cnt[T[curr][bit]] : 0;
+            if(c < (1LL << i)) {
+                curr = T[curr][bit];
+            }
+            else {
+                mex |= (1LL << i);
+                curr = T[curr][!bit];
+            }
+            if(!curr) break;
+        }
+        return mex;
     }
 };
     
@@ -192,12 +238,71 @@ vi Z_Function(const string& s) {
     }
     return prefix;
 }
+
+class RabinKarp {   
+    public: 
+    vvll prefix, pow;
+    vll base, mod;
+    int n, m;
+    RabinKarp(const string& s) {  
+        m = 3;
+        base = {26, 28, 30};    
+        mod = {(int)1e9 + 7, (int)1e9 + 33, (int)1e9 + 73};
+        n = s.size(); 
+        pow.rsz(m), prefix.rsz(m); 
+        for(int i = 0; i < m; i++) {    
+            pow[i].rsz(n + 1, 1);  
+            prefix[i].rsz(n + 1);
+        }
+        buildHash(s);
+    }
     
+    void buildHash(const string& s) {   
+        for(int j = 1; j <= n; j++) {   
+            int x = s[j - 1] - 'a' + 1;
+            for(int i = 0; i < m; i++) {    
+                prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];   
+                pow[i][j] = (pow[i][j - 1] * base[i]) % mod[i];
+            }
+        }
+    }
+    
+    int getHash(int l, int r) { 
+		if(l < 0 || r > n || l > r) return -1;
+        int hash = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % mod[0]) % mod[0];
+        hash = (hash + mod[0]) % mod[0];
+        return hash;
+		
+//        if(l < 0 || r > n || l > r) return {-1, -1};
+//        vll ans;    
+//        for(int i = 0; i < m; i++) {    
+//            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
+//            hash = (hash + mod[i]) % mod[i];
+//            ans.pb(hash);
+//        }
+//        return MP(ans[0], ans[1]);
+    };
+
+	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
+        int left = 0, right = n, rightMost = -1;    
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(a.getHash(offSet, middle + offSet) == getHash(0, middle)) rightMost = middle, left = middle + 1; 
+            else right = middle - 1;
+        }
+        return a.getHash(rightMost + 1 + offSet, offSet + n) == getHash(rightMost + 1, n);
+    }
+
+};
+
 class MANACHER {    
     public: 
     string s;   
     string ans; 
-    MANACHER(const string& s) { 
+    RabinKarp a, b;
+    int n;
+    MANACHER(const string& s) : a(s), b(string(s.rbegin(), s.rend())) { 
+        this->n = s.size();
         string odd = get_max_palindrome(s, 1);  
         string even = get_max_palindrome(s, 0);
         ans = odd.size() > even.size() ? odd : even;
@@ -265,63 +370,11 @@ class MANACHER {
         }
         return s.substr(start, max_len);
     };
-};
 
-
-class RabinKarp {   
-    public: 
-    vvll prefix, pow;
-    vll base, mod;
-    int n, m;
-    RabinKarp(const string& s) {  
-        m = 3;
-        base = {26, 28, 30};    
-        mod = {(int)1e9 + 7, (int)1e9 + 33, (int)1e9 + 73};
-        n = s.size(); 
-        pow.rsz(m), prefix.rsz(m); 
-        for(int i = 0; i < m; i++) {    
-            pow[i].rsz(n + 1, 1);  
-            prefix[i].rsz(n + 1);
-        }
-        buildHash(s);
+    bool is_palindrome(int left, int right) {
+        int rev_left = n - right - 1, rev_right = n - left - 1;
+        return a.getHash(left, right) == b.getHash(rev_left, rev_right);
     }
-    
-    void buildHash(const string& s) {   
-        for(int j = 1; j <= n; j++) {   
-            int x = s[j - 1] - 'a' + 1;
-            for(int i = 0; i < m; i++) {    
-                prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];   
-                pow[i][j] = (pow[i][j - 1] * base[i]) % mod[i];
-            }
-        }
-    }
-    
-    int getHash(int l, int r) { 
-		if(l < 0 || r > n || l > r) return -1;
-        int hash = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % mod[0]) % mod[0];
-        hash = (hash + mod[0]) % mod[0];
-        return hash;
-		
-//        if(l < 0 || r > n || l > r) return {-1, -1};
-//        vll ans;    
-//        for(int i = 0; i < m; i++) {    
-//            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
-//            hash = (hash + mod[i]) % mod[i];
-//            ans.pb(hash);
-//        }
-//        return MP(ans[0], ans[1]);
-    };
-
-	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
-        int left = 0, right = n, rightMost = -1;    
-        while(left <= right) {  
-            int middle = midPoint;  
-            if(a.getHash(offSet, middle + offSet) == getHash(0, middle)) rightMost = middle, left = middle + 1; 
-            else right = middle - 1;
-        }
-        return a.getHash(rightMost + 1 + offSet, offSet + n) == getHash(rightMost + 1, n);
-    }
-
 };
 
 int lcs(const string& s, const string& t) { // longest common subsequences
