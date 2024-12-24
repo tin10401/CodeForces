@@ -1,0 +1,15 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-std=c++17",
+      "-o",
+      "submit",
+      "submit.cpp"
+    ],
+    "directory": "/home/sololtin2001/CodeForces",
+    "file": "/home/sololtin2001/CodeForces/submit.cpp",
+    "output": "/home/sololtin2001/CodeForces/submit"
+  }
+]
