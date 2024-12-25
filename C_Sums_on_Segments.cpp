@@ -128,14 +128,6 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-
-template<class T>
-void output_vector(vt<T>& a, int off_set = 0) {
-    int n = a.size();
-    for(int i = off_set; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
-}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,6 +169,41 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    int ii = -1;
+    for(int j = 0; j < n; j++) {
+        if(abs(a[j]) != 1) ii = j;
+    }
+    auto f = [&](int v = 1) -> pair<pii, pii> {
+        pii whole = {0, 0};
+        pii last = {0, 0};
+        int curr = 0, mn = 0, mx = 0;
+        int start = v == 1 ? 0 : n - 1;
+        int end = ii;
+        if(v == 1) end = max(ii, 0);
+        for(int j = start; j != end; j += v) {
+            curr += a[j];
+            mn = min(mn, curr);
+            mx = max(mx, curr);
+            pii now = {curr - mx, curr - mn};
+            whole.ff = min(whole.ff, now.ff);
+            whole.ss = max(whole.ss, now.ss);
+            swap(now, last);
+        }
+        return {whole, last};
+    };
+    auto [left_whole, left_last] = f(1);
+    auto [right_whole, right_last] = f(-1);
+    set<ll> s;
+    for(int i = left_whole.ff; i <= left_whole.ss; i++) s.insert(i);
+    for(int i = right_whole.ff; i <= right_whole.ss; i++) s.insert(i);
+    if(ii != -1) {
+        for(ll j = left_last.ff + right_last.ff; j <= left_last.ss + right_last.ss; j++) s.insert(j + a[ii]);
+    }
+    cout << s.size() << endl;
+    for(auto& x : s) cout << x << ' ';
+    cout << endl;
 }
 
 signed main() {
@@ -185,7 +212,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

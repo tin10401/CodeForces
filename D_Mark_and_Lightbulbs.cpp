@@ -128,14 +128,6 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-
-template<class T>
-void output_vector(vt<T>& a, int off_set = 0) {
-    int n = a.size();
-    for(int i = off_set; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
-}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,6 +169,31 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    string s, t; cin >> s >> t;
+    vpii a, b;
+    for(int i = 0; i < n; i++) {
+        if(a.empty() || a.back().ff != s[i] - '0') a.pb({s[i] - '0', 1});
+        else a.back().ss++;
+        if(b.empty() || b.back().ff != t[i] - '0') b.pb({t[i] - '0', 1});
+        else b.back().ss++;
+    }
+    if(a.size() != b.size()) {
+        cout << -1 << endl;
+        return;
+    }
+    int N = b.size();
+    ll res = 0;
+    for(int i = 0; i < N; i++) {
+        if(a[i].ff != b[i].ff) {
+            cout << -1 << endl;
+            return;
+        }
+        res += abs(a[i].ss - b[i].ss);
+        if(i == N - 1) break;
+        a[i + 1].ss += a[i].ss - b[i].ss;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -185,7 +202,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

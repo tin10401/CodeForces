@@ -128,14 +128,6 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-
-template<class T>
-void output_vector(vt<T>& a, int off_set = 0) {
-    int n = a.size();
-    for(int i = off_set; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
-}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -169,14 +161,138 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 5e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+struct Node {
+    int first_one, first_zero, last_one, v;
+    Node(int fo = 5e5, int fz = 5e5, int lo = 0, int v = 0) : first_one(fo), first_zero(fz), last_one(lo), v(v) {}
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = Node();
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+        build(entireTree);
+    }
+
+    void build(iter) { 
+        if(left == right) { 	
+            root[i] = Node(5e5, left, -1, 0);
+            return;
+        }
+        int middle = midPoint;  
+        build(lp), build(rp); 
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res.first_one = min(left.first_one, right.first_one);
+        res.first_zero = min(left.first_zero, right.first_zero);
+        res.last_one = max(left.last_one, right.last_one);
+        res.v = left.v + right.v;
+        return res;
+    }
+    
+	void apply(iter, int val) {
+        root[i].v += val * (right - left + 1);
+        if(root[i].v == 0) {
+            root[i].first_zero = left;
+            root[i].first_one = 5e5;
+            root[i].last_one = 0;
+        }
+        else if(root[i].v == right - left + 1) {
+            root[i].first_zero = 5e5;
+            root[i].first_one = left;
+            root[i].last_one = right;
+        }
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+    int get() {
+        return root[0].last_one;
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    SGT<Node> root(MX);
+    auto add = [&](int x) -> void {
+        int pos = root.queries(x, MX - 1).first_zero;
+        root.update(x, pos - 1, -1);
+        root.update(pos, pos, 1);
+    };
+
+    auto remove = [&](int x) -> void {
+        int pos = root.queries(x, MX - 1).first_one;
+        root.update(pos, pos, -1);
+        if(x != pos) root.update(x, pos - 1, 1);
+    };
+
+    for(int i = 0; i < n; i++) {
+        add(a[i]);
+    }
+    while(q--) {
+        int i, x; cin >> i >> x;
+        i--;
+        add(x);
+        remove(a[i]);
+        a[i] = x;
+        cout << root.get() << endl;
+    }
 }
 
 signed main() {

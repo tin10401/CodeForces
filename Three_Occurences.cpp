@@ -18,32 +18,8 @@
 //     \_______\___\_______\
 // An AC a day keeps the doctor away.
 
-#include <iostream>
-#include <cstdio>
-#include <cstdlib>
-#include <algorithm>
-#include <cmath>
-#include <vector>
-#include <set>
-#include <map>
-#include <unordered_set>
-#include <unordered_map>
-#include <queue>
-#include <ctime>
-#include <cassert>
-#include <complex>
-#include <string>
-#include <cstring>
-#include <chrono>
-#include <random>
-#include <bitset>
-#include <iomanip>
-#include <functional>
-#include <numeric>
-#include <stack>
-#include <array>
+#include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
 using namespace __gnu_pbds;
 using namespace std;
 template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
@@ -54,7 +30,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lb lower_bound
 #define db double
 #define ld long db
-#define ll long long
+#define ll int64_t
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -76,9 +52,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define ar(x) array<int, x>
 #define var(x) vt<ar(x)>
 #define vvar(x) vt<var(x)>
-#define al(x) array<ll, x>
-#define vall(x) vt<al(x)>
-#define vvall(x) vt<vall(x)>
+#define pq priority_queue
 #define mset(m, v) memset(m, v, sizeof(m))
 #define pb push_back
 #define ff first
@@ -106,7 +80,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define entireTree 0, 0, n - 1
 #define midPoint left + (right - left) / 2
 #define pushDown push(i, left, right)
-#define iter int i, int left, int right
+#define iterator int i, int left, int right
 
 #define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
 
@@ -115,27 +89,16 @@ struct custom {
     size_t operator()(uint64_t x) const { return __builtin_bswap64((x ^ RANDOM) * C); }
     size_t operator()(const std::string& s) const { size_t hash = std::hash<std::string>{}(s); return hash ^ RANDOM; } };
 template <class K, class V> using umap = std::unordered_map<K, V, custom>; template <class K> using uset = std::unordered_set<K, custom>;
-template<class T> using max_heap = priority_queue<T>;
-template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
 }
-
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-
-template<class T>
-void output_vector(vt<T>& a, int off_set = 0) {
-    int n = a.size();
-    for(int i = off_set; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
-}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -143,6 +106,8 @@ auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
     for (const auto &[key, value] : m) { if (i++) o << " , "; o << key << " : " << value; }
     return o << "}";
 }
+    
+template<typename T> vt<T> uniqued(vt<T> arr) {  srtU(arr); return arr; }
 
 #ifdef LOCAL
 #define debug(x...) debug_out(#x, x)
@@ -176,7 +141,123 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+struct Node {   
+    int mx = 0, cnt = 1;
+    Node(int M = 0, int C = 0) : mx(M), cnt(C) {}
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vi lazy;
+    SGT(int N) {    
+        this->n = N;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+    
+    void update(int id, int val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iterator, int id, int val) {  
+        if(left == right) { 
+            root[i] = Node(val, 1);
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iterator, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;  
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res.mx = max(left.mx, right.mx);
+        res.cnt = (left.mx == res.mx ? left.cnt : 0) + (res.mx == right.mx ? right.cnt : 0);
+        return res;
+    }
+    
+    void push(iterator) {   
+        if(lazy[i] == 0) return;    
+        root[i].mx += lazy[i];
+        if(left != right) { 
+            lazy[lc] += lazy[i]; 
+            lazy[rc] += lazy[i];
+        }
+        lazy[i] = 0;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iterator, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return Node();
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+	T get() {
+		return root[0];
+	}
+	
+};
+
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    vvi pos(n);
+    SGT<Node> root(n);
+    for(int i = 0; i < n; i++) {    
+        pos[i].pb(n);
+        a[i]--;
+        root.update(i, n);
+    }
+    ll res = 0;
+    for(int i = n - 1; i >= 0; i--) {   
+        auto& curr = pos[a[i]];
+        auto update = [&](int v) -> void {  
+            int N = curr.size();
+            if(N >= 4) {  
+                int sec = curr[N - 3];    
+                int third = curr[N - 4];
+                root.update(sec, third - 1, v);
+            }
+            if(curr.back()) {   
+                root.update(0, curr.back() - 1, v);
+            }
+        };
+        update(-1); 
+        curr.pb(i); 
+        update(1);
+        auto T = root.queries(i, n - 1);    
+        debug(i, T.mx, T.cnt);
+        if(T.mx == n) res += T.cnt;
+    }
+    cout << res << endl;
 }
 
 signed main() {

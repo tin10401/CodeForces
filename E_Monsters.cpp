@@ -128,14 +128,6 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-
-template<class T>
-void output_vector(vt<T>& a, int off_set = 0) {
-    int n = a.size();
-    for(int i = off_set; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
-}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -176,7 +168,79 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank, good;
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1), good.rsz(n);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            good[u] |= good[v];
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+
+    void assign(int x, int v = 1) {
+        good[x] = v;
+    }
+
+    bool isGood() {
+        int r = find(0);
+        return rank[r] == n && good[r];
+    }
+
+    bool f(int x) {
+        return good[find(x)];
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vpii a(n);
+    DSU root(n);
+    for(int i = 0; i < n; i++) {
+        cin >> a[i].ff;
+        if(a[i].ff == 0) root.assign(i);
+        a[i].ss = i;
+    }
+    vvi graph(n);
+    while(m--) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        if(a[u].ff > a[v].ff) swap(u, v);
+        graph[v].pb(u);
+    }
+    srt(a);
+    for(auto& [c, i] : a) {
+        for(auto j : graph[i]) {
+            j = root.find(j);
+            if(root.getRank(j) < c) root.assign(j, 0);
+            root.merge(i, j);
+        }
+    }
+    cout << (root.isGood() ? "YES" : "NO") << endl;
 }
 
 signed main() {
@@ -185,7 +249,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

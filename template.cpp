@@ -128,6 +128,14 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
+
+template<class T>
+void output_vector(vt<T>& a, int off_set = 0) {
+    int n = a.size();
+    for(int i = off_set; i < n; i++) {
+        cout << a[i] << (i == n - 1 ? '\n' : ' ');
+    }
+}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {

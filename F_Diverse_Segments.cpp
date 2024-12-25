@@ -128,14 +128,6 @@ auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
 template <typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-
-template<class T>
-void output_vector(vt<T>& a, int off_set = 0) {
-    int n = a.size();
-    for(int i = off_set; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
-}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,6 +169,59 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // given an array n, and m segments
+    // we need to determine the minimum [l, r] to change all element in that range to any integer such that all m segments contain distinct element
+    // we will first find the min_left of each r in the m segment that the range [l, r] is safe and doesn't contain duplicates
+    // if everything is safe, return 0
+    // otherwise you need to change at most max(min_left[r]) for all i in the segment that is not safe
+    // now we iterate from 1 to n - 1 to see how we can change the answer
+    int n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    vpii b(m); cin >> b;
+    vi mx(n, -1);
+    for(auto& [l, r] : b) {
+        l--, r--;
+        mx[l] = max(mx[l], r);
+    }
+    map<int, vi> mp;
+    vi min_left(n);
+    set<int> s;
+    for(int i = 0, j = 0; i < n; i++) {
+        mp[a[i]].pb(i);
+        while(s.count(a[i])) {
+            s.erase(a[j++]);
+        }
+        min_left[i] = j;
+        s.insert(a[i]);
+    }
+    for(int i = 1; i < n; i++) mx[i] = max(mx[i], mx[i - 1]);
+    int r = -1;
+    for(auto& [ql, qr] : b) {
+        if(min_left[qr] <= ql) continue;
+        r = max(r, min_left[qr] - 1);
+    }
+    if(r == -1) {
+        cout << 0 << endl;
+        return;
+    }
+    int res = r + 1;
+    for(int l = 0; l < n - 1; l++) {
+        auto& curr = mp[a[l]];
+        if(curr.front() != l) {
+            auto p = prev(lb(all(curr), l));
+            if(mx[*p] >= l) break; // guaranteed the from 0 to l, every element is distinct or doesn't have any segment
+        }
+        auto it = ub(all(curr), r); // meaning from l to *it, there are duplicates and we need to remove them
+        if(it != end(curr)) {
+            int p = *it;
+            if(mx[l] >= p) {
+                r = p;
+            }
+        }
+        // we can do this because it guaranteed that from 0 to l, everything is distinct and r is the left_most of all the range from 0 to l we need to consider
+        res = min(res, r - l);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -185,7 +230,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
