@@ -177,6 +177,7 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // compute sum of xor of all pair of path in the graph
     int n; cin >> n;
     vi a(n); cin >> a;
     vvi graph(n);
@@ -186,25 +187,33 @@ void solve() {
         graph[u].pb(v);
         graph[v].pb(u);
     }
-    auto f = [&](int u) -> ll {
-        vi dp(n, -1);
-        dp[u] = a[u];
-        queue<int> q;
-        q.push(u);
-        ll res = 0;
-        while(!q.empty()) {
-            auto node = q.front(); q.pop();
-            if(node >= u) res += dp[node];
-            for(auto& nei : graph[node]) {
-                if(dp[nei] != -1) continue;
-                dp[nei] = dp[node] ^ a[nei];
-                q.push(nei);
-            }
-        }
-        return res;
-    };
+    vi w(n);
     ll res = 0;
-    for(int i = 0; i < n; i++) res += f(i);
+    for(int b = 0; b < 20; b++) {
+        for(int i = 0; i < n; i++) {
+            w[i] = a[i] & 1;
+            a[i] >>= 1;
+        }
+        ll curr = 0;
+        vvll dp(n, vll(2));
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+            int x = w[node];
+            dp[node][x] = 1;
+            curr += x;
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                dfs(dfs, nei, node);
+                for(int i = 0; i < 2; i++) {
+                    curr += dp[node][i] * dp[nei][!i];
+                }
+                for(int i = 0; i < 2; i++) {
+                    dp[node][i ^ x] += dp[nei][i];
+                }
+            }
+        };
+        dfs(dfs);
+        res += curr * (1LL << b);
+    }
     cout << res << endl;
 }
 

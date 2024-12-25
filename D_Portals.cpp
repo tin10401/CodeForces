@@ -177,35 +177,38 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n; cin >> n;
-    vi a(n); cin >> a;
-    vvi graph(n);
-    for(int i = 0; i < n - 1; i++) {
+    int n, m, k; cin >> n >> m >> k;
+    var(3) a(n);
+    for(auto& [ai, bi, ci] : a) cin >> ai >> bi >> ci;
+    vi last(n);
+    iota(all(last), 0);
+    for(int i = 0; i < m; i++) {
         int u, v; cin >> u >> v;
         u--, v--;
-        graph[u].pb(v);
-        graph[v].pb(u);
+        last[v] = max(last[v], u);
     }
-    auto f = [&](int u) -> ll {
-        vi dp(n, -1);
-        dp[u] = a[u];
-        queue<int> q;
-        q.push(u);
-        ll res = 0;
-        while(!q.empty()) {
-            auto node = q.front(); q.pop();
-            if(node >= u) res += dp[node];
-            for(auto& nei : graph[node]) {
-                if(dp[nei] != -1) continue;
-                dp[nei] = dp[node] ^ a[nei];
-                q.push(nei);
+    vvi score(n);
+    for(int i = 0; i < n; i++) {
+        score[last[i]].pb(a[i][2]);
+    }
+    for(int i = 0; i < n; i++) srtR(score[i]);
+    const int M = 6000;
+    vi dp(M);
+    for(int i = n - 1; i >= 0; i--) {
+        vi next(M, -inf);
+        auto& [ai, bi, ci] = a[i];
+        for(int w = ai; w + bi < M; w++) {
+            int warriors = w + bi;
+            next[w] = max(next[w], dp[warriors]);
+            int N = score[i].size();
+            for(int j = 0, s = 0; j < min(warriors, N); j++) {
+                s += score[i][j]; 
+                next[w] = max(next[w], dp[warriors - j - 1] + s);
             }
         }
-        return res;
-    };
-    ll res = 0;
-    for(int i = 0; i < n; i++) res += f(i);
-    cout << res << endl;
+        swap(dp, next);
+    }
+    cout << max(-1, dp[k]) << endl;
 }
 
 signed main() {
