@@ -175,7 +175,59 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class SparseTable { 
+    public: 
+    int n;  
+    vt<T> a, log_table;
+    vt<vt<T>> dp_max, dp_min, dp_gcd;
+	SparseTable(vt<T> &a) {  
+		n = a.size();
+        this->a = a;
+        log_table.rsz(n + 1);
+        dp_max.rsz(n, vt<T>(MK));
+        dp_min.rsz(n, vt<T>(MK));
+        dp_gcd.rsz(n, vt<T>(MK));
+        init();
+
+    }
+    
+    void init() {   
+		for(int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for(int i = 0; i < n; i++) dp_max[i][0] = dp_min[i][0] = dp_gcd[i][0] = a[i];
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[i + (1LL << (j - 1))][j - 1]);
+                dp_min[i][j] = min(dp_min[i][j - 1], dp_min[i + (1LL << (j - 1))][j - 1]);
+                dp_gcd[i][j] = gcd(dp_gcd[i][j - 1], dp_gcd[i + (1LL << (j - 1))][j - 1]);
+            }
+        }
+    }
+    
+    pair<T, T> queries(int left, int right) {  
+		int j = log_table[right - left + 1];
+        T mx = max(dp_max[left][j], dp_max[right - (1LL << j) + 1][j]);
+        T mn = min(dp_min[left][j], dp_min[right - (1LL << j) + 1][j]);
+        T g = gcd(dp_gcd[left][j], dp_gcd[right - (1LL << j) + 1][j]);
+        return {mn, mx};
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n), b(n); cin >> a >> b;
+    vll s(n + 1);
+    for(int i = 1; i <= n; i++) {
+        s[i] = s[i - 1] + a[i - 1] - b[i - 1];
+    }
+    SparseTable<ll> t(s);
+    while(q--) {
+        int l, r; cin >> l >> r;
+        auto [mn, mx] = t.queries(l, r);
+        mx -= s[l - 1], mn -= s[l - 1];
+        if(s[r] - s[l - 1] || mx > 0) cout << -1 << endl;
+        else cout << -mn << endl;
+    }
 }
 
 signed main() {

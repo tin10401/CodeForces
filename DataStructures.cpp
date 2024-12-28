@@ -568,20 +568,20 @@ class MO {
     }
 };
 
+template<class T>
 class SparseTable { 
     public: 
     int n;  
-    vi a, log_table;
-    vvi dp_max, dp_min, dp_gcd;
-	SparseTable(vi &a) {  
+    vt<T> a, log_table;
+    vt<vt<T>> dp_max, dp_min, dp_gcd;
+	SparseTable(vt<T> &a) {  
 		n = a.size();
         this->a = a;
         log_table.rsz(n + 1);
-        dp_max.rsz(n, vi(MK));
-        dp_min.rsz(n, vi(MK));
-        dp_gcd.rsz(n, vi(MK));
+        dp_max.rsz(n, vt<T>(MK));
+        dp_min.rsz(n, vt<T>(MK));
+        dp_gcd.rsz(n, vt<T>(MK));
         init();
-
     }
     
     void init() {   
@@ -596,14 +596,15 @@ class SparseTable {
         }
     }
     
-    pii queries(int left, int right) {  
+    pair<T, T> queries(int left, int right) {  
 		int j = log_table[right - left + 1];
-        int mx = max(dp_max[left][j], dp_max[right - (1LL << j) + 1][j]);
-        int mn = min(dp_min[left][j], dp_min[right - (1LL << j) + 1][j]);
-        int g = gcd(dp_gcd[left][j], dp_gcd[right - (1LL << j) + 1][j]);
+        T mx = max(dp_max[left][j], dp_max[right - (1LL << j) + 1][j]);
+        T mn = min(dp_min[left][j], dp_min[right - (1LL << j) + 1][j]);
+        T g = gcd(dp_gcd[left][j], dp_gcd[right - (1LL << j) + 1][j]);
         return {mn, mx};
     }
 };
+
 
 class TWO_DIMENSIONAL_RANGE_QUERY {   
     public: 
@@ -747,4 +748,3 @@ class implit_segtree {
     }
 
 };
-

@@ -254,4 +254,3 @@ struct CHT : public multiset<line> { // will maintain upper hull for maximum
         return l.m * x + l.b;
     }
 };
-

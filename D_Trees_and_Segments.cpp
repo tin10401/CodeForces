@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,54 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    string s; cin >> s;
+    vvi prefix(n + 1, vi(k + 1)), suffix(n + 1, vi(k + 1));
+    vvi max_prefix(n + 1, vi(k + 1)), max_suffix(n + 1, vi(k + 1));
+    for(int i = 1; i <= n; i++) {
+        int t = s[i - 1] - '0';
+        for(int j = 0; j <= k; j++) {
+            if(t == 0) prefix[i][j] = prefix[i - 1][j] + 1;
+            else if(j) prefix[i][j] = prefix[i - 1][j - 1] + 1;
+            max_prefix[i][j] = max(max_prefix[i - 1][j], prefix[i][j]);
+        }
+    }
+    for(int i = n - 1; i >= 0; i--) {
+        int t = s[i] - '0';
+        for(int j = 0; j <= k; j++) {
+            if(t == 0) suffix[i][j] = suffix[i + 1][j] + 1;
+            else if(j) suffix[i][j] = suffix[i + 1][j - 1] + 1;
+            max_suffix[i][j] = max(max_suffix[i + 1][j], suffix[i][j]);
+        }
+    }
+    for(int i = 0; i <= n; i++) {
+        for(int j = 1; j <= k; j++) {
+            max_prefix[i][j] = max(max_prefix[i][j], max_prefix[i][j - 1]);
+        }
+        for(int j = 1; j <= k; j++) {
+            max_suffix[i][j] = max(max_suffix[i][j], max_suffix[i][j - 1]);
+            suffix[i][j] = max(suffix[i][j], suffix[i][j - 1]);
+        }
+    }
+    vi dp(n + 1, -inf);
+    dp[0] = max(max_prefix[n][k], max_suffix[0][k]);
+    for(int l = 0; l < n; l++) {
+        for(int r = l, zero = 0; r < n; r++) {
+            zero += int(s[r] == '0');
+            if(zero > k) break;
+            auto& curr = dp[r - l + 1];
+            int rem = k - zero;
+            curr = max({curr, max_prefix[l][rem], max_suffix[r + 1][rem]});
+        }
+    }
+    for(int j = 1; j <= n; j++) {
+        int res = 0;
+        for(int one = 0; one <= n; one++) {
+            if(dp[one] < 0) break;
+            res = max(res, j * dp[one] + one);
+        }
+        cout << res << (j == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -184,7 +233,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

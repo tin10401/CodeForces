@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,38 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    vvi dp(n + 1, vi(MK));
+    vi a(n + 1), c(n + 1);
+    cin >> a[0] >> c[0];
+    auto init = [&](int u) -> void {
+        for(int j = 1; j < MK; j++) dp[u][j] = dp[dp[u][j - 1]][j - 1]; 
+    };
+    for(int i = 1; i <= n; i++) {
+        int op; cin >> op;
+        if(op == 1) {
+            int p, A, C; cin >> p >> a[i] >> c[i];
+            dp[i][0] = p;
+            init(i);
+        }
+        else {
+            int v, w; cin >> v >> w;
+            ll cost = 0, amount = 0;
+            while(w && a[v]) {
+                int u = v;
+                for(int j = MK - 1; j >= 0; j--) {
+                    int p = dp[u][j];
+                    if(a[p] > 0) u = p;
+                }
+                ll mn = min(w, a[u]);
+                a[u] -= mn;
+                w -= mn;
+                amount += mn;
+                cost += mn * (ll)c[u];
+            }
+            cout << amount << ' ' << cost << endl;
+        }
+    }
 }
 
 signed main() {

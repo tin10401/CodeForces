@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,36 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, x, y; cin >> n >> x >> y;
+    vi a(x); cin >> a;
+    for(auto& v : a) v--;
+    auto get_dist = [&](int A, int B) -> int {
+        return B > A ? B - A : n - A + B;  
+    };
+    srt(a);
+    vvi diff(2);
+    for(int i = 0; i < x; i++) {
+        int A = a[i], B = a[(i + 1) % x];
+        int v = get_dist(A, B);
+        diff[v % 2].pb(v);
+    }
+    int res = x - 2;
+    for(int i = 0; i < 2; i++) {
+        srt(diff[i]);
+        for(auto& d : diff[i]) {
+            int extra = (d - 1) / 2;
+            if(y >= extra) {
+                res += extra << 1;
+                if(i == 0) res++;
+                y -= extra;
+            }
+            else {
+                res += y << 1;
+                y = 0; 
+            }
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -184,7 +215,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -207,3 +238,7 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+
+
+
+

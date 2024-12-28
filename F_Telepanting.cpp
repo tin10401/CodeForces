@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -169,13 +170,74 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
-const static int MOD = 1e9 + 7;
+const static int MOD = 998244353;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            root[id] %= MOD;
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            res %= MOD;
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return (get(right) - get(left - 1) + MOD) % MOD;
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+};
+
 void solve() {
+    int n; cin >> n;
+    var(3) a(n + 1);
+    for(int i = 1; i <= n; i++) {
+        auto& [l, r, s] = a[i]; cin >> l >> r >> s;
+    }
+    FW<ll> root(n + 1);
+    vi dp(n);
+    for(int i = 1; i <= n; i++) {
+        auto& [x, y, s] = a[i];
+        ar(3) t = {y, -1, -1};
+        int p = int(lb(all(a), t) - begin(a));
+        dp[i] = (x - y) % MOD;
+        if(p != i) {
+            dp[i] += root.queries(p, i);
+            dp[i] %= MOD;
+        }
+        root.update(i, dp[i]);
+    }
+    ll res = 1;
+    for(int i = 1; i <= n; i++) {
+        res = (res + a[i][0] - a[i - 1][0]) % MOD;
+        if(a[i][2]) res = (res + dp[i]) % MOD;
+    }
+    cout << res << endl;
 }
 
 signed main() {

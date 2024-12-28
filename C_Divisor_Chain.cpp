@@ -176,6 +176,23 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // given x, reduce x to 1
+    // in one step, set x to x - d where d is the divisor of x, and cannot use d more than twice
+    // answer : in each step, find the maximum power of two such that x % d == 0
+    int x; cin >> x;
+    vi ans;
+    ans.pb(x);
+    while(x > 1) {
+        int d = 1;
+        while(d < x && x % d == 0) {
+            d <<= 1;
+        }
+        d >>= 1;
+        x -= d;
+        ans.pb(x);
+    }
+    cout << ans.size() << endl;
+    output_vector(ans);
 }
 
 signed main() {
@@ -184,7 +201,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -122,8 +122,7 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-}
-
+} // remove for leetcode
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -177,35 +176,32 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n; cin >> n;
-    vi a(n); cin >> a;
-    vvi graph(n);
-    for(int i = 0; i < n - 1; i++) {
-        int u, v; cin >> u >> v;
-        u--, v--;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, m, q; cin >> n >> m >> q;
+    vi a(m), b(m); cin >> a >> b;
+    set<pii> s;
+    for(int i = 0; i < m; i++) {
+        s.insert({a[i], b[i]});
     }
-    auto f = [&](int u) -> ll {
-        vi dp(n, -1);
-        dp[u] = a[u];
-        queue<int> q;
-        q.push(u);
-        ll res = 0;
-        while(!q.empty()) {
-            auto node = q.front(); q.pop();
-            if(node >= u) res += dp[node];
-            for(auto& nei : graph[node]) {
-                if(dp[nei] != -1) continue;
-                dp[nei] = dp[node] ^ a[nei];
-                q.push(nei);
-            }
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int d, v; cin >> d >> v;
+            s.insert({d, v});
         }
-        return res;
-    };
-    ll res = 0;
-    for(int i = 0; i < n; i++) res += f(i);
-    cout << res << endl;
+        else {
+            int l, r; cin >> l >> r;
+            ll res = 0;
+            for(int i = l; i <= r; i++) {
+                auto it = s.lb({i, -1});
+                if(it->ff == i) continue;
+                ll curr = it->ff - i;
+                it--;
+                curr *= it->ss;
+                res += curr;
+            }
+            cout << res << endl;
+        }
+    }
 }
 
 signed main() {
@@ -237,3 +233,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

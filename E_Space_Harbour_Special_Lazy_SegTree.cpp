@@ -175,7 +175,152 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    vpll lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, pll val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, pll val) {    
+        pushDown;   
+        int middle = midPoint;  
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            lazy[i] = val;
+            lazy[i].ff += val.ss * (end - right);
+            pushDown;   
+            return;
+        }
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = left + right;
+        return res;
+    }
+    
+    ll f(pll val, ll N) {
+        ll res = val.ff * N + val.ss * N * (N + 1) / 2LL;
+        return res;
+    }
+    pll add(pll a, pll b) {
+        a.ff += b.ff;
+        a.ss += b.ss;
+        return a;
+    }
+    pll zero = {0, 0};
+    void push(iter) {   
+        if(lazy[i] == zero) return;
+        ll N = right - left + 1;
+        root[i] += f(lazy[i], N);
+        if(left != right) {
+			int middle = midPoint;
+            lazy[rc] = add(lazy[rc], lazy[i]);
+            lazy[i].ff += (right - middle) * lazy[i].ss;
+            lazy[lc] = add(lazy[i], lazy[lc]);
+        }
+        lazy[i] = zero;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return 0;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+    void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+};
+
 void solve() {
+    int n, m, q; cin >> n >> m >> q;
+    vi value(n + 1), a(m); cin >> a;
+    set<int> s;
+    for(int i = 0; i < m; i++) {
+        int x = a[i], v; cin >> v;
+        x--;
+        s.insert(x);
+        value[x] = v;
+    }
+    vll cost(n + 1), dis(n + 1);
+    for(int x = 1; x < n; x++) {
+        if(value[x] == 0) value[x] = value[x - 1];
+    }
+    SGT<ll> root(n);
+    for(int i = n - 1, d = 0; i >= 0; i--) {
+        if(s.count(i)) d = 0;      
+        else d++;
+        root.update(i, (ll)d * value[i]);
+    }
+    while(q--) {
+        int op; cin >> op;
+        if(op == 2) {
+            int l, r; cin >> l >> r;
+            l--, r--;
+            cout << root.queries(l, r) << endl;
+            continue;
+        }
+        int x, v; cin >> x >> v;
+        x--;
+        value[x] = v;
+        auto it = s.lb(x);
+        int nxt = *it;
+        int pre = *prev(it);
+        ll reduce_left = (ll)value[pre] * (nxt - x);
+        root.update(pre + 1, x - 1, {-reduce_left, 0});
+        ll increase_right = value[x] - value[pre];
+        root.update(x + 1, nxt - 1, {0, increase_right});
+        root.update(x, 0);
+        s.insert(x);
+    }
 }
 
 signed main() {

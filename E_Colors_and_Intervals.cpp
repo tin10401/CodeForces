@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,27 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    int t = (n + k - 2) / (k - 1);
+    vi a(n + 1), b(n + 1), last(n + 1), vis(n + 1);
+    for(int i = 1, interval = 0; i <= n * k; i++) {
+        int x; cin >> x;
+        if(vis[x]) continue;
+        if(!last[x]) last[x] = i;
+        else {
+            vis[x] = true;
+            a[x] = last[x];
+            b[x] = i;
+            if(++interval == t) {
+                interval = 0;
+                fill(all(last), 0);
+            }
+        }
+    }
+    for(int i = 1; i <= n; i++) {
+        cout << a[i] << ' ' << b[i] << endl;
+    }
+
 }
 
 signed main() {

@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,31 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vvi a(n + 2, vi(n + 2, -inf));
+    for(int i = 0; i <= n; i++) {
+        a[i][i + 1] = 0; // skip
+        for(int j = i + 2; j <= n + 1; j++) cin >> a[i][j];
+    }
+    vvi dp(n + 2);
+    vi id(n + 2);
+    dp[0].pb(0);
+    for(int i = 1; i <= n + 1; i++) {
+        max_heap<pii> q;
+        for(int j = 0; j < i; j++) {
+            id[j] = 0;
+            q.push({dp[j][id[j]] + a[j][i], j});
+        }
+        while(dp[i].size() < k && !q.empty()) {
+            auto [cost, j] = q.top(); q.pop();
+            dp[i].pb(cost);
+            if(++id[j] < dp[j].size()) {
+                q.push({dp[j][id[j]] + a[j][i], j});
+            }
+        }
+    }
+    output_vector(dp[n + 1]);
+
 }
 
 signed main() {
@@ -184,7 +210,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

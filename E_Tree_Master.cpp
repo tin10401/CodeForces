@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,40 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    vi par(n + 1);
+    vvi graph(n + 1);
+    for(int i = 2; i <= n; i++) {
+        cin >> par[i];
+        graph[par[i]].pb(i);
+    }
+    vi depth(n + 1), hash(n + 1), cnt(n + 1);
+    int ptr = 0;
+    auto f = [&](auto& f, int node = 1) -> void {
+        depth[node] = depth[par[node]] + 1;
+        hash[node] = ++cnt[depth[node]];
+        for(auto& nei : graph[node]) {
+            f(f, nei);
+        }
+    };
+    f(f);
+    int k = sqrt(n) + 1;
+    vvll dp(n + 1, vll(k + 1, -1));
+    auto dfs = [&](auto& dfs, int x, int y) -> ll {
+        if(x == 0) return 0;
+        if(hash[x] > hash[y]) swap(x, y);
+        int h = hash[y];
+        if(h < k && dp[x][h] != -1) return dp[x][h];
+        ll res = a[x] * a[y] + dfs(dfs, par[x], par[y]);
+        if(h < k) dp[x][h] = res;
+        return res;
+    };
+    while(q--) {
+        int x, y; cin >> x >> y;
+        cout << dfs(dfs, x, y) << endl;
+    }
 }
 
 signed main() {

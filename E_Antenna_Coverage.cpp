@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +177,33 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vpii a(n); 
+    for(auto& [l, r] : a) {
+        cin >> l >> r;
+        int left = l - r, right = l + r;
+        swap(left, l);
+        swap(right, r);
+    }
+    srt(a);
+    vi dp(m + 1, -1);
+    auto dfs = [&](auto& dfs, int pos = 0) -> int {
+        if(pos >= m) return 0;
+        auto& res = dp[pos];
+        if(res != -1) return res;
+        res = m - pos;
+        for(int i = 0; i < n; i++) {
+            auto& [l, r] = a[i];
+            if(l <= pos + 1 && pos + 1 <= r) return res = dfs(dfs, pos + 1);
+            if(pos < l) {
+                int extra = l - pos - 1;
+                res = min(res, extra + dfs(dfs, r + extra));
+            }
+        }
+        debug(pos, res);
+        return res;
+    };
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {

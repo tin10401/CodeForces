@@ -3,13 +3,27 @@
     "arguments": [
       "/usr/bin/g++",
       "-c",
-      "-std=c++17",
-      "-o",
-      "submit",
       "submit.cpp"
     ],
     "directory": "/home/sololtin2001/CodeForces",
-    "file": "/home/sololtin2001/CodeForces/submit.cpp",
-    "output": "/home/sololtin2001/CodeForces/submit"
+    "file": "/home/sololtin2001/CodeForces/submit.cpp"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "brute.cpp"
+    ],
+    "directory": "/home/sololtin2001/CodeForces",
+    "file": "/home/sololtin2001/CodeForces/brute.cpp"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "generator.cpp"
+    ],
+    "directory": "/home/sololtin2001/CodeForces",
+    "file": "/home/sololtin2001/CodeForces/generator.cpp"
   }
 ]

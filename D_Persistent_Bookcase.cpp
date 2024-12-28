@@ -168,7 +168,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 2e6 + 5;
+const static int MX = 1e3 + 1;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,6 +176,68 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    debug(1000 / 64);
+    int n, m, q; cin >> n >> m >> q;
+    bitset<MX> a[MX];
+    vvar(4) graph(q + 1);
+    for(int i = 1; i <= q; i++) {
+        int op; cin >> op;
+        if(op <= 2) {
+            int r, c; cin >> r >> c;
+            r--, c--;
+            graph[i - 1].pb({i, op, r, c});
+        }
+        else if(op == 3) {
+            int r; cin >> r;
+            r--;
+            graph[i - 1].pb({i, 3, r, -1});
+        }
+        else {
+            int k; cin >> k;
+            graph[k].pb({i, -1, -1});
+        }
+    }
+    int cnt = 0;
+    vi ans(q + 1);
+    bitset<MX> t;
+    for(int i = 0; i < m; i++) t.set(i);
+    vi row(n);
+    auto dfs = [&](auto& dfs, int i) -> void {
+        ans[i] = cnt;
+        for(auto& [j, op, r, c] : graph[i]) {
+            if(op <= 2) {
+                int was = a[r][c];
+                cnt -= was;
+                row[r] -= was;
+                a[r][c] = op == 2 ? 0 : 1;
+                cnt += a[r][c];
+                row[r] += a[r][c];
+                dfs(dfs, j);
+                row[r] -= a[r][c];
+                row[r] += was;
+                cnt -= a[r][c];
+                cnt += was;
+                a[r][c] = was;
+            }
+            else if(op == 4) {
+                dfs(dfs, j);
+            }
+            else {
+                int was = row[r];
+                cnt -= was;
+                a[r] ^= t;
+                cnt += m - was;
+                row[r] = m - was;
+                dfs(dfs, j);
+                cnt -= m - was;
+                row[r] = was;
+                a[r] ^= t;
+                cnt += was;
+            }
+        }
+    };
+    dfs(dfs, 0);
+    for(int i = 1; i <= q; i++) cout << ans[i] << endl;
 }
 
 signed main() {

@@ -71,8 +71,26 @@ class Binary_Trie {
             }
             if(!curr) break;
         }
+		// res += cnt[curr] -> count equal to, remove if needed
         return res;
     }
+	
+	ll count_greater_than(ll a, ll b) {
+        int curr = 0;
+        ll res = 0;
+        for(int i = m - 1; i >= 0; i--) {
+            int bits = (a >> i) & 1;
+            int b_bits = (b >> i) & 1;
+            if(b_bits == 0) {
+                res += cnt[T[curr][!bits]];
+            }
+            curr = T[curr][b_bits ^ bits];
+            if(!curr) break;
+        }
+        // res += cnt[curr]; -> counter equal to, remove if needed
+        return res;
+    }
+
 	
 	ll find_mex(ll x) { // find a first missing number
         ll mex = 0, curr = 0;
@@ -393,5 +411,4 @@ int lcs(const string& s, const string& t) { // longest common subsequences
     //return n + m - 2 * dp[n][m];
     return dp[n][m];
 }
-
 

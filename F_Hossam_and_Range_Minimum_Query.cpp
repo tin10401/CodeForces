@@ -122,7 +122,8 @@ template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
 auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
     o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
+}
+
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -167,15 +168,79 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
-const static int MK = 20;
-const static int MX = 2e6 + 5;
-const static int MOD = 1e9 + 7;
+const static int MK = 40;
+const static int MX = 1e5 + 1;
+const static ll MOD = 4409739979;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+int T[MX * MK][2], root[MX * MK], ptr, value[MX * MK];
+ll hash_value[MX * MK];
+class Binary_Trie { 
+    public:
+    int m = 18;
+    vll pow;
+    Binary_Trie() {
+        pow.rsz(m + 1);
+        pow[0] = 1;
+        for(int i = 1; i <= m; i++) {
+            pow[i] = (pow[i - 1] * 31) % MOD;
+        }
+    }
+    void insert(int prev, int curr, int num, int d = 18, ll h = 0) {  
+        int bit = (num >> d) & 1;
+        if(d == -1) {
+            if(hash_value[prev] == 0) hash_value[curr] = h;
+            return;
+        }
+        T[curr][!bit] = T[prev][!bit];
+        T[curr][bit] = ++ptr;
+        insert(T[prev][bit], T[curr][bit], num, d - 1, h);
+        hash_value[curr] = (hash_value[T[curr][0]] * pow[d] + hash_value[T[curr][1]]) % MOD;
+    }
+
+    int search(int l, int r, int d = 18, int curr = 0) {
+        if((!l && !r) || (hash_value[l] == hash_value[r])) return 0;
+        if(d == -1) return curr;
+        int t = search(T[l][0], T[r][0], d - 1, curr);
+        if(t) return t;
+        return search(T[l][1], T[r][1], d - 1, curr | (1LL << d));
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n + 1); 
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    vi b(a);
+    srtU(b);
+    int N = b.size();
+    vll hash(N);
+    for(int i = 1; i < N; i++) {
+        hash[i] = rng();
+    }
+    auto get = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    int d = log2(n);
+    Binary_Trie trie;
+    for(int i = 1; i <= n; i++) {
+        root[i] = ++ptr;
+        int x = get(a[i]);
+        trie.insert(root[i - 1], root[i], x, d, hash[x]);
+    }
+    int q; cin >> q;
+    int ans = 0;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l ^= ans;
+        r ^= ans;
+        if(l > r) swap(l, r);
+        ans = b[trie.search(root[l - 1], root[r], d, 0)];
+        cout << ans << endl;
+    }
 }
 
 signed main() {

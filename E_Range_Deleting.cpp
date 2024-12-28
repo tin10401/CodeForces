@@ -176,6 +176,45 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // given an array a with ai <= x for all i
+    // compute the # of pair [l, r] such that delete all element from [l, r], the array become sorted
+    // for each value, compute the first and last position that value appear
+    // run a suffix to check the last value where the suffix is sorted, name as p
+    // have a prefix_max for each index as well to know the maximum till that index
+    // run a prefix to compute answer as follow
+    // standing at index i, if it's not sorted, break
+    // compute the left_most value where everything become value if deleting, it will be max({i, p - 1, pref[last]}) 
+    int n, x; cin >> n >> x;
+    vpii pos(x + 1, {-1, -1});
+    vi pref(n + 1);
+    for(int i = 1; i <= n; i++) {
+        int v; cin >> v;
+        pref[i] = max(v, pref[i - 1]);
+        auto& [first, last] = pos[v];
+        if(first == -1) first = i;
+        last = i;
+    }
+    int p = 1;
+    for(int i = x, lst = n + 10; i >= 1; i--) {
+        auto& [l, r] = pos[i];
+        if(l == -1) p = i;
+        else {
+            if(r > lst) break;
+            p = i;
+            lst = l;
+        }
+    }
+    ll res = 0;
+    for(int i = 1, lst = 0; i <= x; i++) {
+        int r = max({i, p - 1, pref[lst]});
+        res += x - r + 1;
+        auto& [first, last] = pos[i];
+        if(first != -1) {
+            if(first < lst) break; 
+            lst = last;
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {

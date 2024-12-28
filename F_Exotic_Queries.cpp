@@ -175,7 +175,113 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	SGT(int n) {    
+        this->n = n;
+        root.rsz(n * 4);    
+    }
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+    
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        if(left > end || start > right) return 0;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+};
+
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
+    }
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    vvi pos(n + 1);
+    SGT<int> seg(n);
+    FW<int> fw(n + 1);
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        pos[x].pb(i);
+    }
+    vvi out(n + 1);
+    for(int i = 1; i <= n; i++) {
+        if(pos[i].empty()) continue;
+        int N = pos[i].size();
+        fw.update(i, 1);
+        for(int j = 1; j < N; j++) {
+            int mx = seg.queries(pos[i][j - 1], pos[i][j]);
+            out[mx].pb(i);
+        }
+        for(auto& j : pos[i]) seg.update(j, i);
+    }
+    vvpii Q(n + 1);
+    for(int i = 0; i < q; i++) {
+        int l, r; cin >> l >> r;
+        Q[l].pb({r, i});
+    }
+    vi ans(q);
+    for(int i = n; i >= 1; i--) {
+        for(auto& x : out[i]) fw.update(x, 1);
+        for(auto& [r, id] : Q[i]) {
+            ans[id] = fw.queries(i, r);
+        }
+    }
+    for(auto& x : ans) cout << x << endl;
 }
 
 signed main() {
@@ -207,3 +313,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+
