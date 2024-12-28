@@ -183,15 +183,8 @@ void solve() {
         int x; cin >> x;
         s.insert(x);
     }
-    int res = 0;
-    for(auto& x : a) {
-        auto it = s.ub(x);
-        int d = 2e9;
-        if(it != end(s)) d = min(d, *it - x);
-        if(it != begin(s)) d = min(d, x - *prev(it));
-        res = max(res, d);
-    }
-    cout << res << endl;
+    pii res;
+    auto& [l, r] = res;
 }
 
 signed main() {

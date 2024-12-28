@@ -3,27 +3,15 @@
     "arguments": [
       "/usr/bin/g++",
       "-c",
+      "-std=c++23",
+      "-O2",
+      "-DLOCAL",
+      "-o",
+      "a.out",
       "submit.cpp"
     ],
     "directory": "/home/sololtin2001/CodeForces",
-    "file": "/home/sololtin2001/CodeForces/submit.cpp"
-  },
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-c",
-      "brute.cpp"
-    ],
-    "directory": "/home/sololtin2001/CodeForces",
-    "file": "/home/sololtin2001/CodeForces/brute.cpp"
-  },
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-c",
-      "generator.cpp"
-    ],
-    "directory": "/home/sololtin2001/CodeForces",
-    "file": "/home/sololtin2001/CodeForces/generator.cpp"
+    "file": "/home/sololtin2001/CodeForces/submit.cpp",
+    "output": "/home/sololtin2001/CodeForces/a.out"
   }
 ]
