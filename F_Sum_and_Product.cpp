@@ -176,26 +176,28 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+    int n; cin >> n;
+    map<int, int> mp;
+    while(n--) {
+        int x; cin >> x;
+        mp[x]++;
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
+    auto queries = [&](ll x, ll y) -> ll {
+        ll root = x * x - 4 * y;
+        if(root < 0) return 0;
+        ll sq = (ll)sqrt(root);
+        if(sq * sq != root) return 0;
+        ll a = x + sq;
+        if(a & 1) return 0;
+        a >>= 1;
+        ll b = x - a;
+        return a == b ? (ll)mp[a] * (mp[a] - 1) / 2 : (ll)mp[a] * mp[b]; // ax*x + bx + c == 0, ans = +/- (-b + sqrt(b*b - 4ac)) / 2 * a
+    };
+    int q; cin >> q;
+    while(q--) {
+        ll x, y; cin >> x >> y;
+        cout << queries(x, y) << (q == 0 ? '\n' : ' ');
     }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
-        }
-    }
-    cout << res << endl;
 }
 
 signed main() {
@@ -204,7 +206,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -227,4 +229,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

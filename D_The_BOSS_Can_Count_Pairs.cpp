@@ -176,23 +176,26 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
+    // given array a and b, find all pair i and j such that a[i] * a[j] == b[i] + b[j]
+    int n; cin >> n;
+    vi a(n), b(n); cin >> a >> b;
+    vvi A(n + 1);
     for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+        A[a[i]].pb(b[i]);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    ll res = 0;
+    for(int aj = 1; aj * aj <= 2 * n; aj++) {
+        vi cnt(n + 1);
+        for(auto& b : A[aj]) {
+            int bj = aj * aj - b;
+            if(bj >= 1 && bj <= n) res += cnt[bj];
+            cnt[b]++;
+        }
+        for(int ai = aj + 1; ai <= n; ai++) {
+            for(auto& bi : A[ai]) {
+                int bj = ai * aj - bi;
+                if(bj >= 1 && bj <= n) res += cnt[bj];
+            }
         }
     }
     cout << res << endl;
@@ -204,7 +207,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -227,4 +230,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

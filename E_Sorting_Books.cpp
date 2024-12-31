@@ -175,27 +175,64 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+template<class T>
+class FW {  
+    public: 
+    int n;  
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        root.rsz(n + 1);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] = max(root[id], val);
+            id += (id & -id);
         }
     }
-    cout << res << endl;
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res = max(res, root[id]);
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+};
+
+void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi cnt(n + 1), running_cnt(n + 1);
+    for(auto& x : a) cnt[x]++;
+    vi last(n + 1), dp(n + 1);
+    int running_sm = 0;
+    vi first(n + 1);
+    FW<int> root(n + 1);
+    int mx = 0;
+    for(int i = 1; i <= n; i++) {
+        int x = a[i - 1]; 
+        if(!first[x]) first[x] = i;
+        dp[i] = max(dp[last[x]], mx) + 1;
+        if(++running_cnt[x] == cnt[x]) {
+            int v = cnt[x] + root.get(first[x]);
+            dp[i] = max(dp[i], v);
+            mx = max(mx, v);
+            root.update(i, v);
+        }
+        last[x] = i;
+    }
+    cout << n - MAX(dp) << endl;
 }
 
 signed main() {
@@ -227,4 +264,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

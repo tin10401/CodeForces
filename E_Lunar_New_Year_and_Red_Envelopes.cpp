@@ -176,26 +176,40 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
-    }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    int n, m, k; cin >> n >> m >> k;
+    var(4) a(k);
+    for(auto& [s, e, d, w] : a) cin >> s >> e >> d >> w;
+    srt(a);
+    min_heap<ar(3)> q;
+    multiset<pii> s;
+    vi d(n + 1), w(n + 1);
+    for(int i = 1, j = 0; i <= n; i++) {
+        while(j < k && a[j][0] <= i) {
+            auto& [_, e, d, w] = a[j];
+            q.push({e, w, d});
+            s.insert({w, d});
+            j++;
+        }
+        while(!q.empty() && q.top()[0] < i) {
+            auto [_, w, d] = q.top(); q.pop();
+            s.erase({s.find({w, d})});
+        }
+        if(!s.empty()) {
+            auto it = prev(s.end());
+            w[i] = it->ff;
+            d[i] = it->ss;
         }
     }
-    cout << res << endl;
+    vvll dp(n + 1, vll(m + 1, -1));
+    auto dfs = [&](auto& dfs, int i = 1, int op = 0) -> ll {
+        if(i > n) return 0;
+        auto& res = dp[i][op];
+        if(res != -1) return res;
+        if(d[i]) res = min(op < m ? dfs(dfs, i + 1, op + 1) : INF, w[i] + dfs(dfs, d[i] + 1, op));
+        else res = dfs(dfs, i + 1, op);
+        return res;
+    };
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {
@@ -227,4 +241,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

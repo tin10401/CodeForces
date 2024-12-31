@@ -176,26 +176,43 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
-    }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    string s; cin >> s;
+    int n = s.size();
+    int l = 0, r = n - 1;
+    vi cnt(26);
+    for(auto& ch : s) cnt[ch - 'a']++;
+    for(int c = 0; c < 26; c++) {
+        while(cnt[c] >= 2) {
+            s[l++] = s[r--] = char(c + 'a');
+            cnt[c] -= 2;
+        }
+        if(cnt[c] == 1) {
+            if(l == r) {
+                s[l] = char(c + 'a');
+                break;
+            }
+            int x = c + 1;
+            while(!cnt[x]) x++;
+            if(cnt[x] == r - l) {
+                while(cnt[x] >= 2) {
+                    s[l++] = s[r--] = char(x + 'a');
+                    cnt[x] -= 2;
+                }
+                if(cnt[x] == 1) s[l++] = char(x + 'a');
+                s[r--] = char(c + 'a');
+            }
+            else {
+                for(; x < 26; x++) {
+                    while(cnt[x]--) {
+                        s[l++] = char(x + 'a');
+                    }
+                }
+                s[r--] = char(c + 'a');
+                break;
+            }
         }
     }
-    cout << res << endl;
+    cout << s << endl;
 }
 
 signed main() {
@@ -204,7 +221,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -227,4 +244,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

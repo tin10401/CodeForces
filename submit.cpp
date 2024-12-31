@@ -173,18 +173,32 @@ const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
-int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, m; cin >> n >> m;
-    vi a(n); cin >> a;
-    set<int> s;
-    while(m--) {
-        int x; cin >> x;
-        s.insert(x);
+    int n; cin >> n;
+    vd a(n); cin >> a;
+    auto f = [&](ld x) -> ld {
+        ld res = 0, sm = 0;
+        for(auto& v : a) {
+            sm += ((ld)v - x);
+            res = max(res, sm);
+            if(sm < 0) sm = 0;
+        } 
+        debug(x, res);
+        return res;
+    };
+    ld left = MIN(a) * 2, right = MAX(a) * 2, res = 0;
+    while(right - left > 1e-12) {
+        ld d = (right - left) / 3.000000;
+        ld mid1 = left + d;
+        ld mid2 = right - d;
+        ld x = f(mid1), y = f(mid2);
+        res = max(x, y);
+        if(x > y) left = mid1;
+        else right = mid2;
     }
-    pii res;
-    auto& [l, r] = res;
+    debug(left, right, res);
+    cout << fixed << setprecision(15) << res << endl;
 }
 
 signed main() {

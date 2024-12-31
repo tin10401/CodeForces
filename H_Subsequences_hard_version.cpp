@@ -165,7 +165,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1e12;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
 const static int MX = 2e6 + 5;
@@ -176,26 +176,39 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
+    ll n, k; cin >> n >> k;
+    string s; cin >> s;
+    vvll dp(n + 1, vll(n + 2));
+    int vis = 0;
     for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+        int x = s[i] - 'a';
+        if((vis >> x) & 1) continue;
+        vis ^= 1LL << x;
+        dp[i][0] = 1;
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    for(int i = 1; i <= n; i++) {
+        for(int len = 1; len <= i; len++) {
+            int vis = 0;
+            auto& res = dp[i][len];
+            for(int j = i - 1; j >= 0; j--) {
+                int x = s[j] - 'a';
+                if((vis >> x) & 1) continue;
+                if(dp[j][len - 1]) {
+                    vis ^= 1LL << x;
+                    res += dp[j][len - 1];
+                    res = min(res, INF);
+                }
+            }
         }
     }
-    cout << res << endl;
+    ll res = 0;
+    dp[n][0] = 1;
+    for(int i = n; i >= 0; i--) {
+        ll mn = min(dp[n][i], k);
+        res += mn * (n - i);
+        k -= mn;
+    }
+    cout << (k ? -1 : res) << endl;
 }
 
 signed main() {
@@ -227,4 +240,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

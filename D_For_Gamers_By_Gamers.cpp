@@ -176,26 +176,22 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+    int n, C; cin >> n >> C;
+    vll cost(C + 1);
+    while(n--) {
+        ll c, d, h; cin >> c >> d >> h;
+        cost[c] = max(cost[c], d * h);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
+    for(int c = 1; c <= C; c++) {
+        for(int cx = c; cx <= C; cx += c) cost[cx] = max(cost[cx], cost[c] * (cx / c));
     }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
-        }
+    for(int i = 1; i <= C; i++) cost[i] = max(cost[i], cost[i - 1]);
+    int q; cin >> q;
+    while(q--) {
+        ll d, h; cin >> d >> h;
+        int p = int(ub(all(cost), d * h) - begin(cost));
+        cout << (p > C ? -1 : p) << (q == 0 ? '\n' : ' ');
     }
-    cout << res << endl;
 }
 
 signed main() {
@@ -227,4 +223,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
