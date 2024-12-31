@@ -176,26 +176,33 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
-    }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    int n, m; cin >> n >> m;
+    vi xs(n + 1), ys(n + 1);
+    for(int i = 1; i <= n; i++) cin >> xs[i] >> ys[i];
+    int N = sqrt(n) + 1;
+    vi dp(m + 1), last(n + 1);
+    vvi block(N, vi(N));
+    int model = 0;
+    for(int i = 1; i <= m; i++) {
+        dp[i] += dp[i - 1];
+        int op, k; cin >> op >> k;
+        int d = op == 1 ? 1 : -1;
+        if(op == 1) last[k] = i;
+        model += d;
+        int x = xs[k], y = ys[k];
+        int len = x + y;
+        if(len < N) for(int j = 0; j < x; j++) block[len][(j + last[k]) % len] += d;
+        else {
+            for(int j = last[k]; j <= m; j += len) {
+                dp[j] += d;
+                if(j + x <= m) dp[j + x] -= d;
+                if(j < i && j + x >= i) dp[i] += d;
+            }
         }
+        int working = dp[i];
+        for(int c = 1; c < N; c++) working += block[c][(c + i) % c];
+        cout << model - working << endl;
     }
-    cout << res << endl;
 }
 
 signed main() {
@@ -227,4 +234,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

@@ -176,23 +176,23 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
+    // find at most 3 number such that they don't divide each others
+    // notice that one number doesn't have a lot of divisor, possibly 150 for one number
+    // by sorting unique, it will makes sense
+    int n; cin >> n;
     vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
+    srtU(a);
+    rev(a);
+    int res = a.front();
+    n = min(int(a.size()), 200);
     for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
-    }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+        int j = i + 1;
+        while(j < n && a[i] % a[j] == 0) j++;
+        if(j < n) {
+            res = max(res, a[i] + a[j]);
+            int k = j + 1;
+            while(k < n && (a[i] % a[k] == 0 || a[j] % a[k] == 0)) k++;
+            if(k < n) res = max(res, a[i] + a[j] + a[k]);
         }
     }
     cout << res << endl;
@@ -204,7 +204,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -227,4 +227,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

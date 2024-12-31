@@ -176,26 +176,52 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+    // given string s, find smallest string t greater than or equal to s such that each occurences of character in string t is divisisble by k
+    int n, k; cin >> n >> k;
+    string s; cin >> s;
+    if(n % k) {
+        cout << -1 << endl;
+        return;
+    }
+    int N = 26;
+    vi cnt(N);
+    for(auto& ch : s) cnt[ch - 'a']++;
+    bool ok = true;
+    for(int i = 0; i < N; i++) ok &= cnt[i] % k == 0;
+    if(ok) {
+        cout << s << endl;
+        return;
     }
     for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+        int x = s[i] - 'a';
+        cnt[x]--;
+        for(int j = x + 1; j < N; j++) {
+            cnt[j]++;
+            int need = 0;
+            for(int jj = 0; jj < N; jj++) {
+                if(cnt[jj] % k) need += k - cnt[jj] % k;
+            }
+            int rem = n - i - 1;
+            if(need > rem) {
+                cnt[j]--;
+                continue;
+            }
+            s[i] = char(j + 'a');
+            int p = i + 1;
+            for(int ii = 0; ii < rem - need; ii++) {
+                s[p++] = 'a';
+            }
+            for(int ii = 0; ii < 26; ii++) {
+                while(cnt[ii] % k) {
+                    cnt[ii]++;
+                    s[p++] = char(ii + 'a');
+                }
+            }
+            cout << s << endl;
+            return;
         }
     }
-    cout << res << endl;
+    cout << -1 << endl;
 }
 
 signed main() {
@@ -204,7 +230,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -227,4 +253,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

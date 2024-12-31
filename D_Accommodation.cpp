@@ -176,26 +176,34 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
-    }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
-    }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    // given string of len m where m % 4 == 0, divide into m / 2 group of size 1 and m / 4 group of size 2, find min and max occurence of group that have # 1 present in it
+    int n, m; cin >> n >> m;
+    string s;
+    int one;
+    auto f = [&]() -> int {
+        int c = 0;
+        for(int i = 0; i + 1 < m; i++) {
+            if(s[i] == '1' && s[i + 1] == '1') c++, i++;
         }
+        return one - min(m / 4, c);
+    };
+    auto f2 = [&]() -> int {
+        int c = m / 4;
+        for(int i = 0; i + 1 < m && c; i++) {
+            if(s[i] == '0' || s[i + 1] == '0') {
+                c--;
+                i++;
+            }
+        }
+        return one - c;
+    };
+    int A = 0, B = 0;
+    for(int i = 0; i < n; i++) {
+        cin >> s;
+        one = count(all(s), '1');
+        A += f(), B += f2();
     }
-    cout << res << endl;
+    cout << A << ' ' << B << endl;
 }
 
 signed main() {
@@ -227,4 +235,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

@@ -175,27 +175,173 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, c; cin >> n >> c;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == c);
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = {0, 0};
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+//        build(entireTree, arr);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = (i < n - 1 ? suffix[i + 1] : 0) + int(a[i] == c);
+    
+//    void build(iter, vi& arr) { 
+//        if(left == right) { 	
+//            root[i] = arr[left];    
+//            return;
+//        }
+//        int middle = midPoint;  
+//        build(lp, arr), build(rp, arr); 
+//        root[i] = merge(root[lc], root[rc]);
+//    }
+
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
     }
-    int res = suffix[0];
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i; j < n; j++) {
-            mp[a[j]]++;
-            int mx = 0;
-            for(auto& it : mp) mx = max(mx, it.ss);
-            res = max(res, (i ? prefix[i - 1] : 0) + mx + (j < n - 1 ? suffix[j + 1] : 0));
+    
+    void update(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+    
+	void apply(iter, T val) {
+        root[i] = max(root[i], val);
+        lazy[i] = val;
+    }
+
+    void push(iter) {   
+        if(lazy[i].ff && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = DEFAULT;
         }
     }
-    cout << res << endl;
+
+	T queries(int id) {
+		return queries(entireTree, id);
+	}
+	
+	T queries(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries(lp, id);
+		return queries(rp, id);
+	}
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+};
+
+void solve() {
+    int n, m; cin >> n >> m;
+    vvpii a(n + 1);
+    vi b;
+    while(m--) {
+        int i, l, r; cin >> i >> l >> r;
+        a[i].pb({l, r});
+        b.pb(l);
+        b.pb(r);
+    }
+    srtU(b);
+    auto get = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    int N = b.size();
+    SGT<pii> root(N);
+    vi par(n + 1);
+    for(int i = 1; i <= n; i++) {
+        pii mx = {0, 0};
+        for(auto& [l, r] : a[i]) {
+            l = get(l), r = get(r);
+            mx = max(mx, root.queries(l, r));
+        }
+        par[i] = mx.ss;
+        mx.ff++;
+        mx.ss = i;
+        for(auto& [l, r] : a[i]) {
+            root.update(l, r, mx);
+        }
+    }
+    int id = root.get().ss;
+    vi vis(n + 1);
+    while(id) {
+        vis[id] = true;
+        id = par[id];
+    }
+    vi ans;
+    for(int i = 1; i <= n; i++) {
+        if(!vis[i]) ans.pb(i);
+    }
+    cout << ans.size() << endl;
+    output_vector(ans);
 }
 
 signed main() {
@@ -227,4 +373,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

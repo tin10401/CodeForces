@@ -178,51 +178,14 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 vi choice = {0, 1};
 int main(int argc, char* argv[]) {
     int N = 1000;
-    uniform_int_distribution<int> dist_n(2, N);
+    uniform_int_distribution<int> dist_n(N, N);
     uniform_int_distribution<int> dist_q(2, N);
     uniform_int_distribution<int> A(1, 1e9);
     uniform_int_distribution<int> val(1, 1e7);
-    int n, m, q;
-    n = dist_n(rng);
-    cout << n << ' ';
-    vi x, v;
-    ordered_set<int> s;
-    for(int i = 2; i < n; i++) s.insert(i);
-    x.pb(1);
-    v.pb(val(rng));
-    for(int i = 2; i < n; i++) {
-        if(choice[rng() & 1]) {
-            x.pb(i);
-            v.pb(val(rng));
-            s.erase(i);
-        }
+    int n = dist_n(rng);
+    cout << n << ' ' << val(rng) % 2 + 1 << endl;
+    while(n--) {
+        cout << val(rng) % 2 + 1 << (n == 0 ? '\n' : ' ');
     }
-    x.pb(n);
-    v.pb(val(rng));
-    q = dist_n(rng);
-    cout << x.size() << ' ' << q << endl;
-    output_vector(x);
-    output_vector(v);
-    while(q--) {
-        int op = rng() & 1;
-        op++;
-        if(op == 1 && s.size() == 0) {
-            op = 2;
-        }
-        cout << op << ' ';
-        if(op == 1) {
-            int p = rng() % s.size();  
-            int x = *s.find_by_order(p);
-            s.erase(x);
-            cout << x << ' ' << val(rng) << endl;
-        }
-        else {
-            int l = val(rng) % n + 1;
-            int r = val(rng) % n + 1;
-            if(l > r) swap(l, r);
-            cout << l << ' ' << r << endl;
-        }
-    }
-
 }
 
