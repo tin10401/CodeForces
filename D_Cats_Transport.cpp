@@ -1,5 +1,3 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
-//╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
 //░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
 //░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
 //░░░██║░░░██║██║░╚███║  ███████╗███████╗
@@ -168,48 +166,86 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+struct CHT {
+    vll m_slopes, b_intercepts;
+
+    db cross(int i, int j, int k) {
+        return (db)(1.00 * m_slopes[j] - m_slopes[i]) * (b_intercepts[k] - b_intercepts[i]) <
+               (db)(1.00 * m_slopes[k] - m_slopes[i]) * (b_intercepts[j] - b_intercepts[i]);
     }
-    cout << res << endl;
+
+    void add_line(ll slope, ll intercept) {
+        m_slopes.push_back(slope);
+        b_intercepts.push_back(intercept);
+        while(m_slopes.size() >= 3 && cross(m_slopes.size()-3, m_slopes.size()-2, m_slopes.size()-1) <= 0) {
+            m_slopes.erase(m_slopes.end() - 2);
+            b_intercepts.erase(b_intercepts.end() - 2);
+        }
+    }
+
+    ll query(ll x) {
+        if(m_slopes.empty()) return INF;
+        int l = 0, r = m_slopes.size() - 1;
+        while(l < r) {
+            int mid = l + (r - l) / 2;
+            ll f1 = m_slopes[mid] * x + b_intercepts[mid];
+            ll f2 = m_slopes[mid + 1] * x + b_intercepts[mid + 1];
+            if(f1 > f2) l = mid + 1;
+            else r = mid;
+        }
+        return m_slopes[l] * x + b_intercepts[l];
+    }
+};
+
+void solve() {
+    int n, m, p; cin >> n >> m >> p;
+    vll d(n + 1);
+    for(int i = 1; i < n; i++) {
+        cin >> d[i];
+        d[i] += d[i - 1];
+    }
+    vll a(m + 1);
+    for(int i = 1; i <= m; i++) {
+        int h, t; cin >> h >> t;
+        h--;
+        t -= d[h];
+        a[i] = t;
+    }
+    sort(begin(a) + 1, end(a));
+    vll prefix(m + 1);
+    for(int i = 1; i <= m; i++) prefix[i] = prefix[i - 1] + a[i];
+    vll dp(m + 1, INF);
+    dp[0] = 0;
+    debug(dp, a, prefix);
+    for(int t = 1; t <= p; t++) {
+        CHT cht;
+        for(int i = 0; i <= m; i++) {
+            if(dp[i] == INF) break;
+            cht.add_line(-i, (dp[i] + prefix[i]));
+        }
+        for(int j = 1; j <= m; j++) {
+            ll v = cht.query(a[j]);
+            debug(v);
+            dp[j] = min(dp[j], a[j] * j - prefix[j] + v);
+        }
+    }
+    cout << dp[m] << endl;
 }
 
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +268,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
 

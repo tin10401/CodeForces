@@ -168,7 +168,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,40 +176,48 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+    int n; cin >> n;
+    vvi degree(2, vi(n)), dp(2, vi(n, -1)), options(2);
+    queue<pii> q;
+    for(int i = 0; i < 2; i++) {
+        int k; cin >> k;
+        options[i].rsz(k); cin >> options[i];
+        fill(all(degree[i]), k);
+        q.push({0, i});
+        dp[i][0] = 0;
     }
-    cout << res << endl;
+    while(!q.empty()) {
+        auto [pos, turn] = q.front(); q.pop();
+        for(auto& x : options[!turn]) {
+            int u = (pos - x + n) % n;
+            if(dp[!turn][u] != -1) continue;
+            if(dp[turn][pos] == 0) {
+                dp[!turn][u] = 1;
+                q.push({u, !turn});
+            }
+            else if(--degree[!turn][u] == 0) {
+                dp[!turn][u] = 0;
+                q.push({u, !turn});
+            }
+        }
+    }
+    for(int turn = 0; turn < 2; turn++) {
+        for(int pos = 1; pos < n; pos++) {
+            if(dp[turn][pos] == 1) cout << "Win";
+            else if(dp[turn][pos] == 0) cout << "Lose";
+            else cout << "Loop";
+            cout << (pos == n - 1 ? '\n' : ' ');
+        }
+    }
 }
 
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +240,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-

@@ -168,38 +168,57 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
+template<class T>
+class SparseTable { 
+    public: 
+    int n;  
+    vi a, log_table;
+    vt<vt<T>> dp_max, dp_min, dp_gcd;
+	SparseTable(vi& a) {  
+		n = a.size();
+        this->a = a;
+        log_table.rsz(n + 1);
+        dp_max.rsz(n, vt<T>(MK));
+        init();
+    }
+    
+    void init() {   
+		for(int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for(int i = 0; i < n; i++) dp_max[i][0] = {a[i], i};
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[i + (1LL << (j - 1))][j - 1]);
             }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+        }
+    }
+    
+    int queries(int left, int right) {  
+		int j = log_table[right - left + 1];
+        T mx = max(dp_max[left][j], dp_max[right - (1LL << j) + 1][j]);
+        return mx.ss;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vi a(n - 1); cin >> a;
+    for(auto& x : a) x--;
+    a.pb(n - 1);
+    SparseTable<pii> t(a);
+    vll dp(n + 1);
+    ll res = 0;
+    for(int i = n - 2; i >= 0; i--) {
+        int l = i + 1, r = a[i];
+        int id = t.queries(l, r);
+        dp[i] = id - i + dp[id] + n - a[i] - 1;
+        res += dp[i];
     }
     cout << res << endl;
 }
@@ -207,9 +226,10 @@ void solve() {
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +252,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-

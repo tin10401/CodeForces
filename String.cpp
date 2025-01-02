@@ -199,6 +199,7 @@ vi KMP(const string& s) {
         if(s[i] == s[j]) prefix[i] = ++j;
     }
     return prefix;
+	// property of finding period by kmp : if(len % (len - kmp[i]) == 0) period = len - kmp[i], otherwise period = len
 	
 //    int n = s.size(); // for jumping with large size of s
 //    s = ' ' + s;

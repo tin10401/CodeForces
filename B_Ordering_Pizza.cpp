@@ -168,7 +168,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,40 +176,45 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+    int n, s; cin >> n >> s;
+    vpll a[2];
+    ll c[2] = {};
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+        ll si, ai, bi; cin >> si >> ai >> bi;
+        int id = ai >= bi;
+        res += max(ai, bi) * si;
+        a[id].pb({abs(ai - bi), si});
+        c[id] += si;
     }
-    cout << res << endl;
+    auto f = [&](ll x) -> ll {
+        return (x + s - 1) / s;
+    };
+    if(f(c[0]) + f(c[1]) == f(c[0] + c[1])) {
+        cout << res << endl;
+        return;
+    }
+    ll mn = INF;
+    for(int i = 0; i < 2; i++) { // after greedily takes over max(ai, bi), if there are some leftover, we need to either transfer left_over_ai to left_over_bi or vice versa
+        srt(a[i]);
+        ll need = c[i] % s, curr = 0;
+        for(auto& [x, cnt] : a[i]) {
+            ll take = min(need, (ll)cnt);
+            need -= take;
+            curr += take * x;
+        }
+        mn = min(mn, curr);
+    }
+    cout << res - mn << endl;
 }
 
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +237,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-
