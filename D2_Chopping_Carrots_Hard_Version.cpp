@@ -187,7 +187,6 @@ void solve() {
     for(int mx = N - 1; mx >= 0; mx--) {
        res = min(res, mx - mn); 
        if(mx == 0) break;
-       srtU(arr[mx]);
        bool fail = false;
        for(auto& x : arr[mx]) {
            int curr = x / mx + 1;

@@ -168,7 +168,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -177,29 +177,31 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 void solve() {
     int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+    vll f(n), d(n); cin >> f >> d;
+    for(int i = 0; i < n; i++) d[i] *= f[i];
+    srt(d);
+    int res = n;
+    for(int i = 0; i < n; i++) {
+        vpll a;
+        for(int j = 0; j < n; j++) {
+            ll x = (d[i] - 1) / f[j];
+            ll l = x * f[j], r = (x + 1) * f[j];
+            a.pb({r, l});
+        }
+        srtR(a);
+        ll mn = d[i];
+        for(auto& [r, l] : a) {
+            if(mn + k >= r) break;
+            mn = min(mn, l);
+        }
+        debug(a);
+        if(!mn) continue;
+        int c = n;
+        for(int j = i; j < n; j++) {
+            ll p = d[j];
+            if(mn <= p && p <= mn + k) c--;
+        }
+        res = min(res, c);
     }
     cout << res << endl;
 }
@@ -207,6 +209,7 @@ void solve() {
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
     cin >> t;
@@ -232,6 +235,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-

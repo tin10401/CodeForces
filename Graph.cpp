@@ -203,54 +203,51 @@ class SCC {
     }
 };
 
-struct line {
-    ll m, b;
-    mutable function<const line*()> succ;
-    bool operator<(const line& rhs) const {
-        if (rhs.b != -INF) return m < rhs.m;
-        const line* s = succ();
-        if (!s) return 0;
-        ll x = rhs.m;
-        return b - s->b < (s->m - m) * x;
+class CHT {
+    public:
+    int is_mx;
+    vll m_slopes, b_intercepts;
+    CHT(int is_mx) : is_mx(is_mx) {
+        add_line(0, 0);
     }
-};
- 
-struct CHT : public multiset<line> { // will maintain upper hull for maximum
-    // do update in this form : a + mx -> insert_line(m, -a)
-    // do queries in this form : x - queries(condition)
-    // example : dp[i] = dp[j] + i * j
-    // update : insert_line(j, -dp[j])
-    // queries : dp[i] = cht.queries(i)
 
-    bool bad(iterator y) {
-        auto z = next(y);
-        if (y == begin()) {
-            if (z == end()) return 0;
-            return y->m == z->m && y->b <= z->b;
-        }
-        auto x = prev(y);
-        if (z == end()) return y->m == x->m && y->b <= x->b;
- 
-		/* compare two lines by slope, make sure denominator is not 0 */
-        ll v1 = (x->b - y->b);
-        if (y->m == x->m) v1 = x->b > y->b ? INF : -INF;
-        else v1 /= (y->m - x->m);
-        ll v2 = (y->b - z->b);
-        if (z->m == y->m) v2 = y->b > z->b ? INF : -INF;
-        else v2 /= (z->m - y->m);
-        return v1 >= v2;
+    db cross(int i, int j, int k) {
+        db A = (db)(1.00 * m_slopes[j] - m_slopes[i]) * (b_intercepts[k] - b_intercepts[i]);
+        db B = (db)(1.00 * m_slopes[k] - m_slopes[i]) * (b_intercepts[j] - b_intercepts[i]);
+        return is_mx ? A < B : A >= B;
     }
-    void insert_line(ll m, ll b) {
-        auto y = insert({ m, b });
-        y->succ = [this, y] {
-            return next(y) == end() ? nullptr : &*next(y);
-        };
-        if (bad(y)) { erase(y); return; }
-        while (next(y) != end() && bad(next(y))) erase(next(y));
-        while (y != begin() && bad(prev(y))) erase(prev(y));
+
+    void add(ll a, ll b) {
+        if(is_mx) add_line(a, -b);
+        else add_line(-a, b);
     }
+
     ll queries(ll x) {
-        auto l = *lower_bound((line) { x, -INF });
-        return l.m * x + l.b;
+        return is_mx ? -get(x) : get(x);
+    }
+
+    void add_line(ll slope, ll intercept) {
+        m_slopes.push_back(slope);
+        b_intercepts.push_back(intercept);
+        while(m_slopes.size() >= 3 && cross(m_slopes.size() - 3, m_slopes.size() - 2, m_slopes.size() - 1)) {
+            m_slopes.erase(m_slopes.end() - 2);
+            b_intercepts.erase(b_intercepts.end() - 2);
+        }
+    }
+
+    ll get(ll x) {
+        if(m_slopes.empty()) return INF;
+        int l = 0, r = m_slopes.size() - 1;
+        while(l < r) {
+            int mid = l + (r - l) / 2;
+            ll f1 = m_slopes[mid] * x + b_intercepts[mid];
+            ll f2 = m_slopes[mid + 1] * x + b_intercepts[mid + 1];
+            if(f1 > f2) l = mid + 1;
+            else r = mid;
+        }
+        return m_slopes[l] * x + b_intercepts[l];
     }
 };
+
+
+

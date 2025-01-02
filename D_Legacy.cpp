@@ -168,48 +168,115 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vvpii graph;
+    vi pos;
+    int off;
+	SGT(int n) {    
+        this->n = n;
+        off = n * 4;
+        graph.rsz(n * 8 + 23);
+        pos.rsz(n);
+        build(entireTree);
     }
-    cout << res << endl;
+    
+    void build(iter) { 
+        int u = i + off; // u here means from the parent can go to the children using off_set edges
+        if(left == right) {
+            graph[i].pb({u, 0});
+            graph[u].pb({i, 0});
+            pos[left] = i;
+            return;
+        }
+        int middle = midPoint;  
+        build(lp), build(rp); 
+        graph[lc].pb({i, 0});
+        graph[rc].pb({i, 0});
+        graph[u].pb({lc + off, 0});
+        graph[u].pb({rc + off, 0});
+    }
+
+    void add_edge(int u, int v, int w) {
+        u = pos[u], v = pos[v];
+        graph[u].pb({v, w});
+    }
+
+    void update(int start, int end, int u, int w, int type) { 
+        update(entireTree, start, end, pos[u], w, type);
+    }
+    
+    void update(iter, int start, int end, int u, int w, int type) {    
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            if(type == 2) graph[u].pb({i + off, w});
+            else graph[i].pb({u, w});
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, u, w, type);    
+        update(rp, start, end, u, w, type);    
+    }
+
+    void run(int s) {
+        vll dp(n * 8 + 23, INF);
+        min_heap<pll> q;
+        q.push({0, pos[s]});
+        dp[pos[s]] = 0;
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            if(dp[node] != cost) continue;
+            for(auto& [nei, w] : graph[node]) {
+                ll newCost = cost + w;
+                if(newCost < dp[nei]) {
+                    dp[nei] = newCost;
+                    q.push({newCost, nei});
+                }
+            }
+        }
+        for(int i = 0; i < n; i++) {
+            auto& res = dp[pos[i]];
+            cout << (res == INF ? -1 : res) << (i == n - 1 ? '\n' : ' ');
+        }
+    }
+};
+
+void solve() {
+    int n, q, s; cin >> n >> q >> s;
+    s--;
+    SGT<int> root(n);
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int v, u, w; cin >> v >> u >> w;
+            v--, u--;
+            root.add_edge(v, u, w);
+        }
+        else {
+            int v, l, r, w; cin >> v >> l >> r >> w;
+            v--, l--, r--;
+            root.update(l, r, v, w, op);
+        }
+    }
+    root.run(s);
 }
 
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +299,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-

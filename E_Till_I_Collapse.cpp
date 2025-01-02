@@ -175,41 +175,89 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
+// PERSISTENT SEGTREE
+int T[MX * MK * 4], root[MX * MK * 4], ptr, n, m; 
+pii child[MX * MK * 4];
+void update(int curr, int prev, int id, int val, int left, int right) {  
+    root[curr] = root[prev];    
+    child[curr] = child[prev];
+    if(left == right) { 
+        root[curr] += val;
+        return;
     }
-    cout << res << endl;
+    int middle = midPoint;
+    if(id <= middle) {  
+        child[curr].ff = ++ptr; 
+        update(child[curr].ff, child[prev].ff, id, val, left, middle);
+    }
+    else {  
+        child[curr].ss = ++ptr; 
+        update(child[curr].ss, child[prev].ss, id, val, middle + 1, right);
+    }
+    root[curr] = root[child[curr].ff] + root[child[curr].ss];
+}
+
+ll queries(int curr, int prev, int start, int end, int left, int right) { 
+    if(left >= start && right <= end) return root[curr] - root[prev];
+    if(left > end || start > right) return 0;
+    int middle = midPoint;  
+    return queries(child[curr].ff, child[prev].ff, start, end, left, middle) + queries(child[curr].ss, child[prev].ss, start, end, middle + 1, right);
+};
+    
+int get(int curr, int k, int left, int right) {    
+    if(left == right) return left;
+    int leftCount = root[child[curr].ff];
+    int middle = midPoint;
+    if(leftCount >= k) return get(child[curr].ff, k, left, middle);
+    return get(child[curr].ss, k - leftCount, middle + 1, right);
+}
+
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        root[i] = 0, T[i] = 0;  
+        child[i] = MP(0, 0);
+    }
+	ptr = 0;
+}
+
+void solve() {
+    int n; cin >> n;
+    vi last(n + 1);
+    m = n + 2;
+    auto add = [&](int i, int& prev, int id, int val) -> void {
+        T[i] = ++ptr;
+        update(T[i], prev, id, val, 0, m - 1);
+        prev = T[i];
+    };
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    for(int i = n, prev = 0; i >= 1; i--) {
+        int x = a[i];
+        if(last[x]) add(i, prev, last[x], -1); 
+        add(i, prev, i, 1);
+        last[x] = i;
+    }
+    auto f = [&](int k) -> int {
+        int seg = 0;
+        int p = 1;
+        while(p <= n) {
+            seg++;
+            p = get(T[p], k, 0, m - 1);
+        }
+        return seg;
+    };
+    for(int k = 1; k <= n; k++) {
+        cout << f(k + 1) << (k == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +280,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-

@@ -664,7 +664,7 @@ class implit_segtree {
         pushDown;
         if(left > end || start > right) return;
         if(start <= left && right <= end) {
-            apply(i, x);
+			apply(i, left, right, x);
             pushDown;
             return;
         }
@@ -676,8 +676,8 @@ class implit_segtree {
         root[i] = merge(root[child[i].ff], root[child[i].ss]);
     }
 
-    void apply(int i, int val) {
-        root[i] = val;
+	void apply(iter, int val) {
+        root[i] = val * (right - left + 1);
         lazy[i] = val;
     }
 
@@ -686,8 +686,8 @@ class implit_segtree {
             int middle = midPoint;
             create_node(child[i].ff, left, middle);
             create_node(child[i].ss, middle + 1, right);
-            apply(child[i].ff, lazy[i]);
-            apply(child[i].ss, lazy[i]);
+			apply(child[i].ff, left, middle, lazy[i]);
+            apply(child[i].ss, middle + 1, right, lazy[i]);
             lazy[i] = -1;
         }
     }
@@ -747,4 +747,79 @@ class implit_segtree {
         modify(child[i].ss, child[j].ss, middle + 1, right, start, end);
     }
 
+};
+
+template<class T>   
+class SegTree_Graph { 
+    public: 
+    int n;  
+    vvpii graph;
+    vi pos;
+    int off;
+	SegTree_Graph(int n) {    
+        this->n = n;
+        off = n * 4;
+        graph.rsz(n * 8 + 23);
+        pos.rsz(n);
+        build(entireTree);
+    }
+    
+    void build(iter) { 
+        int u = i + off; // u here means from the parent can go to the children using off_set edges
+        if(left == right) {
+            graph[i].pb({u, 0});
+            graph[u].pb({i, 0});
+            pos[left] = i;
+            return;
+        }
+        int middle = midPoint;  
+        build(lp), build(rp); 
+        graph[lc].pb({i, 0});
+        graph[rc].pb({i, 0});
+        graph[u].pb({lc + off, 0});
+        graph[u].pb({rc + off, 0});
+    }
+
+    void add_edge(int u, int v, int w) {
+        u = pos[u], v = pos[v];
+        graph[u].pb({v, w});
+    }
+
+    void update(int start, int end, int u, int w, int type) { 
+        update(entireTree, start, end, pos[u], w, type);
+    }
+    
+    void update(iter, int start, int end, int u, int w, int type) {    
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            if(type == 2) graph[u].pb({i + off, w});
+            else graph[i].pb({u, w});
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, u, w, type);    
+        update(rp, start, end, u, w, type);    
+    }
+
+    void run(int s) {
+        vll dp(n * 8 + 23, INF);
+        min_heap<pll> q;
+        q.push({0, pos[s]});
+        dp[pos[s]] = 0;
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            if(dp[node] != cost) continue;
+            for(auto& [nei, w] : graph[node]) {
+                ll newCost = cost + w;
+                if(newCost < dp[nei]) {
+                    dp[nei] = newCost;
+                    q.push({newCost, nei});
+                }
+            }
+        }
+        for(int i = 0; i < n; i++) {
+            auto& res = dp[pos[i]];
+            cout << (res == INF ? -1 : res) << (i == n - 1 ? '\n' : ' ');
+        }
+    }
 };
