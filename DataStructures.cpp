@@ -313,10 +313,11 @@ public:
 template<class T>
 class FW {  
     public: 
-    int n;  
+    int n, N;
     vt<T> root;    
     FW(int n) { 
         this->n = n;    
+        N = log2(n);
         root.rsz(n + 1);
     }
     
@@ -343,7 +344,20 @@ class FW {
 	void reset() {
 		root.assign(n, 0);
 	}
+
+    int search(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t <= n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
 };
+
 
 template<class T>   
 class SGT { 
@@ -474,21 +488,21 @@ class SGT {
 // PERSISTENT SEGTREE
 int T[MX * MK * 4], root[MX * MK * 4], ptr, n, m; 
 pii child[MX * MK * 4];
-void update(int curr, int prev, int id, int left, int right) {  
+void update(int curr, int prev, int id, int delta, int left, int right) {  
     root[curr] = root[prev];    
     child[curr] = child[prev];
     if(left == right) { 
-        root[curr]++;
+        root[curr] += delta;
         return;
     }
     int middle = midPoint;
     if(id <= middle) {  
         child[curr].ff = ++ptr; 
-        update(child[curr].ff, child[prev].ff, id, left, middle);
+        update(child[curr].ff, child[prev].ff, id, delta, left, middle);
     }
     else {  
         child[curr].ss = ++ptr; 
-        update(child[curr].ss, child[prev].ss, id, middle + 1, right);
+        update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
     }
     root[curr] = root[child[curr].ff] + root[child[curr].ss];
 }
@@ -821,5 +835,83 @@ class SegTree_Graph {
             auto& res = dp[pos[i]];
             cout << (res == INF ? -1 : res) << (i == n - 1 ? '\n' : ' ');
         }
+    }
+};
+
+class HLD {
+    public:
+    SGT<int> seg;
+    vi id, a, tp, sz, parent;
+    int ct;
+    vvi graph;
+    int n;
+    GRAPH g;
+    HLD(vvi& graph, vi& a) : seg(graph.size()), g(graph) {
+        this->graph = graph;
+        this->n = graph.size();
+        this->a = a;
+        ct = 0;
+        id.rsz(n), tp.rsz(n), sz.rsz(n);
+        parent.rsz(n, -1);
+        dfs1();
+        dfs2();
+    }
+     
+    int dfs1(int node = 0, int par = -1) {   
+        parent[node] = par;
+        sz[node] = 1;   
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            sz[node] += dfs1(nei, node);
+        }   
+        return sz[node];    
+    }
+        
+    void dfs2(int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs2(nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs2(nei, node, nei);  
+        }   
+    }
+
+    void update(int i, int v) {
+        a[i] = v;
+        seg.update(id[i], v);
+    }
+
+    int path(int node, int par) {   
+        int res = 0;    
+        while(node != par)  {   
+            if(node == tp[node])   {   
+                res += a[node];
+                node = g.dp[node][0]; 
+            }   else if(g.depth[tp[node]] > g.depth[par])  {   
+                res += seg.queries(id[tp[node]], id[node]);    
+                node = g.dp[tp[node]][0];
+            }   else    {   
+                res += seg.queries(id[par] + 1, id[node]);  
+                break;  
+            }   
+        }   
+        return res; 
+    }
+
+    int get_dist(int a, int b) {
+        return g.dist(a, b);
+    }
+
+    int get_lca(int a, int b) {
+        return g.lca(a, b);
     }
 };

@@ -97,6 +97,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
+#define i128 __int128
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -166,7 +167,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 33;
+const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
@@ -176,40 +177,15 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    srtU(a);
-    int N = a.back() + 1;
-    vvi arr(N);
-    int mn = a[0];
-    for(auto& x : a) arr[x].pb(x);
-    int res = inf;
-    for(int mx = N - 1; mx >= 0; mx--) {
-       res = min(res, mx - mn); 
-       if(mx == 0) break;
-       srtU(arr[mx]);
-       bool fail = false;
-       for(auto& x : arr[mx]) {
-           int curr = x / mx + 1;
-            if(curr > min(k, x)) {
-                fail = true;
-                break;
-            }
-            mn = min(mn, x / curr);
-            arr[x / curr].pb(x);
-       }
-       if(fail) break;
-       arr[mx] = vi();
-    }
-    cout << res << endl;
 }
 
 signed main() {
     IOS;
     startClock
+    //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -232,6 +208,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
-
