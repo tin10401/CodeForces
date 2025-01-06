@@ -175,23 +175,93 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
     }
-    cout << res << endl;
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
+const int N = 404;
+int dp[N][N][N], weight[N];
+void solve() {
+    int n, m, q; cin >> n >> m >> q;
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < n; j++) {
+            for(int t = 0; t <= n; t++) dp[i][j][t] = inf;
+        }
+    }
+    for(int i = 0; i < n; i++) dp[0][i][i] = 0;
+    var(3) edges(m);
+    for(auto& [w, u, v] : edges) {
+        cin >> u >> v >> w;
+        u--, v--;
+        dp[0][u][v] = dp[0][v][u] = 1;
+    }
+    for(int k = 0; k < n; k++) {
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < n; j++) {
+                dp[0][i][j] = min(dp[0][i][j], dp[0][i][k] + dp[0][k][j]);
+            }
+        }
+    }
+    srt(edges);
+    int timer = 1;
+    auto add = [&](int u, int v) -> void {
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < n; j++) dp[timer][i][j] = dp[timer - 1][i][j];
+        }
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < n; j++) {
+                dp[timer][i][j] = min({dp[timer][i][j], dp[timer][i][u] + dp[timer][v][j], dp[timer][i][v] + dp[timer][u][j]});
+            }
+        }
+        timer++;
+    };
+    DSU root(n);
+    for(auto& [w, u, v] : edges) {
+        if(!root.merge(u, v)) continue;
+        weight[timer] = w;
+        add(u, v);
+    }
+    while(q--) {
+        int u, v, k; cin >> u >> v >> k;
+        u--, v--;
+        int left = 1, right = timer - 1, res = 0;
+        while(left <= right) {
+            int middle = midPoint;
+            if(dp[middle][u][v] >= k) left = middle + 1;
+            else res = middle, right = middle - 1;
+        }
+        cout << weight[res] << (q == 0 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -200,7 +270,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

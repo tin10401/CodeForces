@@ -97,6 +97,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
+#define i128 __int128
 
 //SGT DEFINE
 #define lc i * 2 + 1
@@ -175,23 +176,42 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+int mod1 = 1e9 + 7, mod2 = 1e9 + 73;
+int p1 = 26, p2 = 100;
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    int n; cin >> n;
+    vll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    string s; cin >> s;
+    s = ' ' + s;
+    vvi graph(n + 1);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
+    vi h1(n + 1), h2(n + 1);
+    auto dfs = [&](auto& dfs, int node = 1, int par = 0) -> set<pii> {
+        h1[node] = (1LL * h1[par] * p1 % mod1 + s[node]) % mod1;
+        h2[node] = (1LL * h2[par] * p2 % mod2 + s[node]) % mod2;
+        set<pii> curr;
+        curr.insert({h1[node], h2[node]});
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            auto t = dfs(dfs, nei, node);
+            if(curr.size() < t.size()) swap(curr, t);
+            curr.insert(all(t));
+        }
+        debug(node, curr.size(), a[node], par);
+        a[node] += int(curr.size());
+
+        return curr;
+    };
+    dfs(dfs);
+    debug(a);
+    ll res = MAX(a);
     cout << res << endl;
+    cout << count(all(a), res) << endl;
 }
 
 signed main() {

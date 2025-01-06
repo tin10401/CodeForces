@@ -6,7 +6,7 @@ g++ -std=c++20 brute.cpp -o brute
 g++ -std=c++20 submit.cpp -o submit
 
 # 2) Decide how many tests to run
-for ((i=1; i<=1000; i++)); do
+for ((i=1;; i++)); do
     echo "Test $i"
 
     # 3) Generate input

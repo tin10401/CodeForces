@@ -175,23 +175,31 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+int dp[505][505];
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
+    int n; cin >> n;
+    vi a(n + 2);
+    a[n + 1] = n + 1;
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    for(int i = 0; i <= n + 1; i++) {
+        for(int j = 0; j <= n + 1; j++) {
+            dp[i][j] = inf;
         }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+        dp[0][i] = 0;
     }
-    cout << res << endl;
+    for(int i = 1; i <= n + 1; i++) {
+        for(int k = 0; k <= n + 1; k++) {
+            if(a[i] > a[i - 1]) dp[i][k] = min(dp[i][k], dp[i - 1][k]);
+            if(k) {
+                for(int j = 0; j < i; j++) {
+                    if(a[j] < a[i]) dp[i][k] = min(dp[j][k - 1] + i - j - 1, dp[i][k]); // a[j] < a[i] meaning they in the correct position, cost i - j - 1 to reorder anything in between to be in correct order
+                }
+            }
+        }
+    }
+    for(int k = 1; k <= n; k++) {
+        cout << dp[n + 1][k] << (k == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -200,7 +208,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

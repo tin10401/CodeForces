@@ -168,30 +168,112 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 4e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+// PERSISTENT SEGTREE
+int T[MX * MK * 4], root[MX * MK * 4], ptr, n, m; 
+pii child[MX * MK * 4];
+void update(int curr, int prev, int id, int delta, int left, int right) {  
+    root[curr] = root[prev];    
+    child[curr] = child[prev];
+    if(left == right) { 
+        root[curr] += delta;
+        return;
     }
-    cout << res << endl;
+    int middle = midPoint;
+    if(id <= middle) {  
+        child[curr].ff = ++ptr; 
+        update(child[curr].ff, child[prev].ff, id, delta, left, middle);
+    }
+    else {  
+        child[curr].ss = ++ptr; 
+        update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+    }
+    root[curr] = root[child[curr].ff] + root[child[curr].ss];
+}
+
+ll queries(int curr, int prev, int start, int end, int left, int right) { 
+    if(left >= start && right <= end) return root[curr] - root[prev];
+    if(left > end || start > right) return 0;
+    int middle = midPoint;  
+    return queries(child[curr].ff, child[prev].ff, start, end, left, middle) + queries(child[curr].ss, child[prev].ss, start, end, middle + 1, right);
+};
+    
+int get(int curr, int k, int left, int right) {    
+    if(left == right) return left;
+    int leftCount = root[child[curr].ff];
+    int middle = midPoint;
+    if(leftCount >= k) return get(child[curr].ff, k, left, middle);
+    return get(child[curr].ss, k - leftCount, middle + 1, right);
+}
+
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        root[i] = 0, T[i] = 0;  
+        child[i] = MP(0, 0);
+    }
+	ptr = 0;
+}
+
+void solve() {
+    int n, m, q; cin >> n >> m >> q;
+    vi a(n); cin >> a;
+    vi mp(m + 1);
+    for(auto& it : a) mp[it]++;
+    vpii arr;
+    for(int i = 1; i <= m; i++) {
+        arr.pb({mp[i], i});
+    }
+    srt(arr);
+    vvi each;
+    vpii seg;
+    for(auto& [f, x] : arr) {
+        if(seg.empty() || seg.back().ff != f) {
+            seg.pb({f, 1});
+            each.pb({x});
+        }
+        else {
+            seg.back().ss++;
+            each.back().pb(x);
+        }
+    }
+    auto add = [&](int i, int& prev, int x, int delta = 1) -> void {
+        T[i] = ++ptr;
+        update(T[i], prev, x, delta, 0, m);
+        prev = T[i];
+    };
+    int N = seg.size();
+    vll prefix(N);
+    for(int i = 0, prev = 0; i < N; i++) {
+        ll cost = i ? ((ll)seg[i].ff - seg[i - 1].ff) * (ll)seg[i - 1].ss : 0;
+        prefix[i] = cost;
+        if(i) {
+            prefix[i] += prefix[i - 1]; 
+            seg[i].ss += seg[i - 1].ss;
+        }
+        for(auto& x : each[i]) add(i, prev, x);
+    }
+    while(q--) {
+        ll k; cin >> k;
+        if(k <= n) {
+            cout << a[k - 1] << endl;
+            continue;
+        }
+        k -= n;
+        int p = int(lb(all(prefix), k) - begin(prefix));
+        if(p) {
+            p--;
+            k -= prefix[p];
+            k %= seg[p].ss;
+            if(k == 0) k = seg[p].ss;
+        }
+        cout << get(T[p], k, 0, m) << endl;
+    }
 }
 
 signed main() {

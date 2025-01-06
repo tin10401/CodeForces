@@ -176,22 +176,58 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
+    int n, m, k; cin >> n >> m >> k;
+    map<string, int> mp;
+    for(int i = 1; i <= n; i++) {
+        string s; cin >> s;
+        mp[s] = i;
+    }
+    vvi graph(n + 1);
+    vi degree(n + 1);
+    while(m--) {
+        string s; cin >> s;
+        int id; cin >> id;
+        bool ok = false;
+        for(int mask = 0; mask < 1 << k; mask++) {
+            string curr(k, '_');
+            for(int i = 0; i < k; i++) {
+                if((mask >> i) & 1) curr[i] = s[i];
+            }
+            if(!mp.count(curr)) continue;
+            if(mp[curr] == id) {
+                ok = true;
+                continue;
+            }
+            graph[id].pb(mp[curr]);
+            degree[mp[curr]]++;
+        }
+        if(!ok) {
+            cout << "NO" << endl;
+            return;
+        }
+    }
+    auto topo = [&]() -> vi {
+        queue<int> q;
+        for(int i = 1; i <= n; i++) {
+            if(degree[i] == 0) q.push(i);
+        }
+        vi ans;
+        while(!q.empty()) {
+            int node = q.front(); q.pop();
+            ans.pb(node);
+            for(auto& nei : graph[node]) {
+                if(--degree[nei] == 0) q.push(nei);
+            }
+        }
+        if(ans.size() != n) {
+            cout << "NO" << endl;
+            exit(0);
         }
         return ans;
     };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
-    }
-    cout << res << endl;
+    auto ans = topo();
+    cout << "YES" << endl;
+    output_vector(ans);
 }
 
 signed main() {

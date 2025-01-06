@@ -166,32 +166,91 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+template<class T>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        N = log2(n);
+        root.rsz(n + 1);
     }
-    cout << res << endl;
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int search(int x, int r) {
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t <= r && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        debug(x, r, curr + 1);
+        return curr + 1;
+    }
+};
+
+void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i]; a[i] = i - a[i];
+    }
+    vvpii queries(n + 1);
+    for(int i = 0; i < q; i++) {
+        int x, y; cin >> x >> y;
+        int l = x + 1, r = n - y;
+        queries[r].pb({l, i});
+    }
+    FW<int> root(n + 2);
+    vi ans(q);
+    int global = 0;
+    for(int r = 1; r <= n; r++) {
+        int x = a[r];
+        if(x >= 0) {
+            int p = root.search(x, r);
+            global++;
+            root.update(p, 1);
+        }
+        for(auto& [l, i] : queries[r]) {
+            ans[i] = global - root.get(l);
+        }
+    }
+    output_vector(ans);
 }
 
 signed main() {

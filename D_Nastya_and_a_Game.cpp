@@ -166,9 +166,9 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,20 +176,38 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // find all subarray where prod == sum * k
+    // at most 60 number because log2(1e18) == 60 so just brute force and careful for the subarray with 1
     int n, k; cin >> n >> k;
     vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
+    vi next(n);
+    for(int i = n - 1; i >= 0; i--) {
+        if(a[i] == 1) {
+            if(i == n - 1 || a[i + 1] != 1) next[i] = i;
+            else next[i] = next[i + 1];
         }
-        return ans;
-    };
+    }
     ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    for(int i = 0; i < n; i++) {
+        ll prod = 1, sm = 0;
+        for(int j = i; j < n;) {
+            if(INF / a[j] <= prod) break;
+            sm += a[j];
+            if(INF / sm < k) break;
+            if(a[j] == 1) {
+                int jj = next[j];
+                ll t = sm + (jj - j);
+                if(prod % k == 0 && sm * k <= prod && t * k >= prod) {
+                    res++;
+                }
+                swap(sm, t);
+                j = jj + 1;
+                continue;
+            }
+            prod *= a[j];
+            if(sm * k == prod) res++;
+            j++;
+        }
     }
     cout << res << endl;
 }

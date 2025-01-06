@@ -175,23 +175,84 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+template<class T>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        N = log2(n);
+        root.rsz(n + 1);
     }
-    cout << res << endl;
+    
+    void update(int id, T val) {  
+        while(id <= n) {    
+            root[id] += val;    
+            id += (id & -id);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id > 0) { 
+            res += root[id];    
+            id -= (id & -id);
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int search(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t <= n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
+
+void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n + 1), id(n + 1);
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+        id[a[i]] = i;
+    }
+    vvi d(n + 1);
+    for(int i = 1; i <= n; i++) {
+        for(int j = i; j <= n; j += i) {
+            int a = min(id[i], id[j]), b = max(id[i], id[j]);
+            d[a].pb(b);
+        }
+    }
+    vvpii queries(n + 1);
+    for(int i = 0; i < q; i++) {
+        int l, r; cin >> l >> r;
+        queries[l].pb({r, i});
+    }
+    vll ans(q);
+    FW<ll> root(n + 1);
+    for(int i = n; i >= 1; i--) {
+        for(auto& j : d[i]) {
+            root.update(j, 1);
+        }
+        for(auto& [r, id] : queries[i]) {
+            ans[id] = root.get(r); 
+        }
+    }
+    output_vector(ans);
 }
 
 signed main() {

@@ -146,6 +146,90 @@ class DSU {
     }
 };
 
+struct Persistent_DSU {
+	int n, version;
+    vvpii parent, rank;
+	Persistent_DSU(int n) {
+		this->n = n; version = 0;
+		parent.rsz(n); rank.rsz(n);
+		for (int i = 0; i < n; i++) {
+			parent[i].pb(MP(version, i));
+			rank[i].pb(MP(version, 1));
+		}
+	}
+ 
+	int find(int u, int ver) {
+		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
+        return par != u ? find(par, ver) : par;
+	}
+ 
+	int getRank(int u, int ver) {
+		u = find(u, ver);
+		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
+		return sz;
+	}
+ 
+	int merge(int u, int v, int ver) {
+		u = find(u, ver), v = find(v, ver);
+		if (u == v) return 0;
+		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
+
+		version = ver;
+		int szu = rank[u].back().ss;
+		int szv = rank[v].back().ss;
+		if (szu > szv) {swap(u, v);}
+		parent[u].pb({version, v});
+		int new_sz = szu + szv;
+		rank[v].pb({version, new_sz});
+		return version;
+	}
+ 
+	bool same(int u, int v, int ver) {
+        return find(u, ver) == find(v, ver);
+	}
+};
+
+class Undo_DSU {
+    public:
+    vi par, rank;
+    stack<ar(4)> st;
+    int n;
+    Undo_DSU(int n) {
+        this->n = n;
+        par.rsz(n), rank.rsz(n, 1);
+        iota(all(par), 0);
+    }
+ 
+    int find(int v) {
+        if (par[v] == v) return v;
+        return find(par[v]);
+    }
+ 
+    bool merge(int a, int b, bool save = false) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        if (rank[a] < rank[b]) swap(a, b);
+        if (save) st.push({a, rank[a], b, rank[b]});
+        par[b] = a;
+        rank[a] += rank[b];
+        return true;
+    }
+ 
+    void rollBack() {
+        while (!st.empty()) {
+            auto x = st.top(); st.pop();
+            par[x[0]] = x[0];
+            rank[x[0]] = x[1];
+            par[x[2]] = x[2];
+            rank[x[2]] = x[3];
+        }
+    }
+
+    bool same(int u, int v) {
+        return find(u) == find(v);
+    }
+};
+
 class SCC {
     public:
     int n, curr_comp;

@@ -166,9 +166,9 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,21 +176,37 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
+    // *.*....*...*
+    int n, d; cin >> n >> d;
     vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    a.pb(0); 
+    srt(a);
+    n = a.size();
+    vi dis(n);
+    multiset<int> s;
+    for(int i = 0; i + 1 < n; i++) {
+        dis[i] = a[i + 1] - a[i] - 1;
+        s.insert(dis[i]);
     }
+    auto remove = [&](int x) -> void {
+        auto it = s.find(x);
+        if(it == end(s)) return;
+        s.erase(it);
+    };
+    int res = 0;
+    for(int i = 1; i < n - 1; i++) {
+        remove(dis[i - 1]), remove(dis[i]);
+        int combine = dis[i - 1] + dis[i] + 1;
+        s.insert(combine);
+        int curr = min(*s.begin(), max(d - a.back() - 1, (*s.rbegin() - 1) / 2));
+        res = max(res, curr);
+        remove(combine);
+        s.insert(dis[i - 1]);
+        s.insert(dis[i]);
+    }
+    remove(dis[n - 2]);
+    s.insert(d - a[n - 2] - 1);
+    res = max(res, *s.begin());
     cout << res << endl;
 }
 
@@ -200,7 +216,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

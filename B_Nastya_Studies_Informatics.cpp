@@ -94,7 +94,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
 #define gcd(a, b) __gcd(a, b)
-#define lcm(a, b) (a * b) / gcd(a, b)
+#define lcm(a, b) ((ll)a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
 
@@ -166,9 +166,9 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,20 +176,29 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
+    // given l, r, x, y, find all pair a, b such that gcd(a, b) == x && lcm(a, b) == y
+    // property of lcm : it's made up by two possibily divisor of this lcm so just brute force all divisor of y and check
+    ll l, r, x, y; cin >> l >> r >> x >> y;
+    if(y % x) {
+        cout << 0 << endl;
+        return;
+    }
+    int res = 0;
+    vll a;
+    for(ll i = 1; i * i <= y; i++) {
+        if(y % i == 0) {
+            if(l <= i && i <= r) a.pb(i);
+            ll j = y / i;
+            if(j != i && l <= j && j <= r) a.pb(j);
         }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    }
+    srtU(a);
+    int N = a.size();
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            ll A = a[i], B = a[j];
+            if(gcd(A, B) == x && lcm(A, B) == y) res++;
+        }
     }
     cout << res << endl;
 }

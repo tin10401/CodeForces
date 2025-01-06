@@ -168,30 +168,97 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 5e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+class Undo_DSU {
+    public:
+    vi par, rank;
+    stack<ar(4)> st;
+    int n;
+    Undo_DSU(int n) {
+        this->n = n;
+        par.rsz(n), rank.rsz(n, 1);
+        iota(all(par), 0);
     }
-    cout << res << endl;
+ 
+    int find(int v) {
+        if (par[v] == v) return v;
+        return find(par[v]);
+    }
+ 
+    bool merge(int a, int b, bool save = false) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        if (rank[a] < rank[b]) swap(a, b);
+        if (save) st.push({a, rank[a], b, rank[b]});
+        par[b] = a;
+        rank[a] += rank[b];
+        return true;
+    }
+ 
+    void rollBack() {
+        while (!st.empty()) {
+            auto x = st.top(); st.pop();
+            par[x[0]] = x[0];
+            rank[x[0]] = x[1];
+            par[x[2]] = x[2];
+            rank[x[2]] = x[3];
+        }
+    }
+
+    bool same(int u, int v) {
+        return find(u) == find(v);
+    }
+};
+
+void solve() {
+    int n, m; cin >> n >> m;
+    var(3) edges(m);
+    for(auto& [w, u, v] : edges) {
+        cin >> u >> v >> w;
+        u--, v--;
+    } 
+    var(4) queries;
+    int q; cin >> q;
+    for(int i = 0; i < q; i++) {
+        int k; cin >> k;
+        while(k--) {
+            int x; cin >> x;
+            x--;
+            queries.pb({{edges[x][0], i, edges[x][1], edges[x][2]}});
+        }
+    }
+    srt(edges), srt(queries);
+    debug(edges, queries);
+    Undo_DSU root(n);
+    vi ans(q, 1);
+    int i = 0;
+    int N = queries.size();
+    for(auto& [w, u, v] : edges) {
+        while(i < N && queries[i][0] == w) {
+            var(4) a;
+            a.pb(queries[i]);
+            while(i + 1 < N && queries[i + 1][0] == w && queries[i + 1][1] == queries[i][1]) {
+                a.pb(queries[++i]);
+            }
+            while(!a.empty()) {
+                auto [_, id, u, v] = a.back(); a.pop_back();
+                if(!root.merge(u, v, true)) {
+                    ans[id] = false;
+                    break;
+                }
+            }
+            i++;
+            root.rollBack();
+        }
+        root.merge(u, v);
+    }
+    for(auto& x : ans) cout << (x ? "YES" : "NO") << endl;
 }
 
 signed main() {

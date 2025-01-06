@@ -175,23 +175,247 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+class GRAPH { 
+    public: 
+    int n;  
+    vvi dp, graph; 
+    vi depth;
+    GRAPH(vvi& graph) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        dfs();
+        init();
     }
-    cout << res << endl;
+    
+    void dfs(int node = 0, int par = -1) {   
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+			dfs(nei, node);
+        }
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+
+    int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+    }
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    T merge(T left, T right) {  
+        T res;
+        res = left + right;
+        return res;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+};
+
+class HLD {
+    public:
+    SGT<int> seg;
+    vi id, a, tp, sz, parent;
+    int ct;
+    vvi graph;
+    int n;
+    GRAPH g;
+    HLD(vvi& graph, vi& a) : seg(graph.size()), g(graph) {
+        this->graph = graph;
+        this->n = graph.size();
+        this->a = a;
+        ct = 0;
+        id.rsz(n), tp.rsz(n), sz.rsz(n);
+        parent.rsz(n, -1);
+        dfs1();
+        dfs2();
+    }
+     
+    int dfs1(int node = 0, int par = -1) {   
+        parent[node] = par;
+        sz[node] = 1;   
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            sz[node] += dfs1(nei, node);
+        }   
+        return sz[node];    
+    }
+        
+    void dfs2(int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs2(nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs2(nei, node, nei);  
+        }   
+    }
+
+    void update(int i, int v) {
+        a[i] = v;
+        seg.update(id[i], v);
+    }
+
+    int path(int node, int par) {   
+        int res = 0;    
+        while(node != par)  {   
+            if(node == tp[node])   {   
+                res += a[node];
+                node = g.dp[node][0]; 
+            }   else if(g.depth[tp[node]] > g.depth[par])  {   
+                res += seg.queries(id[tp[node]], id[node]);    
+                node = g.dp[tp[node]][0];
+            }   else    {   
+                res += seg.queries(id[par] + 1, id[node]);  
+                break;  
+            }   
+        }   
+        return res; 
+    }
+
+    int get_dist(int a, int b) {
+        return g.dist(a, b);
+    }
+
+    int get_lca(int a, int b) {
+        return g.lca(a, b);
+    }
+};
+
+void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    HLD root(graph, a);
+    set<int> s;
+    vi degree(n);
+    int cnt = 0;
+    auto flip = [&](int v) {
+        int p = root.parent[v];
+        if(a[v] == 0) {
+            ++cnt;
+            a[v] = 1;
+            if (p != -1) {
+                degree[p]++;
+                s.erase(p);
+            }
+            if (degree[v] == 0) {
+                s.insert(v);
+            }
+        } else {
+            --cnt;
+            a[v] = 0;
+            s.erase(v);
+            if(p != -1) {
+                if(--degree[p] == 0 && a[p]) {
+                    s.insert(p);
+                }
+            }
+        }
+        root.update(v, a[v]);
+    };
+    for(int i = 0; i < n; i++) {
+        if(a[i]) {
+            a[i] = 0;
+            flip(i);
+        }
+    }
+    auto queries = [&]() -> int {
+        if(cnt == 0) return false;
+        if(cnt == 1) return true;
+        if(s.size() == 1) return true;
+        int u = *s.begin(), v = *s.rbegin();
+        int c = root.get_lca(u, v);
+        int sm = root.path(u, c) + root.path(v, c) + a[c];
+        int d = root.get_dist(u, v) + 1;
+        return d == cnt && sm == cnt;
+    };
+    while(q--) {
+        int v; cin >> v;
+        v--;
+        flip(v);
+        cout << (queries() ? "YES" : "NO") << endl;
+    }
+
 }
 
 signed main() {
@@ -200,7 +424,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

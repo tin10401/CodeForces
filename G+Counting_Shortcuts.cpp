@@ -166,9 +166,9 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,22 +176,43 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    // count the number of path from s to t such that the shortest path differ no more than 1
+    int n, m; cin >> n >> m;
+    int s, t; cin >> s >> t;
+    t--, s--;
+    vvi graph(n);
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
-    cout << res << endl;
+    vi dp(n, inf);
+    vvi ways(n, vi(2));
+    ways[s][0] = 1;
+    dp[s] = 0;
+    int time = 0;
+    queue<pii> q;
+    q.push({s, 0});
+    vi us(n);
+    while(!q.empty()) {
+        int size = q.size();
+        vi curr;
+        while(size--) {
+            auto [node, x] = q.front(); q.pop(); 
+            if(node == t) continue;
+            for(auto& nei : graph[node]) {
+                if(time <= dp[nei]) {
+                    dp[nei] = min(dp[nei], time + 1); 
+                    ways[nei][time - dp[nei] + 1] += ways[node][x];
+                    ways[nei][time - dp[nei] + 1] %= MOD;
+                    if(us[nei] == 0 || (us[nei] == 1 && dp[nei] == time)) q.push({nei, us[nei]++});
+                }
+            }
+        }
+        time++;
+    }
+    cout << sum(ways[t]) % MOD << endl;
 }
 
 signed main() {
@@ -200,7 +221,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

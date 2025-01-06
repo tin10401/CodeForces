@@ -166,32 +166,180 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = inf;
+        root.rsz(n * 4, inf);    
+        lazy.rsz(n * 4);
+//        build(entireTree, arr);
     }
-    cout << res << endl;
+    
+//    void build(iter, vi& arr) { 
+//        if(left == right) { 	
+//            root[i] = arr[left];    
+//            return;
+//        }
+//        int middle = midPoint;  
+//        build(lp, arr), build(rp, arr); 
+//        root[i] = merge(root[lc], root[rc]);
+//    }
+
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = min(root[i], val);
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        return min(left, right);
+        return res;
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries(int id) {
+		return queries(entireTree, id);
+	}
+	
+	T queries(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries(lp, id);
+		return queries(rp, id);
+	}
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+};
+
+void solve() {
+    // given a set of queries, 
+    // op : 0, given l, r, x, x = 0 meaning all person from l to r is healthy, x = 1 meaning there is at least one person ill in range l to r
+    // op : 1, print the condition of patient at index id
+    // lb on id, get left_id, ub on id get right_id
+    // queries on min(left_id + 1, id)
+    // since all person from left_id + 1 to right_id - 1 is not ill, if there exist an query of type l, r, x = 1 in that range, and r is less than right_id,
+    // and all of them are not ill, this person must be ill
+    int n, q; cin >> n >> q;
+    SGT<int> root(n);
+    set<int> s;
+    for(int i = 0; i < n; i++) s.insert(i);
+    while(q--) {
+        int op ;cin >> op;
+        if(op == 0) {
+            int l, r, x; cin >> l >> r >> x;
+            l--, r--;
+            if(x == 1) {
+                root.update(l, r);
+                continue;
+            }
+            for(auto it = s.lb(l); it != end(s) && *it <= r; ) {
+                it = s.erase(it);
+            }
+        }
+        else {
+            int p; cin >> p;
+            p--;
+            if(!s.count(p)) {
+                cout << "NO" << endl;
+                continue;
+            }
+            int l = 0, r = n;
+            auto it = s.find(p);
+            if(it != begin(s)) l = *prev(it) + 1;
+            if(next(it) != end(s)) r = *next(it);
+            cout << (root.queries(l, p) < r ? "YES" : "N/A") << endl;
+        }
+    }
 }
 
 signed main() {

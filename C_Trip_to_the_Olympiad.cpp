@@ -176,22 +176,30 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    int l, r; cin >> l >> r;
+    int bit = 0;
+    int a = 0, b = 0, c = 0;
+    for(int bit = 29; bit >= 0; bit--) {
+        int l_bit = (l >> bit) & 1;
+        int r_bit = (r >> bit) & 1;
+        if(l_bit == r_bit) continue;
+        int t = 1LL << bit;
+        debug(l, r, bit, t);
+        a = (r >> bit << bit) | t;
+        b = (l >> (bit + 1) << (bit + 1)) | t;
+        b--;
+        break;
     }
-    cout << res << endl;
+    for(int i = a - 5; i <= a + 5; i++) {
+        if(l <= i && i <= r && i != a && i != b) {
+            c = i;
+            break;
+        }
+    }
+    auto f = [&]() -> int {
+        return (a ^ b) + (b ^ c) + (a ^ c);
+    };
+    cout << a << ' ' << b << ' ' << c << endl;
 }
 
 signed main() {
@@ -200,7 +208,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

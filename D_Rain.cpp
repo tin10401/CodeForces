@@ -166,9 +166,9 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 2e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -176,22 +176,26 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    int n, m; cin >> n >> m;
+    map<int, int> mp;
+    vpii a(n);
+    for(auto& [x, p] : a) {
+        cin >> x >> p;
+        mp[x - p]++, mp[x] -= 2, mp[x + p]++;
     }
-    cout << res << endl;
+    ll lim1 = -inf, lim2 = inf, p = 0, last = 0, delta = 0;
+    for(auto& [pos, f] : mp) {
+        p += delta * (pos - last), last = pos, delta += f;
+        if(p > m) {
+            lim1 = max(lim1, pos + p - m);
+            lim2 = min(lim2, pos - (p - m));
+        }
+    }
+    for(int i = 0; i < n; i++) {
+        auto& [x, p] = a[i];
+        cout << (x + p >= lim1 && x - p <= lim2);
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -200,7 +204,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

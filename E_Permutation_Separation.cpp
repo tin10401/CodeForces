@@ -166,30 +166,107 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
-const static int inf = 1e9 + 100;
+const static int inf = 1e9 + 33;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = INF;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+    }
+
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
         }
-        return ans;
-    };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+
+};
+
+void solve() {
+    // given a permutation, make it become 2 set prefix suffix such that element_in_prefix < element_in_suffix 
+    // in one op, move in element anywhere, cost ai
+    // notice that it cost ai to move from i to n - 1 at the beginning, so we add a[i] to all i from i to n - 1 to indicates it cost a[i] to move from i to any position greater than i
+    // as we brute for for each i, i is the greatest of the left set
+    // we decrement a[i] from i to n - 1 to remove it from the right set, and add a[i] to the left set which is 0 to pos[p[i]] - 1
+    // to indicates that it cost ai to move from i to any position less than i
+    // now the answer for each i the minimum prefix(prefix here means the cutting points of the whole array, less than in the left half, greater than in the right half)
+    int n; cin >> n;
+    vll p(n), a(n); cin >> p >> a;
+    vll pos(n);
+    for(int i = 0; i < n; i++) pos[p[i] - 1] = i;
+    SGT<ll> root(n);
+    for(int i = 0; i < n; i++) {
+        root.update(i, n - 1, a[i]);
+    }
+    ll res = min(a[0], a.back());
+    for(int i = 0; i < n; i++) {
+        int P = pos[i];
+        root.update(0, P - 1, a[P]);
+        root.update(P, n - 1, -a[P]);
+        res = min(res, root.queries(0, n - 2));
+        debug(res);
     }
     cout << res << endl;
 }

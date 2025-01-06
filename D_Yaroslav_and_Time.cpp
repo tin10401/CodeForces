@@ -1,4 +1,4 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
+//████████╗█████╗░░██╗  ██╗░░░░░███████╗
 //╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
 //░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
 //░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
@@ -165,7 +165,7 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1e15;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -176,22 +176,35 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    auto f = [&](int s) -> int {
-        int i = s, j = s + k - 1;
-        int ans = 0;
-        while(i <= j) {
-            ans += a[i] != a[j];     
-            i++, j--;
-        }
-        return ans;
+    int n, d; cin >> n >> d;
+    vi extra_time(n);
+    for(int i = 1; i < n - 1; i++) cin >> extra_time[i];
+    vpii pos(n); cin >> pos;
+    auto cost = [&](int i, int j) -> ll {
+        return (abs(pos[i].ff - pos[j].ff) + abs(pos[i].ss - pos[j].ss)) * d;
     };
-    ll res = 0;
-    for(int i = 0; i + k <= n; i++) {
-        res += f(i);
+    vvpii graph(n);
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < n; j++) {
+            if(i != j) {
+                graph[i].pb({j, -cost(i, j) + extra_time[j]});
+            }
+        }
     }
-    cout << res << endl;
+    max_heap<pii> q;
+    vi dp(n, -inf);
+    q.push({0, 0});
+    dp[0] = 0;
+    while(!q.empty()) {
+        auto [time, node] = q.top(); q.pop();
+        for(auto& [nei, c] : graph[node]) {
+            if(time + c > dp[nei]) {
+                dp[nei] = time + c;
+                q.push({time + c, nei});
+            }
+        } 
+    }
+    cout << -dp[n - 1] << endl;
 }
 
 signed main() {
