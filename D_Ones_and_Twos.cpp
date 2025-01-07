@@ -176,24 +176,164 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+//        build(entireTree, arr);
+    }
+    
+//    void build(iter, vi& arr) { 
+//        if(left == right) { 	
+//            root[i] = arr[left];    
+//            return;
+//        }
+//        int middle = midPoint;  
+//        build(lp, arr), build(rp, arr); 
+//        root[i] = merge(root[lc], root[rc]);
+//    }
+
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = left + right;
+        return res;
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries(int id) {
+		return queries(entireTree, id);
+	}
+	
+	T queries(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries(lp, id);
+		return queries(rp, id);
+	}
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+};
+
 void solve() {
     int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
+    vi a(n); cin >> a;
+    set<int> s;
+    SGT<int> root(n);
+    for(int i = 0; i < n; i++) {
+        if(a[i] == 1) s.insert(i);
+        root.update(i, a[i]);
+    }
     while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
+        int op; cin >> op;
+        if(op == 1) {
+            int x; cin >> x;
+            int left = 0, right = 0;
+            if(!s.empty()) {
+                left = root.queries(*s.begin(), n - 1);
+                right = root.queries(0, *s.rbegin());
             }
-            res += ok;
+            if(max(left, right) >= x) {
+                cout << "YES" << endl;
+            }
+            else {
+                cout << (root.queries(0, n - 1) >= x && (x % 2 == left % 2 || x % 2 == right % 2) ? "YES" : "NO") << endl; 
+            }
         }
-        cout << res << endl;
+        else {
+            int i, v; cin >> i >> v;
+            i--;
+            s.erase(i);
+            root.update(i, v);
+            if(v == 1) s.insert(i);
+        }
     }
 }
 
@@ -203,7 +343,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

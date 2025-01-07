@@ -177,17 +177,25 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 vi choice = {0, 1};
 int main(int argc, char* argv[]) {
-    int N = 1000;
+    int N = 5;
     uniform_int_distribution<int> dist_n(1, N);
-    uniform_int_distribution<int> dist_q(2, N);
+    uniform_int_distribution<int> dist_q(1, N);
     uniform_int_distribution<int> A(1, 1e9);
     uniform_int_distribution<int> val(1, 10);
     int n = dist_n(rng);
-    int k = dist_n(rng) % n;
-    if(k % 2 == 0) k++;
-    cout << n << ' ' << k << endl;
-    while(n--) {
-        cout << val(rng) << (n == 0 ? '\n' : ' ');
+    int q = dist_q(rng);
+    cout << n << ' ' << q << endl;
+    for(int i = 0; i < n; i++) {
+        int l = val(rng), r = val(rng);
+        if(l > r) swap(l, r);
+        cout << l << ' ' << r << endl;
+    }
+    while(q--) {
+        int k = dist_n(rng);
+        cout << k << ' ';
+        while(k--) {
+            cout << val(rng) << (k == 0 ? '\n' : ' ');
+        }
     }
 }
 

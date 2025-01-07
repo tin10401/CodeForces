@@ -176,25 +176,73 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+template<class T>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    FW(int n) { 
+        this->n = n;    
+        N = log2(n);
+        root.rsz(n);
     }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] += val;    
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = 0;    
+        while(id >= 0) { 
+            res += root[id];    
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+    
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int search(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
+
+void solve() {
+    // in one move, cycle shift the index i that is not = to a[i], leave the good index = a[i] as is
+    // determine the minimum step for each index the time it will be at the right index
+    // the answer is (i + n) - a[i] - (sum of good index in between)
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    for(auto& it : a) it--;
+    FW<int> root(n * 2 + 1);
+    vi ans(n);
+    for(int i = 2 * n - 1; i >= 0; i--) {
+        int to = a[i % n];
+        while(to < i) to += n;
+        int d = to - i;
+        if(i < n) {
+            ans[a[i]] = d - (root.queries(i, to));
+        }
+        if(to < 2 * n) root.update(to, 1);
+    }
+    output_vector(ans);
 }
 
 signed main() {
@@ -203,7 +251,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

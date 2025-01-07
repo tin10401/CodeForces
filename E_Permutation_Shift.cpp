@@ -176,25 +176,74 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
     }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+
+    int queries() {
+        int comp = 0;
+        for(int i = 0; i < n; i++) {
+            if(find(i) == i) {
+                comp += rank[i] - 1;
+            }
+        }
+        return comp;
+    }
+};
+
+void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    for(auto& x : a) x--;
+    vi cnt(n);
+    for(int i = 0; i < n; i++) {
+        cnt[(i + n - a[i]) % n]++;
+    }
+    auto f = [&](int k) -> bool {
+        vi d;
+        for(int i = 0; i < n; i++) d.pb((i - k + n) % n);
+        DSU root(n);
+        for(int i = 0; i < n; i++) {
+            root.merge(a[i], d[i]);
+        }
+        return root.queries() <= m;
+    };
+    vi ans;
+    for(int k = 0; k < n; k++) {
+        if(n - cnt[k] <= 2 * m && f(k)) ans.pb(k); // need revise on proof
+    }
+    cout << ans.size() << ' ';
+    for(auto& x : ans) cout << x << ' ';
+    cout << endl;
 }
 
 signed main() {
@@ -203,7 +252,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

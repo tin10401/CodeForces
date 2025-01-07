@@ -318,21 +318,21 @@ class FW {
     FW(int n) { 
         this->n = n;    
         N = log2(n);
-        root.rsz(n + 1);
+        root.rsz(n);
     }
     
     void update(int id, T val) {  
-        while(id <= n) {    
+        while(id < n) {    
             root[id] += val;    
-            id += (id & -id);
+            id |= (id + 1);
         }
     }
     
     T get(int id) {   
         T res = 0;    
-        while(id > 0) { 
+        while(id >= 0) { 
             res += root[id];    
-            id -= (id & -id);
+            id = (id & (id + 1)) - 1;
         }
         return res;
     }
@@ -349,7 +349,7 @@ class FW {
         int global = get(n), curr = 0;
         for(int i = N; i >= 0; i--) {
             int t = curr ^ (1LL << i);
-            if(t <= n && global - root[t] >= x) {
+            if(t < n && global - root[t] >= x) {
                 swap(curr, t);
                 global -= root[curr];
             }
@@ -486,7 +486,7 @@ class SGT {
 
 
 // PERSISTENT SEGTREE
-int T[MX * MK * 4], root[MX * MK * 4], ptr, n, m; 
+int T[MX * MK], root[MX * MK * 4], ptr; 
 pii child[MX * MK * 4];
 void update(int curr, int prev, int id, int delta, int left, int right) {  
     root[curr] = root[prev];    
@@ -586,38 +586,44 @@ template<class T>
 class SparseTable { 
     public: 
     int n;  
-    vt<T> a, log_table;
-    vt<vt<T>> dp_max, dp_min, dp_gcd;
-	SparseTable(vt<T> &a) {  
+    vi a, log_table;
+    vt<vt<T>> dp_max, dp_min, dp_gcd, dp_or;
+	SparseTable(vi& a) {  
 		n = a.size();
         this->a = a;
         log_table.rsz(n + 1);
         dp_max.rsz(n, vt<T>(MK));
         dp_min.rsz(n, vt<T>(MK));
         dp_gcd.rsz(n, vt<T>(MK));
+        dp_or.rsz(n, vt<T>(MK));
         init();
     }
     
     void init() {   
 		for(int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
-        for(int i = 0; i < n; i++) dp_max[i][0] = dp_min[i][0] = dp_gcd[i][0] = a[i];
+        for(int i = 0; i < n; i++) dp_max[i][0] = dp_min[i][0] = dp_gcd[i][0] = dp_or[i][0] = a[i];
         for(int j = 1; j < MK; j++) {    
             for(int i = 0; i + (1LL << j) <= n; i++) {    
-                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[i + (1LL << (j - 1))][j - 1]);
-                dp_min[i][j] = min(dp_min[i][j - 1], dp_min[i + (1LL << (j - 1))][j - 1]);
-                dp_gcd[i][j] = gcd(dp_gcd[i][j - 1], dp_gcd[i + (1LL << (j - 1))][j - 1]);
+                int p = i + (1LL << (j - 1));
+                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[p][j - 1]);
+                dp_min[i][j] = min(dp_min[i][j - 1], dp_min[p][j - 1]);
+                dp_gcd[i][j] = gcd(dp_gcd[i][j - 1], dp_gcd[p][j - 1]);
+                dp_or[i][j] = dp_or[i][j - 1] | dp_or[p][j - 1];
             }
         }
     }
     
-    pair<T, T> queries(int left, int right) {  
+    int queries(int left, int right) {  
 		int j = log_table[right - left + 1];
-        T mx = max(dp_max[left][j], dp_max[right - (1LL << j) + 1][j]);
-        T mn = min(dp_min[left][j], dp_min[right - (1LL << j) + 1][j]);
-        T g = gcd(dp_gcd[left][j], dp_gcd[right - (1LL << j) + 1][j]);
-        return {mn, mx};
+        int p = right - (1LL << j) + 1;
+        T mx = max(dp_max[left][j], dp_max[p][j]);
+        T mn = min(dp_min[left][j], dp_min[p][j]);
+        T g = gcd(dp_gcd[left][j], dp_gcd[p][j]);
+        T OR = dp_or[left][j] | dp_or[p][j];
+        return OR;
     }
 };
+
 
 
 class TWO_DIMENSIONAL_RANGE_QUERY {   

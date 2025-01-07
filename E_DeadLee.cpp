@@ -177,24 +177,52 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+    int n, m; cin >> n >> m;
+    vi w(n); cin >> w;
+    vpii a(m); cin >> a;
+    vi wanted(n);
+    vvi graph(n);
+    for(int i = 0; i < m; i++) {
+        auto& [x, y] = a[i];
+        x--, y--;
+        graph[x].pb(i);
+        graph[y].pb(i);
+        wanted[x]++;
+        wanted[y]++;
     }
+    vi handle(n), vis(m);
+    queue<int> q;
+    for(int i = 0; i < n; i++) {
+        if(w[i] >= wanted[i]) {
+            q.push(i);
+            handle[i] = true;
+        }
+    }
+    vi order;
+    auto process = [&](int food) -> void {
+        --wanted[food];
+        if(!handle[food] && wanted[food] <= w[food]) {
+            handle[food] = true;
+            q.push(food);
+        }
+    };
+    while(!q.empty()) {
+        int food = q.front(); q.pop();
+        for(auto& nei : graph[food]) {
+            if(vis[nei]) continue;
+            vis[nei] = true;
+            order.pb(nei + 1);
+            process(a[nei].ff);
+            process(a[nei].ss);
+        }
+    }
+    if(order.size() != m) {
+        cout << "DEAD" << endl;
+        return;
+    }
+    cout << "ALIVE" << endl;
+    rev(order);
+    output_vector(order);
 }
 
 signed main() {
