@@ -177,24 +177,40 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+    int n; cin >> n;
+    vvi graph(n);
+    int root;
+    vi cost(n);
+    for(int i = 0; i < n; i++) {
+        int p; cin >> p >> cost[i];
+        p--;
+        if(p == -1) root = i;
+        else graph[p].pb(i);
     }
+    ll sm = sum(cost);
+    if(sm % 3) {
+        cout << -1 << endl;
+        return;
+    }
+    vi ans;
+    auto dfs = [&](auto& dfs, int node, int par = -1) -> int {
+        ll curr = cost[node];
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            ll nei_sm = dfs(dfs, nei, node);
+            if(nei_sm == sm / 3) {
+                if(ans.size() < 2) ans.pb(nei + 1);
+            }
+            else curr += nei_sm;
+        }
+        return curr;
+    };
+    dfs(dfs, root);
+    if(ans.size() != 2) {
+        cout << -1 << endl;
+        return;
+    }
+    output_vector(ans);
 }
 
 signed main() {

@@ -176,25 +176,107 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+// PERSISTENT SEGTREE
+int merge(int left, int right) {
+    return left + right;
+}
+
+int T[MX * MK], root[MX * MK * 4], ptr;
+pii child[MX * MK * 4];
+void update(int curr, int prev, int id, int delta, int left, int right) {  
+    root[curr] = root[prev];    
+    child[curr] = child[prev];
+    if(left == right) { 
+        root[curr] += delta;
+        return;
+    }
+    int middle = midPoint;
+    if(id <= middle) {  
+        child[curr].ff = ++ptr; 
+        update(child[curr].ff, child[prev].ff, id, delta, left, middle);
+    }
+    else {  
+        child[curr].ss = ++ptr; 
+        update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+    }
+    root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+}
+
+int queries(int curr, int start, int end, int left, int right) { 
+    if(left >= start && right <= end) return root[curr];
+    if(left > end || start > right) return 0;
+    int middle = midPoint;  
+    return merge(queries(child[curr].ff, start, end, left, middle), queries(child[curr].ss, start, end, middle + 1, right));
+};
+    
 void solve() {
     int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
+    var(3) a(n);
+    vi b;
+    for(auto& [l, r, type] : a) {
+        cin >> l >> r;
+        type = 0;
+        b.pb(l);
+        b.pb(r);
+    }
+    vvi query(q);
+    for(int i = 0; i < q; i++) {
         int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
+        query[i].rsz(k);
+        for(auto& it : query[i]) {
+            cin >> it;
+            b.pb(it);
+        }
+    }
+    srtU(b);
+    int N = b.size();
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    for(auto& [l, r, type] : a) {
+        l = get_id(l), r = get_id(r); 
+    }
+    vi pos(N);
+    for(auto& it : query) {
+        srt(it);
+        for(auto& i : it) {
+            i = get_id(i);
+            a.pb({i, i, 1});
+        }
+    }
+    auto cmp = [](const ar(3)& a, const ar(3)& b) -> bool {
+        if(a[0] != b[0]) return a[0] < b[0];  
+        if(a[1] != b[1]) return a[1] > b[1];
+        return a[2] < b[2];
+    };
+    sort(all(a), cmp);
+    n = a.size();
+    for(int i = 0, p = 0; i < n; i++) {
+        auto& [l, r, type] = a[i]; 
+        if(type == 1) {
+            pos[l] = i;
+            T[i] = p;
+            continue;
+        }
+        T[i] = ++ptr;
+        update(T[i], p, r, 1, 0, N - 1);
+        p = T[i];
+    }
+    debug(a);
+    for(auto& it : query) {
+        int res = 0, last = -1;
+        for(auto& i : it) {
+            int p = pos[i];
+            int cnt = queries(T[p], i, N - 1, 0, N - 1);
+            res += cnt;
+            debug(i, p);
+            if(last != -1) {
+                res -= queries(T[last], i, N - 1, 0, N - 1);
             }
-            res += ok;
+            last = p;
         }
         cout << res << endl;
-    }
+    } 
 }
 
 signed main() {
@@ -226,3 +308,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

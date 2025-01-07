@@ -176,24 +176,127 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
+// PERSISTENT SEGTREE
+int T[MX * MK * 4], ptr;
+ll root[MX * MK * 4];
+pii child[MX * MK * 4];
+void update(int curr, int prev, int id, int delta, int left, int right) {  
+    root[curr] = root[prev];    
+    child[curr] = child[prev];
+    if(left == right) { 
+        root[curr] = delta;
+        return;
+    }
+    int middle = midPoint;
+    if(id <= middle) {  
+        child[curr].ff = ++ptr; 
+        update(child[curr].ff, child[prev].ff, id, delta, left, middle);
+    }
+    else {  
+        child[curr].ss = ++ptr; 
+        update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+    }
+    root[curr] = root[child[curr].ff] + root[child[curr].ss];
+}
+
+ll queries(int curr, int start, int end, int left, int right) { 
+    if(left >= start && right <= end) return root[curr];
+    if(left > end || start > right) return 0;
+    int middle = midPoint;  
+    return queries(child[curr].ff, start, end, left, middle) + queries(child[curr].ss, start, end, middle + 1, right);
+};
+    
+int get(int curr, int prev, int k, int left, int right) {    
+    if(root[curr] - root[prev] < k) return inf;
+    if(left == right) return left;
+    int leftCount = root[child[curr].ff] - root[child[prev].ff];
+    int middle = midPoint;
+    if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
+    return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
+}
+
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        root[i] = 0, T[i] = 0;  
+        child[i] = MP(0, 0);
+    }
+	ptr = 0;
+}
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+    }
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
         }
-        cout << res << endl;
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+
+    int get() {
+        return root[0];
+    }
+
+};
+void solve() {
+    int n; cin >> n;
+    vpii a(n); cin >> a;
+    vi b;
+    for(auto& it : a) b.pb(it.ff + it.ss);
+    auto get = [&](pii x) -> int {
+        return int(lb(all(a), x) - begin(a));
+    };
+    SGT<int> root(n);
+    for(int i = n - 1; i >= 0; i--) {
+        int p = get({a[i].ff + a[i].ss + 1, -1});
+        int v = root.queries(i, p - 1);
+        v = max(v, a[i].ff + a[i].ss);
+        root.update(i, v);
+        p = get({v + 1, -1});
+        if(p == n) continue;
+        T[i] = ++ptr;
+        int add = a[p].ff - v;
+        update(T[i], T[p], p, add, 0, n - 1);
+    }
+    int q; cin >> q;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        cout << queries(T[l], l, r, 0, n - 1) << endl;
     }
 }
 

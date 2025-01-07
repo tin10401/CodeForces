@@ -264,7 +264,7 @@ class RabinKarp {
     vll base, mod;
     int n, m;
     RabinKarp(const string& s) {  
-        m = 3;
+        m = 2;
         base = {26, 28, 30};    
         mod = {(int)1e9 + 7, (int)1e9 + 33, (int)1e9 + 73};
         n = s.size(); 
@@ -286,21 +286,17 @@ class RabinKarp {
         }
     }
     
-    int getHash(int l, int r) { 
-		if(l < 0 || r > n || l > r) return -1;
-        int hash = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % mod[0]) % mod[0];
-        hash = (hash + mod[0]) % mod[0];
-        return hash;
-		
-//        if(l < 0 || r > n || l > r) return {-1, -1};
-//        vll ans;    
-//        for(int i = 0; i < m; i++) {    
-//            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
-//            hash = (hash + mod[i]) % mod[i];
-//            ans.pb(hash);
-//        }
-//        return MP(ans[0], ans[1]);
+	ll getHash(int l, int r) { 
+        if(l < 0 || r > n || l > r) return 0;
+        al(2) ans = {0, 0};
+        for(int i = 0; i < m; i++) {    
+            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
+            hash = (hash + mod[i]) % mod[i];
+            ans[i] = hash;
+        }
+        return (ans[0] << 32) | ans[1];
     };
+
 
 	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
         int left = 0, right = n, rightMost = -1;    

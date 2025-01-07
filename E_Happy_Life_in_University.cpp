@@ -176,25 +176,112 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n) {    
+        this->n = n;
+        DEFAULT = 0;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
     }
+
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+};
+
+void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int p; cin >> p;
+        graph[--p].pb(i);
+    }
+    vi a(n); cin >> a;
+    vi tin(n), tout(n);
+    int timer = 0;
+    auto dfs = [&](auto& dfs, int node = 0) -> void {
+        tin[node] = timer++;
+        for(auto& nei : graph[node]) dfs(dfs, nei);
+        tout[node] = timer - 1;
+    };
+    dfs(dfs);
+    vt<set<pii>> s(n + 1);
+    for(int i = 0; i < n; i++) {
+        s[a[i]].insert({tin[i], tout[i]});
+    }
+    ll res = 0;
+    SGT<int> root(n);
+    auto dfs2 = [&](auto& dfs2, int node = 0) -> void {
+        auto& curr = s[a[node]]; 
+        ll mx1 = 0, mx2 = 0;
+        for(auto& nei : graph[node]) {
+            dfs2(dfs2, nei);
+            for(auto it = curr.lb({tin[nei], -1}); it != end(curr) && it->ff <= tout[nei]; ){ 
+                root.update(it->ff, it->ss, -1);
+                it = curr.erase(it);
+            }
+            ll v = root.queries(tin[nei], tout[nei]);
+            if(v > mx1) mx2 = mx1, mx1 = v;
+            else mx2 = max(mx2, v);
+        }
+        root.update(tin[node], tout[node], 1);
+        mx1++, mx2++;
+        res = max(res, mx1 * mx2);
+    };
+    dfs2(dfs2);
+    cout << res << endl;
 }
 
 signed main() {
@@ -203,7 +290,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

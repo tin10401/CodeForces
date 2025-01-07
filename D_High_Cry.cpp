@@ -176,25 +176,85 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+template<class T>
+class SparseTable { 
+    public: 
+    int n;  
+    vi a, log_table;
+    vt<vt<T>> dp_max, dp_min, dp_gcd, dp_or;
+	SparseTable(vi& a) {  
+		n = a.size();
+        this->a = a;
+        log_table.rsz(n + 1);
+        dp_max.rsz(n, vt<T>(MK));
+        dp_min.rsz(n, vt<T>(MK));
+        dp_gcd.rsz(n, vt<T>(MK));
+        dp_or.rsz(n, vt<T>(MK));
+        init();
     }
+    
+    void init() {   
+		for(int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for(int i = 0; i < n; i++) dp_max[i][0] = dp_min[i][0] = dp_gcd[i][0] = dp_or[i][0] = a[i];
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                int p = i + (1LL << (j - 1));
+                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[p][j - 1]);
+                dp_min[i][j] = min(dp_min[i][j - 1], dp_min[p][j - 1]);
+                dp_gcd[i][j] = gcd(dp_gcd[i][j - 1], dp_gcd[p][j - 1]);
+                dp_or[i][j] = dp_or[i][j - 1] | dp_or[p][j - 1];
+            }
+        }
+    }
+    
+    int queries(int left, int right) {  
+		int j = log_table[right - left + 1];
+        int p = right - (1LL << j) + 1;
+        T mx = max(dp_max[left][j], dp_max[p][j]);
+        T mn = min(dp_min[left][j], dp_min[p][j]);
+        T g = gcd(dp_gcd[left][j], dp_gcd[p][j]);
+        T OR = dp_or[left][j] | dp_or[p][j];
+        return OR;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi left(n), right(n);
+    iota(all(left), 0), iota(all(right), 0);
+    vi lefty(n), righty(n);
+    SparseTable<int> t(a);
+    for(int i = 0; i < n; i++) {
+        auto& j = left[i];
+        while(j && a[i] > a[j - 1]) j = left[j - 1];
+        int left = 0, right = i, left_most = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            if(t.queries(middle, i) > a[i]) left_most = middle, left = middle + 1;
+            else right = middle - 1;
+        }
+        if(left_most < j) continue;
+        lefty[i] = left_most - j + 1;
+    }
+    for(int i = n - 1; i >= 0; i--) {
+        auto& j = right[i];
+        while(j < n - 1 && a[i] >= a[j + 1]) j = right[j + 1];
+        int left = i, right = n - 1, right_most = n;
+        while(left <= right) {
+            int middle = midPoint;
+            if(t.queries(i, middle) > a[i]) right_most = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        if(right_most > j) continue;
+        righty[i] = j - right_most + 1;
+    }
+    debug(a, left, lefty, right, righty);
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+        res += (ll)lefty[i] * (right[i] - i + 1 - righty[i]) + (ll)righty[i] * (i - left[i] + 1);
+    }
+    cout << res << endl;
 }
 
 signed main() {
