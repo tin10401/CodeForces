@@ -97,6 +97,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
+#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE

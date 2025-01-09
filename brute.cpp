@@ -97,6 +97,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
+#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE
@@ -176,25 +177,87 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vpii a(n); cin >> a;
-    while(q--) {
-        int k; cin >> k;
-        vi points(k); cin >> points;
-        int res = 0;
-        for(auto& [l, r] : a) {
-            bool ok = false;
-            for(auto& p : points) {
-                if(l <= p && p <= r) {
-                    ok = true;
-                    break;
-                }
-            }
-            res += ok;
-        }
-        cout << res << endl;
+class CHT {
+    public:
+    int is_mx;
+    vll m_slopes, b_intercepts;
+    CHT(int is_mx) : is_mx(is_mx) {
+        add_line(0, 0);
     }
+
+    db cross(int i, int j, int k) {
+        db A = (db)(1.00 * m_slopes[j] - m_slopes[i]) * (b_intercepts[k] - b_intercepts[i]);
+        db B = (db)(1.00 * m_slopes[k] - m_slopes[i]) * (b_intercepts[j] - b_intercepts[i]);
+        return is_mx ? A < B : A >= B;
+    }
+
+    void add(ll a, ll b) {
+        if(is_mx) add_line(a, -b);
+        else add_line(-a, b);
+    }
+
+    ll queries(ll x) {
+        return is_mx ? -get(x) : get(x);
+    }
+
+    void add_line(ll slope, ll intercept) {
+        m_slopes.push_back(slope);
+        b_intercepts.push_back(intercept);
+        while(m_slopes.size() >= 3 && cross(m_slopes.size() - 3, m_slopes.size() - 2, m_slopes.size() - 1)) {
+            m_slopes.erase(m_slopes.end() - 2);
+            b_intercepts.erase(b_intercepts.end() - 2);
+        }
+    }
+
+    ll get(ll x) {
+        if(m_slopes.empty()) return INF;
+        int l = 0, r = m_slopes.size() - 1;
+        while(l < r) {
+            int mid = l + (r - l) / 2;
+            ll f1 = m_slopes[mid] * x + b_intercepts[mid];
+            ll f2 = m_slopes[mid + 1] * x + b_intercepts[mid + 1];
+            if(f1 > f2) l = mid + 1;
+            else r = mid;
+        }
+        return m_slopes[l] * x + b_intercepts[l];
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    auto f = [&]() -> ll {
+        vll prefix(n + 1), PREFIX(n + 1);
+        auto get = [&](int l, int r) -> ll {
+            if(l > r) return 0;
+            return PREFIX[r] - PREFIX[l - 1] + prefix[r] - prefix[l - 1];
+        };
+        for(int i = 1; i <= n; i++) {
+            prefix[i] = prefix[i - 1] + a[i];
+            PREFIX[i] = PREFIX[i - 1] + a[i] * i;
+
+        }
+        ll res = PREFIX[n];
+        CHT cht(true);
+        debug(a, PREFIX[n]);
+        for(int i = 1; i <= n; i++) {
+            for(int j = i - 1; j >= 1; j--) {
+                ll t = a[i] * j - prefix[j - 1] + prefix[i - 1] + PREFIX[n] - a[i] * i;
+                res = max(res, t);
+            }
+        }
+        CHT cht2(true);
+        for(int i = n; i >= 1; i--) {
+            for(int j = i + 1; j <= n; j++) {
+                ll t = a[i] * j - prefix[j] - a[i] * i + prefix[i] + PREFIX[n];
+                debug(i, j, t, PREFIX[i - 1]);
+                res = max(res, t);
+            }
+        }
+        return res;
+    };
+    cout << f() << endl;
 }
 
 signed main() {
@@ -226,3 +289,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

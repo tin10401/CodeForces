@@ -97,7 +97,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
-#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE
@@ -177,7 +176,69 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    // calculate the require operation after each merging queries, we notice that the operation only makes sense when
+    // two adjacent element is different set, making an extra move to merge them together
+    int n, m; cin >> n >> m;
+    vi where(n);
+    vvi comp(m);
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        x--;
+        comp[x].pb(i);
+        where[i] = x;
+    }
+    ll res = 0;
+    for(int i = 0; i < n - 1; i++) res += where[i] != where[i + 1];
+    DSU root(m);
+    for(int i = 0; i < m; i++) {
+        cout << res << endl;
+        if(i == m - 1) break;
+        int a, b; cin >> a >> b;
+        a--, b--;
+        a = root.find(a), b = root.find(b);
+        if(root.getRank(a) < root.getRank(b)) swap(a, b);
+        auto& s = comp[a], &t = comp[b];
+        for(auto& x : t) {
+            res -= int(x && root.find(where[x - 1]) == a) + int(x < n - 1 && root.find(where[x + 1]) == a);
+        }
+        s.insert(s.end(), all(t));
+        root.merge(a, b);
+    }
 }
 
 signed main() {

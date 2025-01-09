@@ -178,6 +178,49 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    int D = 60;
+    auto f = [&]() -> int {
+        int timer = 0;
+        vi cnt(MX * 2 + 10), last(MX * 2 + 10);
+        int off = MX;
+        int ans = 0;
+        auto add = [&](int x, int v = 1) -> void {
+            x += off;
+            if(last[x] != timer) {
+                last[x] = timer;
+                cnt[x] = v;
+            }
+            ans = max(ans, ++cnt[x]);
+        };
+        auto process = [&](int k) -> int {
+            int res = 0;
+            map<int, int> mp;
+            for(int i = 0; i < n; i++) {
+                ans = max(ans, ++mp[a[i] - k * i]);
+            }
+            return res;
+        };
+        for(int d = 0; d <= D; d++) ans = max(ans, process(d));
+        for(int i = 0; i < n; i++) {
+            ++timer;
+            for(int j = max(i - MX / D, 0); j < i; j++) {
+                int d = (a[i] - a[j]);
+                if(d % (i - j) == 0) {
+                    d /= (i - j);
+                    if(d > D) {
+                        add(d);
+                    }
+                }
+            }
+        }
+        return ans;
+    };
+    int res = f();
+    rev(a);
+    res = max(res, f());
+    cout << n - res << endl;
 }
 
 signed main() {

@@ -97,7 +97,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
-#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE
@@ -177,7 +176,62 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    // in one move increase the edge weight by one, find min operation to make graph have a unique MST
+    // we notice that we don't have to increase a weight of one edge more than one
+    int n, m; cin >> n >> m;
+    var(3) a(m);
+    for(auto& [w, u, v] : a) {
+        cin >> u >> v >> w;
+        u--, v--;
+    }
+    srt(a);
+    DSU root(n);
+    int res = 0;
+    for(int i = 0; i < m;) {
+        int j = i;
+        while(j < m && a[j][0] == a[i][0]) j++;
+        int cnt = j - i;
+        for(int k = i; k < j; k++) cnt -= root.same(a[k][1], a[k][2]);
+        for(int k = i; k < j; k++) cnt -= root.merge(a[k][1], a[k][2]);
+        res += cnt;
+        i = j;
+    }
+    cout << res << endl;
 }
 
 signed main() {

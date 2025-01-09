@@ -97,7 +97,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
-#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE
@@ -178,6 +177,36 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    string s; cin >> s;
+    int n = s.size();
+    vi ans(n, -1);
+    stack<int> st;
+    for(int i = 0; i < n; i++) {
+        if(s[i] == '(') {
+            st.push(i);
+            continue;
+        }
+        if(!st.empty() && s[st.top()] == '(') {
+            ans[st.top()] = i;
+            st.pop();
+        }
+        else st.push(i);
+    }
+    debug(ans);
+    for(int i = n - 1; i >= 0; i--) {
+        int r = ans[i];
+        if(r == -1) continue;
+        if(r + 1 < n && ans[r + 1] != -1) ans[i] = ans[r + 1];
+    }
+    int mx = 0, c = 1;
+    for(int i = 0; i < n; i++) {
+        if(ans[i] == -1) continue;
+        int A = ans[i] - i + 1;
+        if(A > mx) mx = A, c = 1;
+        else if(A == mx) c++;
+    }
+    cout << mx << ' ' << c << endl;
+
 }
 
 signed main() {

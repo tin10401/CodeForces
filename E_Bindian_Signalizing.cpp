@@ -97,7 +97,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
-#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE
@@ -176,8 +175,44 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 
 void solve() {
+    // find all pair where min(a[i], a[j]) >= min(a[i + 1, i + 2, ..., j - 1], a[i - 1, i - 2, ..., j + 1, j + 2,...] greater than or equal to anything in between
+    // we will run a stack base algorithm to check for the equal pair in these
+    // now that we calculate all the equal pair in a range where ai is maximum of them
+    // we will count the number of pair such that a[i] is the minimum of the pair {i, j} and a[i] is not equal to a[j]
+    // we know that at most 2 pair will be created, one j to the left and one j to the right
+    // and we know something that either one will have the MAX(a) as the wall to separate them
+    // so we have to rotate it in such a way that MAX(a) is at the front for easier implementation
+    // come back to the idea of at most 2 pair will be created at each index, except for a[i] == MAX(a) because there won't be any pair
+    // we will add 2 to the answer
+    // we know 2 here means that a[i] matches j to the left, and matches j to the right
+    // however, these two j might be the same thing so we have to minus one from them
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    int p = max_element(all(a)) - begin(a);
+    ROTATE(a, p);
+    debug(a);
+    vi right(n), left(n), c(n);
+    iota(all(right), 0), iota(all(left), 0);
+    for(int i = n - 1; i >= 0; i--) {
+        auto&j = right[i];
+        while(j < n - 1 && a[j + 1] < a[i]) j = right[j + 1];
+        if(j < n - 1 && a[j + 1] == a[i]) {
+            c[i] = c[j + 1] + 1; // dp approach + 1 to equal element
+            j = right[j + 1];
+        }
+    }
+    ll res = sum(c); // n * (n + 1) / 2 for all equal pair
+    for(int i = 0; i < n; i++) {
+        if(a[i] == a[0]) continue;
+        auto&j = left[i];
+        while(j && a[j - 1] <= a[i]) j = left[j - 1];
+        res += 2;
+        if(j == 1 && right[i] == n - 1) res--; // same j
+    }
+    cout << res << endl;
 }
 
 signed main() {

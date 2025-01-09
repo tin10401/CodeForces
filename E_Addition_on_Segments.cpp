@@ -170,14 +170,95 @@ mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e4 + 1;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    vvi seg;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        seg.rsz(n * 4);
+    }
+    
+    void update(int start, int end, int val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, int val) {    
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            seg[i].pb(val);
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+    }
+    
+	T get() {
+		return root[0];
+	}
+
+    void run() {
+        run(entireTree);
+    }
+
+    void run(iter) {
+        if(left == right) {
+            root[i].set(0);
+            for(auto& v : seg[i]) {
+                root[i] |= root[i] << v;
+            }
+            return;
+        }
+        int middle = midPoint;
+        run(lp), run(rp);
+        root[i] = merge(i, root[lc], root[rc]);
+    }
+	
+    T merge(int i, const T& left, const T& right) {  
+        T res;  
+        res.set(0);
+        res = left | right;
+        for(auto& v : seg[i]) {
+            res |= res << v;
+        }
+        vi().swap(seg[i]);
+        return res;
+    }
+};
+
+
 void solve() {
+    int x = 1e8 / 64;
+    debug(x);
+    int n, q; cin >> n >> q;
+    SGT<bitset<MX>> root(n, bitset<MX>());
+    while(q--) {
+        int l, r, x; cin >> l >> r >> x;
+        l--, r--;
+        root.update(l, r, x);
+    }
+    root.run();
+    auto t = root.get();
+    vi ans;
+    for(int i = 1; i <= n; i++) {
+        if(t[i]) ans.pb(i);
+    }
+    cout << ans.size() << endl;
+    output_vector(ans);
+
 }
 
 signed main() {

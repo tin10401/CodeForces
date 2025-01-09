@@ -366,9 +366,9 @@ class SGT {
     vt<T> root;
 	vll lazy;
     T DEFAULT;
-	SGT(int n) {    
+	SGT(int n, T DEFAULT) {    
         this->n = n;
-        DEFAULT = inf;
+        this->DEFAULT = DEFAULT;
         root.rsz(n * 4);    
         lazy.rsz(n * 4);
 //        build(entireTree, arr);
@@ -417,11 +417,6 @@ class SGT {
         update(lp, start, end, val);    
         update(rp, start, end, val);    
         root[i] = merge(root[lc], root[rc]);
-    }
-    
-    T merge(T left, T right) {  
-        T res;  
-        return res;
     }
     
 	void apply(iter, T val) {
@@ -482,7 +477,13 @@ class SGT {
         print(lp);  print(rp);
     }
 
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
 };
+
 
 
 // PERSISTENT SEGTREE
