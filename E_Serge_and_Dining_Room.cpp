@@ -177,7 +177,178 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4);
+//        build(entireTree, arr);
+    }
+    
+//    void build(iter, vi& arr) { 
+//        if(left == right) { 	
+//            root[i] = arr[left];    
+//            return;
+//        }
+//        int middle = midPoint;  
+//        build(lp, arr), build(rp, arr); 
+//        root[i] = merge(root[lc], root[rc]);
+//    }
+
+    
+    void update(int id, T val) {  
+        update(entireTree, id, val);
+    }
+    
+    void update(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id, val);   
+        else update(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update(int start, int end, T val) { 
+        update(entireTree, start, end, val);
+    }
+    
+    void update(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, val);    
+        update(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries(int id) {
+		return queries(entireTree, id);
+	}
+	
+	T queries(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries(lp, id);
+		return queries(rp, id);
+	}
+
+    T queries(int start, int end) { 
+        return queries(entireTree, start, end);
+    }
+    
+    T queries(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries(lp, start, end), queries(rp, start, end));
+    }
+	
+	T get() {
+        if(root[0] <= 0) return -1;
+        return walk(entireTree);
+	}
+
+    T walk(iter) {
+        pushDown;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(root[rc] >= 1) return walk(rp);
+        return walk(lp);
+    }
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n), b(m); cin >> a >> b;
+    vi c(a);
+    c.insert(end(c), all(b));
+    int q; cin >> q;
+    var(3) Q(q);
+    for(auto& [op, i, x] : Q) {
+        cin >> op >> i >> x;
+        i--;
+        c.pb(x);
+    }
+    srtU(c);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(c), x) - begin(c));
+    };
+    for(auto& x : a) x = get_id(x);
+    for(auto& x : b) x = get_id(x);
+    for(auto& [op, i, x] : Q) x = get_id(x);
+    int N = c.size();
+    SGT<int> root(N, 0);
+    for(auto& x : a) root.update(0, x, 1);
+    for(auto& x : b) root.update(0, x, -1);
+    debug(c);
+    for(auto& [op, i, x] : Q) {
+        if(op == 1) {
+            root.update(0, a[i], -1);
+            a[i] = x;
+            root.update(0, a[i], 1);
+        }
+        else {
+            root.update(0, b[i], 1);
+            b[i] = x;
+            root.update(0, b[i], -1);
+        }
+        int res = root.get();
+        cout << (res == -1 ? -1 : c[res]) << endl;
+    }
 }
 
 signed main() {

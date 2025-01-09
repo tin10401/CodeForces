@@ -97,7 +97,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
-#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
 #define i128 __int128
 
 //SGT DEFINE
@@ -178,6 +177,15 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // remove the strictly increasing, now everything got to be added even, then add i back to the answer
+    int n; cin >> n;
+    vll a(n); cin >> a;
+    for(int i = 0; i < n; i++) a[i] -= i;
+    ll sm = sum(a);
+    for(int i = 0; i < n; i++) {
+        a[i] = i + sm / n + (i < sm % n);
+    }
+    output_vector(a);
 }
 
 signed main() {

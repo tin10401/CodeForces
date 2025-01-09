@@ -409,3 +409,107 @@ int lcs(const string& s, const string& t) { // longest common subsequences
     return dp[n][m];
 }
 
+class suffix_array {
+    public:
+    string s;
+    int n;
+    vi sa, pos, lcp;
+    ll distinct_substring;
+    suffix_array(const string& s) {
+        this->s = s;
+        distinct_substring = 0;
+        n = s.size();
+        sa.rsz(n), pos.rsz(n), lcp.rsz(n);
+        init();
+        build_lcp();
+    }
+
+    void init() {
+        vi tmp(n);
+        for(int i = 0; i < n; i++) {
+            sa[i] = i;
+            pos[i] = s[i];
+        }
+        for(int gap = 1; ; gap <<= 1) {
+            auto cmp = [&](int x, int y) -> bool {
+                if(pos[x] != pos[y]) return pos[x] < pos[y];
+                x += gap, y += gap;
+                return x < n && y < n ? pos[x] < pos[y] : x > y;
+            };
+            sort(all(sa), cmp);
+            for(int i = 0; i < n - 1; i++) {
+                tmp[i + 1] = tmp[i] + cmp(sa[i], sa[i + 1]);
+            }
+            for(int i = 0; i < n; i++) pos[sa[i]] = tmp[i];
+            if(tmp[n - 1] == n - 1) break;
+        }
+    }
+
+    void build_lcp() {
+        for(int i = 0, k = 0; i < n; i++) {
+            if(pos[i] == n - 1) continue;
+            int j = sa[pos[i] + 1];
+            while(s[i + k] == s[j + k]) k++;
+            lcp[pos[i]] = k;
+            if(k) k--;
+        }
+        distinct_substring = (ll)n * (n + 1) / 2 - sum(lcp);
+    }
+     
+    int check(const string& x, int m) {
+        int found = -1, j = sa[m];
+        if(n - j >= (int)x.size()) found = 0;
+        for(int i = 0; i < min(n, (int)x.size()); i++)
+        {
+            if(s[i + j] < x[i]) return -1;
+            if(s[i + j] > x[i]) return 1;
+        }
+        return found;
+    }
+
+    int count(const string& x) {
+        int left = 0, right = n - 1, left_most = -1, right_most = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            int val = check(x, middle);
+            if(val == 0) left_most = middle, right = middle - 1;
+            else if(val == -1) left = middle + 1;
+            else right = middle - 1;
+        }
+        if(left_most == -1) return 0;
+        left = left_most, right = n - 1;
+        while(left <= right) {
+            int middle = midPoint;
+            int val = check(x, middle);
+            if(val == 0) right_most = middle, left = middle + 1;
+            else if(val == -1) left = middle + 1;
+            else right = middle - 1;
+        }
+        return right_most - left_most + 1;
+    }
+
+    string lcs(const string& t) {
+        string combined = s + '$' + t;
+        suffix_array sa_combined(combined);
+        int max_lcp = 0, start_pos = 0;
+        int split = s.size();
+        for (int i = 1; i < sa_combined.n; i++) {
+            int suffix1 = sa_combined.sa[i - 1];
+            int suffix2 = sa_combined.sa[i];
+            bool in_s1 = suffix1 < split;
+            bool in_t1 = suffix2 > split;
+            bool in_s2 = suffix2 < split;
+            bool in_t2 = suffix1 > split;
+            if ((in_s1 && in_t1) || (in_s2 && in_t2)) {
+                int len = sa_combined.lcp[i - 1];
+                if (len > max_lcp) {
+                    max_lcp = len;
+                    start_pos = sa_combined.sa[i];
+                }
+            }
+        }
+        return combined.substr(start_pos, max_lcp);
+    }
+};
+
+

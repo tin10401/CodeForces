@@ -183,19 +183,9 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<int> A(1, 1e9);
     uniform_int_distribution<int> val(1, 10);
     int n = dist_n(rng);
-    int q = dist_q(rng);
-    cout << n << ' ' << q << endl;
+    cout << n << endl;
     for(int i = 0; i < n; i++) {
-        int l = val(rng), r = val(rng);
-        if(l > r) swap(l, r);
-        cout << l << ' ' << r << endl;
-    }
-    while(q--) {
-        int k = dist_n(rng);
-        cout << k << ' ';
-        while(k--) {
-            cout << val(rng) << (k == 0 ? '\n' : ' ');
-        }
+        cout << (val(rng)) << (i == n - 1 ? '\n' : ' ');
     }
 }
 

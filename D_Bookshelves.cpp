@@ -177,7 +177,31 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+int dp[51][51];
 void solve() {
+    // return mx doesn't work because maybe mx doesn't have that bit in there, so we have to check for it
+    int n, k; cin >> n >> k;
+    vll a(n); cin >> a;
+    ll ans = 0;
+    auto dfs = [&](auto& dfs, int i = 0, int kk = 0) -> int {
+        if(i == n) return kk == k;
+        if(kk == k) return 0;
+        auto& res = dp[i][kk];
+        if(res != -1) return res;
+        ll sm = 0;
+        for(int j = i; j < n; j++) {
+            sm += a[j]; 
+            if((sm & ans) == ans && dfs(dfs, j + 1, kk + 1)) return res = 1;
+        }
+        return res = 0;
+    };
+    for(int bit = 55; bit >= 0; bit--) {
+        mset(dp, -1);
+        ans ^= (1LL << bit);
+        if(dfs(dfs)) continue;
+        ans ^= (1LL << bit);
+    }
+    cout << ans << endl;
 }
 
 signed main() {
