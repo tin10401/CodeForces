@@ -208,7 +208,90 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    T DEFAULT;
+    vi depth;
+    int D;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        D = log2(n) - 1;
+        depth.rsz(D + 1);
+        root.rsz(n * 4);    
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val, D);
+    }
+    
+    void update_at(iter, int id, T val, int d) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        int l = i * 2 + 1, r = i * 2 + 2;
+        if(depth[d]) swap(l, r);
+        if(id <= middle) update_at(l, left, middle, id, val, d - 1);   
+        else update_at(r, middle + 1, right, id, val, d - 1);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end, D);
+    }
+    
+    T queries_range(iter, int start, int end, int d) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        int l = i * 2 + 1, r = i * 2 + 2;
+        if(depth[d]) swap(l, r);
+        return merge(queries_range(l, left, middle, start, end, d - 1), queries_range(r, middle + 1, right, start, end, d - 1));
+    }
+	
+    T merge(T left, T right) {  
+        T res;  
+        res = left + right;
+        return res;
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    int N = 1 << n;
+    vi a(N); cin >> a;
+    SGT<ll> root(N, 0);
+    for(int i = 0; i < N; i++) {
+        root.update_at(i, a[i]);
+    }
+    while(q--) {
+        int op; cin >> op;
+        if(op == 4) {
+            int l, r; cin >> l >> r;
+            l--, r--;
+            cout << root.queries_range(l, r) << endl;
+        }
+        else if(op == 1) {
+            int x, k; cin >> x >> k;
+            x--;
+            root.update_at(x, k);
+        }
+        else if(op == 2) {
+            int k; cin >> k;
+            for(int i = 0; i < k; i++) {
+                root.depth[i] ^= 1;
+            }
+        }
+        else {
+            int k; cin >> k;
+            root.depth[k] ^= 1;
+        }
+    }
 }
 
 signed main() {

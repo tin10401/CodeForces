@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -138,27 +137,6 @@ void output_vector(vt<T>& a, int off_set = 0) {
         cout << a[i] << (i == n - 1 ? '\n' : ' ');
     }
 }
-
-template<typename T, typename Compare>
-vi closest_left(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = 0; i < n; i++) {
-        auto& j = closest[i];
-        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
-    }
-    return closest;
-}
-
-template<typename T, typename Compare> // auto right = closest_right<int>(a, std::less<int>());
-vi closest_right(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = n - 1; i >= 0; i--) {
-        auto& j = closest[i];
-        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
-    }
-    return closest;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,15 +155,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,7 +163,7 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
@@ -208,27 +177,100 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<typename T, typename Compare>
+vi closest_left(const vi& a, Compare cmp) {
+    int n = a.size(); vi closest(n); iota(all(closest), 0);
+    for (int i = 0; i < n; i++) {
+        auto& j = closest[i];
+        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
+    }
+    return closest;
+}
+
+template<typename T, typename Compare>
+vi closest_right(const vi& a, Compare cmp) {
+    int n = a.size(); vi closest(n); iota(all(closest), 0);
+    for (int i = n - 1; i >= 0; i--) {
+        auto& j = closest[i];
+        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
+    }
+    return closest;
+}
+
+template<class T>
+class SparseTable { 
+    public: 
+    int n;  
+    vi a, log_table;
+    vt<vt<T>> dp_max, dp_min, dp_gcd, dp_or;
+	SparseTable(vi& a) {  
+		n = a.size();
+        this->a = a;
+        log_table.rsz(n + 1);
+        dp_max.rsz(n, vt<T>(MK));
+        dp_min.rsz(n, vt<T>(MK));
+        dp_gcd.rsz(n, vt<T>(MK));
+        dp_or.rsz(n, vt<T>(MK));
+        init();
+    }
+    
+    void init() {   
+		for(int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for(int i = 0; i < n; i++) dp_max[i][0] = dp_min[i][0] = dp_gcd[i][0] = dp_or[i][0] = a[i];
+        for(int j = 1; j < MK; j++) {    
+            for(int i = 0; i + (1LL << j) <= n; i++) {    
+                int p = i + (1LL << (j - 1));
+                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[p][j - 1]);
+                dp_min[i][j] = min(dp_min[i][j - 1], dp_min[p][j - 1]);
+                dp_gcd[i][j] = gcd(dp_gcd[i][j - 1], dp_gcd[p][j - 1]);
+                dp_or[i][j] = dp_or[i][j - 1] | dp_or[p][j - 1];
+            }
+        }
+    }
+    
+    int queries(int left, int right) {  
+		int j = log_table[right - left + 1];
+        int p = right - (1LL << j) + 1;
+        T mx = max(dp_max[left][j], dp_max[p][j]);
+        return mx;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    auto left = closest_left<int>(a, less<int>());
+    auto right = closest_right<int>(a, less<int>());
+    // subarray starting at i where i is the min of right most, we don't need to move
+    // subarray ending at left[i], where j is maximum is safe as well
+    SparseTable<int> t(a);
+    ll res = 0;
+    for(ll i = 0; i < n; i++) {
+        res += i * (n - i);
+        int l = 0, r = left[i] - 1, left_most = 0;
+        while(l <= r) {
+            int middle = (l + r) >> 1;
+            if(t.queries(middle, left[i] - 1) < a[i]) r = middle - 1, left_most = middle;
+            else l = middle + 1;
+        }
+        res -= (right[i] - i + 1) * (left[i] - left_most);
+    }
+    cout << res << endl;
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

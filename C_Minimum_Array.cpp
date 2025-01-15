@@ -177,15 +177,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -209,6 +200,39 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    // given q queries add x to [l, r]
+    // find lexicographically smallest array
+    // we notice that the smallest array will works on the difference array and not depend on the oringal array
+    // and what matters is the first element in that diff, if it's negative, meaning that it actually got decreased
+    // so apply on this and reset the set again to find the next diff
+    int n; cin >> n;
+    vll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    set<int> s;
+    vll d(n + 2), dd(n + 2);
+    int q; cin >> q;
+    while(q--) {
+        int l, r, x; cin >> l >> r >> x;
+        if(x == 0) continue;
+        d[l] += x;
+        d[r + 1] -= x;
+        if(d[l] == 0) s.erase(l);
+        else s.insert(l);
+        if(d[r + 1] == 0) s.erase(r + 1);
+        else s.insert(r + 1);
+        if(!s.empty() && d[*s.begin()] < 0) {
+            for(auto& it : s) {
+                dd[it] += d[it];
+                d[it] = 0;
+            }
+            set<int>().swap(s);
+        }
+    }
+    for(int i = 1; i <= n; i++) {
+        dd[i] += dd[i - 1];
+        a[i] += dd[i];
+        cout << a[i] << (i == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -218,17 +242,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

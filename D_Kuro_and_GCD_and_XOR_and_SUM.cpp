@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -177,15 +176,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,13 +184,13 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
-const static int MK = 20;
+const static int MK = 30;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -208,14 +198,85 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+int T[MX * 200][2], root[MX * 200], V[MX * 200], ptr;
+class Binary_Trie { 
+    public:
+    int m = 19;
+    void insert(int num, int k) {  
+        if(!root[k]) root[k] = ++ptr;
+        int curr = root[k];
+        for(int i = m - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr][bits]) {
+                T[curr][bits] = ++ptr;
+                V[ptr] = inf;
+            }
+            curr = T[curr][bits];
+            V[curr] = min(V[curr], num);
+        }
+    }
+	
+    int max_xor(int curr, int num, int lim) {  
+        curr = root[curr];
+        if(!curr) return -1;
+        for(int i = m - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            int nxt = T[curr][!bits];
+            if(nxt && V[nxt] <= lim) {    
+                curr = nxt;
+            }
+            else if(T[curr][bits]) {  
+                curr = T[curr][bits];
+            }
+            if(!curr) break;
+        }
+        if(!curr || V[curr] > lim) return -1;
+        return V[curr] ? V[curr] : -1;
+    }
+};
+    
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        T[i][0] = T[i][1] = 0;
+    }
+    ptr = 0;
+}
+
+vi DIV[MX];
+void preprocess() {
+    for(int i = 1; i < MX; i++) {
+        for(int j = i; j < MX; j += i) DIV[j].pb(i);
+    }
+}
+
+Binary_Trie Trie;
 void solve() {
+    int q; cin >> q;
+    vi vis(MX);
+    while(q--) {
+        int type; cin >> type;
+        if(type == 1) {
+            int x; cin >> x;
+            if(!vis[x]) {
+                vis[x] = true;
+                for(auto& v : DIV[x]) Trie.insert(x, v);
+            }
+        }
+        else {
+            int x, k, s; cin >> x >> k >> s;
+            if(x % k) {
+                cout << -1 << endl;
+                continue;
+            }
+            cout << Trie.max_xor(k, x, s - x) << endl;
+        }
+    }
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
-    //generatePrime();
+    preprocess();
 
     int t = 1;
     //cin >> t;
@@ -225,10 +286,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

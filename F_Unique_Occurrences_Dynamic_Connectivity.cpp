@@ -177,15 +177,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -208,7 +199,117 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class Undo_DSU {
+    public:
+    vi par, rank;
+    stack<ar(4)> st;
+    int n;
+    Undo_DSU(int n) {
+        this->n = n;
+        par.rsz(n), rank.rsz(n, 1);
+        iota(all(par), 0);
+    }
+ 
+    int find(int v) {
+        if (par[v] == v) return v;
+        return find(par[v]);
+    }
+ 
+    bool merge(int a, int b, bool save = false) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        if (rank[a] < rank[b]) swap(a, b);
+        if (save) st.push({a, rank[a], b, rank[b]});
+        par[b] = a;
+        rank[a] += rank[b];
+        return true;
+    }
+ 
+    void rollBack() {
+        if(!par.empty()) {
+            auto x = st.top(); st.pop();
+            par[x[0]] = x[0];
+            rank[x[0]] = x[1];
+            par[x[2]] = x[2];
+            rank[x[2]] = x[3];
+        }
+    }
+
+    bool same(int u, int v) {
+        return find(u) == find(v);
+    }
+
+    int getRank(int u) {
+        return rank[find(u)];
+    }
+};
+
+template<class T>   
+class SegTree_Graph { 
+    public: 
+    int n;  
+    vt<vt<T>> graph;
+    ll res = 0;
+    Undo_DSU root;
+    vvpii color;
+	SegTree_Graph(int n) : root(n) {    
+        this->n = n;
+        graph.rsz(n * 4);
+        color.rsz(n);
+    }
+    
+    void update(int start, int end, T v) { 
+        update(entireTree, start, end, v);
+    }
+    
+    void update(iter, int start, int end, T v) {    
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            graph[i].pb(v);
+            return;
+        }
+        int middle = midPoint;  
+        update(lp, start, end, v);    
+        update(rp, start, end, v);    
+    }
+
+    void run() {
+        dfs(entireTree);
+    }
+
+    void dfs(iter) {
+        int c = 0;
+        for(auto& [u, v] : graph[i]) {
+            if(root.merge(u, v, true)) c++;
+        }
+        if(left == right) {
+            for(auto& [u, v] : color[left]) {
+                res += (ll)root.getRank(u) * root.getRank(v);
+            }
+        }
+        else {
+            int middle = midPoint;
+            dfs(lp), dfs(rp);
+        }
+        while(c--) {
+            root.rollBack();
+        }
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    SegTree_Graph<pii> root(n);
+    for(int i = 1; i < n; i++) {
+        int u, v, x; cin >> u >> v >> x;
+        u--, v--, x--;
+        // any other color can merge and when imagine a big graph, what this does is it will split the tree into color[x] component, you cannot cross it
+        root.update(0, x - 1, {u, v});
+        root.update(x + 1, n - 1, {u, v});
+        root.color[x].pb({u, v});
+    }
+    root.run();
+    cout << root.res << endl;
 }
 
 signed main() {
@@ -225,10 +326,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

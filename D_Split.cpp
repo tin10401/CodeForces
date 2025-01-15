@@ -177,15 +177,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -208,7 +199,164 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4, -1);
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] = val;
+        lazy[i] = val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] != -1 && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = -1;
+        }
+    }
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+    void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        return min(left, right);
+        return res;
+    }
+};
+
+template<typename T, typename F> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return a > b ? a : b;});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
+
 void solve() {
+    // determine if subarray [l, r] in the query exist an index i such that element in [l, i] < element in [i + 1, r]
+    // imagine a stack base
+    // there'll be a right_most point less than L[i] which is greater than a[i], and this point is bad, so every subarray from this point to r is bad
+    // so for each index, we will figure out the right_most_bad_point and update it
+    // if there exist at least one point which is less than l for range [l, r], it's good
+    int n; cin >> n;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    int q; cin >> q;
+    vvpii Q(n + 1);
+    for(int i = 0; i < q; i++) {
+        int l, r; cin >> l >> r;
+        Q[r].pb({l, i});
+    }
+    auto L = closest_left(a, less<int>());
+    SparseTable<int, function<int(int, int)>> t(a, [](int x, int y) {return x > y ? x : y;});
+    SGT<int> root(n + 1, inf);
+    vi ans(q);
+    for(int r = 1; r <= n; r++) {
+        root.update_range(L[r], r, inf);
+        int left = 0, right = L[r] - 1, right_most = 0;
+        while(left <= right) {
+            int middle = midPoint;
+            if(t.query(middle, L[r] - 1) > a[r]) right_most = middle, left = middle + 1;
+            else right = middle - 1;
+        }
+        root.update_at(L[r] - 1, right_most);
+        for(auto& [l, id] : Q[r]) {
+            int t = root.queries_range(l, r);
+            ans[id] = root.queries_range(l, r) < l;
+        }
+    }
+    for(auto& v : ans) {
+        cout << (v ? "Yes" : "No") << endl;
+    }
+    
 }
 
 signed main() {
@@ -225,10 +373,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

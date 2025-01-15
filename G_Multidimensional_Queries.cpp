@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -138,27 +137,6 @@ void output_vector(vt<T>& a, int off_set = 0) {
         cout << a[i] << (i == n - 1 ? '\n' : ' ');
     }
 }
-
-template<typename T, typename Compare>
-vi closest_left(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = 0; i < n; i++) {
-        auto& j = closest[i];
-        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
-    }
-    return closest;
-}
-
-template<typename T, typename Compare> // auto right = closest_right<int>(a, std::less<int>());
-vi closest_right(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = n - 1; i >= 0; i--) {
-        auto& j = closest[i];
-        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
-    }
-    return closest;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,15 +155,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,7 +163,7 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
@@ -208,11 +177,86 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>   
+class SGT { 
+    public: 
+    int n, k;  
+    vt<T> root;
+	SGT(int n, int k) {    
+        this->n = n;
+        this->k = k;
+        root.rsz(n * 4);    
+    }
+    
+    void update(int id) {  
+        update(entireTree, id);
+    }
+    
+    void update(iter, int id) {  
+        if(left == right) { 
+            ar(5) v;
+            for(int i = 0; i < k; i++) cin >> v[i];
+            for(int mask = 0; mask < 1 << k; mask++) {
+                int curr = 0;
+                for(int j = 0; j < k; j++) {
+                    if((mask >> j) & 1) curr += v[j];
+                    else curr -= v[j];
+                }
+                root[i][mask] = curr;
+            }
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update(lp, id);   
+        else update(rp, id);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    int queries(int start, int end, int x) { 
+        return queries(entireTree, start, end, x);
+    }
+    
+    int queries(iter, int start, int end, int x) {   
+        if(left > end || start > right) return -inf;
+        if(left >= start && right <= end) return root[i][x];   
+        int middle = midPoint;  
+        return max(queries(lp, start, end, x), queries(rp, start, end, x));
+    }
+	
+    T merge(const T& left, const T& right) {  
+        T res = {};  
+        for(int i = 0; i < 1 << k; i++) {
+            res[i] = max(left[i], right[i]);
+        }
+        return res;
+    }
+};
+
 void solve() {
+    int n, k; cin >> n >> k;
+    SGT<ar(32)> root(n, k);
+    for(int i = 0; i < n; i++) root.update(i);
+    int q; cin >> q;
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int i; cin >> i;
+            root.update(i - 1);
+            continue;
+        }
+        int l, r; cin >> l >> r;
+        l--, r--;
+        int res = 0;
+        for(int mask = 0; mask < 1 << k; mask++) {
+            int x = root.queries(l, r, mask);
+            int y = root.queries(l, r, mask ^ ((1 << k) - 1));
+            res = max(res, abs(x + y));
+        }
+        cout << res << endl;
+    }
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
@@ -225,10 +269,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -138,27 +137,6 @@ void output_vector(vt<T>& a, int off_set = 0) {
         cout << a[i] << (i == n - 1 ? '\n' : ' ');
     }
 }
-
-template<typename T, typename Compare>
-vi closest_left(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = 0; i < n; i++) {
-        auto& j = closest[i];
-        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
-    }
-    return closest;
-}
-
-template<typename T, typename Compare> // auto right = closest_right<int>(a, std::less<int>());
-vi closest_right(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = n - 1; i >= 0; i--) {
-        auto& j = closest[i];
-        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
-    }
-    return closest;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,15 +155,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,13 +163,13 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
-const static int MK = 20;
+const static int MK = 50;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -208,11 +177,120 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+// PERSISTENT SEGTREE
+int t[MX], root[MX * 300], ptr; 
+pii child[MX * 300];
+template<class T>
+struct PSGT {
+    void update(int curr, int prev, int id, int delta, int left, int right) {  
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+            root[curr] = max(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) {  
+            child[curr].ff = ++ptr; 
+            update(child[curr].ff, child[prev].ff, id, delta, left, middle);
+        }
+        else {  
+            child[curr].ss = ++ptr; 
+            update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        }
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    T queries(int curr, int start, int end, int left, int right) { 
+        if(left >= start && right <= end) return root[curr];
+        if(left > end || start > right) return 0;
+        int middle = midPoint;  
+        return merge(queries(child[curr].ff, start, end, left, middle), queries(child[curr].ss, start, end, middle + 1, right));
+    };
+        
+    int get(int curr, int prev, int k, int left, int right) {    
+        if(root[curr] - root[prev] < k) return inf;
+        if(left == right) return left;
+        int leftCount = root[child[curr].ff] - root[child[prev].ff];
+        int middle = midPoint;
+        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
+        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
+    }
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = t[i] = 0;
+            child[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+
+    T merge(T left, T right) {
+        return min(!left ? inf : left, !right ? inf : right);
+    }
+
+    void add(int i, int id, int delta, int n) {
+        while(i < n) {
+            int p = t[i];
+            t[i] = ++ptr;
+            update(t[i], p, id, delta, 0, n - 1);
+            i |= (i + 1);
+        }
+        // prev = t[i];
+    }
+
+    int queries(int i, int start, int end, int n) {
+        int res = inf;
+        while(i >= 0) {
+            int v = queries(t[i], start, end, 0, n - 1);
+            if(v) res = min(res, v);
+            i = (i & (i + 1)) - 1;
+        }
+        return res;
+    }
+
+};
+
+PSGT<int> seg;
+
 void solve() {
+    int n, root; cin >> n >> root;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+    vvi graph(n + 1);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi tin(n + 1), tout(n + 1), depth(n + 1);
+    int timer = 0;
+    auto dfs = [&](auto& dfs, int node, int par) -> void {
+        tin[node] = timer++; 
+        seg.add(depth[node], tin[node], a[node], n);
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            depth[nei] = depth[node] + 1;
+            dfs(dfs, nei, node);
+        }
+        tout[node] = timer - 1;
+    };
+    dfs(dfs, root, -1);
+    int ans = 0;
+    int q; cin >> q;
+    while(q--) {
+        int x, k; cin >> x >> k;
+        x = ((x + ans) % n) + 1;
+        k = (k + ans) % n;
+        k = min(k + depth[x], n - 1);
+        ans = seg.queries(k, tin[x], tout[x], n);
+        cout << ans << endl;
+    }
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
@@ -225,10 +303,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 
@@ -245,3 +319,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

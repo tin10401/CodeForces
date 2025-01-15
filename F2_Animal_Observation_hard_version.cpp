@@ -209,6 +209,54 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n, m, k; cin >> n >> m >> k;
+    vvll a(n + 2, vll(m + 2));
+    for(int i = 1; i <= n; i++) {
+        for(int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+            a[i][j] += a[i][j - 1];
+        }
+    }
+    auto get_prefix = [&](int i, int l, int r) -> ll {
+        if(l >= r) return 0;
+        l--, r--;
+        return a[i][r] - a[i][l];
+    };
+    vll dp(m + 2), prefix(m + 2), suffix(m + 2);
+    ll ans = 0;
+    for(int i = 1; i <= n; i++) {
+        vll next(m + 2);
+        multiset<ll> s;
+        for(int j = 1; j <= m; j++) {
+            if(j + k > m + 1) break;
+            auto& res = next[j];
+            ll p = get_prefix(i, j, j + k) + get_prefix(i + 1, j, j + k);
+            res = p + max(j >= k ? prefix[j - k] : 0LL, suffix[j + k]);
+            s.insert(dp[j] - a[i][j + k - 1]);
+            res = max(res, *s.rbegin() + a[i][j + k - 1] + get_prefix(i + 1, j, j + k));
+            if(j >= k + 1) {
+                s.erase(s.find(dp[j - k] - a[i][j - 1]));
+            }
+        }
+        multiset<ll>().swap(s);
+        for(int j = m - k + 1; j >= 1; j--) {
+            auto& res = next[j]; 
+            s.insert(dp[j] + a[i][j - 1]);
+            res = max(res, *s.rbegin() - a[i][j - 1] + get_prefix(i + 1, j, j + k));
+            if(j + k <= m - k + 1) {
+                s.erase(s.find(dp[j + k] + a[i][j + k - 1]));
+            }
+        }
+        multiset<ll>().swap(s);
+        swap(dp, next);
+        for(int j = 1; j <= m; j++) {
+            prefix[j] = max(prefix[j - 1], dp[j]);
+        }
+        for(int j = m; j >= 1; j--) {
+            suffix[j] = max(suffix[j + 1], dp[j]);
+        }
+    }
+    cout << MAX(dp) << endl;
 }
 
 signed main() {

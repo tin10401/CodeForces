@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -177,15 +176,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,7 +184,7 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
@@ -208,27 +198,68 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+struct Info {
+    ll type, need, cap;
+    Info(ll type = 0, ll need = 0, ll cap = 0) : type(type), need(need), cap(cap) {}
+};
+
 void solve() {
+    // find minimum operation to move such that each haystack empty at least once
+    // before getting empty, capacity is inf, after getting empty, capacity is b[i]
+    // brute force every index where index i is the last in the list
+    int n; cin >> n;
+    vt<Info> a(n + 1);
+    ll total_need = 0, total_limit = 0;
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i].need >> a[i].cap;
+        total_need += a[i].need;
+        total_limit += a[i].cap;
+        a[i].type = int(a[i].need > a[i].cap);
+    }
+    auto cmp = [](const Info& a, const Info& b) -> bool {
+        if(a.type != b.type) return a.type < b.type;
+        if(a.type == 0) return a.need < b.need;
+        return a.cap > b.cap;
+    };
+    sort(all(a), cmp);
+    vll val(n + 1);
+    ll t = 0;
+    for(int i = 0; i <= n; i++) {
+        t += a[i].need;
+        val[i] = t;
+        t -= a[i].cap;
+    }
+    vll suffix(n + 2, -INF), prefix(n + 2, -INF);
+    for(int i = 1; i <= n; i++) {
+        prefix[i] = max(prefix[i - 1], val[i]);
+    }
+    for(int i = n; i >= 1; i--) {
+        suffix[i] = max(suffix[i + 1], val[i]);
+    }
+    ll ans = INF;
+    for(int i = 1; i <= n; i++) {
+        if(total_limit - a[i].cap >= total_need) { // prefix[i - 1], not included a[i] yet, suffix[i + 1], included a[i] so + a[i].cap - a[i].need to extract it out
+                                                   // answer is maximum of prefix and suffix not include this points
+                                                   // why ? because this maximum will be placed on top of the last haystack, which is this i
+            ans = min(ans, max(prefix[i - 1], suffix[i + 1] + a[i].cap - a[i].need));
+        }
+    }
+    cout << (ans == INF ? -1 : total_need + ans) << endl;
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

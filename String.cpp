@@ -1,7 +1,7 @@
 int T[MX * MK][2], cnt[MX * MK], ptr;
 class Binary_Trie { 
     public:
-    int m = 30;
+    int m = 20;
     void insert(ll num, int v = 1) {  
         int curr = 0;   
         for(int i = m - 1; i >= 0; i--) {  
@@ -14,11 +14,14 @@ class Binary_Trie {
     }
 	
 	void dfs_insert(int curr, ll num, int bit) {
+		if(bit == -1) {
+			cnt[curr ] = 1;
+			return;
+		}
         int b = (num >> bit) & 1;
         if(!T[curr][b]) T[curr][b] = ++ptr;
         int nxt = T[curr][b];
-        if(bit == 0) cnt[nxt] = 1;
-        else dfs_insert(nxt, num, bit - 1);
+        dfs_insert(nxt, num, bit - 1);
         cnt[curr] = cnt[nxt] + (T[curr][!b] ? cnt[T[curr][!b]] : 0);
     }
 
@@ -63,7 +66,9 @@ class Binary_Trie {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
             if(b_bits) {
-                res += cnt[T[curr][bits]];
+				if(T[cnt][bits]) {
+					res += cnt[T[curr][bits]];
+				}
                 curr = T[curr][!bits];
             }
             else {
@@ -81,7 +86,7 @@ class Binary_Trie {
         for(int i = m - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
-            if(b_bits == 0) {
+            if(b_bits == 0 && T[curr][!bits]) {
                 res += cnt[T[curr][!bits]];
             }
             curr = T[curr][b_bits ^ bits];

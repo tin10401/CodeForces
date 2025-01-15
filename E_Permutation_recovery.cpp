@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -138,27 +137,6 @@ void output_vector(vt<T>& a, int off_set = 0) {
         cout << a[i] << (i == n - 1 ? '\n' : ' ');
     }
 }
-
-template<typename T, typename Compare>
-vi closest_left(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = 0; i < n; i++) {
-        auto& j = closest[i];
-        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
-    }
-    return closest;
-}
-
-template<typename T, typename Compare> // auto right = closest_right<int>(a, std::less<int>());
-vi closest_right(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = n - 1; i >= 0; i--) {
-        auto& j = closest[i];
-        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
-    }
-    return closest;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,15 +155,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,7 +163,7 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
@@ -209,26 +178,53 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
+    int n; cin >> n;
+    vvi graph(n + 5);
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    for(int i = 1; i <= n; i++) {
+        auto& p = a[i];
+        if(p == -1) p = i + 1;
+        graph[p].pb(i);
+    }
+    vi ans(n + 2);
+    int timer = n + 1;
+    auto dfs = [&](auto& dfs, int node, int par) -> void {
+        ans[node] = timer--;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+        }
+    };
+    dfs(dfs, n + 1, -1);
+    ans.pop_back();
+    stack<int> s;
+    for(int i = n; i >= 1; i--) {
+        while(!s.empty() && ans[s.top()] < ans[i]) {
+            s.pop();
+        }
+        if(!s.empty() && a[i] != s.top()) {
+            cout << -1 << endl;
+            return;
+        }
+        s.push(i);
+    }
+    output_vector(ans, 1);
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

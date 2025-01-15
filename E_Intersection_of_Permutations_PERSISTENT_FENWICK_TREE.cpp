@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -138,27 +137,6 @@ void output_vector(vt<T>& a, int off_set = 0) {
         cout << a[i] << (i == n - 1 ? '\n' : ' ');
     }
 }
-
-template<typename T, typename Compare>
-vi closest_left(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = 0; i < n; i++) {
-        auto& j = closest[i];
-        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
-    }
-    return closest;
-}
-
-template<typename T, typename Compare> // auto right = closest_right<int>(a, std::less<int>());
-vi closest_right(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = n - 1; i >= 0; i--) {
-        auto& j = closest[i];
-        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
-    }
-    return closest;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,15 +155,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,25 +163,156 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+// PERSISTENT_FENWICK_TREE
+template<class T>
+class PFW {
+    public:
+    int n;
+    vt<vt<T>> coord, root;
+    PFW(int n) {
+        this->n = n;
+        coord.rsz(n), root.rsz(n);
+    }
+
+    void go_up(int& id) {
+        id |= (id + 1);
+    }
+
+    void go_down(int& id) {
+        id = (id & (id + 1)) - 1;
+    }
+
+    void add_coord(int i, T x, bool is_up = true) {
+        while(i >= 0 && i < n) {
+            coord[i].pb(x);
+            if(is_up) go_up(i);
+            else go_down(i);
+        }
+    }
+
+    void update_coord(int i, int l, int r, bool is_up = true) {
+        add_coord(i, l - 1, is_up);
+        add_coord(i, r, is_up);
+    }
+
+    void build() {
+        for(int i = 0; i < n; i++) {
+            srtU(coord[i]);
+            root[i].rsz(coord[i].size());
+        }
+    }
+
+    int get_id(int i, T x) {
+        return int(lb(all(coord[i]), x) - begin(coord[i]));
+    }
+
+    void update(int i, T x, T delta) {
+        while(i < n) {
+            int p = get_id(i, x);
+            while(p < coord[i].size()) {
+                root[i][p] += delta;
+                go_up(p);
+            }
+            go_up(i);
+        }
+    }
+
+    T get_single(int i, T x) {
+        T res = 0;
+        T p = get_id(i, x);
+        while(p >= 0) {
+            res += root[i][p];
+            go_down(p);
+        }
+        return res;
+    }
+
+    T bit_query(int i, T x) {
+        T res = 0;
+        while(i >= 0) {
+            res += get_single(i, x);
+            go_down(i);
+        }
+        return res;
+    }
+
+    T bit_range_queries(int i, int low, int high) {
+        if(low > high) return 0;
+        return bit_query(i, high) - bit_query(i, low - 1);
+    }
+
+    T range_queries(int l, int r, int low, int high) {
+        if(l > r || low > high) return 0;
+        return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
+    }
+};
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n), b(n); cin >> a >> b;
+    for(auto& it : a) it--;
+    for(auto& it : b) it--;
+    vi pos(n);
+    for(int i = 0; i < n; i++) pos[a[i]] = i;
+    PFW<int> root(n + 1);
+    for(int i = 0; i < n; i++) {
+        b[i] = pos[b[i]];
+        root.add_coord(i, b[i]);
+    }
+    auto B(b);
+    var(5) Q;
+    for(int i = 0; i < m; i++) {
+        int op; cin >> op;
+        if(op == 1) {
+            int l, r, L, R; cin >> l >> r >> L >> R;
+            l--, r--, L--, R--;
+            root.update_coord(L - 1, l, r, false);
+            root.update_coord(R, l, r, false);
+            Q.pb({op, l, r, L, R});
+        }
+        else {
+            int x, y; cin >> x >> y;
+            x--, y--;
+            swap(B[x], B[y]);
+            root.add_coord(x, B[x]);
+            root.add_coord(y, B[y]);
+            Q.pb({op, x, y, -1, -1});
+        }
+    }
+    root.build();
+    for(int i = 0; i < n; i++) {
+        root.update(i, b[i], 1);
+    }
+    for(auto& [op, l, r, L, R] : Q) {
+        if(op == 1) {
+            cout << root.range_queries(L, R, l, r) << endl;
+            continue;
+        }
+        int x = l, y = r;
+        if(x == y) continue;
+        root.update(x, b[x], -1);
+        root.update(y, b[y], -1);
+        swap(b[x], b[y]);
+        root.update(x, b[x], 1);
+        root.update(y, b[y], 1);
+
+    }
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
@@ -225,10 +325,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

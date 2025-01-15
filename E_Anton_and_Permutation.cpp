@@ -55,7 +55,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
-#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -138,27 +137,6 @@ void output_vector(vt<T>& a, int off_set = 0) {
         cout << a[i] << (i == n - 1 ? '\n' : ' ');
     }
 }
-
-template<typename T, typename Compare>
-vi closest_left(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = 0; i < n; i++) {
-        auto& j = closest[i];
-        while(j && cmp(a[i], a[j - 1])) j = closest[j - 1];
-    }
-    return closest;
-}
-
-template<typename T, typename Compare> // auto right = closest_right<int>(a, std::less<int>());
-vi closest_right(const vt<T>& a, Compare cmp) {
-    int n = a.size(); vi closest(n); iota(all(closest), 0);
-    for (int i = n - 1; i >= 0; i--) {
-        auto& j = closest[i];
-        while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
-    }
-    return closest;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -177,15 +155,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -194,25 +163,122 @@ void printMemoryUsage() {
 #define endClock
 
 #endif
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+// PERSISTENT SEGTREE
+int t[MX * MK], root[MX * 100], ptr; // log^2 will be MX * 200
+pii child[MX * 100];
+template<class T>
+struct PSGT {
+    int n;
+    void assign(int n) {
+        this->n = n;
+    }
+
+    void update(int &curr, int prev, int id, int delta, int left, int right) {  
+        if(!curr) curr = ++ptr;
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+            root[curr] += delta;
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle);
+        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    T queries(int curr, int start, int end, int left, int right) { 
+        if(!curr || !root[curr] || left > end || start > right) return 0;
+        if(left >= start && right <= end) return root[curr];
+        int middle = midPoint;  
+        return merge(queries(child[curr].ff, start, end, left, middle), queries(child[curr].ss, start, end, middle + 1, right));
+    };
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = t[i] = 0;
+            child[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+
+    void add(int i, int id, int delta) { 
+        while(i < n) { 
+            update(t[i], t[i], id, delta, 0, n - 1);
+            i |= (i + 1);
+        }
+    }
+
+    ll queries(int i, int start, int end) {
+        ll res = 0;
+        while(i >= 0) {
+            res += queries(t[i], start, end, 0, n - 1);
+            i = (i & (i + 1)) - 1;
+        }
+        return res;
+    }
+
+    T merge(T left, T right) {
+        return left + right;
+    }
+};
+
+// 1 2 3 4 5
+// swap 2 and 4
+// what matters is the element between value 2 and 4 in the range of index 2 and 4
+// nothing else got affected
+
+PSGT<int> seg;
 void solve() {
+    int n, q; cin >> n >> q;
+    seg.assign(n);
+    vi perm(n, -1);
+    auto update_perm = [&](int i, int x) -> void {
+        if(perm[i] != -1) seg.add(i, perm[i], -1); 
+        seg.add(i, perm[i] = x, 1);
+    };
+    auto queries_in_range = [&](int l, int r, int low, int high) -> ll {
+        if(l > r || low > high) return 0;
+        return seg.queries(r, low, high) - (l <= 0 ? 0 : seg.queries(l - 1, low, high));
+    };
+    for(int i = 0; i < n; i++) update_perm(i, i);
+
+    ll inversion = 0;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        if(l == r) {
+            cout << inversion << endl;
+            continue;
+        }
+        if(l > r) swap(l, r);
+        ll left_val = perm[l], right_val = perm[r], delta = 1;
+        if(left_val > right_val) {
+            swap(left_val, right_val);
+            delta = -1;
+        }
+        inversion += delta * (2LL * queries_in_range(l, r, left_val + 1, right_val - 1) + 1);
+        if(delta == -1) swap(left_val, right_val);
+        update_perm(l, right_val), update_perm(r, left_val);
+        cout << inversion << endl;
+    }
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
@@ -225,10 +291,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

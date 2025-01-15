@@ -177,15 +177,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -208,7 +199,68 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class Combinatoric {    
+    public: 
+    int n;  
+    vll fact, inv;   
+    Combinatoric(int n) {   
+        this->n = n;    
+        fact.rsz(n + 1), inv.rsz(n + 1);
+        init();
+    }
+        
+    void init() {   
+        fact[0] = 1;
+        for(int i = 1; i <= n; i++) {   
+            fact[i] = (fact[i - 1] * i) % MOD;
+        }
+        inv[n] = modExpo(fact[n], MOD - 2, MOD);
+        for(int i = n - 1; i >= 0; i--) {   
+            inv[i] = (inv[i + 1] * (i + 1)) % MOD;
+        }
+    }
+    
+    ll choose(int a, int b) {  
+        if(a < b) return 0;
+        return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
+    }
+	
+	ll choose_no_mod(ll a, ll b) {
+		ll res = 1;
+        for(int i = 0; i < b; i++) res *= (a - i);
+        for(int i = 2; i <= b; i++) res /= i;
+        return res;
+    }
+};
+Combinatoric comb(5010);
 void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    vll dp(n + 1), f(n + 1, -inf);
+    dp[0] = 1, f[0] = 0;
+    for(int i = k; i <= n; i++) {
+        for(int j = i, len = 0; j >= 0; j--) {
+            if(len >= k && f[j] != -inf) {
+                if(f[j] + k > f[i]) {
+                    f[i] = f[j] + k;
+                    dp[i] = (dp[j] * comb.choose(len - 1, k - 1)) % MOD;
+                } 
+                else if(f[j] + k == f[i]){
+                    dp[i] = (dp[i] + (dp[j] * comb.choose(len - 1, k - 1) % MOD)) % MOD;
+                }
+            }
+            len += int(a[i] == a[j]);
+        }
+    }
+    ll res = 0;
+    int mx = MAX(f);
+    for(int i = 0; i <= n; i++) {
+        if(f[i] == mx) {
+            res = (res + dp[i]) % MOD;
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -218,17 +270,13 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

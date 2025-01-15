@@ -216,7 +216,7 @@ class Undo_DSU {
     }
  
     void rollBack() {
-        while (!st.empty()) {
+        if (!st.empty()) {
             auto x = st.top(); st.pop();
             par[x[0]] = x[0];
             rank[x[0]] = x[1];
@@ -228,6 +228,11 @@ class Undo_DSU {
     bool same(int u, int v) {
         return find(u) == find(v);
     }
+	
+	int getRank(int u) {
+        return rank[find(u)];
+    }
+
 };
 
 class SCC {

@@ -177,15 +177,44 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 vi choice = {0, 1};
 int main(int argc, char* argv[]) {
-    int N = 5;
-    uniform_int_distribution<int> dist_n(1, N);
-    uniform_int_distribution<int> dist_q(1, N);
-    uniform_int_distribution<int> A(1, 1e9);
-    uniform_int_distribution<int> val(1, 10);
+    int N = 3e5;
+    int Q = 2e5;
+    uniform_int_distribution<int> dist_n(N, N);
+    uniform_int_distribution<int> dist_q(1, Q);
+    uniform_int_distribution<int> A(1, 10);
+    uniform_int_distribution<int> val(1, 1e9); // be careful to include negative values as well
     int n = dist_n(rng);
-    cout << n << endl;
-    for(int i = 0; i < n; i++) {
-        cout << (val(rng)) << (i == n - 1 ? '\n' : ' ');
+    int q = dist_n(rng);
+    cout << n << ' ' << q << endl;
+    set<pii> mp;
+    while(q--) {
+        int v = val(rng) % 3;
+        char op = (v == 0 ? '?' : (v == 1 ? '+' : '-'));
+        if(op == '?') {
+            cout << op << endl;
+            continue;
+        }
+        if(op == '-' && mp.empty()) op = '+';
+        cout << op << ' ';
+        if(op == '+') {
+            int u, v;
+            while(true) {
+                u = val(rng) % n + 1;
+                v = val(rng) % n + 1;
+                if(u > v) swap(u, v);
+                if(mp.count({u, v}) || u == v) continue;
+                break;
+            }
+            cout << u << ' ' << v << endl;
+            mp.insert({u, v});
+        }
+        else {
+            auto it = *mp.begin();
+            mp.erase(it);
+            cout << it.ff << ' ' << it.ss << endl;
+        }
     }
+
+    
 }
 

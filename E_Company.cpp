@@ -177,15 +177,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -208,7 +199,172 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+class GRAPH { 
+    public: 
+    int n;  
+    vvi dp, graph; 
+    vi depth, parent;
+    vi startTime, endTime, low, tin;
+	vi subtree;
+    int timer = 0, centroid1 = -1, centroid2 = -1, mn = inf, diameter = 0;
+    GRAPH(vvi& graph) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        parent.rsz(n, 1);
+        startTime.rsz(n);   
+        endTime.rsz(n);
+        subtree.rsz(n);
+		low.rsz(n);
+		tin.rsz(n);
+        dfs();
+        init();
+    }
+    
+    int dfs(int node = 0, int par = -1) {   
+        startTime[node] = timer++;
+		subtree[node] = 1;
+        int mx = 0, a = 0, b = 0;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+			int v = dfs(nei, node);
+            if(v > a) b = a, a = v; 
+            else b = max(b, v);
+			subtree[node] += subtree[nei];
+			mx = max(mx, subtree[nei]);
+        }
+		diameter = max(diameter, a + b); // might be offset by 1
+        endTime[node] = timer - 1;
+        mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
+		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;
+		else if(mx == mn) centroid2 = node;
+		return a + 1;
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+    
+    bool isAncestor(int u, int v) { 
+        return startTime[u] <= startTime[v] && startTime[v] <= endTime[u]; 
+    }
+
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+	
+	int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	int k_ancestor(int a, int k) {
+        for(int i = MK - 1; i >= 0; i--) {   
+            if((k >> i) & 1) {  
+                a = dp[a][i];
+            }
+            if(a == 0) return -1;
+        }
+        return a;
+    }
+	
+	void bridge_dfs(int node = 0, int par = -1) {
+        low[node] = tin[node] = timer++; 
+        subtree[node] = 1;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;
+            if(!tin[nei]) {   
+                bridge_dfs(nei, node);
+                subtree[node] += subtree[nei];
+                low[node] = min(low[node], low[nei]);   
+                if(low[nei] > tin[node]) {  
+                    //res = max(res, (ll)subtree[nei] * (n - subtree[nei]));
+                }
+            }
+            else {  
+                low[node] = min(low[node], tin[nei]);
+            }
+        }
+    };
+
+};
+
+template<typename T, typename F> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return a > b;});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = {a[i], i};
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int p; cin >> p;
+        p--;
+        graph[p].pb(i);
+    }
+    vi start_time(n);
+    GRAPH g(graph);
+    SparseTable<pii, function<pii(const pii&, const pii&)>> max_t(g.startTime, [](const pii& a, const pii& b) {return a > b ? a : b;});
+    SparseTable<pii, function<pii(const pii&, const pii&)>> min_t(g.startTime, [](const pii& a, const pii& b) {return a < b ? a : b;});
+    auto depth = g.depth;
+    debug(depth, g.startTime);
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        int mx_id = max_t.query(l, r).ss;
+        int mn_id = min_t.query(l, r).ss;
+        int mn_id2 = min(mn_id == l ? MP(inf, inf) : min_t.query(l, mn_id - 1), mn_id == r ? MP(inf, inf) : min_t.query(mn_id + 1, r)).ss;
+        int mx_id2 = max(mx_id == l ? MP(-inf, -inf) : max_t.query(l, mx_id - 1), mx_id == r ? MP(-inf, -inf) : max_t.query(mx_id + 1, r)).ss;
+        int c1 = g.lca(mx_id, mn_id2);
+        int c2 = g.lca(mn_id, mx_id2);
+        pii ans = max(MP(depth[c1], mn_id), MP(depth[c2], mx_id));
+        cout << ans.ss + 1 << ' ' << ans.ff << endl;
+    }
 }
 
 signed main() {
@@ -225,10 +381,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 

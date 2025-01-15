@@ -177,15 +177,6 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
-#include <sys/resource.h>
-#include <sys/time.h>
-void printMemoryUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    double memoryMB = usage.ru_maxrss / 1024.0;
-    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
-}
-
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -208,11 +199,132 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class FW_2D {
+    public:
+    int n, m;
+    vt<vt<T>> coord, root;
+    FW_2D(int n, int m) {
+        this->n = n;
+        this->m = m;
+        coord.rsz(n, vt<T>(m)), root.rsz(n, vt<T>(m));
+    }
+
+    void go_up(int& id) {
+        id |= (id + 1);
+    }
+
+    void go_down(int& id) {
+        id = (id & (id + 1)) - 1;
+    }
+
+    void add_coord(int i, T x, bool is_up = true) {
+        while(i >= 0 && i < n) {
+            coord[i].pb(x);
+            if(is_up) go_up(i);
+            else go_down(i);
+        }
+    }
+
+    void update_coord(int i, int l, int r, bool is_up = true) {
+        add_coord(i, l - 1, is_up);
+        add_coord(i, r, is_up);
+    }
+
+    void build() {
+        for(int i = 0; i < n; i++) {
+            srtU(coord[i]);
+            root[i].rsz(coord[i].size());
+        }
+    }
+
+    int get_id(int i, int x) {
+        return int(lb(all(coord[i]), x) - begin(coord[i]));
+    }
+
+    void update(int i, int x, T delta) {
+        while(i < n) {
+            // int p = get_id(i, x);
+            int p = x;
+            while(p < coord[i].size()) {
+                root[i][p] = merge(root[i][p], delta);
+                go_up(p);
+            }
+            go_up(i);
+        }
+    }
+
+    T merge(T left, T right) {
+        return left ^ right;
+    }
+
+    void update_add_on_range(int i, int l, int r, T v) {
+        update(i, l, v); 
+        update(i, r + 1, v);
+    }
+
+    void update_rectangle(int r1, int c1, int r2, int c2, T v) {
+        update_add_on_range(r1, c1, c2, v);
+        update_add_on_range(r2 + 1, c1, c2, v);
+    }
+
+    T get_single(int i, int x) {
+        T res = 0;
+        // int p = get_id(i, x);
+        int p = x;
+        while(p >= 0) {
+            res = merge(res, root[i][p]);
+            go_down(p);
+        }
+        return res;
+    }
+
+    T bit_query(int i, int x) {
+        T res = 0;
+        while(i >= 0) {
+            res = merge(res, get_single(i, x));
+            go_down(i);
+        }
+        return res;
+    }
+
+    T bit_range_queries(int i, int low, int high) {
+        if(low > high) return 0;
+        return bit_query(i, high) - bit_query(i, low - 1);
+    }
+
+    T range_queries(int l, int r, int low, int high) {
+        if(l > r || low > high) return 0;
+        return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
+    }
+};
+
 void solve() {
+    int n, m, q; cin >> n >> m >> q;
+    FW_2D<ull> root(n, m);
+    map<ar(4), ull> mp;
+    while(q--) {
+        int op, r1, c1, r2, c2; cin >> op >> r1 >> c1 >> r2 >> c2;
+        r1--, c1--, r2--, c2--;
+        ar(4) d = {r1, c1, r2, c2};
+        if(op == 1) {
+            ull v = rng();
+            mp[d] = v;
+            root.update_rectangle(r1, c1, r2, c2, v);
+        }
+        else if(op == 2) {
+            ull v = mp[d];
+            root.update_rectangle(r1, c1, r2, c2, v);
+            mp.erase({r1, c1, r2, c2});
+        }
+        else {
+            ull ans = root.bit_query(r1, c1) ^ root.bit_query(r2, c2);
+            cout << (ans == 0 ? "Yes" : "No") << endl;
+        }
+    }
 }
 
 signed main() {
-    // careful for overflow, check for long long, use unsigned long long for random generator
     IOS;
     startClock
     //generatePrime();
@@ -225,10 +337,6 @@ signed main() {
     }
 
     endClock
-    #ifdef LOCAL
-      printMemoryUsage();
-    #endif
-
     return 0;
 }
 
@@ -245,3 +353,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+
