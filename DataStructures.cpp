@@ -187,11 +187,11 @@ private:
             return;
         }
         apply(treap);
-        if (size(treap->left) >= k) {
+        if (size(treap->left) >= k) { // treap->key > k
             split(treap->left, left, treap->left, k);
             right = treap;
         } else {
-            split(treap->right, treap->right, right, k - size(treap->left) - 1);
+            split(treap->right, treap->right, right, k - size(treap->left) - 1); // careful when split by value
             left = treap;
         }
         unite(treap);
@@ -305,7 +305,7 @@ public:
         apply(treap);
         if(!treap) return;
         print(treap->left); 
-        cout << treap->val;
+        cout << treap->key;
         print(treap->right);
     }
 };
@@ -358,6 +358,105 @@ class FW {
     }
 };
 
+template<class T>
+class FW_2D {
+    public:
+    int n, m;
+    vt<vt<T>> coord, root;
+    FW_2D(int n, int m) {
+        this->n = n;
+        this->m = m;
+        coord.rsz(n, vt<T>(m)), root.rsz(n, vt<T>(m));
+    }
+ 
+    void go_up(int& id) {
+        id |= (id + 1);
+    }
+ 
+    void go_down(int& id) {
+        id = (id & (id + 1)) - 1;
+    }
+ 
+    void add_coord(int i, T x, bool is_up = true) {
+        while(i >= 0 && i < n) {
+            coord[i].pb(x);
+            if(is_up) go_up(i);
+            else go_down(i);
+        }
+    }
+ 
+    void update_coord(int i, int l, int r, bool is_up = true) {
+        add_coord(i, l - 1, is_up);
+        add_coord(i, r, is_up);
+    }
+ 
+    void build() {
+        for(int i = 0; i < n; i++) {
+            srtU(coord[i]);
+            root[i].rsz(coord[i].size());
+        }
+    }
+ 
+    int get_id(int i, int x) {
+        return int(lb(all(coord[i]), x) - begin(coord[i]));
+    }
+ 
+    void update(int i, int x, T delta) {
+        while(i < n) {
+            // int p = get_id(i, x);
+            int p = x;
+            while(p < coord[i].size()) {
+                root[i][p] = merge(root[i][p], delta);
+                go_up(p);
+            }
+            go_up(i);
+        }
+    }
+ 
+    T merge(T left, T right) {
+        return left ^ right;
+    }
+ 
+    void update_add_on_range(int i, int l, int r, T v) {
+        update(i, l, v); 
+        update(i, r + 1, v);
+    }
+ 
+    void update_rectangle(int r1, int c1, int r2, int c2, T v) {
+        update_add_on_range(r1, c1, c2, v);
+        update_add_on_range(r2 + 1, c1, c2, v);
+    }
+ 
+    T get_single(int i, int x) {
+        T res = 0;
+        // int p = get_id(i, x);
+        int p = x;
+        while(p >= 0) {
+            res = merge(res, root[i][p]);
+            go_down(p);
+        }
+        return res;
+    }
+ 
+    T bit_query(int i, int x) {
+        T res = 0;
+        while(i >= 0) {
+            res = merge(res, get_single(i, x));
+            go_down(i);
+        }
+        return res;
+    }
+ 
+    T bit_range_queries(int i, int low, int high) {
+        if(low > high) return 0;
+        return bit_query(i, high) - bit_query(i, low - 1);
+    }
+ 
+    T range_queries(int l, int r, int low, int high) {
+        if(l > r || low > high) return 0;
+        return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
+    }
+};
 
 template<class T>   
 class SGT { 
@@ -370,42 +469,30 @@ class SGT {
         this->n = n;
         this->DEFAULT = DEFAULT;
         root.rsz(n * 4);    
-        lazy.rsz(n * 4);
-//        build(entireTree, arr);
+        lazy.rsz(n * 4); // careful with initializing lazy_value
     }
     
-//    void build(iter, vi& arr) { 
-//        if(left == right) { 	
-//            root[i] = arr[left];    
-//            return;
-//        }
-//        int middle = midPoint;  
-//        build(lp, arr), build(rp, arr); 
-//        root[i] = merge(root[lc], root[rc]);
-//    }
-
-    
-    void update(int id, T val) {  
-        update(entireTree, id, val);
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
     }
     
-    void update(iter, int id, T val) {  
+    void update_at(iter, int id, T val) {  
 		pushDown;
         if(left == right) { 
             root[i] = val;  
             return;
         }
         int middle = midPoint;  
-        if(id <= middle) update(lp, id, val);   
-        else update(rp, id, val);   
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
         root[i] = merge(root[lc], root[rc]);
     }
 
-    void update(int start, int end, T val) { 
-        update(entireTree, start, end, val);
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
     }
     
-    void update(iter, int start, int end, T val) {    
+    void update_range(iter, int start, int end, T val) {    
         pushDown;   
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
@@ -414,8 +501,8 @@ class SGT {
             return;
         }
         int middle = midPoint;  
-        update(lp, start, end, val);    
-        update(rp, start, end, val);    
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
         root[i] = merge(root[lc], root[rc]);
     }
     
@@ -432,30 +519,30 @@ class SGT {
         }
     }
 
-	T queries(int id) {
-		return queries(entireTree, id);
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
 	}
 	
-	T queries(iter, int id) {
+	T queries_at(iter, int id) {
 		pushDown;
 		if(left == right) {
 			return root[i];
 		}
 		int middle = midPoint;
-		if(id <= middle) return queries(lp, id);
-		return queries(rp, id);
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
 	}
 
-    T queries(int start, int end) { 
-        return queries(entireTree, start, end);
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
     }
     
-    T queries(iter, int start, int end) {   
+    T queries_range(iter, int start, int end) {   
         pushDown;
         if(left > end || start > right) return DEFAULT;
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
-        return merge(queries(lp, start, end), queries(rp, start, end));
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
     }
 	
 	T get() {
@@ -484,53 +571,81 @@ class SGT {
     }
 };
 
-
-
 // PERSISTENT SEGTREE
-int T[MX * MK], root[MX * MK * 4], ptr; 
-pii child[MX * MK * 4];
-void update(int curr, int prev, int id, int delta, int left, int right) {  
-    root[curr] = root[prev];    
-    child[curr] = child[prev];
-    if(left == right) { 
-        root[curr] += delta;
-        return;
+int t[MX * MK], root[MX * 120], ptr; // log^2 will be MX * 200
+pii child[MX * 120];
+template<class T>
+struct PSGT {
+    int n;
+    void assign(int n) {
+        this->n = n;
     }
-    int middle = midPoint;
-    if(id <= middle) {  
-        child[curr].ff = ++ptr; 
-        update(child[curr].ff, child[prev].ff, id, delta, left, middle);
-    }
-    else {  
-        child[curr].ss = ++ptr; 
-        update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-    }
-    root[curr] = root[child[curr].ff] + root[child[curr].ss];
-}
 
-ll queries(int curr, int prev, int start, int end, int left, int right) { 
-    if(left >= start && right <= end) return root[curr] - root[prev];
-    if(left > end || start > right) return 0;
-    int middle = midPoint;  
-    return queries(child[curr].ff, child[prev].ff, start, end, left, middle) + queries(child[curr].ss, child[prev].ss, start, end, middle + 1, right);
+	void update(int &curr, int prev, int id, int delta, int left, int right) {  
+        if(!curr) curr = ++ptr;
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+            root[curr] += delta;
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle);
+        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    T queries(int curr, int prev, int start, int end, int left, int right) { 
+        if(left >= start && right <= end) return root[curr] - root[prev];
+        if(left > end || start > right) return 0;
+        int middle = midPoint;  
+        return merge(queries(child[curr].ff, child[prev].ff, start, end, left, middle), queries(child[curr].ss, child[prev].ss, start, end, middle + 1, right));
+    };
+        
+    T get(int curr, int prev, int k, int left, int right) {    
+        if(root[curr] - root[prev] < k) return inf;
+        if(left == right) return left;
+        int leftCount = root[child[curr].ff] - root[child[prev].ff];
+        int middle = midPoint;
+        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
+        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
+    }
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = t[i] = 0;
+            child[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+
+    void add(int i, int& prev, int id, int delta) { 
+        update(t[i], prev, id, delta, 0, n - 1);
+        prev = t[i];
+//        while(i < n) { 
+//            update(t[i], t[i], id, delta, 0, n - 1);
+//            i |= (i + 1);
+//        }
+    }
+
+    T queries(int i, int start, int end) {
+        return queries(t[i], start, end, 0, n - 1);
+//        while(i >= 0) {
+//            res += queries(t[i], start, end, 0, n - 1);
+//            i = (i & (i + 1)) - 1;
+//        }
+    }
+	
+	T queries_on_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return 0;
+        return queries(r, low, high) - (l == 0 ? 0 : queries(l - 1, low, high));
+    }
+
+    T merge(T left, T right) {
+		return left + right;
+    }
 };
-    
-int get(int curr, int prev, int k, int left, int right) {    
-    if(root[curr] - root[prev] < k) return inf;
-    if(left == right) return left;
-    int leftCount = root[child[curr].ff] - root[child[prev].ff];
-    int middle = midPoint;
-    if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
-    return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
-}
 
-void reset() {  
-    for(int i = 0; i <= ptr; i++) { 
-        root[i] = 0, T[i] = 0;  
-        child[i] = MP(0, 0);
-    }
-	ptr = 0;
-}
 
 class MO {  
     public: 
@@ -583,47 +698,32 @@ class MO {
     }
 };
 
-template<class T>
-class SparseTable { 
-    public: 
-    int n;  
-    vi a, log_table;
-    vt<vt<T>> dp_max, dp_min, dp_gcd, dp_or;
-	SparseTable(vi& a) {  
-		n = a.size();
-        this->a = a;
+template<typename T, typename F> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return a > b;});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
         log_table.rsz(n + 1);
-        dp_max.rsz(n, vt<T>(MK));
-        dp_min.rsz(n, vt<T>(MK));
-        dp_gcd.rsz(n, vt<T>(MK));
-        dp_or.rsz(n, vt<T>(MK));
-        init();
-    }
-    
-    void init() {   
-		for(int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
-        for(int i = 0; i < n; i++) dp_max[i][0] = dp_min[i][0] = dp_gcd[i][0] = dp_or[i][0] = a[i];
-        for(int j = 1; j < MK; j++) {    
-            for(int i = 0; i + (1LL << j) <= n; i++) {    
-                int p = i + (1LL << (j - 1));
-                dp_max[i][j] = max(dp_max[i][j - 1], dp_max[p][j - 1]);
-                dp_min[i][j] = min(dp_min[i][j - 1], dp_min[p][j - 1]);
-                dp_gcd[i][j] = gcd(dp_gcd[i][j - 1], dp_gcd[p][j - 1]);
-                dp_or[i][j] = dp_or[i][j - 1] | dp_or[p][j - 1];
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
             }
         }
     }
-    
-    int queries(int left, int right) {  
-		int j = log_table[right - left + 1];
-        int p = right - (1LL << j) + 1;
-        T mx = max(dp_max[left][j], dp_max[p][j]);
-        T mn = min(dp_min[left][j], dp_min[p][j]);
-        T g = gcd(dp_gcd[left][j], dp_gcd[p][j]);
-        T OR = dp_or[left][j] | dp_or[p][j];
-        return OR;
+
+    T query(int L, int R) {
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
     }
 };
+
 
 
 
@@ -843,6 +943,30 @@ class SegTree_Graph {
             cout << (res == INF ? -1 : res) << (i == n - 1 ? '\n' : ' ');
         }
     }
+	
+	void run() {
+        dfs(entireTree);
+    }
+
+    void dfs(iter) {
+        int c = 0;
+        for(auto& [u, v] : graph[i]) {
+            if(root.merge(u, v, true)) c++;
+        }
+        if(left == right) {
+            for(auto& [u, v] : color[left]) {
+                res += (ll)root.getRank(u) * root.getRank(v);
+            }
+        }
+        else {
+            int middle = midPoint;
+            dfs(lp), dfs(rp);
+        }
+        while(c--) {
+            root.rollBack();
+        }
+    }
+
 };
 
 class HLD {
@@ -921,4 +1045,231 @@ class HLD {
     int get_lca(int a, int b) {
         return g.lca(a, b);
     }
+};
+
+template<class T>
+class SGT_BEAT {
+    public:
+    struct Node {
+        T mx1, mx2, mn1, mn2, mx_cnt, mn_cnt, sm, ladd, lval;
+        Node(T x = INF) : mx1(x), mx2(-INF), mn1(x), mn2(INF), mx_cnt(1), mn_cnt(1), sm(x), lval(INF), ladd(0) {}
+    };
+    int n;
+    vt<Node> root;
+    SGT_BEAT(int n) {
+        this->n = n;
+        root.rsz(n * 4);
+    }
+
+    void update_at(int id, T x) {
+        update_at(entireTree, id, x);
+    }
+
+    void update_at(iter, int id, T x) {
+        pushDown;
+        if(left == right) {
+            root[i] = Node(x);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update_at(lp, id, x);
+        else update_at(rp, id, x);
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    Node merge(const Node left, const Node right) {
+        if(left.mx1 == INF) return right;
+        if(right.mx1 == INF) return left;
+        Node res;
+        res.sm = left.sm + right.sm;
+        if(left.mx1 > right.mx1) {
+            res.mx1 = left.mx1;
+            res.mx_cnt = left.mx_cnt;
+            res.mx2 = max(left.mx2, right.mx1);
+        } else if(left.mx1 < right.mx1) {
+            res.mx1 = right.mx1;
+            res.mx_cnt = right.mx_cnt;
+            res.mx2 = max(left.mx1, right.mx2);
+        } else {
+            res.mx1 = left.mx1;
+            res.mx_cnt = left.mx_cnt + right.mx_cnt;
+            res.mx2 = max(left.mx2, right.mx2);
+        }
+
+        if(left.mn1 < right.mn1) {
+            res.mn1 = left.mn1;
+            res.mn_cnt = left.mn_cnt;
+            res.mn2 = min(left.mn2, right.mn1);
+        } else if(left.mn1 > right.mn1) {
+            res.mn1 = right.mn1;
+            res.mn_cnt = right.mn_cnt;
+            res.mn2 = min(right.mn2, left.mn1);
+        } else {
+            res.mn1 = left.mn1;
+            res.mn_cnt = left.mn_cnt + right.mn_cnt;
+            res.mn2 = min(left.mn2, right.mn2);
+        }
+        return res;
+    }
+
+    void update_min(int start, int end, T x) {
+        update_min(entireTree, start, end, x);
+    }
+
+    void update_min(iter, int start, int end, T x) {
+        pushDown;
+        if(start > right || left > end || root[i].mx1 <= x) return;
+        if(start <= left && right <= end && root[i].mx2 < x) {
+            update_node_max(i, left, right, x);
+            pushDown;
+            return;
+        }
+        int middle = midPoint;
+        update_min(lp, start, end, x);
+        update_min(rp, start, end, x);
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_node_max(iter, T x) {
+        root[i].sm += (x - root[i].mx1) * root[i].mx_cnt;
+        if(root[i].mx1 == root[i].mn1) {
+            root[i].mx1 = root[i].mn1 = x;
+        } else if(root[i].mx1 == root[i].mn2) {
+            root[i].mx1 = root[i].mn2 = x;
+        } else {
+            root[i].mx1 = x;
+        }
+    }
+
+    void update_max(int start, int end, T x) {
+        update_max(entireTree, start, end, x);
+    }
+
+    void update_max(iter, int start, int end, T x) {
+        pushDown;
+        if(left > end || start > right || x <= root[i].mn1) return;
+        if(start <= left && right <= end && x < root[i].mn2) {
+			update_node_min(i, left, right, x);
+            pushDown;
+            return;
+        }
+        int middle = midPoint;
+        update_max(lp, start, end, x);
+        update_max(rp, start, end, x);
+        root[i] = merge(root[lc], root[rc]);
+        
+    }
+
+    void update_node_min(iter, T x) {
+        root[i].sm += (x - root[i].mn1) * root[i].mn_cnt;  
+        if(root[i].mn1 == root[i].mx1) {
+            root[i].mn1 = root[i].mx1 = x;
+        } else if(root[i].mn1 == root[i].mx2) {
+            root[i].mn1 = root[i].mx2 = x;
+        } else {
+            root[i].mn1 = x;
+        }
+    }
+
+    void update_val(int start, int end, T x) {
+        update_val(entireTree, start, end, x);
+    }
+
+    void update_val(iter, int start, int end, T x) {
+        pushDown;
+        if(start > right || left > end) return;
+        if(start <= left && right <= end) {
+            update_all(i, left, right, x);
+            pushDown;
+            return;
+        }
+        int middle = midPoint;
+        update_val(lp, start, end, x);
+        update_val(rp, start, end, x);
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_all(iter, T x) {
+        root[i] = Node(x);
+        T len = right - left + 1;
+        root[i].sm = len * x;
+        root[i].mx_cnt = root[i].mn_cnt = len;
+        root[i].lval = x;
+
+    }
+
+    void update_add(int start, int end, T x) {
+        update_add(entireTree, start, end, x);
+    }
+
+    void update_add(iter, int start, int end, T x) {
+        pushDown;
+        if(start > right || left > end) return;
+        if(start <= left && right <= end) {
+            add_val(i, left, right, x);
+            pushDown;
+            return;
+        }
+        int middle = midPoint;
+        update_add(lp, start, end, x);
+        update_add(rp, start, end, x);
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void add_val(iter, T x) {
+        root[i].mx1 += x;
+        if(root[i].mx2 != -INF) root[i].mx2 += x;
+        root[i].mn1 += x;
+        if(root[i].mn2 != INF) root[i].mn2 += x;
+        root[i].sm += x * (right - left + 1);
+        if(root[i].lval != INF) root[i].lval += x;
+        else root[i].ladd += x;
+    }
+
+    void push(iter) {
+        if(left == right) return;    
+        int middle = midPoint;
+        if(root[i].lval != INF) {
+            update_all(lp, root[i].lval);
+            update_all(rp, root[i].lval);
+            root[i].lval = INF;
+            return;
+        }
+        if(root[i].ladd) {
+            add_val(lp, root[i].ladd);
+            add_val(rp, root[i].ladd);
+            root[i].ladd = 0;
+        }
+        if(root[i].mx1 < root[lc].mx1) update_node_max(lp, root[i].mx1);
+        if(root[i].mn1 > root[lc].mn1) update_node_min(lp, root[i].mn1);
+        if(root[i].mx1 < root[rc].mx1) update_node_max(rp, root[i].mx1);
+        if(root[i].mn1 > root[rc].mn1) update_node_min(rp, root[i].mn1);
+    }
+
+    Node queries_range(int start, int end) {
+        return queries(entireTree, start, end);
+    }
+
+    Node queries_range(iter, int start, int end) {
+        pushDown;
+        if(left > end || start > right) return Node();
+        if(start <= left && right <= end) return root[i];
+        int middle = midPoint;
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	Node queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	Node queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
 };
