@@ -185,6 +185,7 @@ void printMemoryUsage() {
     double memoryMB = usage.ru_maxrss / 1024.0;
     cerr << "Memory usage: " << memoryMB << " MB" << "\n";
 }
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -207,140 +208,151 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-class Undo_DSU {
+template<class T>
+class FW_2D {
     public:
-    vi par, rank;
-    stack<ar(4)> st;
     int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
+    vt<vt<T>> coord, root;
+    FW_2D(int n) {
         this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
+        coord.rsz(n), root.rsz(n);
     }
  
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
+    void go_up(int& id) {
+        id |= (id + 1);
     }
  
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
+    void go_down(int& id) {
+        id = (id & (id + 1)) - 1;
     }
  
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
+    void add_coord(int i, T x, bool is_up = true) {
+        while(i >= 0 && i < n) {
+            coord[i].pb(x);
+            if(is_up) go_up(i);
+            else go_down(i);
         }
     }
  
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
-    }
-};
- 
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-        SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
+    void update_coord(int i, int l, int r, bool is_up = true) {
+        add_coord(i, l - 1, is_up);
+        add_coord(i, r, is_up);
     }
 
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
+    void add_rectangle(int r1, int c1, int r2, int c2, bool is_up = true) {
+        add_coord(r1, c1, is_up);
+        add_coord(r1, c2 + 1, is_up);
+        add_coord(r2 + 1, c1, is_up);
+        add_coord(r2 + 1, c2 + 1, is_up);
+    }
+
+    void add_point(int r, int c, bool is_up = false) { // for queries on a specific point so is_up is false
+        update_coord(r, c, c, is_up);
+    }
+ 
+    void build() {
+        for(int i = 0; i < n; i++) {
+            srtU(coord[i]);
+            root[i].rsz(coord[i].size());
         }
     }
-    
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
+ 
+    int get_id(int i, int x) {
+        return int(lb(all(coord[i]), x) - begin(coord[i]));
+    }
+ 
+    void update_at(int i, int x, T delta) {
+        while(i < n) {
+            int p = get_id(i, x);
+            while(p < coord[i].size()) {
+                root[i][p] = merge(root[i][p], delta);
+                go_up(p);
+            }
+            go_up(i);
+        }
+    }
+ 
+    T merge(T left, T right) {
+        return left + right;
+    }
+ 
+    void update_range(int i, int l, int r, T v) {
+        update_at(i, l, v); 
+        update_at(i, r + 1, -v);
+    }
+ 
+    void update_rectangle(int r1, int c1, int r2, int c2, T v) {
+        update_range(r1, c1, c2, v);
+        update_range(r2 + 1, c1, c2, -v);
+    }
+ 
+    T point_query(int i, int x) {
+        T res = 0;
+        while(i >= 0) {
+            int p = get_id(i, x);
+            while(p >= 0) {
+                res = merge(res, root[i][p]);
+                go_down(p);
+            }
+            go_down(i);
+        }
+        return res;
+    }
+ 
+    T bit_range_queries(int i, int low, int high) {
+        if(low > high) return 0;
+        return point_query(i, high) - point_query(i, low - 1);
+    }
+ 
+    T range_queries(int l, int r, int low, int high) {
+        if(l > r || low > high) return 0;
+        return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
     }
 };
 
 void solve() {
-    ll n, q; cin >> n >> q;
-    var(3) edges(n);
-    vvpii a(n);
-    for(int i = 1; i < n; i++) {
-        auto& [u, v, w] = edges[i]; cin >> u >> v >> w;
-        u--, v--;
-        a[i].pb({0, edges[i][2]});
+    int n, k; cin >> n >> k;
+    var(3) a(n);
+    vi b;
+    for(auto& [x, r, iq] : a) cin >> x >> r >> iq;
+    srt(a);
+    FW_2D<int> root(n);
+    vvpii erase(n + 1);
+    vi left_most(n);
+    debug(a);
+    for(int i = 0; i < n; i++) {
+        auto& [x, r, iq] = a[i];
+        root.add_coord(i, iq, true);
+        root.update_coord(i, iq - k, iq + k, false);
+        int p = int(lb(all(a), ar(3){x - r, -1, -1}) - begin(a));
+        left_most[i] = p;
+        root.update_coord(p - 1, iq - k, iq + k, false);
+        p = int(lb(all(a), ar(3){x + r + 1, -1, -1}) - begin(a));
+        erase[p].pb({i, iq});
     }
-    for(int i = 1; i <= q; i++) {
-        int id, x; cin >> id >> x;
-        a[id].pb({i, x});
-    }
-    for(int i = 1; i < n; i++) {
-        a[i].pb({q + 1, -1});
-    }
-    vll ans(q + 1);
-    for(int bit = 0; bit < 20; bit++) {
-        DynaCon root(q + 1, n);
-        for(int i = 1; i < n; i++) {
-            auto& curr = a[i];
-            int N = curr.size();
-            for(int j = 0; j + 1 < N; j++) {
-                int s = curr[j].ff;
-                int e = curr[j + 1].ff - 1;
-                int w = curr[j].ss;
-                if(((w >> bit) & 1) == 0) {
-                    root.update_range(s, e, {edges[i][0], edges[i][1]});
-                }
-            }
+    root.build();
+    ll res = 0;
+    for(int r = 0; r < n; r++) {
+        for(auto& [id, iq] : erase[r]) {
+            root.update_at(id, iq, -1);
         }
-        root.process();
-        ll total = n * (n - 1) / 2;
-        for(int i = 0; i <= q; i++) {
-            ll ans_bit = total - root.ans[i];
-            ans[i] += ans_bit * (1LL << bit);
-        }
+        int iq = a[r][2];
+        int l = left_most[r];
+        res += root.range_queries(l, r, iq - k, iq + k);
+        root.update_at(r, iq, 1);
     }
-    output_vector(ans);
+    cout << res << endl;
 }
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -350,6 +362,7 @@ signed main() {
     #ifdef LOCAL
       printMemoryUsage();
     #endif
+
     return 0;
 }
 
@@ -366,5 +379,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-

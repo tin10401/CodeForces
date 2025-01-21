@@ -185,6 +185,7 @@ void printMemoryUsage() {
     double memoryMB = usage.ru_maxrss / 1024.0;
     cerr << "Memory usage: " << memoryMB << " MB" << "\n";
 }
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -207,140 +208,229 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-class Undo_DSU {
-    public:
-    vi par, rank;
-    stack<ar(4)> st;
-    int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
-        this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
+class GRAPH { 
+    public: 
+    int n;  
+    vvi dp, graph; 
+    vi depth, parent;
+    vi tin, tout;
+    int timer;
+    GRAPH(vvi& graph) {   
+        this->graph = graph;
+        timer = 0;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        tout.rsz(n);
+		tin.rsz(n);
+        dfs();
+        init();
     }
- 
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
-    }
- 
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
-    }
- 
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
+    
+    void dfs(int node = 0, int par = -1) {   
+        tin[node] = timer++;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            dfs(nei, node);
         }
+        tout[node] = timer - 1;
     }
- 
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
-    }
-};
- 
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-        SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
-    }
-
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
         }
     }
     
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
+    bool isAncestor(int u, int v) { //check if u is parent of v
+        return tin[u] <= tin[v] && tin[v] <= tout[u]; 
+    }
+
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+
+    int k_ancestor(int a, int k) {
+        if(k == 0) return a;
+        for(int i = MK - 1; i >= 0; i--) {   
+            if((k >> i) & 1) {  
+                a = dp[a][i];
+            }
+        }
+        return a;
+    }
+	
+};
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4); // careful with initializing lazy_value
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val * (right - left + 1);
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+
+    T merge(T left, T right) {  
+        T res;  
+        res = left + right;
+        return res;
     }
 };
 
 void solve() {
-    ll n, q; cin >> n >> q;
-    var(3) edges(n);
-    vvpii a(n);
-    for(int i = 1; i < n; i++) {
-        auto& [u, v, w] = edges[i]; cin >> u >> v >> w;
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
         u--, v--;
-        a[i].pb({0, edges[i][2]});
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
-    for(int i = 1; i <= q; i++) {
-        int id, x; cin >> id >> x;
-        a[id].pb({i, x});
-    }
-    for(int i = 1; i < n; i++) {
-        a[i].pb({q + 1, -1});
-    }
-    vll ans(q + 1);
-    for(int bit = 0; bit < 20; bit++) {
-        DynaCon root(q + 1, n);
-        for(int i = 1; i < n; i++) {
-            auto& curr = a[i];
-            int N = curr.size();
-            for(int j = 0; j + 1 < N; j++) {
-                int s = curr[j].ff;
-                int e = curr[j + 1].ff - 1;
-                int w = curr[j].ss;
-                if(((w >> bit) & 1) == 0) {
-                    root.update_range(s, e, {edges[i][0], edges[i][1]});
-                }
-            }
+    GRAPH g(graph);
+    SGT<ll> root(n, 0);
+    for(int i = 0; i < n; i++) root.update_at(g.tin[i], a[i]);
+    int r = 0;
+    auto get = [&](int u, int v) -> int {
+        return g.depth[u] > g.depth[v] ? u : v;
+    };
+    auto update = [&](int u, int x) -> void {
+        if(u == r) {
+            root.update_range(0, n - 1, x);
+            return;
         }
-        root.process();
-        ll total = n * (n - 1) / 2;
-        for(int i = 0; i <= q; i++) {
-            ll ans_bit = total - root.ans[i];
-            ans[i] += ans_bit * (1LL << bit);
+        if(g.isAncestor(r, u) || !g.isAncestor(u, r)) {
+            root.update_range(g.tin[u], g.tout[u], x);
+            return;
+        }
+        u = g.k_ancestor(r, g.depth[r] - g.depth[u] - 1);
+        root.update_range(0, n - 1, x);
+        root.update_range(g.tin[u], g.tout[u], -x);
+    };
+    auto queries = [&](int u) -> ll {
+        if(u == r) return root.get();
+        if(g.isAncestor(r, u) || !g.isAncestor(u, r)) return root.queries_range(g.tin[u], g.tout[u]);
+        int v = u;
+        u = g.k_ancestor(r, g.depth[r] - g.depth[u] - 1);
+        return root.get() - root.queries_range(g.tin[u], g.tout[u]);
+    };
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int v; cin >> v;
+            r = v - 1;
+        } 
+        else if(op == 2) {
+            int u, v, x; cin >> u >> v >> x;
+            u--, v--;
+            update(get(g.lca(u, v), get(g.lca(u, r), g.lca(v, r))), x);
+        }
+        else {
+            int v; cin >> v;
+            v--;
+            cout << queries(v) << endl;
         }
     }
-    output_vector(ans);
+
 }
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -350,6 +440,7 @@ signed main() {
     #ifdef LOCAL
       printMemoryUsage();
     #endif
+
     return 0;
 }
 
@@ -366,5 +457,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-

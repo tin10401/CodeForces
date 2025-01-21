@@ -2,46 +2,68 @@ class GRAPH {
     public: 
     int n;  
     vvi dp, graph; 
-    vi depth, parent;
-    vi startTime, endTime, low, tin;
-	vi subtree;
-    int timer = 0, centroid1 = -1, centroid2 = -1, mn = inf, diameter = 0;
-    GRAPH(vvi& graph) {   
+    vi depth, parent, subtree;
+    vi tin, tout, low;
+    int timer = 0;
+//    int centroid1 = -1, centroid2 = -1, mn = inf, diameter = 0;
+    GRAPH(vvi& graph, int root = 0) {   
         this->graph = graph;
         n = graph.size();
         dp.rsz(n, vi(MK));
         depth.rsz(n);
-        parent.rsz(n, 1);
-        startTime.rsz(n);   
-        endTime.rsz(n);
-        subtree.rsz(n);
-		low.rsz(n);
-		tin.rsz(n);
-        dfs();
+        parent.rsz(n, -1);
+		subtree.rsz(n);
+//        tin.rsz(n);
+//        tout.rsz(n);
+//        low.rsz(n);
+        dfs(root);
         init();
     }
     
-    int dfs(int node = 0, int par = -1) {   
-        startTime[node] = timer++;
-		subtree[node] = 1;
-        int mx = 0, a = 0, b = 0;
+    void dfs(int node = 0, int par = -1) {   
         for(auto& nei : graph[node]) {  
             if(nei == par) continue;    
             depth[nei] = depth[node] + 1;   
             dp[nei][0] = node;
             parent[nei] = node;
-			int v = dfs(nei, node);
-            if(v > a) b = a, a = v; 
-            else b = max(b, v);
+			dfs(nei, node);
 			subtree[node] += subtree[nei];
-			mx = max(mx, subtree[nei]);
         }
-		diameter = max(diameter, a + b); // might be offset by 1
-        endTime[node] = timer - 1;
-        mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
-		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;
-		else if(mx == mn) centroid2 = node;
-		return a + 1;
+//        tin[node] = timer++;
+//		subtree[node] = 1;
+//        int mx = 0, a = 0, b = 0;
+//        for(auto& nei : graph[node]) {  
+//            if(nei == par) continue;    
+//            depth[nei] = depth[node] + 1;   
+//            dp[nei][0] = node;
+//            parent[nei] = node;
+//			int v = dfs(nei, node);
+//			subtree[node] += subtree[nei];
+//            if(v > a) b = a, a = v; 
+//            else b = max(b, v);
+//			mx = max(mx, subtree[nei]);
+//        }
+//		diameter = max(diameter, a + b); // might be offset by 1
+//        tout[node] = timer - 1;
+//        mx = max(mx, n - subtree[node] - 1); // careful with offSet, may take off -1
+//		if(mx < mn) mn = mx, centroid1 = node, centroid2 = -1;
+//		else if(mx == mn) centroid2 = node;
+//		return a + 1;
+    }
+
+//    void online_init(int u, int par, int x) {
+//        depth[u] = depth[par] + 1;
+//        dp[u][0] = par;
+//        ans[u][0] = Node(x);
+//        for(int j = 1; j < MK; j++) {
+//            int p = dp[u][j - 1];
+//            dp[u][j] = dp[p][j - 1];
+//            ans[u][j] = merge(ans[u][j - 1], ans[p][j - 1]);
+//        }
+//    }
+
+    bool isAncestor(int u, int v) { 
+        return tin[u] <= tin[v] && tin[v] <= tout[u]; 
     }
     
     void init() {  
@@ -51,11 +73,7 @@ class GRAPH {
             }
         }
     }
-    
-    bool isAncestor(int u, int v) { 
-        return startTime[u] <= startTime[v] && startTime[v] <= endTime[u]; 
-    }
-
+	
     int lca(int a, int b) { 
         if(depth[a] > depth[b]) {   
             swap(a, b);
@@ -83,34 +101,45 @@ class GRAPH {
 	
 	int k_ancestor(int a, int k) {
         for(int i = MK - 1; i >= 0; i--) {   
-            if((k >> i) & 1) {  
-                a = dp[a][i];
-            }
-            if(a == 0) return -1;
+            if((k >> i) & 1) a = dp[a][i];
         }
         return a;
     }
-	
-	void bridge_dfs(int node = 0, int par = -1) {
-        low[node] = tin[node] = timer++; 
-        subtree[node] = 1;
-        for(auto& nei : graph[node]) {  
-            if(nei == par) continue;
-            if(!tin[nei]) {   
-                bridge_dfs(nei, node);
-                subtree[node] += subtree[nei];
-                low[node] = min(low[node], low[nei]);   
-                if(low[nei] > tin[node]) {  
-                    //res = max(res, (ll)subtree[nei] * (n - subtree[nei]));
-                }
-            }
-            else {  
-                low[node] = min(low[node], tin[nei]);
-            }
-        }
-    };
 
+    int rooted_lca(int a, int b, int c) { // determine if 3 points are in the same path
+        return lca(a, c) ^ lca(a, b) ^ lca(b, c);
+    }
+
+    int rooted_parent(int u, int v) { // move one level down from u closer to v
+        return k_ancestor(v, depth[v] - depth[u] - 1);
+    }
+
+    void reroot(int root) {
+        fill(all(parent), -1);
+        dfs(root);
+        init();
+    }
+
+//    void bridge_dfs(int node = 0, int par = -1) {
+//        low[node] = tin[node] = timer++; 
+//        subtree[node] = 1;
+//        for(auto& nei : graph[node]) {  
+//            if(nei == par) continue;
+//            if(!tin[nei]) {   
+//                bridge_dfs(nei, node);
+//                subtree[node] += subtree[nei];
+//                low[node] = min(low[node], low[nei]);   
+//                if(low[nei] > tin[node]) {  
+//                    //res = max(res, (ll)subtree[nei] * (n - subtree[nei]));
+//                }
+//            }
+//            else {  
+//                low[node] = min(low[node], tin[nei]);
+//            }
+//        }
+//    };
 };
+
 
 class DSU { 
     public: 
@@ -194,8 +223,12 @@ class Undo_DSU {
     vi par, rank;
     stack<ar(4)> st;
     int n;
+    int comp;
+    ll res;
     Undo_DSU(int n) {
         this->n = n;
+        this->comp = n;
+        res = 0;
         par.rsz(n), rank.rsz(n, 1);
         iota(all(par), 0);
     }
@@ -208,32 +241,38 @@ class Undo_DSU {
     bool merge(int a, int b, bool save = false) {
         a = find(a); b = find(b);
         if (a == b) return false;
+        comp--;
         if (rank[a] < rank[b]) swap(a, b);
         if (save) st.push({a, rank[a], b, rank[b]});
+        ll v = 1LL * rank[a] * rank[b];
+        res += v;
         par[b] = a;
         rank[a] += rank[b];
         return true;
     }
  
     void rollBack() {
-        if (!st.empty()) {
+        if(!st.empty()) {
+            comp++;
             auto x = st.top(); st.pop();
+            ll v = 1LL * x[1] * x[3];
+            res -= v;
             par[x[0]] = x[0];
             rank[x[0]] = x[1];
             par[x[2]] = x[2];
             rank[x[2]] = x[3];
         }
     }
-
+ 
     bool same(int u, int v) {
         return find(u) == find(v);
     }
-	
-	int getRank(int u) {
+ 
+    int getRank(int u) {
         return rank[find(u)];
     }
-
 };
+
 
 class SCC {
     public:
@@ -377,8 +416,3 @@ struct CHT : multiset<Line> {
     // max_normall is add(i, -dp)
     // min_normal is add(-i, dp)
 };
-
-
-
-
-

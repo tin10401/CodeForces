@@ -315,28 +315,30 @@ class FW {
     public: 
     int n, N;
     vt<T> root;    
-    FW(int n) { 
+    T DEFAULT;
+    FW(int n, T DEFAULT) { 
         this->n = n;    
+        this->DEFAULT = DEFAULT;
         N = log2(n);
-        root.rsz(n);
+        root.rsz(n, DEFAULT);
     }
     
     void update(int id, T val) {  
         while(id < n) {    
-            root[id] += val;    
+            root[id] = merge(root[id], val);
             id |= (id + 1);
         }
     }
     
     T get(int id) {   
-        T res = 0;    
+        T res = DEFAULT;
         while(id >= 0) { 
-            res += root[id];    
+            res = merge(res, root[id]);
             id = (id & (id + 1)) - 1;
         }
         return res;
     }
-    
+
     T queries(int left, int right) {  
         return get(right) - get(left - 1);
     }
@@ -356,17 +358,20 @@ class FW {
         }
         return curr + 1;
     }
+	
+	T merge(T A, T B) {
+		return A + B;
+    }
 };
 
 template<class T>
 class FW_2D {
     public:
-    int n, m;
+    int n;
     vt<vt<T>> coord, root;
-    FW_2D(int n, int m) {
+    FW_2D(int n) {
         this->n = n;
-        this->m = m;
-        coord.rsz(n, vt<T>(m)), root.rsz(n, vt<T>(m));
+        coord.rsz(n), root.rsz(n);
     }
  
     void go_up(int& id) {
@@ -389,6 +394,17 @@ class FW_2D {
         add_coord(i, l - 1, is_up);
         add_coord(i, r, is_up);
     }
+
+    void add_rectangle(int r1, int c1, int r2, int c2, bool is_up = true) {
+        add_coord(r1, c1, is_up);
+        add_coord(r1, c2 + 1, is_up);
+        add_coord(r2 + 1, c1, is_up);
+        add_coord(r2 + 1, c2 + 1, is_up);
+    }
+
+    void add_point(int r, int c, bool is_up = false) { // for queries on a specific point so is_up is false
+        update_coord(r, c, c, is_up);
+    }
  
     void build() {
         for(int i = 0; i < n; i++) {
@@ -401,10 +417,9 @@ class FW_2D {
         return int(lb(all(coord[i]), x) - begin(coord[i]));
     }
  
-    void update(int i, int x, T delta) {
+    void update_at(int i, int x, T delta) {
         while(i < n) {
-            // int p = get_id(i, x);
-            int p = x;
+            int p = get_id(i, x);
             while(p < coord[i].size()) {
                 root[i][p] = merge(root[i][p], delta);
                 go_up(p);
@@ -414,34 +429,27 @@ class FW_2D {
     }
  
     T merge(T left, T right) {
-        return left ^ right;
+        return left + right;
     }
  
-    void update_add_on_range(int i, int l, int r, T v) {
-        update(i, l, v); 
-        update(i, r + 1, v);
+    void update_range(int i, int l, int r, T v) {
+        update_at(i, l, v); 
+        update_at(i, r + 1, -v);
     }
  
     void update_rectangle(int r1, int c1, int r2, int c2, T v) {
-        update_add_on_range(r1, c1, c2, v);
-        update_add_on_range(r2 + 1, c1, c2, v);
+        update_range(r1, c1, c2, v);
+        update_range(r2 + 1, c1, c2, -v);
     }
  
-    T get_single(int i, int x) {
-        T res = 0;
-        // int p = get_id(i, x);
-        int p = x;
-        while(p >= 0) {
-            res = merge(res, root[i][p]);
-            go_down(p);
-        }
-        return res;
-    }
- 
-    T bit_query(int i, int x) {
+    T point_query(int i, int x) {
         T res = 0;
         while(i >= 0) {
-            res = merge(res, get_single(i, x));
+            int p = get_id(i, x);
+            while(p >= 0) {
+                res = merge(res, root[i][p]);
+                go_down(p);
+            }
             go_down(i);
         }
         return res;
@@ -449,7 +457,7 @@ class FW_2D {
  
     T bit_range_queries(int i, int low, int high) {
         if(low > high) return 0;
-        return bit_query(i, high) - bit_query(i, low - 1);
+        return point_query(i, high) - point_query(i, low - 1);
     }
  
     T range_queries(int l, int r, int low, int high) {
@@ -457,6 +465,7 @@ class FW_2D {
         return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
     }
 };
+
 
 template<class T>   
 class SGT { 
@@ -569,6 +578,27 @@ class SGT {
         res = max(left, right);
         return res;
     }
+	
+	//    T merge(const T &left, const T &right) {
+//        T res;
+//        for (int a = 0; a < 2; ++a) {
+//            for (int b = 0; b < (a ? 1 : 2); ++b) {
+//                auto &curr = res.dp[a + b];
+//                auto &L = left.dp[a];
+//                auto &R = right.dp[b];
+//                for(int i = 0; i < 2; i++) {
+//                    for(int j = 0; j < 2; j++) {
+//                        curr[i][j] = max({curr[i][j], 
+//                            L[i][0] + R[0][j], 
+//                            L[i][1] + R[0][j],
+//                            L[i][0] + R[1][j]
+//                        });
+//                    }
+//                }
+//            }
+//        }
+//        return res;
+//    }
 };
 
 // PERSISTENT SEGTREE
@@ -596,8 +626,8 @@ struct PSGT {
     }
 
     T queries(int curr, int prev, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return 0;
         if(left >= start && right <= end) return root[curr] - root[prev];
-        if(left > end || start > right) return 0;
         int middle = midPoint;  
         return merge(queries(child[curr].ff, child[prev].ff, start, end, left, middle), queries(child[curr].ss, child[prev].ss, start, end, middle + 1, right));
     };
@@ -646,6 +676,111 @@ struct PSGT {
     }
 };
 
+template<class T>
+struct SGT_2D {
+    vt<vt<T>> root;
+    int n, m, N;           
+    T DEFAULT;             
+
+    SGT_2D(int n, int m, T DEFAULT) {
+        this->n = n;
+        this->m = m;
+        this->DEFAULT = DEFAULT;
+        this->N = max(n, m); 
+        root.resize(N * 2, vt<T>(N * 2)); // do 4 * N for recursive segtreee
+    }
+
+    void update_at(int x, int y, T value) {
+        x += N; y += N;
+        root[x][y] = value;
+        for (int ty = y; ty > 1; ty >>= 1) {
+            root[x][ty >> 1] = merge(root[x][ty], root[x][ty ^ 1]);
+        }
+        for (int tx = x; tx > 1; tx >>= 1) {
+            for (int ty = y; ty >= 1; ty >>= 1) {
+                root[tx >> 1][ty] = merge(root[tx][ty], root[tx ^ 1][ty]);
+            }
+        }
+    }
+
+    T queries_range(int start_x, int end_x, int start_y, int end_y) {
+        start_x += N; end_x += N;    
+        start_y += N; end_y += N;   
+        T result = DEFAULT;
+
+        while (start_x <= end_x) {
+            if (start_x & 1) { 
+                int sy = start_y, ey = end_y;
+                while (sy <= ey) {
+                    if (sy & 1) result = merge(result, root[start_x][sy++]);
+                    if (!(ey & 1)) result = merge(result, root[start_x][ey--]);
+                    sy >>= 1; ey >>= 1;
+                }
+                start_x++;
+            }
+            if (!(end_x & 1)) {
+                int sy = start_y, ey = end_y;
+                while (sy <= ey) {
+                    if (sy & 1) result = merge(result, root[end_x][sy++]);
+                    if (!(ey & 1)) result = merge(result, root[end_x][ey--]);
+                    sy >>= 1; ey >>= 1;
+                }
+                end_x--;
+            }
+            start_x >>= 1;
+            end_x >>= 1;
+        }
+        return result;
+    }
+
+    T merge(T A, T B) {
+        return min(A, B);
+    }
+
+//    void update_at(int x, int y, T v) {
+//        update_at(x, y, v, 0, n - 1, 0, m - 1, 1, 1);
+//    }
+// 
+//    void update_at(int x, int y, T val, int left_x, int right_x, int left_y, int right_y, int node_x, int node_y) {
+//        if (left_x == right_x && left_y == right_y) {
+//            root[node_x][node_y] = val;
+//            return;
+//        }
+//        int mid_x = (left_x + right_x) / 2;
+//        int mid_y = (left_y + right_y) / 2;
+//        if (x <= mid_x && y <= mid_y) update_at(x, y, val, left_x, mid_x, left_y, mid_y, 2 * node_x, 2 * node_y); 
+//        else if (x <= mid_x) update_at(x, y, val, left_x, mid_x, mid_y + 1, right_y, 2 * node_x, 2 * node_y + 1);
+//        else if (y <= mid_y) update_at(x, y, val, mid_x + 1, right_x, left_y, mid_y, 2 * node_x + 1, 2 * node_y);
+//        else update_at(x, y, val, mid_x + 1, right_x, mid_y + 1, right_y, 2 * node_x + 1, 2 * node_y + 1);
+//        root[node_x][node_y] = merge(
+//            root[2 * node_x][2 * node_y],
+//            root[2 * node_x][2 * node_y + 1],
+//            root[2 * node_x + 1][2 * node_y],
+//            root[2 * node_x + 1][2 * node_y + 1]
+//        );
+//    }
+// 
+//    T queries_range(int start_x, int end_x, int start_y, int end_y) {
+//        return queries_range(start_x, end_x, start_y, end_y, 0, n - 1, 0, m - 1, 1, 1);
+//    }
+// 
+//    T queries_range(int start_x, int end_x, int start_y, int end_y, int left_x, int right_x, int left_y, int right_y, int node_x, int node_y) {
+//        if (start_x > right_x || end_x < left_x || start_y > right_y || end_y < left_y) return DEFAULT;
+//        if (start_x <= left_x && right_x <= end_x && start_y <= left_y && right_y <= end_y) return root[node_x][node_y];
+//        int mid_x = (left_x + right_x) / 2;
+//        int mid_y = (left_y + right_y) / 2;
+//        return merge(
+//            queries_range(start_x, end_x, start_y, end_y, left_x, mid_x, left_y, mid_y, 2 * node_x, 2 * node_y),
+//            queries_range(start_x, end_x, start_y, end_y, left_x, mid_x, mid_y + 1, right_y, 2 * node_x, 2 * node_y + 1),
+//            queries_range(start_x, end_x, start_y, end_y, mid_x + 1, right_x, left_y, mid_y, 2 * node_x + 1, 2 * node_y),
+//            queries_range(start_x, end_x, start_y, end_y, mid_x + 1, right_x, mid_y + 1, right_y, 2 * node_x + 1, 2 * node_y + 1)
+//        );
+//    }
+// 
+//    T merge(T A, T B, T C, T D) {
+//        return min(A, min(B, min(C, D)));
+//    }
+};
 
 class MO {  
     public: 
@@ -698,7 +833,7 @@ class MO {
     }
 };
 
-template<typename T, typename F> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return a > b;});
+template<typename T, typename F> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
 class SparseTable {
 public:
     int n;
@@ -723,9 +858,6 @@ public:
         return func(dp[L][j], dp[R - (1 << j) + 1][j]);
     }
 };
-
-
-
 
 class TWO_DIMENSIONAL_RANGE_QUERY {   
     public: 
@@ -757,7 +889,6 @@ class TWO_DIMENSIONAL_RANGE_QUERY {
          }
     }
 };
-
 
 int root[MX * 120], lazy[MX * 120], ptr; // MX should be 1e5
 pii child[MX * 120];
@@ -874,89 +1005,46 @@ template<class T>
 class SegTree_Graph { 
     public: 
     int n;  
-    vvpii graph;
-    vi pos;
-    int off;
-	SegTree_Graph(int n) {    
+    vt<vt<T>> graph;
+    Undo_DSU root;
+    vll ans;
+    //vi pos;
+    //int off;
+	SegTree_Graph(int n, int q) : root(q) {    
         this->n = n;
-        off = n * 4;
-        graph.rsz(n * 8 + 23);
-        pos.rsz(n);
-        build(entireTree);
+        graph.rsz(n * 4); // n * 8 + 23;
+        ans.rsz(n);
+        //off = n * 4;
+//        pos.rsz(n);
+//        build(entireTree);
     }
     
-    void build(iter) { 
-        int u = i + off; // u here means from the parent can go to the children using off_set edges
-        if(left == right) {
-            graph[i].pb({u, 0});
-            graph[u].pb({i, 0});
-            pos[left] = i;
-            return;
-        }
-        int middle = midPoint;  
-        build(lp), build(rp); 
-        graph[lc].pb({i, 0});
-        graph[rc].pb({i, 0});
-        graph[u].pb({lc + off, 0});
-        graph[u].pb({rc + off, 0});
-    }
-
-    void add_edge(int u, int v, int w) {
-        u = pos[u], v = pos[v];
-        graph[u].pb({v, w});
-    }
-
-    void update(int start, int end, int u, int w, int type) { 
-        update(entireTree, start, end, pos[u], w, type);
+    void update_range(int start, int end, T v) { 
+        update_range(entireTree, start, end, v);
     }
     
-    void update(iter, int start, int end, int u, int w, int type) {    
+    void update_range(iter, int start, int end, T v) {    
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
-            if(type == 2) graph[u].pb({i + off, w});
-            else graph[i].pb({u, w});
+            graph[i].pb(v);
             return;
         }
         int middle = midPoint;  
-        update(lp, start, end, u, w, type);    
-        update(rp, start, end, u, w, type);    
+        update_range(lp, start, end, v);    
+        update_range(rp, start, end, v);    
     }
-
-    void run(int s) {
-        vll dp(n * 8 + 23, INF);
-        min_heap<pll> q;
-        q.push({0, pos[s]});
-        dp[pos[s]] = 0;
-        while(!q.empty()) {
-            auto [cost, node] = q.top(); q.pop();
-            if(dp[node] != cost) continue;
-            for(auto& [nei, w] : graph[node]) {
-                ll newCost = cost + w;
-                if(newCost < dp[nei]) {
-                    dp[nei] = newCost;
-                    q.push({newCost, nei});
-                }
-            }
-        }
-        for(int i = 0; i < n; i++) {
-            auto& res = dp[pos[i]];
-            cout << (res == INF ? -1 : res) << (i == n - 1 ? '\n' : ' ');
-        }
-    }
-	
-	void run() {
+ 
+    void run() {
         dfs(entireTree);
     }
-
+ 
     void dfs(iter) {
         int c = 0;
         for(auto& [u, v] : graph[i]) {
             if(root.merge(u, v, true)) c++;
         }
         if(left == right) {
-            for(auto& [u, v] : color[left]) {
-                res += (ll)root.getRank(u) * root.getRank(v);
-            }
+            ans[left] = root.res;
         }
         else {
             int middle = midPoint;
@@ -967,6 +1055,72 @@ class SegTree_Graph {
         }
     }
 
+//    void build(iter) { 
+//        int u = i + off; // u here means from the parent can go to the children using off_set edges
+//        if(left == right) {
+//            graph[i].pb({u, 0});
+//            graph[u].pb({i, 0});
+//            pos[left] = i;
+//            return;
+//        }
+//        int middle = midPoint;  
+//        build(lp), build(rp); 
+//        graph[lc].pb({i, 0});
+//        graph[rc].pb({i, 0});
+//        graph[u].pb({lc + off, 0});
+//        graph[u].pb({rc + off, 0});
+//    }
+//
+//    void add_edge(int u, int v, int w) {
+//        u = pos[u], v = pos[v];
+//        graph[u].pb({v, w});
+//    }
+//
+//    void update(int start, int end, int u, int w, int type) { 
+//        update(entireTree, start, end, pos[u], w, type);
+//    }
+//    
+//    void update(iter, int start, int end, int u, int w, int type) {    
+//        if(left > end || start > right) return; 
+//        if(left >= start && right <= end) { 
+//            if(type == 2) graph[u].pb({i + off, w});
+//            else graph[i].pb({u, w});
+//            return;
+//        }
+//        int middle = midPoint;  
+//        update(lp, start, end, u, w, type);    
+//        update(rp, start, end, u, w, type);    
+//    }
+};
+
+struct DynaCon { 
+    int SZ;  
+    Undo_DSU D;
+    vvpii seg;
+    vll ans;
+    DynaCon(int n, int dsuSize) : D(dsuSize) {
+		SZ = 1;
+        while(SZ < n) SZ <<= 1;
+        seg.resize(SZ << 1);
+        ans.rsz(SZ);
+    }
+
+    void update_range(int l, int r, pii p) {  
+        l += SZ, r += SZ + 1;
+        while (l < r) {
+            if (l & 1) seg[l++].pb(p);
+            if (r & 1) seg[--r].pb(p);
+            l >>= 1; r >>= 1;
+        }
+    }
+    
+    void process(int ind = 1) {
+        int c = 0;
+        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
+        if (ind >= SZ) { ans[ind - SZ] = D.res; }
+        else { process(2 * ind); process(2 * ind + 1); }
+        while(c--) D.rollBack();
+    }
 };
 
 class HLD {
@@ -977,28 +1131,18 @@ class HLD {
     vvi graph;
     int n;
     GRAPH g;
-    HLD(vvi& graph, vi& a) : seg(graph.size()), g(graph) {
+    HLD(vvi& graph, vi a) : seg(graph.size(), 0), g(graph) {
         this->graph = graph;
         this->n = graph.size();
         this->a = a;
+        this->parent = g.parent;
+        this->sz = g.subtree;
         ct = 0;
         id.rsz(n), tp.rsz(n), sz.rsz(n);
-        parent.rsz(n, -1);
-        dfs1();
-        dfs2();
-    }
-     
-    int dfs1(int node = 0, int par = -1) {   
-        parent[node] = par;
-        sz[node] = 1;   
-        for(auto& nei : graph[node]) {   
-            if(nei == par) continue;    
-            sz[node] += dfs1(nei, node);
-        }   
-        return sz[node];    
+        dfs();
     }
         
-    void dfs2(int node = 0, int par = -1, int top = 0) {   
+    void dfs(int node = 0, int par = -1, int top = 0) {   
         id[node] = ct++;    
         tp[node] = top;
         int nxt = -1, max_size = -1;    
@@ -1010,32 +1154,37 @@ class HLD {
             }   
         }   
         if(nxt == -1) return;   
-        dfs2(nxt, node, top);   
+        dfs(nxt, node, top);   
         for(auto& nei : graph[node]) {   
-            if(nei != par && nei != nxt) dfs2(nei, node, nei);  
+            if(nei != par && nei != nxt) dfs(nei, node, nei);  
         }   
     }
 
     void update(int i, int v) {
         a[i] = v;
-        seg.update(id[i], v);
+        seg.update_at(id[i], v);
     }
 
-    int path(int node, int par) {   
+    int queries(int node, int par) {   
         int res = 0;    
-        while(node != par)  {   
-            if(node == tp[node])   {   
+        while(node != par) {   
+            if(node == tp[node]) {   
                 res += a[node];
                 node = g.dp[node][0]; 
-            }   else if(g.depth[tp[node]] > g.depth[par])  {   
-                res += seg.queries(id[tp[node]], id[node]);    
+            } else if(g.depth[tp[node]] > g.depth[par]) {   
+                res += seg.queries_range(id[tp[node]], id[node]);    
                 node = g.dp[tp[node]][0];
-            }   else    {   
-                res += seg.queries(id[par] + 1, id[node]);  
+            } else {   
+                res += seg.queries_range(id[par] + 1, id[node]);  
                 break;  
-            }   
+            } 
         }   
         return res; 
+    }
+
+    int path_queries(int u, int v) {
+        int c = get_lca(u, v);
+        return queries(u, c) + queries(v, c); // + a[c] cause it's missing it
     }
 
     int get_dist(int a, int b) {
@@ -1044,6 +1193,10 @@ class HLD {
 
     int get_lca(int a, int b) {
         return g.lca(a, b);
+    }
+
+    bool contain_all_node(int u, int v) {
+        return path_queries(u, v) == get_dist(u, v);
     }
 };
 
@@ -1272,4 +1425,450 @@ class SGT_BEAT {
 		return queries_at(rp, id);
 	}
 
+};
+
+template<class T>
+class Splay_Tree {
+public:
+    struct Node {
+        Node *left, *right, *parent;
+        T key;   
+        int delta;  
+        int need_rev;
+        int offset;
+        int size; 
+        ll Sum[5];
+
+        Node(int x = 0) 
+            : left(nullptr), right(nullptr), parent(nullptr), key(x),
+              delta(0), offset(0), size(1), need_rev(0)
+        {
+            mset(Sum, 0);
+            Sum[0] = x;
+        }
+
+        void fix() {
+            if (left)  left->parent = this;
+            if (right) right->parent = this;
+        }
+
+        void push_down() {
+            if(need_rev) {
+                swap(left, right);
+                if(left) left->need_rev ^= 1;
+                if(right) right->need_rev ^= 1;
+                need_rev = 0;
+            }
+            if(delta) {
+                if (left) left->delta += delta;
+                if (right) right->delta += delta;
+                delta = 0;
+            }
+        }
+
+        void unite() {
+            memset(Sum, 0, sizeof(Sum));
+            size = 1;
+            if (left) {
+                size += left->size;
+                for (int i = 0; i < 5; i++){
+                    Sum[i] = left->Sum[i];
+                }
+            }
+            Sum[(size - 1) % 5] += key;
+            if (right) {
+                for (int i = 0; i < 5; i++){
+                    Sum[(i + size) % 5] += right->Sum[i];
+                }
+                size += right->size;
+            }
+        }
+    };
+
+private:
+    Node* root;
+
+    void rotate_right(Node* x) {
+        Node* p = x->parent;
+        if (!p) return;
+        p->push_down();
+        x->push_down();
+        Node* b = x->right;
+        x->right = p;
+        p->left = b;
+        if (b) b->parent = p;
+        x->parent = p->parent;
+        if (p->parent) {
+            if (p->parent->left == p) p->parent->left = x;
+            else p->parent->right = x;
+        }
+        p->parent = x;
+        p->fix();
+        x->fix();
+        p->unite();
+        x->unite();
+    }
+
+    void rotate_left(Node* x) {
+        Node* p = x->parent;
+        if (!p) return;
+        p->push_down();
+        x->push_down();
+        Node* b = x->left;
+        x->left = p;
+        p->right = b;
+        if (b) b->parent = p;
+        x->parent = p->parent;
+        if (p->parent) {
+            if (p->parent->left == p) p->parent->left = x;
+            else p->parent->right = x;
+        }
+        p->parent = x;
+        p->fix();
+        x->fix();
+        p->unite();
+        x->unite();
+    }
+
+    void splay(Node* x, Node* goal = nullptr) {
+        if (!x) return;
+        while (x->parent != goal) {
+            Node* p = x->parent;
+            Node* g = p->parent;
+            if (g == goal) {  // Zig step.
+                if (p->left == x) rotate_right(x);
+                else rotate_left(x);
+            }
+            else if (g->left == p && p->left == x) { // Zig-Zig
+                rotate_right(p);
+                rotate_right(x);
+            }
+            else if (g->right == p && p->right == x) { // Zig-Zig
+                rotate_left(p);
+                rotate_left(x);
+            }
+            else if (g->left == p && p->right == x) { // Zig-Zag
+                rotate_left(x);
+                rotate_right(x);
+            }
+            else { // g->right == p && p->left == x, Zig-Zag.
+                rotate_right(x);
+                rotate_left(x);
+            }
+        }
+        if (goal == nullptr) root = x;
+    }
+
+public:
+    Splay_Tree() : root(nullptr) {}
+
+    void Insert(int x) {
+        root = merge(root, new Node(x));
+    }
+
+    Node* merge(Node* L, Node* R) {
+        if(!L) return R;
+        if(!R) return L;
+        Node* maxL = L;
+        while (maxL->right) maxL = maxL->right; // find the right_most node of left_children
+        splay(maxL);
+        maxL->right = R;
+        if (R) R->parent = maxL;
+        maxL->unite();
+        return maxL;
+    }
+    // Find the node with key x. Splay it to the root if found.
+    Node* Find(int x) {
+        Node* cur = root;
+        while (cur) {
+            if (x == cur->key) break;
+            else if (x < cur->key) cur = cur->left;
+            else cur = cur->right;
+        }
+        if (cur) splay(cur);
+        return cur;
+    }
+
+    bool Erase(int x) {
+        Node* target = Find(x);
+        if (!target) return false;
+        splay(target);
+        Node* L = target->left;
+        Node* R = target->right;
+        if (L) L->parent = nullptr;
+        if (R) R->parent = nullptr;
+        delete target;
+        root = merge(L, R);
+        return true;
+    }
+
+    ll get() {
+        if (!root) return 0;
+        root->unite();
+        return root->Sum[2];
+    }
+
+    int get_k(int k) {
+        if (!root || k < 0 || k >= root->size)
+            throw out_of_range("k is out of bounds");
+        Node* node = get_k(root, k);
+        splay(node);
+        return node->key;
+    }
+
+    Node* get_k(Node* curr, int k) { // index start at 0
+        int left_size = (curr->left ? curr->left->size : 0);
+        if (k < left_size) return get_k(curr->left, k);
+        else if (k == left_size) return curr;
+        else return get_k(curr->right, k - left_size - 1);
+    }
+};
+
+struct node {
+    int x;
+    node *l = 0;
+    node *r = 0;
+    node *p = 0;
+    bool rev = false;
+
+    node() = default;
+
+    node(int v) {
+        x = v;
+    }
+
+    void push() {
+        if(rev) {
+            rev = false;
+            swap(l, r);
+            if(l) l->rev ^= true;
+            if(r) r->rev ^= true;
+        }
+    }
+
+    bool is_root() {
+        return p == 0 || (p->l != this && this != p->r);
+    }
+};
+
+struct lct {
+    vector<node> a;
+
+    lct(int n) {
+        a.resize(n+1);
+        for(int i = 1; i <= n; ++i)
+            a[i].x = i;
+    }
+
+    void rot(node* c) {
+        auto p = c->p;
+        auto g = p->p;
+
+        if(!p->is_root())
+            (g->r == p ? g->r : g->l) = c;
+
+        p->push();
+        c->push();
+
+        if(p->l == c) { // rtr
+            p->l = c->r;
+            c->r = p;
+            if(p->l) p->l->p = p;
+        } else { // rtl
+            p->r = c->l;
+            c->l = p;
+            if(p->r) p->r->p = p;
+        }
+
+        p->p = c;
+        c->p = g;
+    }
+
+    void splay(node* c) {
+        while(!c->is_root()) {
+            auto p = c->p;
+            auto g = p->p;
+            if(!p->is_root())
+                rot((g->r == p) == (p->r == c) ? p : c);
+            rot(c);
+        }
+        c->push();
+    }
+
+    node* access(int v) {
+        node* last = 0;
+        node* c = &a[v];
+        for(node* p = c; p; p = p->p) {
+            splay(p);
+            p->r = last;
+            last = p;
+        }
+        splay(c);
+        return last;
+    }
+
+    void make_root(int v) {
+        access(v);
+        auto* c = &a[v];
+        if(c->l)
+            c->l->rev ^= true, c->l = 0;
+    }
+
+    void link(int u, int v) {
+        make_root(v);
+        node* c = &a[v];
+        c->p = &a[u];
+    }
+
+    void cut(int u, int v) {
+        make_root(u);
+        access(v);
+        if(a[v].l) {
+            a[v].l->p = 0;
+            a[v].l = 0;
+        }
+    }
+
+    bool connected(int u, int v) {
+        access(u);
+        access(v);
+        return a[u].p;
+    }
+
+};
+
+class BITSET {
+public:
+    using ubig = unsigned long long;
+    int sz;
+    vector<ubig> blocks;
+    BITSET(int n) : sz(n) {
+        int len = (n + 8 * (int)sizeof(ubig) - 1) / (8 * (int)sizeof(ubig));
+        blocks.assign(len, 0ULL);
+    }
+    void set(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] |= (1ULL << offset);
+    }
+    BITSET& set() {
+        for (auto &blk : blocks)
+            blk = ~0ULL;
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    bool test(int i) const {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        return (blocks[block] >> offset) & 1ULL;
+    }
+    BITSET& reset() {
+        fill(blocks.begin(), blocks.end(), 0ULL);
+        return *this;
+    }
+    void reset(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] &= ~(1ULL << offset);
+    }
+    BITSET& flip() {
+        for (auto &blk : blocks)
+            blk = ~blk;
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    void flip(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] ^= (1ULL << offset);
+    }
+    int count() const {
+        int cnt = 0;
+        for (auto blk : blocks)
+            cnt += __builtin_popcountll(blk);
+        return cnt;
+    }
+    bool any() const {
+        for (auto blk : blocks)
+            if (blk != 0) return true;
+        return false;
+    }
+    bool none() const {
+        return !any();
+    }
+    bool all() const {
+        int fullBlocks = sz / (8 * (int)sizeof(ubig));
+        for (int i = 0; i < fullBlocks; i++)
+            if (blocks[i] != ~0ULL) return false;
+        int remaining = sz % (8 * (int)sizeof(ubig));
+        if (remaining > 0) {
+            ubig mask = (1ULL << remaining) - 1;
+            if (blocks[fullBlocks] != mask) return false;
+        }
+        return true;
+    }
+    string to_string() const {
+        string s;
+        s.resize(sz);
+        for (int i = 0; i < sz; i++)
+            s[sz - 1 - i] = test(i) ? '1' : '0';
+        return s;
+    }
+    BITSET& operator|=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] |= other.blocks[i];
+        return *this;
+    }
+    BITSET& operator&=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] &= other.blocks[i];
+        return *this;
+    }
+    BITSET& operator^=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] ^= other.blocks[i];
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator|(const BITSET& other) const {
+        BITSET res(*this);
+        res |= other;
+        return res;
+    }
+    BITSET operator&(const BITSET& other) const {
+        BITSET res(*this);
+        res &= other;
+        return res;
+    }
+    BITSET operator^(const BITSET& other) const {
+        BITSET res(*this);
+        res ^= other;
+        return res;
+    }
+    BITSET operator~() const {
+        BITSET res(*this);
+        res.flip();
+        return res;
+    }
+    bool operator==(const BITSET& other) const {
+        return blocks == other.blocks;
+    }
+    bool operator!=(const BITSET& other) const {
+        return !(*this == other);
+    }
 };

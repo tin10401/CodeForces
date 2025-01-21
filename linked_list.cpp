@@ -51,6 +51,22 @@ class Linked_list {
             next[res[i - 1]] = res[i];
         }
     }
+
+    void sort() {
+        int curr = head;
+        vector<int> sorted_list;
+        while(curr) {
+            sorted_list.push_back(val[curr]);
+            curr = next(curr);
+        }
+        sort(begin(sorted_list), end(sorted_list));
+        curr = head;
+        int i = 0;
+        while(curr) {
+            val[curr] = sorted_list[i++];
+            curr = next[curr];
+        }
+    }
 };
 
 int main() {

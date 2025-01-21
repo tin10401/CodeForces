@@ -185,6 +185,7 @@ void printMemoryUsage() {
     double memoryMB = usage.ru_maxrss / 1024.0;
     cerr << "Memory usage: " << memoryMB << " MB" << "\n";
 }
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -200,147 +201,162 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e4 + 10;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-class Undo_DSU {
-    public:
-    vi par, rank;
-    stack<ar(4)> st;
-    int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
+static int ok[MX], dist[MX];
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
         this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
-    }
- 
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
-    }
- 
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
-    }
- 
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
-        }
-    }
- 
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
-    }
-};
- 
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-        SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
-    }
-
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
-        }
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4); // careful with initializing lazy_value
     }
     
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, int val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+            if(left == right) {
+                int x = root[i][0];
+                x += val;
+                root[i] = {x, ok[x], dist[x]};
+                return;
+            }
+            else if(root[i][2] > val) {
+                apply(i, left, right, val);
+                pushDown;   
+                return;
+            }
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, int val) {
+        root[i][2] -= val;
+        root[i][0] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res[1] = left[1] + right[1];
+        res[2] = min(left[2], right[2]);
+        return res;
     }
 };
 
 void solve() {
-    ll n, q; cin >> n >> q;
-    var(3) edges(n);
-    vvpii a(n);
-    for(int i = 1; i < n; i++) {
-        auto& [u, v, w] = edges[i]; cin >> u >> v >> w;
-        u--, v--;
-        a[i].pb({0, edges[i][2]});
+    // lucky number is number consisting of 4 and 7 only
+    // queries add on range, queries sum on range
+    // notice that there's only 30 number in this range, so each position will change at most 30 times
+    // we can do a walk on this segtree, the walk will be depend on the distance between the current number to the next beautiful number
+    int n, q; cin >> n >> q;
+    ok[0] = true;
+    for(int i = 1; i < MX; i++) {
+        ok[i] = ok[i / 10] && (i % 10 == 4 || i % 10 == 7);
+        if(ok[i]) debug(i);
     }
-    for(int i = 1; i <= q; i++) {
-        int id, x; cin >> id >> x;
-        a[id].pb({i, x});
+    for(int i = MX - 2; i >= 0; i--) {
+        if(!ok[i]) dist[i] = dist[i + 1] + 1;
     }
-    for(int i = 1; i < n; i++) {
-        a[i].pb({q + 1, -1});
+    SGT<ar(3)> root(n, {0, 0, inf});
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        root.update_at(i, {x, ok[x], dist[x]});
     }
-    vll ans(q + 1);
-    for(int bit = 0; bit < 20; bit++) {
-        DynaCon root(q + 1, n);
-        for(int i = 1; i < n; i++) {
-            auto& curr = a[i];
-            int N = curr.size();
-            for(int j = 0; j + 1 < N; j++) {
-                int s = curr[j].ff;
-                int e = curr[j + 1].ff - 1;
-                int w = curr[j].ss;
-                if(((w >> bit) & 1) == 0) {
-                    root.update_range(s, e, {edges[i][0], edges[i][1]});
-                }
-            }
+    while(q--) {
+        string op; cin >> op;
+        if(op == "count") {
+            int l, r; cin >> l >> r;
+            l--, r--;
+            debug(l, r);
+            cout << root.queries_range(l, r)[1] << endl;
         }
-        root.process();
-        ll total = n * (n - 1) / 2;
-        for(int i = 0; i <= q; i++) {
-            ll ans_bit = total - root.ans[i];
-            ans[i] += ans_bit * (1LL << bit);
+        else {
+            int l, r, x; cin >> l >> r >> x;
+            l--, r--;
+            root.update_range(l, r, x);
         }
     }
-    output_vector(ans);
 }
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -350,6 +366,7 @@ signed main() {
     #ifdef LOCAL
       printMemoryUsage();
     #endif
+
     return 0;
 }
 
@@ -366,5 +383,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-

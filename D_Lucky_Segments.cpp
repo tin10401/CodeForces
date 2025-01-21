@@ -185,6 +185,7 @@ void printMemoryUsage() {
     double memoryMB = usage.ru_maxrss / 1024.0;
     cerr << "Memory usage: " << memoryMB << " MB" << "\n";
 }
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -197,7 +198,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1e18 + 1;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -207,140 +208,76 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-class Undo_DSU {
-    public:
-    vi par, rank;
-    stack<ar(4)> st;
-    int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
-        this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
-    }
- 
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
-    }
- 
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
-    }
- 
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
-        }
-    }
- 
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
-    }
-};
- 
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-        SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
-    }
-
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
-        }
-    }
-    
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
-    }
-};
-
 void solve() {
-    ll n, q; cin >> n >> q;
-    var(3) edges(n);
-    vvpii a(n);
-    for(int i = 1; i < n; i++) {
-        auto& [u, v, w] = edges[i]; cin >> u >> v >> w;
-        u--, v--;
-        a[i].pb({0, edges[i][2]});
+    ll n, k; cin >> n >> k;
+    vpll seg(n); cin >> seg;
+    srt(seg);
+    vll a;
+    auto generate = [&](auto& generate, ll x) -> void {
+        a.pb(x);
+        if(x > INF) return;
+        generate(generate, x * 10 + 4), generate(generate, x * 10 + 7);
+    };
+    generate(generate, 4), generate(generate, 7);
+    srtU(a);
+    auto cmp_left = [&](int i, int j) -> bool {
+        return seg[i].ff > seg[j].ff;
+    };
+    auto cmp_right = [&](int i, int j) -> bool {
+        return seg[i].ss > seg[j].ss;
+    };
+    priority_queue<int, vi, decltype(cmp_left)> right(cmp_left);
+    priority_queue<int, vi, decltype(cmp_right)> left(cmp_right);
+    i128 right_sum = 0, left_sum = 0;
+    ll min_len = INF;
+    for(int i = 0; i < n; i++) {
+        auto& [l, r] = seg[i];
+        right_sum += l;
+        right.push(i);
+        min_len = min(min_len, r - l);
     }
-    for(int i = 1; i <= q; i++) {
-        int id, x; cin >> id >> x;
-        a[id].pb({i, x});
-    }
-    for(int i = 1; i < n; i++) {
-        a[i].pb({q + 1, -1});
-    }
-    vll ans(q + 1);
-    for(int bit = 0; bit < 20; bit++) {
-        DynaCon root(q + 1, n);
-        for(int i = 1; i < n; i++) {
-            auto& curr = a[i];
-            int N = curr.size();
-            for(int j = 0; j + 1 < N; j++) {
-                int s = curr[j].ff;
-                int e = curr[j + 1].ff - 1;
-                int w = curr[j].ss;
-                if(((w >> bit) & 1) == 0) {
-                    root.update_range(s, e, {edges[i][0], edges[i][1]});
-                }
+    auto cal = [&](ll l, ll r) -> bool {
+        ll t1 = n - left.size() - right.size(), t2 = right.size();
+        return right_sum - (i128)t2 * l + (i128)r * t1 - left_sum <= (i128)k;
+    };
+    int N = a.size();
+    ll res = 0;
+    for(int l = 0, r = 0; l < N && r < N; l++) {
+        r = max(r, l);
+        while(r < N && a[r] - a[l] <= min_len) {
+            while(!right.empty()) {
+                int i = right.top();
+                if(seg[i].ff >= a[l]) break;
+                right.pop();
+                right_sum -= seg[i].ff;
+                left.push(i);
             }
-        }
-        root.process();
-        ll total = n * (n - 1) / 2;
-        for(int i = 0; i <= q; i++) {
-            ll ans_bit = total - root.ans[i];
-            ans[i] += ans_bit * (1LL << bit);
+            while(!left.empty()) {
+                int i = left.top();
+                if(seg[i].ss >= a[r]) break;
+                left.pop();
+                left_sum += seg[i].ss;
+            }
+            if(cal(a[l], a[r])) {
+                res = max(res, (ll)r - l + 1);
+                r++;
+            }
+            else break;
         }
     }
-    output_vector(ans);
+    cout << res << endl;
+
 }
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -350,6 +287,7 @@ signed main() {
     #ifdef LOCAL
       printMemoryUsage();
     #endif
+
     return 0;
 }
 
@@ -366,5 +304,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-

@@ -185,6 +185,7 @@ void printMemoryUsage() {
     double memoryMB = usage.ru_maxrss / 1024.0;
     cerr << "Memory usage: " << memoryMB << " MB" << "\n";
 }
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -197,7 +198,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static ll INF = 1LL << 62;
+const static ll INF = 1e15;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -207,140 +208,161 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-class Undo_DSU {
-    public:
-    vi par, rank;
-    stack<ar(4)> st;
-    int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
+template<class T>
+struct SGT_2D {
+    vt<vt<T>> root;
+    int n, m, N;           
+    T DEFAULT;             
+
+    SGT_2D(int n, int m, T DEFAULT) {
         this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
-    }
- 
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
-    }
- 
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
-    }
- 
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
-        }
-    }
- 
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
-    }
-};
- 
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-        SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
+        this->m = m;
+        this->DEFAULT = DEFAULT;
+        this->N = max(n, m); 
+        root.resize(N * 2, vector<T>(N * 2)); // do 4 * N for recursive segtreee
     }
 
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
+    void update_at(int x, int y, T value) {
+        x += N; y += N;
+        root[x][y] = value;
+        for (int ty = y; ty > 1; ty >>= 1) {
+            root[x][ty >> 1] = merge(root[x][ty], root[x][ty ^ 1]);
+        }
+        for (int tx = x; tx > 1; tx >>= 1) {
+            for (int ty = y; ty >= 1; ty >>= 1) {
+                root[tx >> 1][ty] = merge(root[tx][ty], root[tx ^ 1][ty]);
+            }
         }
     }
-    
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
+
+    T queries_range(int start_x, int end_x, int start_y, int end_y) {
+        start_x += N; end_x += N;    
+        start_y += N; end_y += N;   
+        T result = DEFAULT;
+
+        while (start_x <= end_x) {
+            if (start_x & 1) { 
+                int sy = start_y, ey = end_y;
+                while (sy <= ey) {
+                    if (sy & 1) result = merge(result, root[start_x][sy++]);
+                    if (!(ey & 1)) result = merge(result, root[start_x][ey--]);
+                    sy >>= 1; ey >>= 1;
+                }
+                start_x++;
+            }
+            if (!(end_x & 1)) {
+                int sy = start_y, ey = end_y;
+                while (sy <= ey) {
+                    if (sy & 1) result = merge(result, root[end_x][sy++]);
+                    if (!(ey & 1)) result = merge(result, root[end_x][ey--]);
+                    sy >>= 1; ey >>= 1;
+                }
+                end_x--;
+            }
+            start_x >>= 1;
+            end_x >>= 1;
+        }
+        return result;
     }
+
+    T merge(T A, T B) {
+        return min(A, B);
+    }
+
+//    void update_at(int x, int y, T v) {
+//        update_at(x, y, v, 0, n - 1, 0, m - 1, 1, 1);
+//    }
+// 
+//    void update_at(int x, int y, T val, int left_x, int right_x, int left_y, int right_y, int node_x, int node_y) {
+//        if (left_x == right_x && left_y == right_y) {
+//            root[node_x][node_y] = val;
+//            return;
+//        }
+//        int mid_x = (left_x + right_x) / 2;
+//        int mid_y = (left_y + right_y) / 2;
+//        if (x <= mid_x && y <= mid_y) update_at(x, y, val, left_x, mid_x, left_y, mid_y, 2 * node_x, 2 * node_y); 
+//        else if (x <= mid_x) update_at(x, y, val, left_x, mid_x, mid_y + 1, right_y, 2 * node_x, 2 * node_y + 1);
+//        else if (y <= mid_y) update_at(x, y, val, mid_x + 1, right_x, left_y, mid_y, 2 * node_x + 1, 2 * node_y);
+//        else update_at(x, y, val, mid_x + 1, right_x, mid_y + 1, right_y, 2 * node_x + 1, 2 * node_y + 1);
+//        root[node_x][node_y] = merge(
+//            root[2 * node_x][2 * node_y],
+//            root[2 * node_x][2 * node_y + 1],
+//            root[2 * node_x + 1][2 * node_y],
+//            root[2 * node_x + 1][2 * node_y + 1]
+//        );
+//    }
+// 
+//    T queries_range(int start_x, int end_x, int start_y, int end_y) {
+//        return queries_range(start_x, end_x, start_y, end_y, 0, n - 1, 0, m - 1, 1, 1);
+//    }
+// 
+//    T queries_range(int start_x, int end_x, int start_y, int end_y, int left_x, int right_x, int left_y, int right_y, int node_x, int node_y) {
+//        if (start_x > right_x || end_x < left_x || start_y > right_y || end_y < left_y) return DEFAULT;
+//        if (start_x <= left_x && right_x <= end_x && start_y <= left_y && right_y <= end_y) return root[node_x][node_y];
+//        int mid_x = (left_x + right_x) / 2;
+//        int mid_y = (left_y + right_y) / 2;
+//        return merge(
+//            queries_range(start_x, end_x, start_y, end_y, left_x, mid_x, left_y, mid_y, 2 * node_x, 2 * node_y),
+//            queries_range(start_x, end_x, start_y, end_y, left_x, mid_x, mid_y + 1, right_y, 2 * node_x, 2 * node_y + 1),
+//            queries_range(start_x, end_x, start_y, end_y, mid_x + 1, right_x, left_y, mid_y, 2 * node_x + 1, 2 * node_y),
+//            queries_range(start_x, end_x, start_y, end_y, mid_x + 1, right_x, mid_y + 1, right_y, 2 * node_x + 1, 2 * node_y + 1)
+//        );
+//    }
+// 
+//    T merge(T A, T B, T C, T D) {
+//        return min(A, min(B, min(C, D)));
+//    }
 };
 
 void solve() {
-    ll n, q; cin >> n >> q;
-    var(3) edges(n);
-    vvpii a(n);
-    for(int i = 1; i < n; i++) {
-        auto& [u, v, w] = edges[i]; cin >> u >> v >> w;
-        u--, v--;
-        a[i].pb({0, edges[i][2]});
-    }
-    for(int i = 1; i <= q; i++) {
-        int id, x; cin >> id >> x;
-        a[id].pb({i, x});
-    }
-    for(int i = 1; i < n; i++) {
-        a[i].pb({q + 1, -1});
-    }
-    vll ans(q + 1);
-    for(int bit = 0; bit < 20; bit++) {
-        DynaCon root(q + 1, n);
-        for(int i = 1; i < n; i++) {
-            auto& curr = a[i];
-            int N = curr.size();
-            for(int j = 0; j + 1 < N; j++) {
-                int s = curr[j].ff;
-                int e = curr[j + 1].ff - 1;
-                int w = curr[j].ss;
-                if(((w >> bit) & 1) == 0) {
-                    root.update_range(s, e, {edges[i][0], edges[i][1]});
-                }
-            }
-        }
-        root.process();
-        ll total = n * (n - 1) / 2;
-        for(int i = 0; i <= q; i++) {
-            ll ans_bit = total - root.ans[i];
-            ans[i] += ans_bit * (1LL << bit);
+    int n, m, p; cin >> n >> m >> p;
+    vvpii pos(p + 1);
+    vvi dp(n, vi(m, inf));
+    vt<SGT_2D<int>> root(4, SGT_2D<int>(n, m, inf));
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < m; j++) {
+            int x; cin >> x;
+            pos[x].pb({i, j});
+            if(x == 1) dp[i][j] = i + j;
+            for(int k = 0; k < 4; k++) root[k].update_at(i, j, inf);
         }
     }
-    output_vector(ans);
+    for(int i = 2; i <= p; i++) {
+        for(auto& [r, c] : pos[i - 1]) {
+            root[0].update_at(r, c, dp[r][c] - r - c);
+            root[1].update_at(r, c, dp[r][c] - r + c);
+            root[2].update_at(r, c, dp[r][c] + r + c);
+            root[3].update_at(r, c, dp[r][c] + r - c);
+        }
+        for(auto& [r, c] : pos[i]) {
+            dp[r][c] = min({
+                    root[0].queries_range(0, r, 0, c) + r + c,
+                    root[1].queries_range(0, r, c, m - 1) + r - c,
+                    root[2].queries_range(r, n - 1, c, m - 1) - r - c,
+                    root[3].queries_range(r, n - 1, 0, c) - r + c
+                    });
+        }
+        for(auto& [r, c] : pos[i - 1]) {
+            root[0].update_at(r, c, inf);
+            root[1].update_at(r, c, inf);
+            root[2].update_at(r, c, inf);
+            root[3].update_at(r, c, inf);
+        }
+    }
+    int res = inf;
+    for(auto& [r, c] : pos[p]) res = min(res, dp[r][c]);
+    cout << res << endl;
 }
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -350,6 +372,7 @@ signed main() {
     #ifdef LOCAL
       printMemoryUsage();
     #endif
+
     return 0;
 }
 
@@ -366,5 +389,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
