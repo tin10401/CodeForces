@@ -121,11 +121,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T1, typename T2>
-std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
-auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -177,6 +172,11 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
+template<typename T1, typename T2>
+std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
+auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+} // remove for leetcode
 #include <sys/resource.h>
 #include <sys/time.h>
 void printMemoryUsage() {
@@ -213,6 +213,7 @@ void solve() {
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();

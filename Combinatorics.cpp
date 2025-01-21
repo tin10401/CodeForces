@@ -26,6 +26,18 @@ void generatePrime() {  primeBits.set(2);
     }
 }
 
+vi factor(int x) {
+    vi a;
+    for(int i = 1; i * i <= x; i++) {
+        if(x % i == 0) {
+            a.pb(i);
+            if(i * i != x) a.pb(x / i);
+        }
+    }
+    return a;
+}
+
+
 class Combinatoric {    
     public: 
     int n;  

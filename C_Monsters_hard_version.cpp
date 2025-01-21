@@ -121,11 +121,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T1, typename T2>
-std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
-auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -177,6 +172,11 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
+template<typename T1, typename T2>
+std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
+auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+} // remove for leetcode
 #include <sys/resource.h>
 #include <sys/time.h>
 void printMemoryUsage() {
@@ -185,6 +185,7 @@ void printMemoryUsage() {
     double memoryMB = usage.ru_maxrss / 1024.0;
     cerr << "Memory usage: " << memoryMB << " MB" << "\n";
 }
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -207,134 +208,145 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-class Undo_DSU {
-    public:
-    vi par, rank;
-    stack<ar(4)> st;
-    int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
         this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
-    }
- 
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
-    }
- 
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
-    }
- 
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
-        }
-    }
- 
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
-    }
-};
- 
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-        SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
-    }
-
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
-        }
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4); // careful with initializing lazy_value
     }
     
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, int val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, int val) {
+        root[i].ff += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
     }
 };
 
 void solve() {
-    ll n, q; cin >> n >> q;
-    var(3) edges(n);
-    vvpii a(n);
-    for(int i = 1; i < n; i++) {
-        auto& [u, v, w] = edges[i]; cin >> u >> v >> w;
-        u--, v--;
-        a[i].pb({0, edges[i][2]});
-    }
-    for(int i = 1; i <= q; i++) {
-        int id, x; cin >> id >> x;
-        a[id].pb({i, x});
-    }
-    for(int i = 1; i < n; i++) {
-        a[i].pb({q + 1, -1});
-    }
-    vll ans(q + 1);
-    for(int bit = 0; bit < 20; bit++) {
-        DynaCon root(q + 1, n);
-        for(int i = 1; i < n; i++) {
-            auto& curr = a[i];
-            int N = curr.size();
-            for(int j = 0; j + 1 < N; j++) {
-                int s = curr[j].ff;
-                int e = curr[j + 1].ff - 1;
-                int w = curr[j].ss;
-                if(((w >> bit) & 1) == 0) {
-                    root.update_range(s, e, {edges[i][0], edges[i][1]});
-                }
-            }
+    // for each k from 1 to n, you can use special attack once to eliminate all monster
+    // notice that there are some useless monster health, we detect it by if the total use of this number at this spot is 0, we remove it by increase the suffix of it
+    int n; cin >> n;
+    SGT<pii> root(n + 1, {inf, inf});
+    for(int i = 0; i <= n; i++) root.update_at(i, {i, i});
+    ll sm = 0, cnt = 0;
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        sm += x;
+        auto it = root.queries_range(x, n);
+        if(it.ff == 0) {
+            sm -= it.ss;
+            cnt--;
+            root.update_range(it.ss, n, 1);
         }
-        root.process();
-        ll total = n * (n - 1) / 2;
-        for(int i = 0; i <= q; i++) {
-            ll ans_bit = total - root.ans[i];
-            ans[i] += ans_bit * (1LL << bit);
-        }
+        cnt++;
+        root.update_range(x, n, -1);
+        cout << (sm - cnt * (cnt + 1) / 2) << (i == n - 1 ? '\n' : ' ');
     }
-    output_vector(ans);
+    
 }
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
@@ -350,6 +362,7 @@ signed main() {
     #ifdef LOCAL
       printMemoryUsage();
     #endif
+
     return 0;
 }
 
@@ -366,5 +379,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-

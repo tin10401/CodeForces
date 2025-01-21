@@ -55,6 +55,7 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define db double
 #define ld long db
 #define ll long long
+#define ull unsigned long long
 #define vll vt<ll>  
 #define vvll vt<vll>
 #define pll pair<ll, ll>    
@@ -120,11 +121,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T1, typename T2>
-std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
-auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
-    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
-} // remove for leetcode
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -176,6 +172,20 @@ void debug_out(const char* names, T value, Args... args) {
     if (sizeof...(args)) { std::cerr << ", "; debug_out(comma + 1, args...); }   
     else { std::cerr << std::endl; }
 }
+template<typename T1, typename T2>
+std::ostream& operator<<(std::ostream& o, const std::pair<T1, T2>& p) { return o << "{" << p.ff << " , " << p.ss << "}"; }
+auto operator<<(auto &o, const auto &x) -> decltype(end(x), o) {
+    o << "{"; int i = 0; for (const auto &e : x) { if (i++) o << " , "; o << e; } return o << "}";
+} // remove for leetcode
+#include <sys/resource.h>
+#include <sys/time.h>
+void printMemoryUsage() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    double memoryMB = usage.ru_maxrss / 1024.0;
+    cerr << "Memory usage: " << memoryMB << " MB" << "\n";
+}
+
 #define startClock clock_t tStart = clock();
 #define endClock std::cout << std::fixed << std::setprecision(10) << "\nTime Taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC << " seconds" << std::endl;
 #else
@@ -184,7 +194,7 @@ void debug_out(const char* names, T value, Args... args) {
 #define endClock
 
 #endif
-mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
@@ -198,33 +208,47 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+
 void solve() {
-    int n; cin >> n;
-    vpii a(n); cin >> a;
-    srt(a);
-    auto f = [](vpii& a) -> int {
-        int res = 0;
-        srt(a);
-        int last = -inf;
-        for(auto& [l, r] : a) {
-            if(l > last) res++;
-            last = max(last, r);
+    ll n, m, k; cin >> n >> m >> k;
+    vll a(n), b(m); cin >> a >> b;
+    vi c[m + 1];
+    for(int mask = 0; mask < 1 << m; mask++) {
+        ll curr = (1LL << 32) - 1;
+        for(int i = 0; i < m; i++) {
+            if((mask >> i) & 1) curr &= b[i];
+        }
+        c[pct(mask)].pb(curr);
+    }
+    auto get_diff = [&](ll x, int op) -> ll {
+        ll mn = x;
+        for(auto& v : c[op]) mn = min(mn, (v & x));
+        return mn;
+    };
+    vvll use(n, vll(m + 1));
+    for(int i = 0; i < n; i++) {
+        use[i][0] = a[i];
+        for(int j = 1; j <= m; j++) {
+            use[i][j] = get_diff(a[i], j);
+        }
+    }
+    vvll dp(n, vll(k + 1, -1));
+    auto dfs = [&](auto& dfs, ll i = 0, ll op = 0) -> ll {
+        if(i == n) return 0;
+        auto &res = dp[i][op];
+        if(res != -1) return res;
+        res = INF;
+        for(int j = 0; j <= min(op, m); j++) {
+            res = min(res, use[i][j] + dfs(dfs, i + 1, op - j)); 
         }
         return res;
     };
-    int res = 0;
-    for(int i = 0; i < n; i++) {
-        vpii b;
-        for(int j = 0; j < n; j++) {
-            if(i == j) continue;
-            b.pb(a[j]);
-        }
-        res = max(res, f(b));
-    }
-    cout << res << endl;
+    cout << dfs(dfs, 0, k) << endl;
 }
 
 signed main() {
+    // careful for overflow, check for long long, use unsigned long long for random generator
+    // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
     //generatePrime();
@@ -237,6 +261,10 @@ signed main() {
     }
 
     endClock
+    #ifdef LOCAL
+      printMemoryUsage();
+    #endif
+
     return 0;
 }
 
