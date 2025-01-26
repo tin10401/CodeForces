@@ -208,18 +208,111 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
-        }
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
     }
-    cout << res << endl;
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+	
+	ll get() {
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) {
+                debug(i, j, root[0].dp[i][j]);
+            }
+        }
+		return root[0].dp[0][0];
+	}
+	
+    T merge(const T &left, const T &right) {
+        T res;
+        auto& curr = res.dp;
+        auto& L = left.dp;
+        auto& R = right.dp;
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) {
+                curr[i][j] = max({curr[i][j], 
+                    L[i][0] + R[0][j], 
+                    L[i][1] + R[0][j],
+                    L[i][0] + R[1][j]
+                });
+            }
+        }
+        return res;
+    }
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+};
+
+struct Node {
+    ll dp[2][2];
+    Node(ll x = -INF) {
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) dp[i][j] = -INF;
+        }
+        dp[0][0] = 0;
+        dp[1][1] = x;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    n--;
+    vi a(n);
+    ll total = 0;
+    SGT<Node> root(n, Node());
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        root.update_at(i, Node(x));
+        a[i] = x;
+        total += x;
+    }
+    int q; cin >> q;
+    while(q--) {
+        int i, x; cin >> i >> x;
+        i--;
+        root.update_at(i, Node(x));
+        total -= a[i];
+        a[i] = x;
+        total += a[i];
+        auto ans = root.queries_range(1, n - 2);
+        ll t = 0;
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) t = max(t, ans.dp[i][j]);
+        }
+        cout << (total - t) * 2 << endl;
+    }
 }
 
 signed main() {
@@ -257,4 +350,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

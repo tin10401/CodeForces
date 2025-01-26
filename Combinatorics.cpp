@@ -82,7 +82,9 @@ ll XOR(ll n) {
 vll countBit(ll n) {    
 	int m = 62;
 	vll cnt(m);
-
+    auto f = [&](ll A, ll B) -> ll {
+        return A + B;
+    };
 	while(n > 0) {  
 		ll msb = log2(n);
 		ll c = (1LL << msb); 
@@ -115,3 +117,15 @@ vi get_pair_gcd(vi& a) {
 
 // sum of first even number : 2 + 4 + 6 + ... + n = n * (n + 1)
 // sum of first odd number : 1 + 3 + 5 + ... + n = n * n
+
+//    ll curr = 1;
+//    while(curr <= j) {
+//        ll add = j / curr;
+//        ll last = j / add;
+//        if(j + add > MX) break;
+//        if(dp[j + add] == -1) {
+//            dp[j + add] = dp[j] + 1;
+//            q.push(j + add);
+//        }
+//        curr = last + 1;
+//    }

@@ -209,17 +209,65 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+    // can trade between two set any time you want
+    // find maximum total sum with at least k distance diff trade
+    // imagine a linked list connected
+    int n, m, q; cin >> n >> m >> q;
+    const int N = n + m;
+    vpii a(N + 1);
+    ll total = 0;
+    for(int i = 1; i <= N; i++) {
+        cin >> a[i].ff;
+        if(i <= n) total += a[i].ff, a[i].ss = 1;
+    }
+    srt(a);
+    vll prefix(N + 1);
+    vi b;
+    b.pb(-1);
+    for(int i = 1; i <= n + m; i++) {
+        prefix[i] = prefix[i - 1] + a[i].ff;
+        b.pb(a[i].ff - a[i - 1].ff);
+    }
+    srtU(b);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    const int M = b.size();
+    vvpii Q(M);
+    vi size(N + 1), par(N + 1, -1);
+    vll val(N + 1);
+    for(int i = 1; i <= N; i++) {
+        int x = get_id(a[i].ff - a[i - 1].ff);
+        size[i] = a[i].ss;
+        val[i] = a[i].ss * a[i].ff;
+        if(i > 1) {
+            Q[x].pb({i - 1, i});
+            debug(x, i - 1, i);
         }
     }
-    cout << res << endl;
+    auto find = [&](auto& find, int x) -> int {
+        if(par[x] == -1) return x;
+        return par[x] = find(find, par[x]);
+    };
+    vll ans(M, total);
+    for(int i = 0; i < M; i++) {
+        for(auto [x, y] : Q[i]) {
+            int u = find(find, x), v = find(find, y); 
+            total -= val[u] + val[v];
+            size[v] += size[u];
+            val[v] = prefix[v] - prefix[v - size[v]];
+            total += val[v];
+            par[u] = v;
+        }
+        ans[i] = total;
+    }
+    debug(b, ans, Q);
+    debug(a, prefix);
+    while(q--) {
+        int k; cin >> k;
+        k = get_id(k + 1) - 1;
+        cout << ans[k] << endl;
+    }
 }
 
 signed main() {
@@ -257,4 +305,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

@@ -208,18 +208,140 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+struct Node {
+    int cnt[10][10], first, last;
+    Node(int x = -1, int c = 0) {
+        mset(cnt, 0);
+        first = last = x;
+        if(x == -1) return;
+        cnt[x][x] = c;
+    }
+};
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vi lazy;
+    T DEFAULT;
+    int k;
+	SGT(int n, T DEFAULT, int k) : k(k), n(n), DEFAULT(DEFAULT) {    
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4, -1); // careful with initializing lazy_value
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, int val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, int val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, int val) {
+        root[i] = Node(val, right - left);
+        lazy[i] = val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] != -1 && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = -1;
         }
     }
-    cout << res << endl;
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    T merge(T left, T right) {  
+        if(left.first == -1) return right;
+        if(right.first == -1) return left;
+        T res;
+        res.first = left.first;
+        res.last = right.last;
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                res.cnt[i][j] = left.cnt[i][j] + right.cnt[i][j];
+            }
+        }
+        res.cnt[left.last][right.first]++;
+        return res;
+    }
+};
+
+
+void solve() {
+    // calculate adjacent pairs
+    int n, q, k; cin >> n >> q >> k;
+    SGT<Node> root(n, Node(), k);
+    for(int i = 0; i < n; i++) {
+        char x; cin >> x;
+        root.update_at(i, Node(x - 'a', 0));
+    }
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int l, r; cin >> l >> r;
+            l--, r--;
+            char ch; cin >> ch;
+            root.update_range(l, r, ch - 'a');
+            continue;
+        }
+        string s; cin >> s;
+        auto curr = root.get();
+        int res = 1;
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j <= i; j++) {
+                int x = curr.cnt[s[i] - 'a'][s[j] - 'a'];
+                debug(s[i], s[j], x);
+                res += curr.cnt[s[i] - 'a'][s[j] - 'a'];
+            } 
+        }
+        cout << res << endl;
+    }
 }
 
 signed main() {
@@ -257,4 +379,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

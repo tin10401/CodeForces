@@ -208,18 +208,170 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4); // careful with initializing lazy_value
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
         }
     }
-    cout << res << endl;
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res = max(left, right);
+        return res;
+    }
+};
+
+void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n), b(m); cin >> a >> b;
+    srt(a), srt(b);
+    int N = n / 2, M = m / 2;
+    vll A(N + 1), B(M + 1);
+    for(int i = 1; i <= N; i++) A[i] = A[i - 1] + abs(a[n - i] - a[i - 1]);
+    for(int i = 1; i <= M; i++) B[i] = B[i - 1] + abs(b[m - i] - b[i - 1]);
+    vi s;
+    s.pb(n);
+    s.pb(m);
+    int K = 0;
+    while(MAX(s) >= 2 && MIN(s) >= 1) {
+        if(s[0] < s[1]) swap(s[0], s[1]);
+        K++;
+        s[0] -= 2;
+        s[1]--;
+    }
+    auto valid = [&](int x, int y) -> bool {
+        if(x + y > K) return false; 
+        int rem = n - x * 2;
+        int rem2 = m - y * 2;
+        if(x <= rem2 && y <= rem) return true;
+        return false;
+    };
+    vll dp(K + 1);
+    vvi graph(M + 1);
+    for(int i = 0; i <= N; i++) {
+        int left = 0, right = M, right_most = 0;
+        while(left <= right) {
+            int middle = midPoint;
+            if(valid(i, middle)) right_most = middle, left = middle + 1;
+            else right = middle - 1;
+        }
+        graph[right_most].pb({i});
+    }
+    max_heap<al(3)> q; // score, size of A, size of B;
+    for(int i = 0; i <= M; i++) {
+        for(auto& j : graph[i]) {
+            q.push({A[j] + B[i], i, j});
+        }
+    }
+    while(!q.empty()) {
+        auto [score, i, j] = q.top(); q.pop();
+        if(score < dp[i + j]) continue;
+        dp[i + j] = score;
+        i--;
+        if(i >= 0) q.push({A[j] + B[i], i, j});
+    }
+    cout << K << endl;
+    output_vector(dp, 1);
 }
 
 signed main() {
@@ -230,7 +382,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -257,4 +409,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

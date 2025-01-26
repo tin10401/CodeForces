@@ -12,7 +12,7 @@ class GRAPH {
         dp.rsz(n, vi(MK));
         depth.rsz(n);
         parent.rsz(n, -1);
-		subtree.rsz(n);
+		subtree.rsz(n, 1);
 //        tin.rsz(n);
 //        tout.rsz(n);
 //        low.rsz(n);
@@ -139,7 +139,6 @@ class GRAPH {
 //        }
 //    };
 };
-
 
 class DSU { 
     public: 
@@ -416,3 +415,110 @@ struct CHT : multiset<Line> {
     // max_normall is add(i, -dp)
     // min_normal is add(-i, dp)
 };
+
+struct CD { // centroid_decomposition
+    int n, root;
+    vvi graph;
+    vi size, parent, vis, a, freq;
+    vll ans;
+    CD(vvi& graph, vi& a) : graph(graph), n(graph.size()), a(a) {
+        size.rsz(n);
+        parent.rsz(n);
+        vis.rsz(n);
+        freq.rsz((1 << MK) + 20);
+        freq[0] = 1;
+        ans.rsz(n);
+        root = init();
+    }
+ 
+    void get_size(int node, int par) { 
+        size[node] = 1;
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            get_size(nei, node);
+            size[node] += size[nei];
+        }
+    }
+ 
+    int get_center(int node, int par, int size_of_tree) { 
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        }
+        return node;
+    }
+ 
+    int get_centroid(int src) { 
+        get_size(src, -1);
+        int centroid = get_center(src, -1, size[src]);
+        vis[centroid] = true;
+        return centroid;
+    }
+
+    int get(int mask) {
+        int res = freq[mask];
+        for(int i = 0; i < MK; i++) {
+            res += freq[mask ^ (1 << i)];
+        }
+        return res;
+    }
+
+    void modify(int node, int par, int mask, int delta) {
+        mask ^= a[node]; 
+        freq[mask] += delta;
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, node, mask, delta);
+        }
+    }
+ 
+    ll cal(int node, int par, int mask) {
+        mask ^= a[node];
+        ll res = get(mask);
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            res += cal(nei, node, mask);
+        }
+        ans[node] += res;
+        return res;
+    }
+	
+	int get_max_depth(int node, int par, int d, int last) {
+        if(d > k) return 0;
+        int curr = d;
+        for(auto& [nei, t] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            curr = max(curr, get_max_depth(nei, node, d +  int(last != -1 && last != t), t)); 
+        }
+        return curr;
+    }
+
+    int init(int root = 0, int par = -1) {
+        root = get_centroid(root);
+        parent[root] = par;
+        for(auto& nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 0, 1);
+        }
+        ll sm = 1;
+        for(auto& nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 0, -1);
+            sm += cal(nei, root, a[root]);
+            modify(nei, root, 0, 1);
+        }
+        sm += get(a[root]);
+        sm >>= 1;
+        ans[root] += sm;
+        for(auto& nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 0, -1);
+        }
+        for(auto&nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            init(nei, root);
+        }
+        return root;
+    }
+};
+

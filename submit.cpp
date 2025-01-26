@@ -202,26 +202,13 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
-const static int MOD = 998244353;
+const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n; cin >> n;
-    n++;
-    vi a(n); 
-    vll dp(n);
-    dp[0] = 1;
-    for(int i = 1; i < n; i++) {
-        cin >> a[i];
-        if(a[i - 1] == a[i]) {
-            dp[i] = dp[i - 1];
-        }
-        if(i >= 2 && a[i - 2] == a[i] - 1) dp[i] = (dp[i] + dp[i - 2]) % MOD;
-    }
-    cout << (dp[n - 1] + dp[n - 2]) % MOD << endl;
 }
 
 signed main() {
@@ -232,7 +219,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
