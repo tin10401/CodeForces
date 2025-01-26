@@ -209,17 +209,36 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+    int n; cin >> n;
+    const int K = 30;
+    vvvi prefix(n + 1, vvi(2, vi(K)));
+    for(int i = 1; i <= n; i++) {
+        int l, r; cin >> l >> r;
+        prefix[i] = prefix[i - 1];
+        int f = 0;
+        for(int b = K - 1; b >= 0; b--) {
+            if(((r >> b) & 1) != ((l >> b) & 1)) f = 1;
+            if((r >> b) & 1) prefix[i][f][b]++;
         }
     }
-    cout << res << endl;
+    int q; cin >> q;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        int res = 0;
+        int seen = false;
+        for(int i = K - 1; i >= 0; i--) {
+            int u = prefix[r][0][i] - prefix[l - 1][0][i];
+            int v = prefix[r][1][i] - prefix[l - 1][1][i];
+            if(!u && !v) continue;
+            if(v && u + v >= 2) {
+                res |= (2LL << i) - 1;
+                break;
+            }
+            res |= 1LL << i;
+        }
+        cout << res << (q == 0 ? '\n' : ' ');
+    }
+
 }
 
 signed main() {
@@ -230,7 +249,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -257,4 +276,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

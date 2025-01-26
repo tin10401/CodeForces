@@ -209,17 +209,35 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
+    int n = 3, m; cin >> m;
+    vvi a(n, vi(m + 1));
     for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+        for(int j = 1; j <= m; j++) cin >> a[i][j];
+    }
+    vvll dp(n, vll(m + 1, -INF));
+    dp[0][0] = 0; 
+    auto mx = [](ll& x, ll y) -> void {
+        x = max(x, y);
+    };
+    for(int i = 0; i < m; i++) {
+        mx(dp[0][i + 1], dp[0][i] + a[0][i + 1]);
+        mx(dp[1][i + 1], dp[0][i] + a[0][i + 1] + a[1][i + 1]);
+        mx(dp[2][i + 1], dp[0][i] + a[0][i + 1] + a[1][i + 1] + a[2][i + 1]);
+        
+        mx(dp[0][i + 1], dp[1][i] + a[0][i + 1] + a[1][i + 1]);
+        mx(dp[1][i + 1], dp[1][i] + a[1][i + 1]);
+        mx(dp[2][i + 1], dp[1][i] + a[1][i + 1] + a[2][i + 1]);
+
+        mx(dp[0][i + 1], dp[2][i] + a[2][i + 1] + a[1][i + 1] + a[0][i + 1]);
+        mx(dp[1][i + 1], dp[2][i] + a[1][i + 1] + a[2][i + 1]);
+        mx(dp[2][i + 1], dp[2][i] + a[2][i + 1]);
+
+        if(i + 2 <= m) {
+            mx(dp[0][i + 2], dp[2][i] + a[0][i + 1] + a[1][i + 1] + a[2][i + 1] + a[0][i + 2] + a[1][i + 2] + a[2][i + 2]);
+            mx(dp[2][i + 2], dp[0][i] + a[0][i + 1] + a[1][i + 1] + a[2][i + 1] + a[0][i + 2] + a[1][i + 2] + a[2][i + 2]);
         }
     }
-    cout << res << endl;
+    cout << dp[n - 1][m] << endl;
 }
 
 signed main() {
@@ -257,4 +275,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

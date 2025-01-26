@@ -208,16 +208,130 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+template<class T>
+class FW_2D {
+    public:
+    int n;
+    vt<vt<T>> coord, root;
+    T DEFAULT;
+    FW_2D(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT) {
+        coord.rsz(n), root.rsz(n);
+    }
+ 
+    void go_up(int& id) {
+        id |= (id + 1);
+    }
+ 
+    void go_down(int& id) {
+        id = (id & (id + 1)) - 1;
+    }
+ 
+    void add_coord(int i, T x, bool is_up = true) {
+        while(i >= 0 && i < n) {
+            coord[i].pb(x);
+            if(is_up) go_up(i);
+            else go_down(i);
         }
+    }
+ 
+    void update_coord(int i, int l, int r, bool is_up = true) {
+        add_coord(i, l - 1, is_up);
+        add_coord(i, r, is_up);
+    }
+
+    void add_rectangle(int r1, int c1, int r2, int c2, bool is_up = true) {
+        add_coord(r1, c1, is_up);
+        add_coord(r1, c2 + 1, is_up);
+        add_coord(r2 + 1, c1, is_up);
+        add_coord(r2 + 1, c2 + 1, is_up);
+    }
+
+    void add_point(int r, int c, bool is_up = false) { // for queries on a specific point so is_up is false
+        update_coord(r, c, c, is_up);
+    }
+ 
+    void build() {
+        for(int i = 0; i < n; i++) {
+            srtU(coord[i]);
+            root[i].rsz(coord[i].size(), DEFAULT);
+        }
+    }
+ 
+    int get_id(int i, int x) {
+        return int(lb(all(coord[i]), x) - begin(coord[i]));
+    }
+ 
+    void update_at(int i, int x, T delta) {
+        while(i < n) {
+            int p = get_id(i, x);
+            while(p < coord[i].size()) {
+                root[i][p] = merge(root[i][p], delta);
+                go_up(p);
+            }
+            go_up(i);
+        }
+    }
+ 
+    void update_range(int i, int l, int r, T v) {
+        update_at(i, l, v); 
+        update_at(i, r + 1, -v);
+    }
+ 
+    void update_rectangle(int r1, int c1, int r2, int c2, T v) {
+        update_range(r1, c1, c2, v);
+        update_range(r2 + 1, c1, c2, -v);
+    }
+ 
+    T point_query(int i, int x) {
+        T res = DEFAULT;
+        while(i >= 0) {
+            int p = get_id(i, x);
+            while(p >= 0) {
+                res = merge(res, root[i][p]);
+                go_down(p);
+            }
+            go_down(i);
+        }
+        return res;
+    }
+ 
+    T bit_range_queries(int i, int low, int high) {
+        if(low > high) return 0;
+        return point_query(i, high) - point_query(i, low - 1);
+    }
+ 
+    T range_queries(int l, int r, int low, int high) {
+        if(l > r || low > high) return 0;
+        return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
+    }
+
+    T merge(T left, T right) {
+        return max(left, right);
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    vi b(a);
+    srtU(b);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    int N = b.size();
+    FW_2D<int> tree(N, -inf);
+    for(int i = 0; i <= n; i++) {
+        tree.add_coord(get_id(a[i]), i - a[i], true); 
+        tree.add_coord(get_id(a[i]) - 1, i - a[i], false); 
+    }
+    tree.build();
+    tree.update_at(get_id(0), 0, 0);
+    int res = 0;
+    for(int i = 1; i <= n; i++) {
+        int t = tree.point_query(get_id(a[i]) - 1, i - a[i]) + 1;
+        res = max(res, t);
+        tree.update_at(get_id(a[i]), i - a[i], t);
     }
     cout << res << endl;
 }
@@ -257,4 +371,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

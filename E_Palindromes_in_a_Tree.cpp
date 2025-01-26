@@ -208,18 +208,120 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+struct CD { // centroid_decomposition
+    int n, root;
+    vvi graph;
+    vi size, parent, vis, a, freq;
+    vll ans, cnt;
+    CD(vvi& graph, vi& a) : graph(graph), n(graph.size()), a(a) {
+        size.rsz(n);
+        parent.rsz(n);
+        vis.rsz(n);
+        freq.rsz((1 << MK) + 20);
+        freq[0] = 1;
+        ans.rsz(n);
+        cnt.rsz(n);
+        root = init();
+    }
+ 
+    void get_size(int node, int par) { 
+        size[node] = 1;
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            get_size(nei, node);
+            size[node] += size[nei];
         }
     }
-    cout << res << endl;
+ 
+    int get_center(int node, int par, int size_of_tree) { 
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        }
+        return node;
+    }
+ 
+    int get_centroid(int src) { 
+        get_size(src, -1);
+        int centroid = get_center(src, -1, size[src]);
+        vis[centroid] = true;
+        return centroid;
+    }
+
+    int get(int mask) {
+        int res = freq[mask];
+        for(int i = 0; i < MK; i++) {
+            res += freq[mask ^ (1 << i)];
+        }
+        return res;
+    }
+
+    void modify(int node, int par, int mask, int delta) {
+        mask ^= a[node]; 
+        freq[mask] += delta;
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, node, mask, delta);
+        }
+    }
+ 
+    void cal(int node, int par, int mask) {
+        mask ^= a[node];
+        cnt[node] = get(mask);
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            cal(nei, node, mask);
+            cnt[node] += cnt[nei];
+        }
+        ans[node] += cnt[node];
+    }
+
+    int init(int root = 0, int par = -1) {
+        root = get_centroid(root);
+        parent[root] = par;
+        for(auto& nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 0, 1);
+        }
+        ll sm = 1;
+        for(auto& nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 0, -1);
+            cal(nei, root, a[root]);
+            sm += cnt[nei];
+            modify(nei, root, 0, 1);
+        }
+        sm += get(a[root]);
+        sm >>= 1;
+        ans[root] += sm;
+        for(auto& nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 0, -1);
+        }
+        for(auto&nei : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            init(nei, root);
+        }
+        return root;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi a(n);
+    for(auto& x : a) {
+        char ch; cin >> ch;
+        x = 1 << (ch - 'a');
+    }
+    CD g(graph, a);
+    output_vector(g.ans);
 }
 
 signed main() {
@@ -257,4 +359,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

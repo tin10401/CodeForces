@@ -369,8 +369,8 @@ class FW_2D {
     public:
     int n;
     vt<vt<T>> coord, root;
-    FW_2D(int n) {
-        this->n = n;
+    T DEFAULT;
+    FW_2D(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT) {
         coord.rsz(n), root.rsz(n);
     }
  
@@ -409,7 +409,7 @@ class FW_2D {
     void build() {
         for(int i = 0; i < n; i++) {
             srtU(coord[i]);
-            root[i].rsz(coord[i].size());
+            root[i].rsz(coord[i].size(), DEFAULT);
         }
     }
  
@@ -428,10 +428,6 @@ class FW_2D {
         }
     }
  
-    T merge(T left, T right) {
-        return left + right;
-    }
- 
     void update_range(int i, int l, int r, T v) {
         update_at(i, l, v); 
         update_at(i, r + 1, -v);
@@ -443,7 +439,7 @@ class FW_2D {
     }
  
     T point_query(int i, int x) {
-        T res = 0;
+        T res = DEFAULT;
         while(i >= 0) {
             int p = get_id(i, x);
             while(p >= 0) {
@@ -463,6 +459,10 @@ class FW_2D {
     T range_queries(int l, int r, int low, int high) {
         if(l > r || low > high) return 0;
         return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
+    }
+
+    T merge(T left, T right) {
+        return max(left, right);
     }
 };
 
@@ -1123,23 +1123,23 @@ struct DynaCon {
     }
 };
 
+template<class T>
 class HLD {
     public:
-    SGT<int> seg;
-    vi id, a, tp, sz, parent;
+    SGT<T> seg;
+    vi id, tp, sz, parent;
+    vt<T> a;
     int ct;
     vvi graph;
     int n;
     GRAPH g;
-    HLD(vvi& graph, vi a) : seg(graph.size(), 0), g(graph) {
-        this->graph = graph;
-        this->n = graph.size();
-        this->a = a;
+    HLD(vvi& graph, vt<T> a) : seg(graph.size(), 0), g(graph), graph(graph), n(graph.size()), a(a) {
         this->parent = g.parent;
         this->sz = g.subtree;
         ct = 0;
         id.rsz(n), tp.rsz(n), sz.rsz(n);
         dfs();
+        for(int i = 0; i < n; i++) seg.update_at(id[i], a[i]);
     }
         
     void dfs(int node = 0, int par = -1, int top = 0) {   
@@ -1160,20 +1160,21 @@ class HLD {
         }   
     }
 
-    void update(int i, int v) {
+    void update(int i, T v) {
         a[i] = v;
         seg.update_at(id[i], v);
     }
 
-    int queries(int node, int par) {   
-        int res = 0;    
-        while(node != par) {   
+    T queries(int node, int par) {   
+        T res = 0;    
+        int cnt = 0;
+        while(node != par && node != -1) {   
             if(node == tp[node]) {   
                 res += a[node];
-                node = g.dp[node][0]; 
+                node = parent[node];
             } else if(g.depth[tp[node]] > g.depth[par]) {   
                 res += seg.queries_range(id[tp[node]], id[node]);    
-                node = g.dp[tp[node]][0];
+                node = parent[tp[node]];
             } else {   
                 res += seg.queries_range(id[par] + 1, id[node]);  
                 break;  
@@ -1182,9 +1183,11 @@ class HLD {
         return res; 
     }
 
-    int path_queries(int u, int v) {
+    T path_queries(int u, int v) {
         int c = get_lca(u, v);
-        return queries(u, c) + queries(v, c); // + a[c] cause it's missing it
+        T res = queries(u, c) * 2 - a[u] + a[c];
+        res += queries(v, c) * 2 - a[v] + a[c];
+        return res;
     }
 
     int get_dist(int a, int b) {
@@ -1199,6 +1202,7 @@ class HLD {
         return path_queries(u, v) == get_dist(u, v);
     }
 };
+
 
 template<class T>
 class SGT_BEAT {

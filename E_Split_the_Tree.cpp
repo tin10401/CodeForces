@@ -208,18 +208,142 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root, lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4); // careful with initializing lazy_value
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
         }
     }
-    cout << res << endl;
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+
+    T merge(T left, T right) {  
+        T res;  
+        res = min(left, right);
+        return res;
+    }
+};
+
+void solve() {
+    ll n, L, S; cin >> n >> L >> S;
+    vll w(n + 1);
+    for(int i = 1; i <= n; i++) cin >> w[i];
+    vvi graph(n + 1);
+    for(int i = 2; i <= n; i++) {
+        int p; cin >> p;
+        graph[p].pb(i);
+    }
+    if(MAX(w) > S) {
+        cout << -1 << endl;
+        return;
+    }
+    vvi dp(n + 1, vi(MK));
+    vi depth(n + 1), tin(n + 1), tout(n + 1);
+    int timer = 0;
+    vvi remove(n + 1);
+    auto init = [&](auto& init, int node = 1) -> void {
+        for(int j = 1; j < MK; j++) {
+            dp[node][j] = dp[dp[node][j - 1]][j - 1];
+        }
+        int d = L - 1, u = node;
+        for(int j = MK - 1; j >= 0; j--) {
+            if((d >> j) & 1) {
+                int p = dp[dp[u][j]][0];
+                if(w[node] - w[p] <= S) {
+                    d -= 1 << j;
+                    u = dp[u][j];
+                }
+            }
+        }
+        remove[u].pb(node);
+        tin[node] = timer++;
+        for(auto& nei : graph[node]) {
+            depth[nei] = depth[node] + 1;
+            dp[nei][0] = node;
+            w[nei] += w[node];
+            init(init, nei);
+        }
+        tout[node] = timer - 1;
+    };
+    init(init);
+    SGT<int> root(n + 1, inf);
+    auto dfs = [&](auto& dfs, int node = 1) -> int {
+        int sm = 0;
+        for(auto& nei : graph[node]) {
+            int t = dfs(dfs, nei);
+            root.update_range(tin[nei], tout[nei], -t);
+            sm += t;
+        }
+        root.update_range(tin[node], tout[node], sm);
+        int ans = root.queries_range(tin[node], tout[node]) + 1;
+        for(auto& v : remove[node]) root.update_at(tin[v], inf);
+        return ans;
+    };
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {
@@ -257,4 +381,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

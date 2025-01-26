@@ -208,17 +208,65 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
-        }
+struct TrieNode {
+    TrieNode* children[26];
+    bool is_end = false;
+};
+
+static TrieNode nodes[MX];
+
+class Trie {
+    public:
+    TrieNode* root;
+    int count = 0;
+	
+	TrieNode* newTrieNode() {
+        nodes[count] = TrieNode();
+        return &nodes[count++];
     }
+	
+	Trie() {    
+        root = newTrieNode();   
+    }
+    
+    void insert(const string& s) {  
+        TrieNode* curr = root;
+        for(auto& ch : s) {
+            if(!curr->children[ch - 'a']) curr->children[ch - 'a'] = newTrieNode();
+            curr = curr->children[ch - 'a'];
+        }
+        curr->is_end = true;
+    }
+
+    multiset<int> dfs(TrieNode* curr, int d) {
+        multiset<int> s;
+        for(int i = 0; i < 26; i++) {
+            if(curr->children[i]) {
+                auto t = dfs(curr->children[i], d + 1);
+                if(t.size() > s.size()) swap(s, t);
+                s.insert(all(t));
+            }
+        }
+        if(curr->is_end) s.insert(d);
+        else if (d) {
+            assert(!s.empty());
+            s.erase(prev(s.end()));
+            s.insert(d); 
+        }
+        return s;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    Trie trie;
+    while(n--) {
+        string s; cin >> s;
+        trie.insert(s);
+    }
+    auto t = trie.dfs(trie.root, 0);
+    ll res = 0;
+    for(auto& it : t) res += it;
     cout << res << endl;
 }
 
@@ -257,4 +305,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

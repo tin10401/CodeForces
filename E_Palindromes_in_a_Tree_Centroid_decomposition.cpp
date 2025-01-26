@@ -201,25 +201,126 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+int freq[1 << 21];
+ll ans[MX], cnt_path_end[MX];
+struct CD { // centroid_decomposition
+    int n, root;
+    vvi graph;
+    vi a, size, parent, marked;
+    CD(vvi& graph, vi& a) : graph(graph), a(a), n(graph.size()) {
+        size.rsz(n);
+        parent.rsz(n);
+        marked.rsz(n);
+        root = decompose(0);
+    }
+
+    void dfs_size(int node, int par) { // yes
+        size[node] = 1;
+        for(auto& nei : graph[node]) {
+            if(nei == par || marked[nei]) continue;
+            dfs_size(nei, node);
+            size[node] += size[nei];
         }
     }
-    cout << res << endl;
+
+    int get_center(int node, int par, int size_of_tree) { // yes
+        for(auto& nei : graph[node]) {
+            if(nei == par || marked[nei]) continue;
+            if(size[node] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        }
+        return node;
+    }
+
+    int get_centroid(int src) { // yes
+        dfs_size(src, -1);
+        int centroid = get_center(src, -1, size[src]);
+        marked[centroid] = true;
+        return centroid;
+    }
+
+    void modify(int u, int p, int curr_mask, int delta) { // yes
+        curr_mask ^= a[u];
+        freq[curr_mask] += delta;
+        for(auto& v : graph[u]) {
+            if(v == p || marked[v]) continue;
+            modify(v, u, curr_mask, delta);
+        }
+    }
+
+
+    ll get(int mask) { // yes
+        ll res = freq[mask];
+        for(int i = 0; i < 20; i++) res += freq[mask ^ (1LL << i)];
+        return res;
+    }
+
+    void cal(int u, int p, int curr_mask) { // yes
+        curr_mask ^= a[u];
+        cnt_path_end[u] = get(curr_mask);
+        for(auto& v : graph[u]) {
+            if(v == p || marked[v]) continue;
+            cal(v, u, curr_mask);
+            cnt_path_end[u] += cnt_path_end[v];
+        }
+        ans[u] += cnt_path_end[u];
+    }
+
+    int decompose(int root) { // no
+        root = get_centroid(root);
+        for(int nei : graph[root]) {
+            if(marked[nei]) continue;
+            modify(nei, root, 0, 1);
+        }
+        ll sm = 1;
+        for(int nei : graph[root]) {
+            if(marked[nei]) continue;
+            modify(nei, root, 0, -1);
+            cal(nei, root, a[root]);
+            sm += cnt_path_end[nei];
+            modify(nei, root, 0, 1);
+        }
+        sm += get(a[root]);
+        ans[root] += sm / 2;
+        for(auto& nei : graph[root]) {
+            if(marked[nei]) continue;
+            modify(nei, root, 0, -1);
+        }
+        for(auto& nei : graph[root]) {
+            if(marked[nei]) continue;
+            int subtree = decompose(nei);
+            parent[subtree] = root;
+        }
+        return root;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi a(n);
+    for(int i = 0; i < n; i++) {
+        char x; cin >> x;
+        int c = x - 'a';
+        a[i] = 1LL << c;
+    }
+    freq[0] = 1;
+    CD g(graph, a);
+    for(int i = 0; i < n; i++) {
+        cout << ans[i] << (i == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -257,4 +358,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

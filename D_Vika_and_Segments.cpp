@@ -208,15 +208,106 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+
+template<class T>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    FW(int n, T DEFAULT) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = merge(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = merge(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int search(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+	
+	T merge(T A, T B) {
+		return A + B;
+    }
+};
+
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
+    int n; cin >> n;
+    var(4) f(n);
+    vi A;
+    for(auto& [a, b, c, d] : f) {
+        cin >> a >> b >> c >> d;
+        if(a > c) swap(a, c);
+        if(b > d) swap(b, d);
+        A.pb(a), A.pb(b), A.pb(c), A.pb(d);
+        A.pb(a - 1);
+    }
+    srtU(A);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(A), x) - begin(A));
+    };
+    int N = A.size();
     ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+    FW<int> root(N, 0);
+    vvi starting(N), ending(N);
+    vvpii line(N);
+    for(auto& [a, b, c, d] : f) {
+        a = get_id(a), b = get_id(b), c = get_id(c), d = get_id(d);
+        if(a != c) starting[a].pb(b), ending[c].pb(b);
+        else line[a].pb({b, d});
+    }
+    vi cnt(N);
+    for(int i = 0; i < N; i++) { 
+        for(auto& x : starting[i]) {
+            if(++cnt[x] == 1) root.update(x, 1), res++; // left_most_starting
+        }
+        vpii curr;
+        srt(line[i]);
+        for(auto& [l, r] : line[i]) {
+            if(curr.empty() || curr.back().ss < l) curr.pb({l, r});
+            else curr.back().ss = max(curr.back().ss, r);
+        }
+        for(auto& [l, r] : curr) {
+            res += A[r] - A[l] + 1;
+            res -= root.queries(l, r);
+        }
+        for(auto& x : ending[i]) {
+            if(--cnt[x] == 0) root.update(x, -1);
+        }
+        if(i + 1 < N) {
+            res += (ll)(A[i + 1] - A[i]) * root.get(N - 1);
         }
     }
     cout << res << endl;
@@ -257,4 +348,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

@@ -200,7 +200,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define M_PI 3.14159265358979323846
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
-const static int MK = 20;
+const static int MK = 26;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -209,17 +209,53 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+    // in one move can jump to left or right or jumping to another pair where the same as [x, y] in the current spot(meaning same as [x, y] but in another spot) all of them cost 1
+    // add external edge besides from n - 1
+    // brute force from n - 1 to n - 1 + MK * MK node for starting position
+    // then ans[i] = min(ans[i], dp[f] + dp[t] - 1) - 1 for each spot
+    string s; cin >> s;
+    int n = s.size();
+    int m; cin >> m;
+    vpii a(m); 
+    vi ans(m);
+    for(int i = 0; i < m; i++) {
+        auto& [f, t] = a[i]; cin >> f >> t;
+        f--, t--;
+        ans[i] = abs(f - t);
+    }
+    int k = n - 1 + MK * MK;
+    vvpii graph(k);
+    for(int i = 0; i < n - 1; i++) {
+        int t = n - 1 + (s[i] - 'a') * MK + (s[i + 1] - 'a');
+        graph[i].pb({t, 0});
+        graph[t].pb({i, 1});
+        if(i) {
+            graph[i].pb({i - 1, 1});
+            graph[i - 1].pb({i, 1});
         }
     }
-    cout << res << endl;
+    for(int st = n - 1; st < k; st++) {
+        deque<int> q;
+        q.pb(st);
+        vi dp(k, inf);
+        dp[st] = 0;
+        while(!q.empty()) {
+            auto i = q.front(); q.pop_front();
+            for(auto& [j, c] : graph[i]) {
+                int new_cost = dp[i] + c;
+                if(new_cost < dp[j]) {
+                    dp[j] = new_cost;
+                    if(c == 0) q.push_front(j);
+                    else q.pb(j);
+                }
+            }
+        }
+        for(int i = 0; i < m; i++) {
+            auto& [f, t] = a[i];
+            ans[i] = min(ans[i], dp[f] + dp[t] - 1);
+        }
+    }
+    output_vector(ans);
 }
 
 signed main() {
@@ -257,4 +293,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

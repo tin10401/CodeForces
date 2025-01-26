@@ -208,19 +208,185 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+template<class T>
+class FW_2D {
+    public:
+    int n;
+    vt<vt<T>> coord, root;
+    FW_2D() {}
+
+    FW_2D(int n) {
+        this->n = n;
+        coord.rsz(n);
+        root.rsz(n);
+    }
+ 
+    void go_up(int& id) {
+        id |= (id + 1);
+    }
+ 
+    void go_down(int& id) {
+        id = (id & (id + 1)) - 1;
+    }
+ 
+    void add_coord(int i, T x, bool is_up = true) {
+        while(i >= 0 && i < n) {
+            coord[i].pb(x);
+            if(is_up) go_up(i);
+            else go_down(i);
         }
     }
-    cout << res << endl;
+
+    void build() {
+        for(int i = 0; i < n; i++) {
+            srtU(coord[i]);
+            root[i].rsz(coord[i].size());
+        }
+    }
+ 
+    int get_id(int i, int x) {
+        return int(lb(all(coord[i]), x) - begin(coord[i]));
+    }
+ 
+    void update_at(int i, int x, T delta) {
+        while(i < n) {
+            int p = get_id(i, x);
+            while(p < coord[i].size()) {
+                root[i][p] = merge(root[i][p], delta);
+                go_up(p);
+            }
+            go_up(i);
+        }
+    }
+ 
+    T merge(T left, T right) {
+        return left + right;
+    }
+ 
+    T point_query(int i, int x) {
+        T res = 0;
+        while(i >= 0) {
+            int p = get_id(i, x);
+            while(p >= 0) {
+                res = merge(res, root[i][p]);
+                go_down(p);
+            }
+            go_down(i);
+        }
+        return res;
+    }
+};
+
+struct CD { // centroid_decomposition
+    int n, root, l, w;
+    vvpii graph;
+    vi size, vis;
+    ll ans;
+    FW_2D<int> seg;
+    int mx;
+    CD(vvpii& graph, int l, int w) : graph(graph), n(graph.size()), l(l), w(w) {
+        size.rsz(n);
+        vis.rsz(n);
+        ans = 0;
+        root = init();
+    }
+ 
+    void get_size(int node, int par) { 
+        size[node] = 1;
+        for(auto& [nei, weight] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            get_size(nei, node);
+            size[node] += size[nei];
+        }
+    }
+ 
+    int get_center(int node, int par, int size_of_tree) { 
+        for(auto& [nei, weight] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        }
+        return node;
+    }
+ 
+    int get_centroid(int src) { 
+        get_size(src, -1);
+        int centroid = get_center(src, -1, size[src]);
+        vis[centroid] = true;
+        return centroid;
+    }
+
+    void modify(int node, int par, int len, int weight, int type) {
+        if(weight > w || len > l) return;
+        if(type == 1) seg.add_coord(len, weight, true);
+        else seg.update_at(len, weight, 1);
+        for(auto& [nei, W] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, node, len + 1, weight + W, type);
+        } 
+    }
+
+    int get(int len, int weight) {
+        if(len < 0 || weight < 0) return 0;
+        return seg.point_query(len, weight);
+    }
+
+    void cal(int node, int par, int len, int weight, int type) {
+        if(weight > w || len > l) return;
+        if(type == 1) seg.add_coord(min(mx, l - len), w - weight, false);
+        else ans += get(min(mx, l - len), w - weight);
+        for(auto& [nei, W] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            cal(nei, node, len + 1, weight + W, type);
+        }
+    }
+
+    int get_max_depth(int node, int par, int len) {
+        int mx = len;
+        for(auto& [nei, _] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            mx = max(mx, get_max_depth(nei, node, len + 1));
+        }
+        return mx;
+    }
+
+    int init(int root = 0, int par = -1) {
+        root = get_centroid(root);
+        mx = get_max_depth(root, -1, 0);
+        seg = FW_2D<int>(mx + 1);
+        for(auto& [nei, weight] : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, root, 1, weight, 1);
+            cal(nei, root, 1, weight, 1);
+        }
+        seg.add_coord(0, 0, true);
+        seg.build();
+        seg.update_at(0, 0, 1);
+        for(auto& [nei, weight] : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            cal(nei, root, 1, weight, 2);
+            modify(nei, root, 1, weight, 2);
+        }
+        for(auto& [nei, weight] : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            init(nei, root);
+        }
+        return root;
+    }
+};
+
+void solve() {
+    int n, l, w; cin >> n >> l >> w;
+    vvpii graph(n);
+    for(int i = 1; i < n; i++) {
+        int p, W; cin >> p >> W;
+        p--;
+        graph[p].pb({i, W});
+        graph[i].pb({p, W});
+    }
+    CD g(graph, l, w);
+    cout << g.ans << endl;
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
@@ -257,4 +423,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

@@ -209,14 +209,30 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+    int n, m, s, e; cin >> n >> m >> s >> e;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    vvi mp(MX);
+    for(int i = 1; i <= m; i++) {
+        int x; cin >> x;
+        mp[x].pb(i);
+    }
+    int k = s / e + 1;
+    vvi dp(n + 2, vi(k, inf));
+    int res = 0;
+    dp[0][0] = 0;
+    for(int j = 1; j < k; j++) {
+        int mn = inf;
+        for(int i = 0; i <= n; i++) {
+            auto& curr = mp[a[i]];
+            auto it = ub(all(curr), mn);
+            if(it != end(curr)) {
+                dp[i][j] = *it;
+            }
+            if(dp[i][j] + i + e * j <= s) {
+                res = j;
+            }
+            mn = min(mn, dp[i][j - 1]);
         }
     }
     cout << res << endl;

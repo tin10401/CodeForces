@@ -177,24 +177,18 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 vi choice = {0, 1};
 int main(int argc, char* argv[]) {
-    int N = 5000;
-    int Q = 500;
-    uniform_int_distribution<int> dist_n(N, N);
-    uniform_int_distribution<int> dist_q(Q, Q);
+    int N = 10;
+    int Q = 10;
+    uniform_int_distribution<int> dist_n(1, N);
+    uniform_int_distribution<int> dist_q(1, Q);
     uniform_int_distribution<int> A(1, 10);
-    uniform_int_distribution<int> val(1, 1e9); // be careful to include negative values as well
-    int n = N, q = Q;
-    cout << q << ' ' << n << endl;
-    for(int i = 0; i < n; i++) {
-        cout << val(rng) << (i == n - 1 ? '\n' : ' ');
+    uniform_int_distribution<int> val(1, Q); // be careful to include negative values as well
+    int n = dist_n(rng);
+    int k = dist_n(rng) % n + 1;
+    cout << n << ' ' << k << endl;
+    while(n--) {
+        int v = val(rng);
+        cout << v << (n == 0 ? '\n' : ' ');
     }
-    while(q--) {
-        for(int i = 0; i < n; i++) {
-            int v = val(rng) % n + 1;
-            cout << v << (i == n - 1 ? '\n' : ' ');
-        }
-    }
-    
-    
 }
 

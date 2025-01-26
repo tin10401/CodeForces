@@ -209,18 +209,32 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
+    int n, p; cin >> n >> p;
+    min_heap<al(3)> q;
+    set<int> s, t;
     for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+        int x; cin >> x;
+        q.push({x, 0, i});
+    }
+    ll time = 0;
+    vll ans(n);
+    while(!q.empty()) {
+        auto [curr, type, id] = q.top(); q.pop();
+        if(type == 0) t.insert(id);
+        else {
+            s.erase(id);
+            ans[id] = curr;
+        }
+        if(!t.empty() && (s.empty() || *t.begin() < *s.begin())) {
+            if(s.empty()) time = curr;
+            q.push({time += p, 1, *t.begin()});
+            s.insert(*t.begin());
+            t.erase(t.begin());
         }
     }
-    cout << res << endl;
+    output_vector(ans);
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
@@ -257,4 +271,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

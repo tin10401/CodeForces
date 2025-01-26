@@ -208,18 +208,171 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
+template<class T>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    FW() {}
+
+    FW(int n, T DEFAULT) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = merge(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = merge(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int search(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+	
+	T merge(T A, T B) {
+        return {(A.ff + B.ff) % MOD, A.ss + B.ss};
+    }
+};
+
+struct CD { // centroid_decomposition
+    int n, root;
+    vvpii graph;
+    vi size, parent, vis, a;
+    FW<pii> tree[2];
+    ll res = 0;
+    vll ans;
+    int k;
+    CD(vvpii& graph, vi& a, int k) : k(k), graph(graph), n(graph.size()), a(a) {
+        size.rsz(n);
+        parent.rsz(n);
+        res = 0;
+        vis.rsz(n);
+        root = init();
+    }
+ 
+    void get_size(int node, int par) { 
+        size[node] = 1;
+        for(auto& [nei, d] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            get_size(nei, node);
+            size[node] += size[nei];
+        }
+    }
+ 
+    int get_center(int node, int par, int size_of_tree) { 
+        for(auto& [nei, d] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        }
+        return node;
+    }
+ 
+    int get_centroid(int src) { 
+        get_size(src, -1);
+        int centroid = get_center(src, -1, size[src]);
+        vis[centroid] = true;
+        return centroid;
+    }
+
+    int mx = 0;
+    void modify(int node, int par, int d, int last, int weight, int i) {
+        if(d > k) return;
+        weight = (weight + a[node]) % MOD;
+        tree[i].update(d, {weight, 1});
+        for(auto& [nei, t] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            modify(nei, node, d + int(last != t), t, weight, i);
+        }
+    }
+ 
+    void process(FW<pii>& T, int d, ll weight) {
+        auto it = T.get(d); 
+        res = (res + weight * it.ss + it.ff) % MOD;
+    }
+
+    void cal(int node, int par, int d, int last, ll weight, int i) {
+        if(d > k) return;
+        weight = (weight + a[node]) % MOD;
+        process(tree[i], min(mx, k - d), weight);
+        process(tree[!i], min(mx, k - d - 1), weight);
+        for(auto& [nei, t] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            cal(nei, node, d + int(last != t), t, weight, i);
+        }
+    }
+
+    int get_max_depth(int node, int par, int d, int last) {
+        if(d > k) return 0;
+        int curr = d;
+        for(auto& [nei, t] : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            curr = max(curr, get_max_depth(nei, node, d +  int(last != -1 && last != t), t)); 
+        }
+        return curr;
+    }
+
+    int init(int root = 0, int par = -1) {
+        root = get_centroid(root);
+        mx = get_max_depth(root, -1, 0, -1);
+        tree[0] = tree[1] = FW<pii>(mx + 5, {0, 0});
+        for(auto& [nei, t] : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            cal(nei, root, 0, t, 0, t);
+            modify(nei, root, 0, t, a[root], t);
+        }
+        process(tree[0], min(mx, k), 0);
+        process(tree[1], min(mx, k), 0);
+        res = (res + a[root]) % MOD;
+        for(auto& [nei, t] : graph[root]) {
+            if(nei == par || vis[nei]) continue;
+            init(nei, root);
+        }
+        return root;
+    }
+};
+
 void solve() {
     int n, k; cin >> n >> k;
     vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
-        }
+    vvpii graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v, w; cin >> u >> v >> w;
+        u--, v--;
+        graph[u].pb({v, w});
+        graph[v].pb({u, w});
     }
-    cout << res << endl;
+    CD g(graph, a, k);
+    cout << g.res << endl;
 }
 
 signed main() {
@@ -257,4 +410,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

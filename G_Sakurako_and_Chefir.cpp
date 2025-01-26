@@ -208,18 +208,118 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+class GRAPH { 
+    public: 
+    int n;  
+    vvi dp, graph; 
+    vi depth;
+    int timer = 0;
+    GRAPH(vvi& graph, int root = 0) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        dfs(root);
+        init();
+    }
+    
+    void dfs(int node = 0, int par = -1) {   
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+			dfs(nei, node);
         }
     }
-    cout << res << endl;
+
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+	
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+	
+	int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	int k_ancestor(int a, int k) {
+        for(int i = MK - 1; i >= 0; i--) {   
+            if((k >> i) & 1) a = dp[a][i];
+        }
+        return a;
+    }
+
+    int rooted_parent(int u, int v) { // move one level down from u closer to v
+        return k_ancestor(v, depth[v] - depth[u] - 1);
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    GRAPH g(graph);
+    vi dis(n);
+    vpii ending(n, {-1, -1});
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> int {
+        int s = node, f = node, mx1 = 0, mx2 = 0, j = -1;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            int t = dfs(dfs, nei, node);
+            if(j == -1 || dis[nei] > dis[j]) j = nei;
+            if(mx1 < t) {
+                mx2 = mx1;
+                mx1 = t;
+                s = f;
+                f = ending[nei].ff;
+            }
+            else if(mx2 < t) {
+                mx2 = t;
+                s = ending[nei].ff;
+            }
+        }
+        int D = mx1 + mx2 + 1;
+        if(j == -1 || dis[j] < D) dis[node] = D, ending[node] = {f, s};
+        else dis[node] = dis[j], ending[node] = ending[j];
+        return mx1 + 1;
+    };
+    dfs(dfs);
+    int q; cin >> q;
+    while(q--) {
+        int v, k; cin >> v >> k;
+        v--;
+        int p = g.k_ancestor(v, k);
+        auto [f, s] = ending[p];
+        cout << max(g.dist(f, v), g.dist(s, v)) << (q == 0 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -230,7 +330,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -257,4 +357,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

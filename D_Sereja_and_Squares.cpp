@@ -201,7 +201,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static ll MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -209,14 +209,33 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    ll res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        for(int j = i, mx = 0; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            if(mx >= k) res++;
+    int n; cin >> n;
+    vpii a(n); cin >> a;
+    vvi X(MX), Y(MX);
+    for(auto&[x, y] : a) {
+        X[x].pb(y);
+        Y[y].pb(x);
+    }
+    for(auto& it : X) srt(it);
+    for(auto& it : Y) srt(it);
+    int res = 0;
+    auto check = [](vi& a, int v) -> bool {
+        return binary_search(all(a), v);
+    };
+    for(auto& [x, y] : a) {
+        int id = lb(all(Y[y]), x) - begin(Y[y]);
+        int id2 = lb(all(X[x]), y) - begin(X[x]);
+        if(id < id2) {
+            for(auto& x2 : Y[y]) {
+                if(x == x2) break;
+                res += check(X[x], y - x + x2) && check(X[x2], y - x + x2);
+            }
+        }
+        else {
+            for(auto& y2 : X[x]) {
+                if(y == y2) break;
+                res += check(Y[y], x - y + y2) && check(Y[y2], x - y + y2);
+            }
         }
     }
     cout << res << endl;
@@ -257,4 +276,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
