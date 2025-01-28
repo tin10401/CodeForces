@@ -208,26 +208,56 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n + 1);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == k);
+class DSU { 
+    public: 
+    int n;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+        root.rsz(n, -1), rank.rsz(n, 1);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = suffix[i + 1] + int(a[i] == k);
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
     }
-    int res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        int mx = 0;
-        for(int j = i; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            res = max(res, mx + suffix[j + 1] + (i ? prefix[i - 1] : 0));
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v);   
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
         }
+        return false;
     }
-    cout << res << endl;
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
+void solve() {
+    int n, m; cin >> n >> m;
+    queue<pii> q;
+    DSU root(n);
+    while(m--) {
+        int t, u, v; cin >> t >> u >> v;
+        u--, v--;
+        if(t == 2) root.merge(u, v);
+        else q.push({u, v});
+        while(!q.empty()) {
+            auto [u, v] = q.front();
+            if(root.same(u, v)) q.pop();
+            else break;
+        }
+        cout << (q.empty() ? "YES" : "NO") << endl;
+    }
 }
 
 signed main() {
@@ -265,4 +295,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

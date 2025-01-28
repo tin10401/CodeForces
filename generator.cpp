@@ -177,7 +177,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 
 vi choice = {0, 1};
 int main(int argc, char* argv[]) {
-    int N = 10;
+    int N = 100;
     int Q = 10;
     uniform_int_distribution<int> dist_n(1, N);
     uniform_int_distribution<int> dist_q(1, Q);

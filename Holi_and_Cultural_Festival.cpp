@@ -208,26 +208,102 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n + 1);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == k);
+struct MCMF {
+    public:
+    int V;
+    struct Edge {
+        int to, _rev;
+        ll capacity, cost;
+        Edge() {}
+
+        Edge(int to, int _rev, ll capacity, ll cost) : to(to), _rev(_rev), capacity(capacity), cost(cost) {}
+    };
+
+    vt<vt<Edge>> graph;
+    MCMF(int V) : V(V), graph(V) {}
+
+    void add_edge(int u, int v, ll capacity, ll cost) {
+        Edge a(v, int(graph[v].size()), capacity, cost);
+        Edge b(u, int(graph[u].size()), 0, -cost);
+        graph[u].pb(a);
+        graph[v].pb(b);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = suffix[i + 1] + int(a[i] == k);
-    }
-    int res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        int mx = 0;
-        for(int j = i; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            res = max(res, mx + suffix[j + 1] + (i ? prefix[i - 1] : 0));
+
+    pll min_cost_flow(int s, int t, ll max_f) {
+        ll flow = 0, flow_cost = 0;
+        vll prev_v(V, -1), prev_e(V, -1);
+        while(flow < max_f) {
+            vll dist(V, INF);
+            vb vis(V, false);
+            queue<int> q;
+            dist[s] = 0;
+            q.push(s);
+            vis[s] = true;
+            while(!q.empty()) {
+                auto u = q.front(); q.pop();
+                vis[u] = false;
+                for(int i = 0; i < graph[u].size(); i++) {
+                    auto& e = graph[u][i];
+                    if(e.capacity > 0 && dist[e.to] > dist[u] + e.cost) {
+                        dist[e.to] = dist[u] + e.cost;
+                        prev_v[e.to] = u;
+                        prev_e[e.to] = i;
+                        if(!vis[e.to]) {
+                            q.push(e.to);
+                            vis[e.to] = true;
+                        }
+                    } 
+                }
+            }
+            if(dist[t] == INF) break;
+            ll df = max_f - flow;
+            int v = t;
+            while(v != s) {
+                int u = prev_v[v];
+                int e_idx = prev_e[v];
+                df = min(df, graph[u][e_idx].capacity);
+                v = u;
+            }
+            flow += df;
+            flow_cost += df * dist[t];
+            v = t;
+            while(v != s) {
+                int u = prev_v[v];
+                int e_idx = prev_e[v];
+                graph[u][e_idx].capacity -= df;
+                graph[v][graph[u][e_idx]._rev].capacity += df;
+                v = u;
+            }
         }
+        return {flow, flow_cost};
     }
-    cout << res << endl;
+};
+
+void solve() {
+    int n; cin >> n;
+    vi size(3); cin >> size;
+    const int N = n + 5;
+    MCMF graph(N);
+    int src = n, sink = n + 1, A = n + 2, B = n + 3, C = n + 4;
+    for(int i = 0; i < n; i++) {
+        int t; cin >> t;
+        graph.add_edge(i, A, 1, -t);
+    }
+    for(int i = 0; i < n; i++) {
+        int t; cin >> t;
+        graph.add_edge(i, B, 1, -t);
+    }
+    for(int i = 0; i < n; i++) {
+        int t; cin >> t;
+        graph.add_edge(i, C, 1, -t);
+    }
+    for(int i = 0; i < n; i++) {
+        graph.add_edge(src, i, 1, 0);
+    }
+    graph.add_edge(A, sink, size[0], 0);
+    graph.add_edge(B, sink, size[1], 0);
+    graph.add_edge(C, sink, size[2], 0);
+    cout << -graph.min_cost_flow(src, sink, sum(size)).ss << endl;
 }
 
 signed main() {
@@ -265,4 +341,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
