@@ -208,26 +208,186 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n + 1);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == k);
+// Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.
+template<typename flow_t>
+struct dinic {
+    struct edge {
+        int node, _rev;
+        flow_t capacity;
+ 
+        edge() {}
+ 
+        edge(int _node, int _rev, flow_t _capacity) : node(_node), _rev(_rev), capacity(_capacity) {}
+    };
+ 
+    int V = -1;
+    vt<vt<edge>> adj;
+    vi dist, edge_index;
+    bool flow_called;
+ 
+    dinic(int vertices = -1) {
+        if (vertices >= 0)
+            init(vertices);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = suffix[i + 1] + int(a[i] == k);
+ 
+    void init(int vertices) {
+        V = vertices;
+        adj.assign(V, {});
+        dist.resize(V);
+        edge_index.resize(V);
+        flow_called = false;
     }
-    int res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        int mx = 0;
-        for(int j = i; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            res = max(res, mx + suffix[j + 1] + (i ? prefix[i - 1] : 0));
+ 
+    int _add_edge(int u, int v, flow_t capacity1, flow_t capacity2) {
+        assert(0 <= u && u < V && 0 <= v && v < V);
+        assert(capacity1 >= 0 && capacity2 >= 0);
+        edge uv_edge(v, int(adj[v].size()) + (u == v ? 1 : 0), capacity1);
+        edge vu_edge(u, int(adj[u].size()), capacity2);
+        adj[u].push_back(uv_edge);
+        adj[v].push_back(vu_edge);
+        return adj[u].size() - 1;
+    }
+ 
+    int add_directional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, 0);
+    }
+ 
+    int add_bidirectional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, capacity);
+    }
+ 
+    edge &reverse_edge(const edge &e) {
+        return adj[e.node][e._rev];
+    }
+ 
+    void bfs_check(queue<int> &q, int node, int new_dist) {
+        if (new_dist < dist[node]) {
+            dist[node] = new_dist;
+            q.push(node);
         }
     }
-    cout << res << endl;
+ 
+    bool bfs(int source, int sink) {
+        dist.assign(V, inf);
+        queue<int> q;
+        bfs_check(q, source, 0);
+        while (!q.empty()) {
+            int top = q.front(); q.pop();
+            for (edge &e : adj[top])
+                if (e.capacity > 0)
+                    bfs_check(q, e.node, dist[top] + 1);
+        }
+ 
+        return dist[sink] < inf;
+    }
+ 
+    flow_t dfs(int node, flow_t path_cap, int sink) {
+        if (node == sink)
+            return path_cap;
+ 
+        if (dist[node] >= dist[sink])
+            return 0;
+ 
+        flow_t total_flow = 0;
+ 
+        // Because we are only performing DFS in increasing order of dist, we don't have to revisit fully searched edges
+        // again later.
+        while (edge_index[node] < int(adj[node].size())) {
+            edge &e = adj[node][edge_index[node]];
+ 
+            if (e.capacity > 0 && dist[node] + 1 == dist[e.node]) {
+                flow_t path = dfs(e.node, min(path_cap, e.capacity), sink);
+                path_cap -= path;
+                e.capacity -= path;
+                reverse_edge(e).capacity += path;
+                total_flow += path;
+            }
+ 
+            // If path_cap is 0, we don't want to increment edge_index[node] as this edge may not be fully searched yet.
+            if (path_cap == 0)
+                break;
+ 
+            edge_index[node]++;
+        }
+ 
+        return total_flow;
+    }
+ 
+    flow_t flow(int source, int sink) {
+        assert(V >= 0);
+        flow_t total_flow = 0;
+ 
+        while (bfs(source, sink)) {
+            edge_index.assign(V, 0);
+            total_flow += dfs(source, inf, sink);
+        }
+ 
+        flow_called = true;
+        return total_flow;
+    }
+ 
+    vector<bool> reachable;
+ 
+    void reachable_dfs(int node) {
+        reachable[node] = true;
+ 
+        for (edge &e : adj[node])
+            if (e.capacity > 0 && !reachable[e.node])
+                reachable_dfs(e.node);
+    }
+ 
+    // Returns a list of {capacity, {from_node, to_node}} representing edges in the min cut.
+    // TODO: for bidirectional edges, divide the resulting capacities by two.
+    vector<pair<flow_t, pair<int, int>>> min_cut(int source) {
+        assert(flow_called);
+        reachable.assign(V, false);
+        reachable_dfs(source);
+        vector<pair<flow_t, pair<int, int>>> cut;
+ 
+        for (int node = 0; node < V; node++)
+            if (reachable[node])
+                for (edge &e : adj[node])
+                    if (!reachable[e.node])
+                        cut.emplace_back(reverse_edge(e).capacity, make_pair(node, e.node));
+ 
+        return cut;
+    }
+};
+
+void solve() {
+    int n, m; cin >> n >> m;
+    vvi a(n, vi(m)), b(n, vi(m)), c(n, vi(m)); cin >> a >> b >> c;
+    const int N = n * m;
+    int src = N * 2, sink = N * 2 + 1; 
+    dinic<ll> graph(N * 2 + 2);
+    ll total = 0;
+    auto get_hash = [&](int i, int j) -> int {
+        return i * m + j;
+    };
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < m; j++) {
+            total += a[i][j];
+            int x = get_hash(i, j);
+            graph.add_directional_edge(x, x + N, a[i][j]);
+            if(i % 2 == j % 2) {
+                graph.add_directional_edge(src, x, b[i][j]);
+                graph.add_directional_edge(x + N, sink, c[i][j]);
+            }
+            else {
+                graph.add_directional_edge(src, x, c[i][j]);
+                graph.add_directional_edge(x + N, sink, b[i][j]);
+                for(int k = 0; k < 4; k++) {
+                    int r = i + dirs[k][0], c = j + dirs[k][1];
+                    if(r >= 0 && r < n && c >= 0 && c < m) {
+                        int y = get_hash(r, c);
+                        graph.add_directional_edge(x, y, INF);
+                        graph.add_directional_edge(x + N, y + N, INF);
+                    }
+                }
+            }
+        }
+    }
+    cout << total - graph.flow(src, sink) << endl;
 }
 
 signed main() {
@@ -265,4 +425,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

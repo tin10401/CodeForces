@@ -209,23 +209,31 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vi a(n); cin >> a;
-    vi prefix(n), suffix(n + 1);
-    for(int i = 0; i < n; i++) {
-        prefix[i] = (i ? prefix[i - 1] : 0) + int(a[i] == k);
+    int n, m; cin >> n >> m;
+    var(3) edges(m);
+    vvi graph(n);
+    for(auto& [u, v, w] : edges) {
+        cin >> u >> v >> w;
+        u--, v--;
+        graph[u].pb(v);
     }
-    for(int i = n - 1; i >= 0; i--) {
-        suffix[i] = suffix[i + 1] + int(a[i] == k);
-    }
+    vi vis(n);
+    auto dfs = [&](auto& dfs, int node, vi& a, int c) -> void {
+        if(vis[node]) return; 
+        vis[node] = true;
+        a[node] = c;
+        for(auto& nei : graph[node]) dfs(dfs, nei, a, c);
+    };
+    sort(all(edges), [](const ar(3)& a, const ar(3)& b) { return a[2] < b[2];});
+    vi mx(n, -inf), mn(n, inf);
+    for(auto& [u, v, c] : edges) dfs(dfs, v, mn, c);
+    rev(edges);
+    fill(all(vis), false);
+    for(auto& [u, v, c] : edges) dfs(dfs, v, mx, c);
+    debug(mx, mn, edges);
     int res = 0;
-    for(int i = 0; i < n; i++) {
-        map<int, int> mp;
-        int mx = 0;
-        for(int j = i; j < n; j++) {
-            mx = max(mx, ++mp[a[j]]); 
-            res = max(res, mx + suffix[j + 1] + (i ? prefix[i - 1] : 0));
-        }
+    for(auto& [u, v, c] : edges) {
+        res = max({res, c - mn[u], mx[u] - c});
     }
     cout << res << endl;
 }
@@ -265,4 +273,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
