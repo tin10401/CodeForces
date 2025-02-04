@@ -198,6 +198,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
+const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -207,8 +208,44 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    ll n, x, y; cin >> n >> x >> y;
+    vll a(n); cin >> a;
+    srt(a);
+    auto f = [&](ll k) -> bool {
+        ll score = x;
+        ll t = k;
+        for(int i = 0; i < n && k && score < y; i++) {
+            if(score >= a[i]) {
+                score++;
+                k--;
+                continue;
+            }
+            ll gain = i * 2 - n;
+            if(gain <= 0) break;
+            ll diff = a[i] - score;
+            ll need = min(k, ((diff + gain - 1) / gain) * n);
+            k -= need;
+            score += need / gain;
+            if(need % gain) {
+                score += gain - max(0LL, need - gain);
+                break;
+            }
+        }
+        debug(t, k, score);
+        return k || score >= y;
+    };
+    debug(a);
+    ll left = 1, right = 20, res = -1;
+    while(left <= right) {
+        ll middle = midPoint;
+        if(f(middle)) res = middle, right = middle - 1;
+        else left = middle + 1;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -219,7 +256,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

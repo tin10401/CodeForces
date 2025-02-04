@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -208,10 +207,32 @@ int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi prefix_xor(n + 2);
+    for(int i = 1; i <= n; i++) prefix_xor[i] = prefix_xor[i - 1] ^ a[i - 1];
+    const int K = 30;
+    vvi prefix_cnt(n + 2, vi(K));
+    for(int i = 1; i <= n; i++) {
+        prefix_cnt[i] = prefix_cnt[i - 1];
+        int x = prefix_xor[i];
+        for(int b = 0; b < K; b++) {
+            if((x >> b) & 1) prefix_cnt[i][b]++;
+        }
+    }
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+        int msb = 0;
+        while((1LL << (msb + 1)) <= a[i]) msb++;
+        ll left_have_bit_one = prefix_cnt[i][msb];
+        ll left_have_bit_zero = i + 1 - left_have_bit_one;
+        ll right_have_bit_one = prefix_cnt[n][msb] - prefix_cnt[i][msb];
+        ll right_have_bit_zero = n - i - right_have_bit_one;
+        res += left_have_bit_one * right_have_bit_one + left_have_bit_zero * right_have_bit_zero;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -222,7 +243,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

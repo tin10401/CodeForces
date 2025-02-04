@@ -37,7 +37,6 @@ vi factor(int x) {
     return a;
 }
 
-
 class Combinatoric {    
     public: 
     int n;  
@@ -98,6 +97,19 @@ vll countBit(ll n) {
 	return cnt;
 };
 
+ll get_mask(ll a, ll k) { // get bit_mask representation in base k
+    ll res = 0;
+    int cnt = 0;
+    while(a > 0) {
+        ll digit = a % k;
+        if(digit > 1) return -1;
+        if(digit == 1) res |= (1LL << cnt);
+        a /= k;
+        cnt++;
+    }
+    return res;
+}
+
 vi get_pair_gcd(vi& a) {
     int m = MAX(a);
     vi f(m + 1), g(m + 1);
@@ -115,9 +127,6 @@ vi get_pair_gcd(vi& a) {
     return g;
 }
 
-// sum of first even number : 2 + 4 + 6 + ... + n = n * (n + 1)
-// sum of first odd number : 1 + 3 + 5 + ... + n = n * n
-
 //    ll curr = 1;
 //    while(curr <= j) {
 //        ll add = j / curr;
@@ -129,3 +138,30 @@ vi get_pair_gcd(vi& a) {
 //        }
 //        curr = last + 1;
 //    }
+
+//    int n; cin >> n; // compute distinct prefix_or of an array over all permutation
+//    const int N = 2 * n;
+//    vi mask(N), dp(N);
+//    int zero = 0;
+//    while(n--) {
+//        int x; cin >> x;
+//        zero |= x == 0;
+//        mask[x] = x;
+//    }
+//    const int K = 22;
+//    for(int bit = 0; bit < K; bit++) {
+//        for(int x = 0;x < N; x++) {
+//            if((x >> bit) & 1) mask[x] |= mask[x ^ (1 << bit)];
+//        }
+//    }
+//    for(int x = 0; x < N; x++) {
+//        for(int bit = 0; bit < K; bit++) {
+//            if((x >> bit) & 1) {
+//                int v = dp[x ^ (1 << bit)];
+//                if((mask[x] >> bit) & 1) v++;
+//                dp[x] = max(dp[x], v);
+//            }
+//        }
+//    }
+//    int res = MAX(dp) + zero;
+//    cout << res << endl;

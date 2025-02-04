@@ -240,6 +240,22 @@ vi KMP(const string& s) {
 
 }
 
+int count_substring(const string& s, const string& t) { // s is main string, t is pattern
+    auto kmp = KMP(t);
+    int N = s.size(), M = t.size();
+    int cnt = 0;
+    for(int i = 0, j = 0; i < N;) {
+        if(s[i] == t[j]) i++, j++;
+        else if(j) j = kmp[j - 1];
+        else i++;
+        if(j == M) {
+            cnt++;
+            j = 0;
+        }
+    }
+    return cnt;
+}
+
 vi Z_Function(const string& s) {    
     int n = s.size();   
     vi prefix(n);   
@@ -393,7 +409,7 @@ class MANACHER {
 
     bool is_palindrome(int left, int right) {
         int rev_left = n - right - 1, rev_right = n - left - 1;
-        return a.getHash(left, right) == b.getHash(rev_left, rev_right);
+        return a.getHash(left, right + 1) == b.getHash(rev_left, rev_right + 1);
     }
 };
 

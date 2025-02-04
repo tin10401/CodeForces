@@ -1,23 +1,3 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
-//╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
-//░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
-//░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
-//░░░██║░░░██║██║░╚███║  ███████╗███████╗
-//░░░╚═╝░░░╚═╝╚═╝░░╚══╝  ╚══════╝╚══════╝
-//   __________________
-//  | ________________ |
-//  ||          ____  ||
-//  ||   /\    |      ||
-//  ||  /__\   |      ||
-//  || /    \  |____  ||
-//  ||________________||
-//  |__________________|
-//  \###################\
-//   \###################\
-//    \        ____       \
-//     \_______\___\_______\
-// An AC a day keeps the doctor away.
-
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -175,20 +155,26 @@ const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
-vi choice = {0, 1};
 int main(int argc, char* argv[]) {
-    int N = 100;
-    int Q = 10;
+    int N = 3;
+    int Q = 5;
+    const int V = 10; // 1e8
+    // Define distributions
     uniform_int_distribution<int> dist_n(1, N);
     uniform_int_distribution<int> dist_q(1, Q);
     uniform_int_distribution<int> A(1, 10);
-    uniform_int_distribution<int> val(1, Q); // be careful to include negative values as well
-    int n = dist_n(rng);
-    int k = dist_n(rng) % n + 1;
-    cout << n << ' ' << k << endl;
-    while(n--) {
-        int v = val(rng);
-        cout << v << (n == 0 ? '\n' : ' ');
+    uniform_int_distribution<int> val(1, V); // if you need negative values, adjust accordingly
+
+    // For example, printing a test case:
+    cout << 1 << endl;  // perhaps number of test cases
+    int n = dist_n(rng);  // FIX: use rng here, not N
+    cout << n << endl;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cout << val(rng) << (j == n - 1 ? '\n' : ' ');
+        }
     }
+    return 0;
 }
+
 

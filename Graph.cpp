@@ -146,10 +146,11 @@ class GRAPH {
 
 class DSU { 
     public: 
-    int n;  
+    int n, comp;  
     vi root, rank;  
     DSU(int n) {    
         this->n = n;    
+		comp = n;
         root.rsz(n, -1), rank.rsz(n, 1);
     }
     
@@ -161,7 +162,8 @@ class DSU {
     bool merge(int u, int v) {  
         u = find(u), v = find(v);   
         if(u != v) {    
-            if(rank[v] > rank[u]) swap(u, v);   
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
             rank[u] += rank[v]; 
             root[v] = u;
             return true;
@@ -177,6 +179,48 @@ class DSU {
         return rank[find(x)];
     }
 };
+
+vi toposort(vvi& graph, vi degree) {
+    queue<int> q;
+    int n = graph.size();
+    for(int i = 1; i < n; i++) if(degree[i] == 0) q.push(i);
+    vi ans;
+    while(!q.empty()) {
+        auto i = q.front(); q.pop(); ans.pb(i);
+        for(auto& j : graph[i]) if(--degree[j] == 0) q.push(j);
+    }
+    return ans;
+}
+
+bool is_symmetrical(const vvi& graph, int root = 0) {
+    map<vi, int> hash_code;
+    map<int, int> sym;
+    int cnt = 0;
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> int {
+        vi child;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            child.pb(dfs(dfs, nei, node));
+        }
+        srt(child);
+        if(!hash_code.count(child)) {
+            map<int, int> c;
+            for(auto& it : child) c[it]++;
+            bool bad = false;
+            int odd = 0;
+            for(auto& [x, v] : c) {
+                if(v & 1) {
+                    odd++;
+                    bad |= !sym[x];
+                }
+            }
+            hash_code[child] = ++cnt;
+            sym[cnt] = odd < 2 && !bad;
+        }
+        return hash_code[child];
+    };
+    return sym[dfs(dfs, root)];
+}
 
 struct Persistent_DSU {
 	int n, version;
@@ -275,7 +319,6 @@ class Undo_DSU {
         return rank[find(u)];
     }
 };
-
 
 class SCC {
     public:
@@ -423,15 +466,14 @@ struct CHT : multiset<Line> {
 struct CD { // centroid_decomposition
     int n, root;
     vvi graph;
-    vi size, parent, vis, a, freq;
-    vll ans;
-    CD(vvi& graph, vi& a) : graph(graph), n(graph.size()), a(a) {
+    vi size, parent, vis;
+    GRAPH g;
+    vi best;
+    CD(vvi& graph) : graph(graph), n(graph.size()), g(graph) {
         size.rsz(n);
-        parent.rsz(n);
+        parent.rsz(n, -1);
         vis.rsz(n);
-        freq.rsz((1 << MK) + 20);
-        freq[0] = 1;
-        ans.rsz(n);
+        best.rsz(n, inf);
         root = init();
     }
  
@@ -459,70 +501,25 @@ struct CD { // centroid_decomposition
         return centroid;
     }
 
-    int get(int mask) {
-        int res = freq[mask];
-        for(int i = 0; i < MK; i++) {
-            res += freq[mask ^ (1 << i)];
-        }
-        return res;
-    }
-
-    void modify(int node, int par, int mask, int delta) {
-        mask ^= a[node]; 
-        freq[mask] += delta;
-        for(auto& nei : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            modify(nei, node, mask, delta);
-        }
-    }
- 
-    ll cal(int node, int par, int mask) {
-        mask ^= a[node];
-        ll res = get(mask);
-        for(auto& nei : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            res += cal(nei, node, mask);
-        }
-        ans[node] += res;
-        return res;
-    }
-	
-	int get_max_depth(int node, int par, int d, int last) {
-        if(d > k) return 0;
-        int curr = d;
-        for(auto& [nei, t] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            curr = max(curr, get_max_depth(nei, node, d +  int(last != -1 && last != t), t)); 
-        }
-        return curr;
-    }
-
     int init(int root = 0, int par = -1) {
         root = get_centroid(root);
         parent[root] = par;
-        for(auto& nei : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            modify(nei, root, 0, 1);
-        }
-        ll sm = 1;
-        for(auto& nei : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            modify(nei, root, 0, -1);
-            sm += cal(nei, root, a[root]);
-            modify(nei, root, 0, 1);
-        }
-        sm += get(a[root]);
-        sm >>= 1;
-        ans[root] += sm;
-        for(auto& nei : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            modify(nei, root, 0, -1);
-        }
         for(auto&nei : graph[root]) {
             if(nei == par || vis[nei]) continue;
             init(nei, root);
         }
         return root;
+    }
+
+    int ans = inf;
+    void update(int u) {
+        int v = u;
+        while(u != -1) {
+            int t = g.dist(u, v); 
+            ans = min(ans, t + best[u]);
+            best[u] = min(best[u], t);
+            u = parent[u];
+        }
     }
 };
 
@@ -670,6 +667,54 @@ struct dinic {
  
         return cut;
     }
+	
+	vt<vt<flow_t>> assign_flow(int n) {
+        vt<vt<flow_t>> assign(n, vt<flow_t>(n));   
+        for(int i = 0; i < n; i++) {
+            for(auto& it : adj[i]) {
+                int j = it.node - n;
+                auto e = reverse_edge(it);
+                if(j >= 0 && j < n) {
+                    assign[i][j] = e.capacity;
+                }
+            }
+        }
+        return assign;
+    }
+	
+	vvi construct_path(int n, vi& a) {
+        vi vis(n), A;
+        vvi ans, G(n);
+
+        auto dfs = [&](auto& dfs, int node) -> void {
+            vis[node] = true;
+            A.pb(node + 1); 
+            for(auto& nei : G[node]) {
+                if(!vis[nei]) {
+                    dfs(dfs, nei);
+                    return;
+                }
+            }
+        };
+        for(int i = 0; i < n; i++) {
+            if(a[i] % 2 == 0) continue; // should only add node where going from source to this
+            for(auto& it : adj[i]) {
+                int j = it.node;
+                if(j < n && it.capacity == 0) {
+                    G[i].pb(j);
+                    G[j].pb(i);
+                }
+            }
+        }
+        for(int i = 0; i < n; i++) {
+            if(vis[i]) continue;
+            A.clear();
+            dfs(dfs, i);
+            ans.pb(A);
+        }
+        return ans;
+    }
+
 };
 
 struct MCMF {
@@ -743,13 +788,13 @@ struct MCMF {
     }
 };
 
-class bipartile_matching {
+class Kuhn {
 public:
     int n, l;
     vvi adj;
     vi mate, vis;
 
-    bipartile_matching(int nn, int _ll)
+    Kuhn(int nn, int _ll)
         : n(nn), l(_ll), adj(nn), mate(nn, -1), vis(nn, false) {}
 
     void add_edge(int v, int u) {
@@ -790,11 +835,11 @@ public:
     }
 };
 
-struct MAX_MATCHING {
+struct Blossom {
     int n;
     vi match, Q, pre, base, hash, in_blossom, in_path;
     vvi adj;
-    MAX_MATCHING(int n) : n(n), match(n, -1), adj(n, vi(n)), hash(n), Q(n), pre(n), base(n), in_blossom(n), in_path(n) {}
+    Blossom(int n) : n(n), match(n, -1), adj(n, vi(n)), hash(n), Q(n), pre(n), base(n), in_blossom(n), in_path(n) {}
 
     void insert(const int &u, const int &v) {
         adj[u][v] = adj[v][u] = 1;
@@ -890,5 +935,174 @@ struct MAX_MATCHING {
             v = base[pre[match[v]]];
         }
         return v;
+    }
+};
+
+template <class T, T oo>
+struct HopcroftKarp {
+    int n, m; 
+    vvi adj;
+    vi pairU, pairV;
+    vt<T> dist;
+
+    HopcroftKarp(int n, int m) : n(n), m(m) {
+        adj.resize(n);
+        pairU.assign(n, -1);
+        pairV.assign(m, -1);
+        dist.assign(n, oo);
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+    }
+
+    bool bfs() {
+        queue<int> q;
+        for (int u = 0; u < n; u++) {
+            if (pairU[u] == -1) {
+                dist[u] = 0;
+                q.push(u);
+            } else {
+                dist[u] = oo;
+            }
+        }
+        T INF = oo;
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            if (dist[u] < INF) {
+                for (int v : adj[u]) {
+                    if (pairV[v] == -1) {
+                        INF = dist[u] + 1;
+                    } else if (dist[pairV[v]] == oo) {
+                        dist[pairV[v]] = dist[u] + 1;
+                        q.push(pairV[v]);
+                    }
+                }
+            }
+        }
+        return INF != oo;
+    }
+
+    bool dfs(int u) {
+        if (u != -1) {
+            for (int v : adj[u]) {
+                int pu = pairV[v];
+                if (pu == -1 || (dist[pu] == dist[u] + 1 && dfs(pu))) {
+                    pairV[v] = u;
+                    pairU[u] = v;
+                    return true;
+                }
+            }
+            dist[u] = oo;
+            return false;
+        }
+        return true;
+    }
+
+    int max_match() {
+        int matching = 0;
+        while (bfs()) {
+            for (int u = 0; u < n; u++) {
+                if (pairU[u] == -1 && dfs(u)) {
+                    matching++;
+                }
+            }
+        }
+        return matching;
+    }
+	
+	vpii getMatching() const {
+        vpii matchingPairs;
+        for (int u = 0; u < n; u++) {
+            if (pairU[u] != -1) {
+                matchingPairs.push_back({u, pairU[u]});
+            }
+        }
+        return matchingPairs;
+    }
+
+};
+
+template<class T, T oo>
+struct Hungarian {
+    int n, m;
+    vi maty, frm, used;
+    vt<vt<T>> cst;
+    vt<T> fx, fy, dst;
+
+    Hungarian(int n, int m) {
+        this->n = n;
+        this->m = m;
+        cst.resize(n + 1, vt<T>(m + 1, oo));
+        fx.resize(n + 1);
+        fy.resize(m + 1);
+        dst.resize(m + 1);
+        maty.resize(m + 1);
+        frm.resize(m + 1);
+        used.resize(m + 1);
+    }
+
+    void add_edge(int x, int y, T c) {
+        cst[x][y] = c;
+    }
+
+    T min_cost() {
+        random_device rd;
+        mt19937 rng(rd());
+        for (int x = 1; x <= n; x++) {
+            int y0 = 0;
+            maty[0] = x;
+            for (int y = 0; y <= m; y++) {
+                dst[y] = oo + 1;
+                used[y] = 0;
+            }
+            int y1;
+            do {
+                used[y0] = 1;
+                int x0 = maty[y0];
+                T delta = oo + 1;
+                vi perm(m);
+                for (int i = 0; i < m; i++) {
+                    perm[i] = i + 1;
+                }
+                shuffle(perm.begin(), perm.end(), rng);
+                for (int idx = 0; idx < m; idx++) {
+                    int y = perm[idx];
+                    if (!used[y]) {
+                        T curdst = cst[x0][y] - fx[x0] - fy[y];
+                        if (dst[y] > curdst) {
+                            dst[y] = curdst;
+                            frm[y] = y0;
+                        }
+                        if (delta > dst[y]) {
+                            delta = dst[y];
+                            y1 = y;
+                        }
+                    }
+                }
+                for (int y = 0; y <= m; y++) {
+                    if (used[y]) {
+                        fx[maty[y]] += delta;
+                        fy[y] -= delta;
+                    } else {
+                        dst[y] -= delta;
+                    }
+                }
+                y0 = y1;
+            } while (maty[y0] != 0);
+            do {
+                int y1 = frm[y0];
+                maty[y0] = maty[y1];
+                y0 = y1;
+            } while (y0);
+        }
+        T res = 0;
+        for (int y = 1; y <= m; y++) {
+            T x = maty[y];
+            if (cst[x][y] < oo)
+                res += cst[x][y];
+        }
+        return res;
     }
 };

@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,359 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+// Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.
+template<typename flow_t>
+struct dinic {
+    struct edge {
+        int node, _rev;
+        flow_t capacity;
+ 
+        edge() {}
+ 
+        edge(int _node, int _rev, flow_t _capacity) : node(_node), _rev(_rev), capacity(_capacity) {}
+    };
+ 
+    int V = -1;
+    vt<vt<edge>> adj;
+    vi dist, edge_index;
+    bool flow_called;
+ 
+    dinic(int vertices = -1) {
+        if (vertices >= 0)
+            init(vertices);
+    }
+ 
+    void init(int vertices) {
+        V = vertices;
+        adj.assign(V, {});
+        dist.resize(V);
+        edge_index.resize(V);
+        flow_called = false;
+    }
+ 
+    int _add_edge(int u, int v, flow_t capacity1, flow_t capacity2) {
+        assert(0 <= u && u < V && 0 <= v && v < V);
+        assert(capacity1 >= 0 && capacity2 >= 0);
+        edge uv_edge(v, int(adj[v].size()) + (u == v ? 1 : 0), capacity1);
+        edge vu_edge(u, int(adj[u].size()), capacity2);
+        adj[u].push_back(uv_edge);
+        adj[v].push_back(vu_edge);
+        return adj[u].size() - 1;
+    }
+ 
+    int add_directional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, 0);
+    }
+ 
+    int add_bidirectional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, capacity);
+    }
+ 
+    edge &reverse_edge(const edge &e) {
+        return adj[e.node][e._rev];
+    }
+ 
+    void bfs_check(queue<int> &q, int node, int new_dist) {
+        if (new_dist < dist[node]) {
+            dist[node] = new_dist;
+            q.push(node);
+        }
+    }
+ 
+    bool bfs(int source, int sink) {
+        dist.assign(V, inf);
+        queue<int> q;
+        bfs_check(q, source, 0);
+        while (!q.empty()) {
+            int top = q.front(); q.pop();
+            for (edge &e : adj[top])
+                if (e.capacity > 0)
+                    bfs_check(q, e.node, dist[top] + 1);
+        }
+ 
+        return dist[sink] < inf;
+    }
+ 
+    flow_t dfs(int node, flow_t path_cap, int sink) {
+        if (node == sink)
+            return path_cap;
+ 
+        if (dist[node] >= dist[sink])
+            return 0;
+ 
+        flow_t total_flow = 0;
+ 
+        // Because we are only performing DFS in increasing order of dist, we don't have to revisit fully searched edges
+        // again later.
+        while (edge_index[node] < int(adj[node].size())) {
+            edge &e = adj[node][edge_index[node]];
+ 
+            if (e.capacity > 0 && dist[node] + 1 == dist[e.node]) {
+                flow_t path = dfs(e.node, min(path_cap, e.capacity), sink);
+                path_cap -= path;
+                e.capacity -= path;
+                reverse_edge(e).capacity += path;
+                total_flow += path;
+            }
+ 
+            // If path_cap is 0, we don't want to increment edge_index[node] as this edge may not be fully searched yet.
+            if (path_cap == 0)
+                break;
+ 
+            edge_index[node]++;
+        }
+ 
+        return total_flow;
+    }
+ 
+    flow_t flow(int source, int sink) {
+        assert(V >= 0);
+        flow_t total_flow = 0;
+ 
+        while (bfs(source, sink)) {
+            edge_index.assign(V, 0);
+            total_flow += dfs(source, inf, sink);
+        }
+ 
+        flow_called = true;
+        return total_flow;
+    }
+ 
+    vector<bool> reachable;
+ 
+    void reachable_dfs(int node) {
+        reachable[node] = true;
+ 
+        for (edge &e : adj[node])
+            if (e.capacity > 0 && !reachable[e.node])
+                reachable_dfs(e.node);
+    }
+ 
+    // Returns a list of {capacity, {from_node, to_node}} representing edges in the min cut.
+    // TODO: for bidirectional edges, divide the resulting capacities by two.
+    vector<pair<flow_t, pair<int, int>>> min_cut(int source) {
+        assert(flow_called);
+        reachable.assign(V, false);
+        reachable_dfs(source);
+        vector<pair<flow_t, pair<int, int>>> cut;
+ 
+        for (int node = 0; node < V; node++)
+            if (reachable[node])
+                for (edge &e : adj[node])
+                    if (!reachable[e.node])
+                        cut.emplace_back(reverse_edge(e).capacity, make_pair(node, e.node));
+ 
+        return cut;
+    }
+};
+
+template <class T, T oo>
+struct HopcroftKarp {
+    int n, m; 
+    vvi adj;
+    vi pairU, pairV;
+    vt<T> dist;
+
+    HopcroftKarp(int n, int m) : n(n), m(m) {
+        adj.resize(n);
+        pairU.assign(n, -1);
+        pairV.assign(m, -1);
+        dist.assign(n, oo);
+    }
+
+    void add_edge(int u, int v) {
+        adj[u].push_back(v);
+    }
+
+    bool bfs() {
+        queue<int> q;
+        for (int u = 0; u < n; u++) {
+            if (pairU[u] == -1) {
+                dist[u] = 0;
+                q.push(u);
+            } else {
+                dist[u] = oo;
+            }
+        }
+        T INF = oo;
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            if (dist[u] < INF) {
+                for (int v : adj[u]) {
+                    if (pairV[v] == -1) {
+                        INF = dist[u] + 1;
+                    } else if (dist[pairV[v]] == oo) {
+                        dist[pairV[v]] = dist[u] + 1;
+                        q.push(pairV[v]);
+                    }
+                }
+            }
+        }
+        return INF != oo;
+    }
+
+    bool dfs(int u) {
+        if (u != -1) {
+            for (int v : adj[u]) {
+                int pu = pairV[v];
+                if (pu == -1 || (dist[pu] == dist[u] + 1 && dfs(pu))) {
+                    pairV[v] = u;
+                    pairU[u] = v;
+                    return true;
+                }
+            }
+            dist[u] = oo;
+            return false;
+        }
+        return true;
+    }
+
+    int max_match() {
+        int matching = 0;
+        while (bfs()) {
+            for (int u = 0; u < n; u++) {
+                if (pairU[u] == -1 && dfs(u)) {
+                    matching++;
+                }
+            }
+        }
+        return matching;
+    }
+};
+
+
+struct Blossom {
+    int n;
+    vi match, Q, pre, base, hash, in_blossom, in_path;
+    vvi adj;
+    Blossom(int n) : n(n), match(n, -1), adj(n, vi(n)), hash(n), Q(n), pre(n), base(n), in_blossom(n), in_path(n) {}
+
+    void add_edge(const int &u, const int &v) {
+        adj[u][v] = adj[v][u] = 1;
+    }
+
+    int max_match() {
+        fill(all(match), -1);
+        int ans = 0;
+        for (int i = 0; i < n; ++i) {
+            if (match[i] == -1) ans += bfs(i);
+        }
+        return ans;
+    }
+
+    int bfs(int p) {
+        fill(all(pre), -1);
+        fill(all(hash), 0);
+        iota(all(base), 0);
+        Q[0] = p;
+        hash[p] = 1;
+        for (int s = 0, t = 1; s < t; ++s) {
+            int u = Q[s];
+            for (int v = 0; v < n; ++v) {
+                if (adj[u][v] && base[u] != base[v] && v != match[u]) {
+                    if (v == p || (match[v] != -1 && pre[match[v]] != -1)) {
+                        int b = contract(u, v);
+                        for (int i = 0; i < n; ++i) {
+                            if (in_blossom[base[i]]) {
+                                base[i] = b;
+                                if (hash[i] == 0) {
+                                    hash[i] = 1;
+                                    Q[t++] = i;
+                                }
+                            }
+                        }
+                    } else if (pre[v] == -1) {
+                        pre[v] = u;
+                        if (match[v] == -1) {
+                            argument(v);
+                            return 1;
+                        } else {
+                            Q[t++] = match[v];
+                            hash[match[v]] = 1;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    void argument(int u) {
+        while (u != -1) {
+            int v = pre[u];
+            int k = match[v];
+            match[u] = v;
+            match[v] = u;
+            u = k;
+        }
+    }
+
+    void change_blossom(int b, int u) {
+        while (base[u] != b) {
+            int v = match[u];
+            in_blossom[base[v]] = in_blossom[base[u]] = true;
+            u = pre[v];
+            if (base[u] != b) {
+                pre[u] = v;
+            }
+        }
+    }
+
+    int contract(int u, int v) {
+        fill(all(in_blossom), 0);
+        int b = find_base(base[u], base[v]);
+        change_blossom(b, u);
+        change_blossom(b, v);
+        if (base[u] != b) pre[u] = v;
+        if (base[v] != b) pre[v] = u;
+        return b;
+    }
+
+    int find_base(int u, int v) {
+        fill(all(in_path), 0);
+        while (true) {
+            in_path[u] = true;
+            if (match[u] == -1) {
+                break;
+            }
+            u = base[pre[match[u]]];
+        }
+        while (!in_path[v]) {
+            v = base[pre[match[v]]];
+        }
+        return v;
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    const int N = n * m;
+    int src = N, sink = N + 1;
+    const vpii dirs = {{2, 1}, {2, -1}, {-2, 1}, {-2, -1}, {1, 2}, {-1, 2}, {1, -2}, {-1, -2}};
+    auto get_hash = [&](int i, int j) -> int {
+        return i * m + j;
+    };
+    HopcroftKarp<int, inf> g(n * m, n * m);
+    Blossom graph(n * m);
+    vvc a(n, vc(m)); cin >> a;
+    int total = 0;
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < m; j++) {
+            char x = a[i][j];
+            if(x == '#') continue;
+            total++;
+            for(auto& [x, y] : dirs) {
+                int r = i + x, c = j + y;
+                if(r >= 0 && c >= 0 && r < n && c < m && a[r][c] == '.') {
+                    g.add_edge(get_hash(i, j), get_hash(r, c));
+                    graph.add_edge(get_hash(i, j), get_hash(r, c));
+                }
+            }
+        }
+    }
+    cout << total - graph.max_match() << endl;
+
 }
 
 signed main() {
@@ -222,7 +573,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

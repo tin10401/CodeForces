@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,123 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+
+struct MCMF {
+    public:
+    int V;
+    struct Edge {
+        int to, _rev;
+        ll capacity, cost;
+        Edge() {}
+
+        Edge(int to, int _rev, ll capacity, ll cost) : to(to), _rev(_rev), capacity(capacity), cost(cost) {}
+    };
+
+    vt<vt<Edge>> graph;
+    MCMF(int V) : V(V), graph(V) {}
+
+    void add_edge(int u, int v, ll capacity, ll cost) {
+        Edge a(v, int(graph[v].size()), capacity, cost);
+        Edge b(u, int(graph[u].size()), 0, -cost);
+        graph[u].pb(a);
+        graph[v].pb(b);
+    }
+
+    pll min_cost_flow(int s, int t, ll max_f) { // negate the sign to make max_cost
+        ll flow = 0, flow_cost = 0;
+        vll prev_v(V, -1), prev_e(V, -1);
+        while(flow < max_f) {
+            vll dist(V, INF);
+            vb vis(V, false);
+            queue<int> q;
+            dist[s] = 0;
+            q.push(s);
+            vis[s] = true;
+            while(!q.empty()) {
+                auto u = q.front(); q.pop();
+                vis[u] = false;
+                for(int i = 0; i < graph[u].size(); i++) {
+                    auto& e = graph[u][i];
+                    if(e.capacity > 0 && dist[e.to] > dist[u] + e.cost) {
+                        dist[e.to] = dist[u] + e.cost;
+                        prev_v[e.to] = u;
+                        prev_e[e.to] = i;
+                        q.push(e.to);
+                        if(!vis[e.to]) {
+                            vis[e.to] = true;
+                        }
+                    } 
+                }
+            }
+            if(dist[t] == INF) break;
+            ll df = max_f - flow;
+            int v = t;
+            while(v != s) {
+                int u = prev_v[v];
+                int e_idx = prev_e[v];
+                df = min(df, graph[u][e_idx].capacity);
+                v = u;
+            }
+            flow += df;
+            flow_cost += df * dist[t];
+            v = t;
+            while(v != s) {
+                int u = prev_v[v];
+                int e_idx = prev_e[v];
+                graph[u][e_idx].capacity -= df;
+                graph[v][graph[u][e_idx]._rev].capacity += df;
+                v = u;
+            }
+        }
+        return {flow, flow_cost};
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi is_attack(n), a(n), b(m);
+    for(int i = 0; i < n; i++) {
+        string op; cin >> op;
+        cin >> a[i];
+        is_attack[i] = int(op == "ATK");
+    }
+    cin >> b;
+    auto kill_all = [&]() -> ll {
+        const int N = n + m;
+        int src = N, sink = N + 1;
+        MCMF graph(N + 2);
+        for(int i = 0; i < m; i++) graph.add_edge(src, i, 1, b[i]);
+        for(int i = 0; i < m; i++) {
+            for(int j = 0; j < n; j++) {
+                if(is_attack[j]) {
+                    if(b[i] >= a[j]) graph.add_edge(i, j + m, 1, -(b[i] - a[j])); // if you use this edge, you will be cost a[j] only cause b[i] - b[i] + a[j] = a[j]
+                }
+                else if(b[i] > a[j]) graph.add_edge(i, j + m, 1, 0);
+            }
+        }
+        for(int i = 0; i < n; i++) graph.add_edge(i + m, sink, 1, 0);
+        auto ans = graph.min_cost_flow(src, sink, inf);
+        return ans.ff == n ? sum(b) - ans.ss : 0;
+    };
+    auto kill_some = [&]() -> ll {
+        vi A;
+        for(int i = 0; i < n; i++) {
+            if(is_attack[i]) A.pb(a[i]);
+        }
+        swap(a, A);
+        n = a.size();
+        ll res = 0;
+        srt(a), srt(b);
+        for(int kill = 0; kill < min(n, m); kill++) {
+            ll curr = 0;
+            for(int i = 0, j = m - kill - 1; i <= kill && j < m && j >= 0; i++, j++) curr += max(0, b[j] - a[i]);
+            res = max(res, curr);
+        }
+        return res;
+    };
+    ll res = kill_all();
+    res = max(res, kill_some());
+    cout << res << endl;
 }
 
 signed main() {

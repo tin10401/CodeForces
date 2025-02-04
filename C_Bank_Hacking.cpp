@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,143 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vll lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        root.rsz(n * 4);    
+        lazy.rsz(n * 4); // careful with initializing lazy_value
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    T merge(T left, T right) {  
+        return max(left, right);
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    for(auto& x : a) x += 2;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    SGT<int> root(n, 0);
+    for(int i = 0; i < n; i++) root.update_at(i, a[i]);
+    int res = MAX(a);
+    auto modify = [&](int i, int delta) -> void {
+        root.update_range(i, i, 2 * delta);
+        for(auto& nei : graph[i]) root.update_range(nei, nei, delta);
+    };
+    for(int i = 0; i < n; i++) {
+        modify(i, -1);
+        res = min(res, root.get());
+        modify(i, 1);
+    }
+    cout << res << endl;
 }
 
 signed main() {

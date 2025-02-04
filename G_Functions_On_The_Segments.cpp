@@ -198,11 +198,10 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -211,7 +210,96 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+// PERSISTENT SEGTREE
+int t[MX * MK], ptr;
+pll root[MX * 120];
+pii child[MX * 120];
+template<class T>
+struct PSGT {
+    int n;
+    T DEFAULT;
+    void assign(int n, T DEFAULT) {
+        this->DEFAULT = DEFAULT;
+        this->n = n;
+    }
+
+	void update(int &curr, int prev, int id, T delta, int left, int right) {  
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+			root[curr] = merge(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // for regular_persistent segtree, do child[curr].ff or child[curr].ss = ++ptr;
+        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[curr];
+        int middle = midPoint;  
+		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
+    };
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = t[i] = 0;
+            child[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+
+    void add(int i, int& prev, int id, T delta) { 
+        t[i] = ++ptr; // for regular PERSISTENT segtree
+        update(t[i], prev, id, delta, 0, n - 1); // this is for 2d_segtree
+        prev = t[i];
+//        while(i < n) { 
+//            update(t[i], t[i], id, delta, 0, n - 1);
+//            i |= (i + 1);
+//        }
+    }
+
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+//        while(i >= 0) {
+//            res += queries(t[i], start, end, 0, n - 1);
+//            i = (i & (i + 1)) - 1;
+//        }
+    }
+
+	T queries_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return DEFAULT;
+        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+        auto R = queries_at(r, low, high);
+        return {R.ff - L.ff, R.ss - L.ss};
+    }
+
+    T merge(T left, T right) {
+        return {left.ff + right.ff, left.ss + right.ss};
+    }
+};
+
+PSGT<pll> seg;
 void solve() {
+    int n; cin >> n;
+    seg.assign(MX - 1, {0LL, 0LL});
+    for(int i = 1, prev = 0; i <= n; i++) {
+        ll x1, x2, y1, a, b, y2; cin >> x1 >> x2 >> y1 >> a >> b >> y2;
+        seg.add(i, prev, 0, {0, y1});
+        seg.add(i, prev, x1 + 1, {a, b - y1});
+        seg.add(i, prev, x2 + 1, {-a, -b + y2});
+    }
+    ll last = 0;
+    int q; cin >> q;
+    while(q--) {
+        int l, r, x; cin >> l >> r >> x;
+        x = (x + last) % (int)1e9;
+        auto ans = seg.queries_range(l, r, 0, x);
+        last = ans.ff * x + ans.ss;
+        cout << last << endl;
+    }
 }
 
 signed main() {
