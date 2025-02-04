@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,47 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, k, d; cin >> n >> k >> d;
+    vi police(k); cin >> police;
+    vvpii graph(n + 1);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        graph[u].pb({v, i});
+        graph[v].pb({u, i});
+    }
+    queue<int> q;
+    vi dis(n + 1, -1);
+    for(auto& x : police) {
+        dis[x] = 0;
+        q.push(x);
+    }
+    while(!q.empty()) {
+        auto node = q.front(); q.pop();
+        for(auto& [nei, _] : graph[node]) {
+            if(dis[nei] == -1) {
+                dis[nei] = dis[node] + 1;
+                q.push(nei);
+            }
+        }
+    }
+    set<int> s;
+    for(int i = 0; i < n; i++) {
+        if(dis[i] == 0) continue;
+        int d = inf, id = -1;
+        for(auto& [nei, j] : graph[i]) {
+            if(dis[nei] < d) {
+                d = dis[nei];
+                id = j;
+            }
+        }
+        s.insert(id);
+    }
+    vi ans;
+    for(int i = 1; i < n; i++) {
+        if(!s.count(i)) ans.pb(i);
+    }
+    cout << ans.size() << endl;
+    output_vector(ans);
 }
 
 signed main() {

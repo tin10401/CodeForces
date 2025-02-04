@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,31 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    vpii edge;
+    for(int i = 1; i < n; i++) {
+        int p; cin >> p;
+        p--;
+        graph[p].pb(i);
+    }
+    string s; cin >> s;
+    vvi dp(n, vi(2, -1));
+    auto dfs = [&](auto& dfs, int node, int par_color) -> int {
+        auto& res = dp[node][par_color];
+        if(res != -1) return res;
+        int make_s = inf, make_p = inf;
+        if(s[node] != 'P') {
+            make_s = int(s[node] == 'C' && par_color == 1);
+            for(auto& nei : graph[node]) make_s += int(s[nei] == 'P') + dfs(dfs, nei, 0);
+        }
+        if(s[node] != 'S') {
+            make_p = int(s[node] == 'C' && par_color == 0);
+            for(auto& nei : graph[node]) make_p += int(s[nei] == 'S') + dfs(dfs, nei, 1);
+        }
+        return res = min(make_s, make_p);
+    };
+    cout << min(dfs(dfs, 0, 0), dfs(dfs, 0, 1)) << endl;
 }
 
 signed main() {
@@ -222,7 +246,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,35 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int p; cin >> p;
+        graph[--p].pb(i);
+    }
+    vi size(n, 1);
+    auto dfs = [&](auto& dfs, int node = 0) -> void {
+        for(auto& nei : graph[node]) {
+            dfs(dfs, nei);
+            size[node] += size[nei];
+        }
+    };
+    dfs(dfs);
+    max_heap<pii> q;
+    q.push({0, 0});
+    int res = 0;
+    while(!q.empty()) {
+        auto [_, u] = q.top(); q.pop();
+        if(q.empty()) {
+            for(auto& nei : graph[u]) q.push({size[nei], nei});
+            continue;
+        }
+        auto [__, v] = q.top(); q.pop();
+        res++;
+        for(auto& nei : graph[u]) q.push({size[nei], nei});
+        for(auto& nei : graph[v]) q.push({size[nei], nei});
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -222,7 +250,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

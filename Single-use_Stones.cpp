@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,18 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, k; cin >> n >> k;
+    n--;
+    vi a(n); cin >> a;
+    ll res = inf, curr = 0;
+    for(int i = 0; i < n; i++) {
+        curr += a[i];
+        if(i >= k - 1) {
+            if(i >= k) curr -= a[i - k];
+            res = min(res, curr);
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {

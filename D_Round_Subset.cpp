@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,35 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, k; cin >> n >> k;
+    const int K = n * 27;
+    auto get_cnt = [](ll x, int v) -> int {
+        int cnt = 0;
+        while(x % v == 0) {
+            cnt++;
+            x /= v;
+        }
+        return cnt;
+    };
+    vvi dp(k + 1, vi(K, -inf)); // {subset, power_of_five}
+    dp[0][0] = 0;
+    for(int i = 0; i < n; i++) {
+        ll x; cin >> x;
+        auto c2 = get_cnt(x, 2); 
+        auto c5 = get_cnt(x, 5);
+        auto next(dp);
+        for(int j = 1; j <= k; j++) {
+            for(int l = 0; l + c5 < K; l++) {
+                next[j][l + c5] = max(next[j][l + c5], dp[j - 1][l] + c2);
+            } 
+        }
+        swap(dp, next);
+    }
+    int res = 0;
+    for(int i = 0; i < K; i++) {
+        res = max(res, min(i, dp[k][i]));
+    }
+    cout << res << endl;
 }
 
 signed main() {

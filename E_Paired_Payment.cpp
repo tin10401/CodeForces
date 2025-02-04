@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,41 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, m; cin >> n >> m;
+    int k = 51;
+    int N = n * k;
+    vvpii graph(N);
+    auto add_edge = [&](int u, int v, int w) -> void {
+        graph[u * k].pb({v * k + w, 0}); // there's an edge between u to v with cost of w
+        for(int ww = 1; ww < k; ww++) {
+            graph[u * k + ww].pb({v * k, (ww + w) * (ww + w)}); // now all the edge which linked from some uu to u with any cost, will be linked to v with that cost as well
+        }
+    };
+    while(m--) {
+        int u, v, w; cin >> u >> v >> w;
+        u--, v--;
+        add_edge(u, v, w);
+        add_edge(v, u, w);
+    }
+    vi dp(N, inf);
+    min_heap<pii> q;
+    q.push({0, 0});
+    dp[0] = 0;
+    while(!q.empty()) {
+        auto [cost, node] = q.top(); q.pop(); 
+        if(dp[node] != cost) continue;
+        for(auto& [nei, c] : graph[node]) {
+            ll new_cost = cost + c;
+            if(new_cost < dp[nei]) {
+                dp[nei] = new_cost;
+                q.push({new_cost, nei});
+            }
+        }
+    }
+    for(int i = 0; i < n; i++) {
+        ll cost = dp[i * k];
+        cout << (cost == inf ? -1 : cost) << (i == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {

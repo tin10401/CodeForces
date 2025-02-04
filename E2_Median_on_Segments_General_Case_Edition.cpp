@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,76 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+template<class T>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    FW(int n, T DEFAULT) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = merge(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = merge(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int search(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+	
+	T merge(T A, T B) {
+        return A + B;
+    }
+};
+
 void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n); cin >> a;
+    auto f = [&](int m) -> ll {
+        FW<int> root(2 * n + 1, 0);
+        ll res = 0, sm = n;
+        root.update(sm, 1);
+        for(int i = 0; i < n; i++) {
+            sm += (a[i] >= m ? 1 : -1);
+            res += root.get(sm - 1);
+            root.update(sm, 1);
+        }
+        return res;
+    };
+    cout << f(k) - f(k + 1) << endl;
+
 }
 
 signed main() {

@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,63 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    for(auto& x : a) x--;
+    SparseTable<int> t(a, [](const int&a, const int& b) {return min(a, b);});
+
+    string ans(n, '0');
+    auto check = [&](int l, int r, int x) -> void {
+        if(t.query(l, r) == x) {
+            ans[n - x - 1] = '1';
+        }
+    };
+    if(set<int>(all(a)).size() == n && MAX(a) == n - 1) ans[0] = '1';
+    int left = 0, right = n - 1, x = 0;
+    check(left, right, x);
+    while(left < right) {
+        if(a[left] == x) {
+            check(left + 1, right, x + 1);
+            left++;
+            x++;
+        }
+        else if(a[right] == x) {
+            check(left, right - 1, x + 1);
+            right--;
+            x++;
+        }
+        else break;
+    }
+    cout << ans << endl;
+
 }
 
 signed main() {
@@ -222,7 +277,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

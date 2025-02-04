@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,44 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi bad;
+    auto check = [&](int id) -> bool {
+        auto f = [&](int i) -> bool {
+            if(i < 0 || i >= n - 1) return true;
+            if(i % 2 == 0) return a[i] < a[i + 1];
+            return a[i] > a[i + 1];
+        };
+        return f(id) && f(id - 1) && f(id + 1);
+    };
+    for(int i = 0; i < n; i++) {
+        if(!check(i)) {
+            bad.pb(i);
+            if(i + 1 < n) bad.pb(i + 1);
+        }
+    }
+    srtU(bad);
+    if(bad.size() > 10) {
+        cout << 0 << endl;
+        return;
+    }
+    int res = 0;
+    set<ll> s;
+    auto get_hash = [&](ll i, ll j) -> ll {
+        if(i > j) swap(i, j);
+        return i * n + j;
+    };
+    for(int i = 0; i < n; i++) {
+        for(auto& j : bad) {
+            swap(a[i], a[j]);
+            bool ok = check(i);
+            for(auto& k : bad) ok &= check(k);
+            if(ok) s.insert(get_hash(i, j));
+            swap(a[i], a[j]);
+        }
+    }
+    cout << s.size() << endl;
 }
 
 signed main() {

@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,255 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+vi primes, first_divisor(MX), DIV[MX];
+bitset<MX> primeBits;
+vll mu(MX);
+
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+
+	mu[1] = 1;
+    for(int i = 1; i < MX; i++) {   
+        if(!primeBits[i]) continue;
+        for(int j = i; j < MX; j += i) {   
+            if(j >= i * 2) mu[j] -= mu[i];
+			DIV[j].pb(i);
+        }
+    }
+}
+
+// Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.
+template<typename flow_t>
+struct dinic {
+    struct edge {
+        int node, _rev;
+        flow_t capacity;
+ 
+        edge() {}
+ 
+        edge(int _node, int _rev, flow_t _capacity) : node(_node), _rev(_rev), capacity(_capacity) {}
+    };
+ 
+    int V = -1;
+    vt<vt<edge>> adj;
+    vi dist, edge_index;
+    bool flow_called;
+ 
+    dinic(int vertices = -1) {
+        if (vertices >= 0)
+            init(vertices);
+    }
+ 
+    void init(int vertices) {
+        V = vertices;
+        adj.assign(V, {});
+        dist.resize(V);
+        edge_index.resize(V);
+        flow_called = false;
+    }
+ 
+    int _add_edge(int u, int v, flow_t capacity1, flow_t capacity2) {
+        assert(0 <= u && u < V && 0 <= v && v < V);
+        assert(capacity1 >= 0 && capacity2 >= 0);
+        edge uv_edge(v, int(adj[v].size()) + (u == v ? 1 : 0), capacity1);
+        edge vu_edge(u, int(adj[u].size()), capacity2);
+        adj[u].push_back(uv_edge);
+        adj[v].push_back(vu_edge);
+        return adj[u].size() - 1;
+    }
+ 
+    int add_directional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, 0);
+    }
+ 
+    int add_bidirectional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, capacity);
+    }
+ 
+    edge &reverse_edge(const edge &e) {
+        return adj[e.node][e._rev];
+    }
+ 
+    void bfs_check(queue<int> &q, int node, int new_dist) {
+        if (new_dist < dist[node]) {
+            dist[node] = new_dist;
+            q.push(node);
+        }
+    }
+ 
+    bool bfs(int source, int sink) {
+        dist.assign(V, inf);
+        queue<int> q;
+        bfs_check(q, source, 0);
+        while (!q.empty()) {
+            int top = q.front(); q.pop();
+            for (edge &e : adj[top])
+                if (e.capacity > 0)
+                    bfs_check(q, e.node, dist[top] + 1);
+        }
+ 
+        return dist[sink] < inf;
+    }
+ 
+    flow_t dfs(int node, flow_t path_cap, int sink) {
+        if (node == sink)
+            return path_cap;
+ 
+        if (dist[node] >= dist[sink])
+            return 0;
+ 
+        flow_t total_flow = 0;
+ 
+        // Because we are only performing DFS in increasing order of dist, we don't have to revisit fully searched edges
+        // again later.
+        while (edge_index[node] < int(adj[node].size())) {
+            edge &e = adj[node][edge_index[node]];
+ 
+            if (e.capacity > 0 && dist[node] + 1 == dist[e.node]) {
+                flow_t path = dfs(e.node, min(path_cap, e.capacity), sink);
+                path_cap -= path;
+                e.capacity -= path;
+                reverse_edge(e).capacity += path;
+                total_flow += path;
+            }
+ 
+            // If path_cap is 0, we don't want to increment edge_index[node] as this edge may not be fully searched yet.
+            if (path_cap == 0)
+                break;
+ 
+            edge_index[node]++;
+        }
+ 
+        return total_flow;
+    }
+ 
+    flow_t flow(int source, int sink) {
+        assert(V >= 0);
+        flow_t total_flow = 0;
+ 
+        while (bfs(source, sink)) {
+            edge_index.assign(V, 0);
+            total_flow += dfs(source, inf, sink);
+        }
+ 
+        flow_called = true;
+        return total_flow;
+    }
+ 
+    vector<bool> reachable;
+ 
+    void reachable_dfs(int node) {
+        reachable[node] = true;
+ 
+        for (edge &e : adj[node])
+            if (e.capacity > 0 && !reachable[e.node])
+                reachable_dfs(e.node);
+    }
+ 
+    // Returns a list of {capacity, {from_node, to_node}} representing edges in the min cut.
+    // TODO: for bidirectional edges, divide the resulting capacities by two.
+    vector<pair<flow_t, pair<int, int>>> min_cut(int source) {
+        assert(flow_called);
+        reachable.assign(V, false);
+        reachable_dfs(source);
+        vector<pair<flow_t, pair<int, int>>> cut;
+ 
+        for (int node = 0; node < V; node++)
+            if (reachable[node])
+                for (edge &e : adj[node])
+                    if (!reachable[e.node])
+                        cut.emplace_back(reverse_edge(e).capacity, make_pair(node, e.node));
+ 
+        return cut;
+    }
+	
+	vt<vt<flow_t>> assign_flow(int n) {
+        vt<vt<flow_t>> assign(n, vt<flow_t>(n));   
+        for(int i = 0; i < n; i++) {
+            for(auto& it : adj[i]) {
+                int j = it.node - n;
+                auto e = reverse_edge(it);
+                if(j >= 0 && j < n) {
+                    assign[i][j] = e.capacity;
+                }
+            }
+        }
+        return assign;
+    }
+
+    vvi construct_path(int n, vi& a) {
+        vi vis(n), A;
+        vvi ans, G(n);
+        auto dfs = [&](auto& dfs, int node) -> void {
+            vis[node] = true;
+            A.pb(node + 1); 
+            for(auto& nei : G[node]) {
+                if(!vis[nei]) {
+                    dfs(dfs, nei);
+                    return;
+                }
+            }
+        };
+        for(int i = 0; i < n; i++) {
+            if(a[i] % 2 == 0) continue;
+            for(auto& it : adj[i]) {
+                int j = it.node;
+                if(j < n && it.capacity == 0) {
+                    G[i].pb(j);
+                    G[j].pb(i);
+                }
+            }
+        }
+        for(int i = 0; i < n; i++) {
+            if(vis[i]) continue;
+            A.clear();
+            dfs(dfs, i);
+            ans.pb(A);
+        }
+        return ans;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    int src = n, sink = n + 1;
+    dinic<ll> graph(n + 2);
+    vvi cap(n, vi(n));
+    for(int i = 0; i < n; i++) {
+        if(a[i] % 2 == 0) {
+            graph.add_directional_edge(i, sink, 2);
+            continue;
+        }
+        graph.add_directional_edge(src, i, 2);
+        for(int j = 0; j < n; j++) {
+            if(primeBits[a[i] + a[j]]) {
+                cap[i][j] = cap[j][i] = true;
+                graph.add_directional_edge(i, j, 1);
+            }
+        }
+    }
+    if(graph.flow(src, sink) != n) {
+        cout << "Impossible" << endl;
+        return;
+    }
+    auto ans = graph.construct_path(n, a);
+    cout << ans.size() << endl;
+    for(auto& it : ans) {
+        cout << it.size() << ' ';
+        output_vector(it);
+    }
 }
 
 signed main() {
@@ -219,7 +466,7 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;

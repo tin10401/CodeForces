@@ -211,7 +211,76 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n, x, y; cin >> n >> x >> y;
+    vi a(n); cin >> a;
+    DSU root(n);
+    map<int, int> mp;
+    for(int i = 0; i < n; i++) { mp[a[i]] = i; }
+    vi g(n);
+    for(int i = 0; i < n; i++) {
+        bool ok = false; 
+        if(mp.count(x - a[i])) {
+            ok = true;
+            root.merge(i, mp[x - a[i]]);
+            g[i] |= 1;
+        }
+        if(mp.count(y - a[i])) {
+            ok = true;
+            root.merge(i, mp[y - a[i]]);
+            g[i] |= 2;
+        }
+    }
+    for(int i = 0; i < n; i++) {
+        int r = root.find(i);
+        g[r] &= g[i];
+        if(g[r] == 0) {
+            cout << "NO" << endl;
+            return;
+        }
+    }
+    cout << "YES" << endl;
+    for(int i = 0; i < n; i++) {
+        int x = g[root.find(i)];
+        cout << int(x > 1) << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {

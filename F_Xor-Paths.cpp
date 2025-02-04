@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -211,7 +210,37 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+map<ll, ll> dp[22][22];
 void solve() {
+    ll n, m, k; cin >> n >> m >> k;
+    vvll a(n, vll(m)); cin >> a;
+    const int N = n + m - 2;
+    auto dfs = [&](auto& dfs, int i = 0, int j = 0, ll v = 0, int c = 0) -> void {
+        if(i < 0 || j < 0 || i >= n || j >= m) return;
+        v ^= a[i][j];
+        if(c == N / 2) {
+            dp[i][j][v]++;
+            return;
+        }
+        dfs(dfs, i + 1, j, v, c + 1);
+        dfs(dfs, i, j + 1, v, c + 1);
+    };
+    ll res = 0;
+    auto dfs2 = [&](auto& dfs2, int i = 0, int j = 0, ll v = 0, int c = 0) -> void {
+        if(i < 0 || j < 0 || i >= n || j >= m) return;
+        if(c == N - N / 2) {
+            if(dp[i][j].count(v ^ k)) {
+                res += dp[i][j][v ^ k];
+            }
+            return;
+        }
+        v ^= a[i][j];
+        dfs2(dfs2, i - 1, j, v, c + 1);
+        dfs2(dfs2, i, j - 1, v, c + 1);
+    };
+    dfs(dfs);
+    dfs2(dfs2, n - 1, m - 1);
+    cout << res << endl;
 }
 
 signed main() {

@@ -198,7 +198,6 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
-const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
@@ -212,6 +211,33 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n; cin >> n;
+    vvi dp(n, vi(n));
+    for(int i = 0; i < n; i++) {
+        cin >> dp[i][i];
+    }
+    for(int len = 2; len <= n; len++) {
+        for(int i = 0; i + len <= n; i++) {
+            int j = i + len - 1;
+            dp[i][j] = -1;
+            for(int k = i; k < j; k++) {
+                if(dp[i][k] != -1 && dp[k + 1][j] == dp[i][k]) {
+                    dp[i][j] = dp[i][k] + 1;
+                    break;
+                }
+            }
+        }
+    }
+    vi dp2(n + 1, inf);
+    dp2[0] = 0;
+    for(int i = 0; i < n; i++) {
+        for(int j = i; j < n; j++) {
+            if(dp[i][j] != -1) {
+                dp2[j + 1] = min(dp2[j + 1], dp2[i] + 1);
+            }
+        }
+    }
+    cout << dp2[n] << endl;
 }
 
 signed main() {
