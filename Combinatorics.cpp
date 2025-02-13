@@ -127,6 +127,29 @@ vi get_pair_gcd(vi& a) {
     return g;
 }
 
+int find_y(int x, int p, int c) { // find y such that (x * y) % p == c
+    auto egcd = [&](auto self, int a, int b) -> tuple<int, int, int> {
+        if (!b) return {a, 1, 0};
+        auto [g, s, t] = self(self, b, a % b);
+        return make_tuple(g, t, s - (a / b) * t);
+    };
+
+    auto modInv = [&](int a, int m) -> int {
+        auto [d, inv, _] = egcd(egcd, a, m);
+        if (d != 1) return -1;
+        inv %= m;
+        return inv < 0 ? inv + m : inv;
+    };
+
+    auto [d, s, t] = egcd(egcd, x, p);
+    if (c % d != 0) return -1;
+    int x1 = x / d, p1 = p / d, c1 = c / d;
+    int inv = modInv(x1, p1);
+    if (inv == -1) return -1;
+    int y0 = (ll)c1 * inv % p1;
+    return y0 < 0 ? y0 + p1 : y0;
+}
+
 //    ll curr = 1;
 //    while(curr <= j) {
 //        ll add = j / curr;
@@ -165,3 +188,5 @@ vi get_pair_gcd(vi& a) {
 //    }
 //    int res = MAX(dp) + zero;
 //    cout << res << endl;
+
+//                 for(int other = mask; other; other = (other - 1) & mask) // iterate over all submask of mask

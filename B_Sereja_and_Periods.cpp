@@ -216,6 +216,27 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
 void solve() {
+    int b, d; cin >> b >> d;
+    string s, t; cin >> s >> t;
+    int n = s.size(), m = t.size();
+    vi next(m), cnt(m);
+    for(int i = 0; i < m; i++) {
+        int now = i;
+        for(int j = 0; j < n; j++) {
+            if(s[j] == t[now]) {
+                now = (now + 1) % m;
+                cnt[i] += int(now) == 0;
+            }
+        }
+        next[i] = now;
+    }
+    ll res = 0;
+    int now = 0;
+    for(int i = 0; i < b; i++) {
+        res += cnt[now];
+        now = next[now];
+    }
+    cout << (res / d) << endl;
 }
 
 signed main() {

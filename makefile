@@ -4,7 +4,7 @@ SUBMIT = submit.cpp
 GENERATOR = generator.cpp
 INPUT = input.txt
 OUTPUT = a.out
-FLAGS = -std=c++23 -O2 -DLOCAL
+FLAGS = -std=c++23 -O2 -DLOCAL -I./ac-library
 
 # Targets
 .PHONY: new run clean run2

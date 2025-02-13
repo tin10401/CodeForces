@@ -211,11 +211,140 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) {
+        value = int(v % MOD);
+        if (value < 0) value += MOD;
+    }
+    
+    mod_int& operator+=(const mod_int &other) {
+        value += other.value;
+        if (value >= MOD) value -= MOD;
+        return *this;
+    }
+    
+    mod_int& operator-=(const mod_int &other) {
+        value -= other.value;
+        if (value < 0) value += MOD;
+        return *this;
+    }
+    
+    mod_int& operator*=(const mod_int &other) {
+        value = int((ll)value * other.value % MOD);
+        return *this;
+    }
+    
+    mod_int pow(ll p) const {
+        mod_int ans(1), a(*this);
+        while (p) {
+            if (p & 1) ans *= a;
+            a *= a;
+            p /= 2;
+        }
+        return ans;
+    }
+    
+    // Inverse assumes MOD is prime.
+    mod_int inv() const {
+        return pow(MOD - 2);
+    }
+    
+    mod_int& operator/=(const mod_int &other) {
+        return *this *= other.inv();
+    }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    
+    friend ostream& operator<<(ostream &os, const mod_int &a) {
+        os << a.value;
+        return os;
+    }
+    
+    friend istream& operator>>(istream &is, mod_int &a) {
+        ll v;
+        is >> v;
+        a = mod_int(v);
+        return is;
+    }
+};
+
+using mint = mod_int<998244353>;
+
+template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n), b(m); cin >> a >> b;
+    map<int, int> pos;
+    for(int i = 0; i < n; i++) {
+        pos[a[i]] = i;
+    }
+    if(b[0] != MIN(a)) {
+        cout << 0 << endl;
+        return;
+    }
+    SparseTable<int> g(a, [](const int& a, const int& b) {return min(a, b);});
+    mint res = 1;
+    int last = -1;
+    for(int i = 0; i < m; i++) {
+        if(!pos.count(b[i])) {
+            cout << 0 << endl;
+            return;
+        }
+        int j = pos[b[i]];
+        if(i) {
+            int left = last, right = j, right_most = -1;
+            while(left <= right) {
+                int middle = midPoint;
+                if(g.query(middle, j) == b[i]) right_most = middle, right = middle - 1;
+                else left = middle + 1;
+            }
+            if(right_most == -1 || g.query(j, n - 1) != b[i]) {
+                cout << 0 << endl;
+                return;
+            }
+            res *= j - right_most + 1;
+        }
+        last = j;
+    }
+    cout << res << endl;
 }
 
 signed main() {

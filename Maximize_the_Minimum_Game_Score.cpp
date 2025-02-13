@@ -199,7 +199,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e15;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -211,11 +211,42 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+class Solution {
+public:
+    ll maxScore(vi& a, int m) {
+        int n = a.size();
+        if(m < n) return 0;
+        auto f = [&](ll k) -> bool {
+            ll moves = 0, last = 0;
+            for(int i = 0; i < n; i++) {
+                ll d = (k + a[i] - 1) / a[i];
+                ll curr = (d * 2) - 1;
+                if(last > 1) curr = max(curr - last + 1, (i == n - 1 ? 0LL : 1LL));
+                moves += curr;
+                last = curr;
+                if(moves > m) return false;
+            }
+            return true;
+        };
+        ll left = 0, right = INF, res = -1;
+        while(left <= right) {
+            ll middle = midPoint;
+            if(f(middle)) res = middle, left = middle + 1;
+            else right = middle - 1;
+        }
+        return res;
+    }
+};
+
+#ifdef LOCAL
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    Solution sol;
+    cout << sol.maxScore(a, m) << endl;
 }
 
 signed main() {
@@ -239,6 +270,7 @@ signed main() {
 
     return 0;
 }
+#endif
 
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█

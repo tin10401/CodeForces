@@ -211,11 +211,118 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+struct Node {
+    int ch[2] = {0, 0};
+    int fa = 0;       
+    int size = 0;     
+};
+
+struct LCT {
+    int n;             
+    vector<Node> tree;  
+
+    LCT(int n_) : n(n_) {
+        tree.resize(n + 5);
+        for (int i = 1; i < (int)tree.size(); ++i) // 1 base_index
+            tree[i].size = 1;
+    }
+
+    inline void update(int x) {
+        if (x == 0)
+            return;
+        tree[x].size = tree[ tree[x].ch[0] ].size + tree[ tree[x].ch[1] ].size + 1;
+    }
+
+    inline bool be_root(int x) {
+        int f = tree[x].fa;
+        return (tree[f].ch[0] != x && tree[f].ch[1] != x);
+    }
+
+    inline void rotate(int x) {
+        int y = tree[x].fa;
+        int flag = (tree[y].ch[0] == x);
+        int tmp = tree[x].ch[flag];     
+        if (!be_root(y))
+            tree[ tree[y].fa ].ch[ tree[ tree[y].fa ].ch[1] == y ] = x;
+        tree[x].fa = tree[y].fa;       
+        tree[y].fa = x;
+        tree[tmp].fa = tree[x].ch[flag] = y;
+        tree[y].ch[flag ^ 1] = tmp;
+        update(y);
+    }
+
+    inline void splay(int x) {
+        while (!be_root(x)) {
+            int y = tree[x].fa, z = tree[y].fa;
+            if (be_root(y))
+                rotate(x);
+            else {
+                if ((tree[z].ch[0] == y) ^ (tree[y].ch[0] == x)) rotate(x);
+                else rotate(y);
+                rotate(x);
+            }
+        }
+        update(x);
+    }
+
+    inline void access(int x) {
+        for (int y = 0; x; x = tree[x].fa) {
+            splay(x);
+            tree[x].ch[1] = y;
+            update(x);
+            y = x;
+        }
+    }
+
+    inline pii query(int x) {
+        access(x);
+        splay(n + 1);
+        int tmp = 0;
+        for (tmp = tree[n + 1].ch[1]; tree[tmp].ch[0]; tmp = tree[tmp].ch[0]) {}
+        return {tmp, tree[n + 1].size - 1};
+    }
+
+    inline void cut(int x, int y) {
+        access(x);
+        splay(y);
+        tree[y].ch[1] = 0;
+        tree[x].fa = 0;
+        update(y);
+    }
+
+    inline void link(int x, int y) {
+        tree[x].fa = y;
+    }
+};
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vi a(n + 1); 
+    LCT tree(n);
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+        int to = min(n + 1, i + a[i]);
+        tree.link(i, to);
+    }
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int v; cin >> v;
+            auto ans = tree.query(v);
+            cout << ans.ff << ' ' << ans.ss << endl;
+        }
+        else {
+            int x, b; cin >> x >> b;
+            int to = min(n + 1, x + a[x]);
+            tree.cut(x, to);
+            a[x] = b;
+            to = min(n + 1, x + a[x]);
+            tree.link(x, to);
+        }
+    }
 }
 
 signed main() {
@@ -253,3 +360,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

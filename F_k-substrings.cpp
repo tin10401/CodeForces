@@ -211,11 +211,92 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+class RabinKarp {   
+    public: 
+    vvll prefix, pow;
+    vll base, mod;
+    int n, m;
+    RabinKarp(const string& s) {  
+        m = 2;
+        n = s.size(); 
+        vi candidateBases = {29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+        vi candidateMods  = {1000000007, 1000000009, 1000000021, 1000000033, 
+                                      1000000087, 1000000093, 1000000097, 1000000103};
+        unsigned seed = chrono::steady_clock::now().time_since_epoch().count();
+        shuffle(candidateBases.begin(), candidateBases.end(), default_random_engine(seed));
+        shuffle(candidateMods.begin(), candidateMods.end(), default_random_engine(seed + 1));
+        base.resize(m);
+        mod.resize(m);
+        for (int i = 0; i < m; i++) {
+            base[i] = candidateBases[i % candidateBases.size()];
+            mod[i]  = candidateMods[i % candidateMods.size()];
+        }
+        prefix.resize(m);
+        pow.resize(m);
+        for (int i = 0; i < m; i++) {    
+            prefix[i].resize(n + 1, 0);
+            pow[i].resize(n + 1, 1);
+        }
+        buildHash(s);
+    }
+    
+    void buildHash(const string& s) {   
+        for(int j = 1; j <= n; j++) {   
+            int x = s[j - 1] - 'a' + 1;
+            for(int i = 0; i < m; i++) {    
+                prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];   
+                pow[i][j] = (pow[i][j - 1] * base[i]) % mod[i];
+            }
+        }
+    }
+    
+	ll get_hash(int l, int r) { 
+        if(l < 0 || r > n || l > r) return 0;
+        al(2) ans = {0, 0};
+        for(int i = 0; i < m; i++) {    
+            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
+            hash = (hash + mod[i]) % mod[i];
+            ans[i] = hash;
+        }
+        return (ans[0] << 32) | ans[1];
+    };
+
+
+	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
+        int left = 0, right = n, rightMost = -1;    
+        while(left <= right) {  
+            int middle = midPoint;  
+            if(a.get_hash(offSet, middle + offSet) == get_hash(0, middle)) rightMost = middle, left = middle + 1; 
+            else right = middle - 1;
+        }
+        return a.get_hash(rightMost + 1 + offSet, offSet + n) == get_hash(rightMost + 1, n);
+    }
+};
 
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    RabinKarp root(s);
+    vi ans(n, -1);
+    for(int l = 0, r = n - 1; l < r; l++, r--) { // extend from middle
+        int left = 0, right = l, len = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            if(root.get_hash(l - middle, l + middle + 1) == root.get_hash(r - middle, r + middle + 1)) len = middle, left = middle + 1;
+            else right = middle - 1;
+        }
+        if(len == -1) continue;
+        ans[l - len] = max(ans[l - len], l);
+    }
+    for(int i = 0; i <= (n - 1) / 2; i++) {
+        ans[i + 1] = max(ans[i + 1], ans[i]);
+        int res = (ans[i] - i) * 2 + 1;
+        cout << max(res, -1) << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {

@@ -377,92 +377,6 @@ class SCC {
     }
 };
 
-class CHT {
-    public:
-    int is_mx;
-    vll m_slopes, b_intercepts;
-    CHT(int is_mx) : is_mx(is_mx) {
-        add_line(0, 0);
-    }
-
-    db cross(int i, int j, int k) {
-        db A = (db)(1.00 * m_slopes[j] - m_slopes[i]) * (b_intercepts[k] - b_intercepts[i]);
-        db B = (db)(1.00 * m_slopes[k] - m_slopes[i]) * (b_intercepts[j] - b_intercepts[i]);
-        return is_mx ? A < B : A >= B;
-    }
-
-    void add(ll a, ll b) {
-        if(is_mx) add_line(a, -b);
-        else add_line(-a, b);
-    }
-
-    ll queries(ll x) {
-        return is_mx ? -get(x) : get(x);
-    }
-
-    void add_line(ll slope, ll intercept) {
-        m_slopes.push_back(slope);
-        b_intercepts.push_back(intercept);
-        while(m_slopes.size() >= 3 && cross(m_slopes.size() - 3, m_slopes.size() - 2, m_slopes.size() - 1)) {
-            m_slopes.erase(m_slopes.end() - 2);
-            b_intercepts.erase(b_intercepts.end() - 2);
-        }
-    }
-
-    ll get(ll x) {
-        if(m_slopes.empty()) return INF;
-        int l = 0, r = m_slopes.size() - 1;
-        while(l < r) {
-            int mid = l + (r - l) / 2;
-            ll f1 = m_slopes[mid] * x + b_intercepts[mid];
-            ll f2 = m_slopes[mid + 1] * x + b_intercepts[mid + 1];
-            if(f1 > f2) l = mid + 1;
-            else r = mid;
-        }
-        return m_slopes[l] * x + b_intercepts[l];
-    }
-};
-
-struct Line {
-    mutable ll m, c, p;
-    bool isQuery;
-    bool operator<(const Line& o) const {
-        if(o.isQuery)
-            return p < o.p;
-        return m < o.m;
-    }
-};
-
-struct CHT : multiset<Line> {
-    const ll inf = INF;
-    int is_mx;
-    ll div(ll a, ll b) {
-        return a / b - ((a ^ b) < 0 && a % b); }
-    bool isect(iterator x, iterator y) {
-        if (y == end()) { x->p = inf; return false; }
-        if (x->m == y->m) x->p = x->c > y->c ? inf : -inf;
-        else x->p = div(y->c - x->c, x->m - y->m);
-        return x->p >= y->p;
-    }
-    void add(ll m, ll c) {
-        auto z = insert({m, c, 0, 0}), y = z++, x = y;
-        while (isect(y, z)) z = erase(z);
-        if (x != begin() && isect(--x, y)) isect(x, y = erase(y));
-        while ((y = x) != begin() && (--x)->p >= y->p)
-            isect(x, erase(y));
-    }
-    ll query(ll x) {
-        if(empty()) return inf;
-        Line q; q.p = x, q.isQuery = 1;
-        auto l = *lower_bound(q);
-        return l.m * x + l.c;
-    }
-    // min will return -ans;
-    // max will return ans;
-    // max_normall is add(i, -dp)
-    // min_normal is add(-i, dp)
-};
-
 struct CD { // centroid_decomposition
     int n, root;
     vvi graph;
@@ -520,6 +434,101 @@ struct CD { // centroid_decomposition
             best[u] = min(best[u], t);
             u = parent[u];
         }
+    }
+};
+
+struct CYCLE {
+    vvi graph;
+    int n;
+    CYCLE(vvi &graph) : graph(graph) { n = graph.size(); }
+ 
+    vi reconstruct_cycle(int u, int v, const vi &parent) {
+        vi pathU, pathV;
+        for (int cur = u; cur != -1; cur = parent[cur]) pathU.pb(cur);
+        for (int cur = v; cur != -1; cur = parent[cur]) pathV.pb(cur);
+        rev(pathU);
+        rev(pathV);
+        int idx = 0;
+        while (idx < (int)pathU.size() && idx < (int)pathV.size() && pathU[idx] == pathV[idx]) idx++;
+        idx--;
+        vi cycle;
+        for (int i = (int)pathU.size() - 1; i >= idx; i--) cycle.pb(pathU[i]);
+        for (int i = idx + 1; i < (int)pathV.size(); i++) cycle.pb(pathV[i]);
+        return cycle;
+    }
+ 
+    vi find_shortest_cycle(int s) {
+        vi dis(n, inf), parent(n, -1);
+        queue<int> q;
+        dis[s] = 0;
+        q.push(s);
+        int bestShortest = inf;
+        int candU_short = -1, candV_short = -1;
+        while (!q.empty()){
+            int u = q.front();
+            q.pop();
+            for (int v : graph[u]){
+                if (dis[u] + 1 < dis[v]) {
+                    dis[v] = dis[u] + 1;
+                    parent[v] = u;
+                    q.push(v);
+                } else if (v != parent[u] && dis[u] != inf && dis[v] != inf) {
+                    int currLength = dis[u] + dis[v] + 1;
+                    if (currLength < bestShortest) {
+                        bestShortest = currLength;
+                        candU_short = u;
+                        candV_short = v;
+                    }
+                }
+            }
+        }
+        vi shortestCycle;
+        if (candU_short != -1) shortestCycle = reconstruct_cycle(candU_short, candV_short, parent);
+        return shortestCycle;
+    }
+
+    vi find_longest_cycle() {
+        vi vis(n, 0), steps(n, -1);
+        int best_len = -1;
+        vi bestCycle;
+        for (int i = 0; i < n; i++) {
+            if (vis[i] != 0) continue;
+            int cur = i, step = 0;
+            vi chain;
+            map<int, int> pos;
+            while (cur != -1 && vis[cur] == 0) {
+                vis[cur] = i + 1;
+                pos[cur] = step;
+                chain.pb(cur);
+                step++;
+                int next = -1;
+                if (!graph[cur].empty()) next = graph[cur][0];
+                cur = next;
+            }
+            if (cur != -1 && vis[cur] == i + 1) {
+                int cycleStart = pos[cur];
+                int cycleLen = step - cycleStart;
+                if (cycleLen > best_len) {
+                    best_len = cycleLen;
+                    bestCycle = vi(chain.begin() + cycleStart, chain.end());
+                }
+            }
+        }
+        return bestCycle;
+    }
+ 
+    vi get_max_independent_set(int src) {
+        vvi group(2);
+        vi vis(n);
+        auto dfs = [&](auto& dfs, int node, int p, int d) -> void {
+            vis[node] = true;
+            group[d].pb(node);
+            for(auto& nei : graph[node]) {
+                if(!vis[nei]) dfs(dfs, nei, node, d ^ 1);
+            }
+        };
+        dfs(dfs, src, -1, 0);
+        return group[0].size() > group[1].size() ? group[0] : group[1];
     }
 };
 

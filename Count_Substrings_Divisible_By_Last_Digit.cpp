@@ -199,7 +199,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e15;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -211,10 +211,34 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+
+class Solution {
+public:
+    ll countSubstrings(string s) {
+        int n = s.size();   
+        ll res = 0;
+        for(int digit = 1; digit < 10; digit++) {
+            vll dp(digit);
+            for(auto& ch : s) {
+                vll next(digit);
+                int x = ch - '0';
+                for(int j = 0; j < digit; j++) {
+                    int v = (j * 10 + x) % digit;
+                    next[v] += dp[j];
+                }
+                next[x % digit]++;
+                swap(dp, next);
+                if(x == digit) res += dp[0];
+            }
+        }
+        return res;
+    }
+};
+
+#ifdef LOCAL
 void solve() {
 }
 
@@ -239,6 +263,7 @@ signed main() {
 
     return 0;
 }
+#endif
 
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█

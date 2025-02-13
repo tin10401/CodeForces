@@ -203,7 +203,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
-const static int MOD = 1e9 + 7;
+const static int MOD = 998244353;
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
@@ -211,11 +211,166 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) {
+        value = int(v % MOD);
+        if (value < 0) value += MOD;
+    }
+    
+    mod_int& operator+=(const mod_int &other) {
+        value += other.value;
+        if (value >= MOD) value -= MOD;
+        return *this;
+    }
+    
+    mod_int& operator-=(const mod_int &other) {
+        value -= other.value;
+        if (value < 0) value += MOD;
+        return *this;
+    }
+    
+    mod_int& operator*=(const mod_int &other) {
+        value = int((ll)value * other.value % MOD);
+        return *this;
+    }
+    
+    mod_int pow(ll p) const {
+        mod_int ans(1), a(*this);
+        while (p) {
+            if (p & 1) ans *= a;
+            a *= a;
+            p /= 2;
+        }
+        return ans;
+    }
+    
+    // Inverse assumes MOD is prime.
+    mod_int inv() const {
+        return pow(MOD - 2);
+    }
+    
+    mod_int& operator/=(const mod_int &other) {
+        return *this *= other.inv();
+    }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    
+    friend ostream& operator<<(ostream &os, const mod_int &a) {
+        os << a.value;
+        return os;
+    }
+    
+    friend istream& operator>>(istream &is, mod_int &a) {
+        ll v;
+        is >> v;
+        a = mod_int(v);
+        return is;
+    }
+};
+
+using mint = mod_int<998244353>;
+
+template<class T>
+class SGT {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    T DEFAULT;  
+    
+    SGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        idx += size;
+        root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) {
+            root[idx] = merge(root[idx << 1], root[idx << 1 | 1]);
+        }
+    }
+    
+    T queries_range(int l, int r) {
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size;
+        r += size;
+        while (l <= r) {
+            if ((l & 1) == 1) {
+                res_left = merge(res_left, root[l]);
+                l++;
+            }
+            if ((r & 1) == 0) {
+                res_right = merge(root[r], res_right);
+                r--;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        return merge(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        return root[idx + size];
+    }
+
+    T get() {
+        return root[1];
+    }
+
+    T merge(const T& left, const T& right) {
+        T res;
+        res.zero_left = left.zero_left + right.zero_left;
+        res.zero_right = left.zero_right + right.zero_right;
+        res.one_left = left.one_left + right.one_left;
+        res.one_right = left.one_right + right.one_right;
+        res.ans = left.ans + right.ans + left.zero_left * right.one_right + left.one_left * right.zero_right;
+        return res;
+    }
+};
+
+struct Node {
+    mint zero_left, zero_right, one_left, one_right, ans;
+    Node(mint zero_left = 0, mint zero_right = 0, mint one_left = 0, mint one_right = 0) : zero_left(zero_left), zero_right(zero_right), one_left(one_left), one_right(one_right), ans(0) {}
+};
 
 void solve() {
+    string s; cin >> s;
+    int n = s.size();
+    vi a(n);
+    SGT<Node> root(n, Node());
+    auto flip = [&](int i) -> void {
+        a[i] ^= 1;
+        mint l = mint(2).pow(i);
+        mint r = mint(2).pow(n - i - 1);
+        if(a[i] == 0) root.update_at(i, Node(l, r, 0, 0));
+        else root.update_at(i, Node(0, 0, l, r));
+    };
+    for(int i = 0; i < n; i++) {
+        a[i] = (s[i] - '0') ^ 1;
+        flip(i);
+    }
+    mint ans = mint(2).pow(n) - 1;
+    int q; cin >> q;
+    while(q--) {
+        int i; cin >> i;
+        i--;
+        flip(i);
+        cout << ans + root.get().ans << (q == 0 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -226,7 +381,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
