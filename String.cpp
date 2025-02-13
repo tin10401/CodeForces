@@ -244,11 +244,14 @@ int count_substring(const string& s, const string& t) { // s is main string, t i
     auto kmp = KMP(t);
     int N = s.size(), M = t.size();
     int cnt = 0;
+//    vi occur;
     for(int i = 0, j = 0; i < N;) {
         if(s[i] == t[j]) i++, j++;
         else if(j) j = kmp[j - 1];
         else i++;
         if(j == M) {
+//            occur.pb(i - M);
+//            j = kmp[j - 1];
             cnt++;
             j = 0;
         }
@@ -279,56 +282,74 @@ vi Z_Function(const string& s) {
     return prefix;
 }
 
-class RabinKarp {   
-    public: 
+const int HASH_COUNT = 2;
+vll globalBase;
+vll globalMod;
+void initGlobalHashParams() {
+    if (!globalBase.empty() && !globalMod.empty()) return;
+    vll candidateBases = {29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    vll candidateMods  = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL,
+                                 1000000087LL, 1000000093LL, 1000000097LL, 1000000103LL};
+								 
+	unsigned seed = chrono::steady_clock::now().time_since_epoch().count();
+    shuffle(candidateBases.begin(), candidateBases.end(), default_random_engine(seed));
+    shuffle(candidateMods.begin(), candidateMods.end(), default_random_engine(seed + 1));
+
+    globalBase.rsz(HASH_COUNT);
+    globalMod.rsz(HASH_COUNT);
+    for (int i = 0; i < HASH_COUNT; i++) {
+        globalBase[i] = candidateBases[i];
+        globalMod[i]  = candidateMods[i];
+    }
+}
+struct RabinKarp {
     vvll prefix, pow;
-    vll base, mod;
-    int n, m;
-    RabinKarp(const string& s) {  
-        m = 2;
-        base = {26, 28, 30};    
-        mod = {(int)1e9 + 7, (int)1e9 + 33, (int)1e9 + 73};
-        n = s.size(); 
-        pow.rsz(m), prefix.rsz(m); 
-        for(int i = 0; i < m; i++) {    
-            pow[i].rsz(n + 1, 1);  
-            prefix[i].rsz(n + 1);
+    int n;
+    
+    RabinKarp(const string &s) {
+        initGlobalHashParams();
+        n = s.size();
+        prefix.rsz(HASH_COUNT);
+        pow.rsz(HASH_COUNT);
+        for (int i = 0; i < HASH_COUNT; i++) {
+            prefix[i].rsz(n + 1, 0);
+            pow[i].rsz(n + 1, 1);
         }
         buildHash(s);
     }
     
-    void buildHash(const string& s) {   
-        for(int j = 1; j <= n; j++) {   
+    void buildHash(const string &s) {
+        for (int j = 1; j <= n; j++) {
             int x = s[j - 1] - 'a' + 1;
-            for(int i = 0; i < m; i++) {    
-                prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];   
-                pow[i][j] = (pow[i][j - 1] * base[i]) % mod[i];
+            for (int i = 0; i < HASH_COUNT; i++) {
+                prefix[i][j] = (prefix[i][j - 1] * globalBase[i] + x) % globalMod[i];
+                pow[i][j] = (pow[i][j - 1] * globalBase[i]) % globalMod[i];
             }
         }
     }
     
-	ll getHash(int l, int r) { 
-        if(l < 0 || r > n || l > r) return 0;
-        al(2) ans = {0, 0};
-        for(int i = 0; i < m; i++) {    
-            ll hash = prefix[i][r] - (prefix[i][l] * pow[i][r - l] % mod[i]) % mod[i]; 
-            hash = (hash + mod[i]) % mod[i];
-            ans[i] = hash;
-        }
-        return (ans[0] << 32) | ans[1];
-    };
-
-
-	bool diff_by_one_char(RabinKarp& a, int offSet = 0) { // a.size() > n
-        int left = 0, right = n, rightMost = -1;    
-        while(left <= right) {  
-            int middle = midPoint;  
-            if(a.getHash(offSet, middle + offSet) == getHash(0, middle)) rightMost = middle, left = middle + 1; 
-            else right = middle - 1;
-        }
-        return a.getHash(rightMost + 1 + offSet, offSet + n) == getHash(rightMost + 1, n);
+    ll get_hash(int l, int r) {
+        if (l < 0 || r > n || l > r) return 0;
+        ll hash0 = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % globalMod[0]);
+        hash0 = (hash0 % globalMod[0] + globalMod[0]) % globalMod[0];
+        ll hash1 = prefix[1][r] - (prefix[1][l] * pow[1][r - l] % globalMod[1]);
+        hash1 = (hash1 % globalMod[1] + globalMod[1]) % globalMod[1];
+        return (hash0 << 32) | hash1;
     }
-
+    
+    bool diff_by_one_char(RabinKarp &a, int offSet = 0) {
+        int left = 0, right = n, rightMost = -1;
+        while (left <= right) {
+            int middle = left + (right - left) / 2;
+            if (a.get_hash(offSet, middle + offSet) == get_hash(0, middle)) {
+                rightMost = middle;
+                left = middle + 1;
+            } else {
+                right = middle - 1;
+            }
+        }
+        return a.get_hash(rightMost + 1 + offSet, offSet + n) == get_hash(rightMost + 1, n);
+    }
 };
 
 class MANACHER {    
@@ -409,7 +430,7 @@ class MANACHER {
 
     bool is_palindrome(int left, int right) {
         int rev_left = n - right - 1, rev_right = n - left - 1;
-        return a.getHash(left, right + 1) == b.getHash(rev_left, rev_right + 1);
+        return a.get_hash(left, right + 1) == b.get_hash(rev_left, rev_right + 1);
     }
 };
 

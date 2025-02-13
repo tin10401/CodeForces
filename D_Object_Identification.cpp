@@ -211,11 +211,33 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    auto ask = [&](int i, int j) -> int {
+        cout << "? " << i << ' ' << j << endl;
+        int d; cin >> d;
+        if(d == -1) exit(0);
+        return d;
+    };
+    set<int> s(all(a));
+    auto output = [](char a) -> void {
+        cout << "! " << a << endl;
+    };
+    for(int i = 1; i <= n; i++) {
+        if(!s.count(i)) {
+            output(ask(i, (i % n) + 1) == 0 ? 'A' : 'B');
+            return;
+        }
+    }
+    int i = min_element(all(a)) - begin(a) + 1;
+    int j = max_element(all(a)) - begin(a) + 1;
+    int d1 = ask(i, j), d2 = ask(j, i);
+    if(d1 >= n - 1 && d2 >= n - 1) output('B');
+    else output('A');
 }
 
 signed main() {
@@ -226,7 +248,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

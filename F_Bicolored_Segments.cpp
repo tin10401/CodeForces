@@ -211,12 +211,116 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+template<class T>   
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+    vi lazy;
+    T DEFAULT;
+	SGT(int n, T DEFAULT) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+        int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1);    
+        lazy.rsz(k << 1); // careful with initializing lazy_value
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, T val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, T val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = merge(root[lc], root[rc]);
+    }
+    
+	void apply(iter, T val) {
+        root[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+	
+	T get() {
+		return root[0];
+	}
+
+    T merge(T left, T right) {  
+        return max(left, right);
+    }
+};
 
 void solve() {
+    int n; cin >> n;
+    var(3) a(n);
+    vi b;
+    for(auto& [l, r, t] : a) {
+        cin >> l >> r >> t;
+        b.pb(l), b.pb(r);
+    }
+    b.pb(0);
+    srtU(b);
+    int N = b.size();
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    SGT<int> root[2] = {SGT<int>(N, 0), SGT<int>(N, 0)};
+    vvi g(N);
+    for(int i = 0; i < n; i++) {
+        auto& [l, r, t] = a[i];
+        l = get_id(l), r = get_id(r), t--;
+        g[r].pb(i);
+    }
+    int res = 0;
+    for(int r = 1; r < N; r++) {
+        for(auto& i : g[r]) {
+            auto& [l, r, t] = a[i];
+            root[t].update_range(0, l - 1, 1);
+        }
+        int v = max(root[0].get(), root[1].get());
+        res = max(res, v);
+        root[0].update_at(r, v);
+        root[1].update_at(r, v);
+    }
+    cout << res << endl;
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator

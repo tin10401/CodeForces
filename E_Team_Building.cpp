@@ -199,7 +199,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e16;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -211,11 +211,34 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, p, k; cin >> n >> p >> k;
+    vpii a(n);
+    for(int i = 0; i < n; i++) {
+        cin >> a[i].ff;
+        a[i].ss = i;
+    }
+    srtR(a);
+    vvi b(n, vi(p)); cin >> b;
+    debug(a, b);
+    vvll dp(n, vll(1 << p, -1));
+    auto dfs = [&](auto& dfs, int i = 0, int mask = 0) -> ll {
+        int rem = i - pct(mask);
+        if(mask == (1 << p) - 1 && rem >= k) return 0;
+        if(i == n) return -INF;
+        auto& res = dp[i][mask];
+        if(res != -1) return res;
+        res = dfs(dfs, i + 1, mask) + (rem < k ? a[i].ff : 0);
+        for(int j = 0; j < p; j++) {
+            if(have_bit(mask, j)) continue;
+            res = max(res, dfs(dfs, i + 1, mask ^ (1LL << j)) + b[a[i].ss][j]);
+        }
+        return res;
+    };
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {

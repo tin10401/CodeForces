@@ -201,7 +201,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
-const static int MK = 20;
+const static int MK = 13;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -211,11 +211,64 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, m, q; cin >> n >> m >> q;
+    vvi graph(n + 1), rev_graph(n + 1);
+    while(m--) {
+        int u, v; cin >> u >> v;
+        graph[u].pb(v);
+        rev_graph[v].pb(u);
+    }
+    for(auto& it : graph) srt(it);
+    vi ans(q, -1);
+    vvar(3) Q(n + 1);
+    for(int i = 0; i < q; i++) {
+        int s, t, k; cin >> s >> t >> k;
+        k--;
+        Q[t].pb({s, k, i});
+    }
+    for(int t = 1; t <= n; t++) {
+        vi vis(n + 1);
+        auto dfs = [&](auto& dfs, int node) -> void {
+            vis[node] = true; 
+            for(auto& nei : rev_graph[node]) {
+                if(!vis[nei]) dfs(dfs, nei);
+            }
+        };
+        dfs(dfs, t);
+        vvi curr(n + 2, vi(MK));
+        curr[n + 1][0] = curr[t][0] = n + 1;
+        for(int s = 1; s <= n; s++) {
+            if(s == t) continue;
+            if(!vis[s]) continue;
+            for(auto& j : graph[s]) {
+                if(vis[j]) {
+                    curr[s][0] = j;
+                    break;
+                }
+            }
+        }
+        for(int j = 1; j < MK; j++) {
+            for(int s = 1; s <= n + 1; s++) {
+                curr[s][j] = curr[curr[s][j - 1]][j - 1];
+            }
+        }
+        for(auto& [s, k, id] : Q[t]) {
+            if(curr[s][MK - 1] == n + 1) {
+                for(int i = MK - 1; i >= 0; i--) {
+                    if(have_bit(k, i)) {
+                        s = curr[s][i];
+                    }
+                }
+                if(s != n + 1) ans[id] = s;
+            }
+        }
+    }
+    for(auto& x : ans) cout << x << endl;
+
 }
 
 signed main() {

@@ -51,16 +51,17 @@ private:
         unite(treap);
     }
 
-    void merge(TreapNode*& treap, TreapNode* left, TreapNode* right) {
+	void merge(TreapNode*& treap, TreapNode* left, TreapNode* right) {
         if (!left || !right) {
             treap = left ? left : right;
             return;
         }
-        apply(treap);
-        if (left->pri < right->pri) {
+        if(left->pri < right->pri) {
+            apply(left);
             merge(left->right, left->right, right);
             treap = left;
         } else {
+            apply(right);
             merge(right->left, left, right->left);
             treap = right;
         }
@@ -96,6 +97,14 @@ public:
         merge(root, root, A);   
         merge(root, root, B);
     }
+	
+	void insert_at(int k, int x) {
+        TreapNode* A;
+        split(root, root, A, k - 1);
+        merge(root, root, new TreapNode(x));
+        merge(root, root, A);
+    }
+
 	
 	void split_and_swap(int k) { // off_set by 1
         if(k == 0 || k == size(root)) return; 
@@ -134,16 +143,34 @@ public:
         return A;
     }
 
+	void split2(TreapNode* treap, TreapNode*& left, TreapNode*& right, int k) {
+        if (!treap) {
+            left = right = nullptr;
+            return;
+        }
+        apply(treap);
+        if (treap->key > k) { // treap->key > k
+            split2(treap->left, left, treap->left, k);
+            right = treap;
+        } else {
+            split2(treap->right, treap->right, right, k); // careful when split by value
+            left = treap;
+        }
+        unite(treap);
+    }
+
     TreapNode* merge_treap(TreapNode* A, TreapNode* B) {
         if(!A) return B;
         if(!B) return A;
         if(A->pri < B->pri) swap(A, B);
         TreapNode*L, *R;
-        split(B, L, R, A->key);
+        split2(B, L, R, A->key);
         A->left = merge_treap(L, A->left);
         A->right = merge_treap(A->right, R);
+        unite(A);
         return A;
     }
+
 
     void merge_treap(TreapNode* other) {
         root = merge_treap(root, other);
@@ -162,6 +189,17 @@ public:
         cout << treap->key;
         print(treap->right);
     }
+	
+	void print_substring(int pos, int len) { // 1 base index
+        TreapNode*A, *B;
+        split(root, root, A, pos - 1);
+        split(A, A, B, len);
+        print(A);
+        cout << endl;
+        merge(root, root, A);
+        merge(root, root, B);
+    }
+
 };
     
 template<class T>
@@ -328,8 +366,11 @@ class SGT {
 	SGT(int n, T DEFAULT) {    
         this->n = n;
         this->DEFAULT = DEFAULT;
-        root.rsz(n * 4);    
-        lazy.rsz(n * 4); // careful with initializing lazy_value
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1);    
+        lazy.rsz(k << 1); // careful with initializing lazy_value
+
     }
     
     void update_at(int id, T val) {  
@@ -733,7 +774,7 @@ class MO {
 
         vll res(q);
         int l = 0, r = -1;    // modify to 0 as needed "left = 0"
-        for(auto& [l, r, id] : Q) { 
+        for(auto& [ql, qr, id] : Q) { // 1 base index
 			while (r < qr) modify(a[++r], 1);
 			while (l > ql) modify(a[--l], 1);
 			while (r > qr) modify(a[r--], -1);
@@ -1315,7 +1356,7 @@ class SGT_BEAT {
     }
 
     Node queries_range(int start, int end) {
-        return queries(entireTree, start, end);
+        return queries_range(entireTree, start, end);
     }
 
     Node queries_range(iter, int start, int end) {
@@ -1539,131 +1580,89 @@ public:
     }
 };
 
-struct node {
-    int x;
-    node *l = 0;
-    node *r = 0;
-    node *p = 0;
-    bool rev = false;
-
-    node() = default;
-
-    node(int v) {
-        x = v;
-    }
-
-    void push() {
-        if(rev) {
-            rev = false;
-            swap(l, r);
-            if(l) l->rev ^= true;
-            if(r) r->rev ^= true;
-        }
-    }
-
-    bool is_root() {
-        return p == 0 || (p->l != this && this != p->r);
-    }
+struct Node {
+    int ch[2] = {0, 0};
+    int fa = 0;       
+    int size = 0;     
 };
 
-struct lct {
-    vector<node> a;
+struct LCT {
+    int n;             
+    vector<Node> tree;  
 
-    lct(int n) {
-        a.resize(n+1);
-        for(int i = 1; i <= n; ++i)
-            a[i].x = i;
+    LCT(int n_) : n(n_) {
+        tree.resize(n + 5);
+        for (int i = 1; i < (int)tree.size(); ++i) // 1 base_index
+            tree[i].size = 1;
     }
 
-    void rot(node* c) {
-        auto p = c->p;
-        auto g = p->p;
+    inline void update(int x) {
+        if (x == 0)
+            return;
+        tree[x].size = tree[ tree[x].ch[0] ].size + tree[ tree[x].ch[1] ].size + 1;
+    }
 
-        if(!p->is_root())
-            (g->r == p ? g->r : g->l) = c;
+    inline bool be_root(int x) {
+        int f = tree[x].fa;
+        return (tree[f].ch[0] != x && tree[f].ch[1] != x);
+    }
 
-        p->push();
-        c->push();
+    inline void rotate(int x) {
+        int y = tree[x].fa;
+        int flag = (tree[y].ch[0] == x);
+        int tmp = tree[x].ch[flag];     
+        if (!be_root(y))
+            tree[ tree[y].fa ].ch[ tree[ tree[y].fa ].ch[1] == y ] = x;
+        tree[x].fa = tree[y].fa;       
+        tree[y].fa = x;
+        tree[tmp].fa = tree[x].ch[flag] = y;
+        tree[y].ch[flag ^ 1] = tmp;
+        update(y);
+    }
 
-        if(p->l == c) { // rtr
-            p->l = c->r;
-            c->r = p;
-            if(p->l) p->l->p = p;
-        } else { // rtl
-            p->r = c->l;
-            c->l = p;
-            if(p->r) p->r->p = p;
+    inline void splay(int x) {
+        while (!be_root(x)) {
+            int y = tree[x].fa, z = tree[y].fa;
+            if (be_root(y))
+                rotate(x);
+            else {
+                if ((tree[z].ch[0] == y) ^ (tree[y].ch[0] == x)) rotate(x);
+                else rotate(y);
+                rotate(x);
+            }
         }
-
-        p->p = c;
-        c->p = g;
+        update(x);
     }
 
-    void splay(node* c) {
-        while(!c->is_root()) {
-            auto p = c->p;
-            auto g = p->p;
-            if(!p->is_root())
-                rot((g->r == p) == (p->r == c) ? p : c);
-            rot(c);
-        }
-        c->push();
-    }
-
-    node* access(int v) {
-        node* last = 0;
-        node* c = &a[v];
-        for(node* p = c; p; p = p->p) {
-            splay(p);
-            p->r = last;
-            last = p;
-        }
-        splay(c);
-        return last;
-    }
-
-    void make_root(int v) {
-        access(v);
-        auto* c = &a[v];
-        if(c->l)
-            c->l->rev ^= true, c->l = 0;
-    }
-
-    void link(int u, int v) {
-        make_root(v);
-        node* c = &a[v];
-        c->p = &a[u];
-    }
-
-    void cut(int u, int v) {
-        make_root(u);
-        access(v);
-        if(a[v].l) {
-            a[v].l->p = 0;
-            a[v].l = 0;
+    inline void access(int x) {
+        for (int y = 0; x; x = tree[x].fa) {
+            splay(x);
+            tree[x].ch[1] = y;
+            update(x);
+            y = x;
         }
     }
 
-    bool connected(int u, int v) {
-        access(u);
-        access(v);
-        return a[u].p;
+    inline pii query(int x) {
+        access(x);
+        splay(n + 1);
+        int tmp = 0;
+        for (tmp = tree[n + 1].ch[1]; tree[tmp].ch[0]; tmp = tree[tmp].ch[0]) {}
+        return {tmp, tree[n + 1].size - 1};
     }
 
+    inline void cut(int x, int y) {
+        access(x);
+        splay(y);
+        tree[y].ch[1] = 0;
+        tree[x].fa = 0;
+        update(y);
+    }
+
+    inline void link(int x, int y) {
+        tree[x].fa = y;
+    }
 };
-
-vvi rotate90(const vvi &matrix) {
-    int n = matrix.size();
-    if (n == 0) return matrix; 
-    int m = matrix[0].size();
-    vvi rotated(m, vi(n));
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-            rotated[j][n - 1 - i] = matrix[i][j];
-        }
-    }
-    return rotated;
-}
 
 class BITSET {
 public:

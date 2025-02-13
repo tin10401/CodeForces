@@ -211,11 +211,51 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+vi primes, first_divisor(MX), DIV[MX];
+bitset<MX> primeBits;
+vll mu(MX);
+
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+
+    iota(all(mu), 0);
+    for(int i = 1; i < MX; i++) {   
+        for(int j = i; j < MX; j += i) {   
+            if(j >= i * 2) mu[j] -= mu[i];
+			DIV[j].pb(i);
+        }
+    }
+}
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    srt(a);
+    int N = a.back();
+    vll cnt(N + 1);
+    ll res = 0, curr = 0;
+    for(int i = 0; i < n; i++) {
+        int x = a[i];
+        res += curr;
+        for(auto& d : DIV[x]) {
+            curr += cnt[d]++ * mu[d];
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -223,10 +263,10 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

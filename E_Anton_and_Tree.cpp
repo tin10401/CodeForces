@@ -211,11 +211,82 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
+    }
+};
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vpii edge;
+    DSU root(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        edge.pb({u, v});
+        if(a[u] == a[v]) root.merge(u, v);
+    }
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        auto& [u, v] = edge[i];
+        u = root.find(u), v = root.find(v);
+        if(u != v) {
+            graph[u].pb(v);
+            graph[v].pb(u);
+        }
+    }
+    for(auto& it : graph) srtU(it);
+    int res = 0;
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> int {
+        int mx1 = 0, mx2 = 0;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            int t = dfs(dfs, nei, node);
+            if(t > mx1) mx2 = mx1, mx1 = t;
+            else mx2 = max(mx2, t);
+        }
+        res = max(res, mx1 + mx2 + 1);
+        return mx1 + 1;
+    };
+    dfs(dfs, root.find(0), -1);
+    cout << res / 2 << endl;
+
+
 }
 
 signed main() {

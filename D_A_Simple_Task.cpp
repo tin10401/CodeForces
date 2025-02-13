@@ -211,11 +211,39 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
+ll dp[20][1 << 19];
 void solve() {
+    int n, m; cin >> n >> m;
+    vvi graph(n);
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    auto dfs = [&](auto& dfs, int src, int curr, int mask) -> ll {
+        auto& res = dp[curr][mask];
+        if(res != -1) return res;
+        res = 0;
+        for(auto& v : graph[curr]) {
+            if(v == src) {
+                if(pct(mask) >= 3) res++;
+            }
+            else if(v > src && !have_bit(mask, v)){
+                res += dfs(dfs, src, v, mask ^ (1 << v));
+            }
+        }
+        return res;
+    };
+    ll res = 0;
+    mset(dp, -1);
+    for(int i = 0; i < n; i++) {
+        res += dfs(dfs, i, i, 1 << i);
+    }
+    cout << res / 2 << endl; // 1->2->3 also get counted in 1->3->2
 }
 
 signed main() {

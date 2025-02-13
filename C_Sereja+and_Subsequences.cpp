@@ -202,7 +202,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e6 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
@@ -215,7 +215,189 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) {
+        value = int(v % MOD);
+        if (value < 0) value += MOD;
+    }
+    
+    mod_int& operator+=(const mod_int &other) {
+        value += other.value;
+        if (value >= MOD) value -= MOD;
+        return *this;
+    }
+    
+    mod_int& operator-=(const mod_int &other) {
+        value -= other.value;
+        if (value < 0) value += MOD;
+        return *this;
+    }
+    
+    mod_int& operator*=(const mod_int &other) {
+        value = int((long long)value * other.value % MOD);
+        return *this;
+    }
+    
+    mod_int pow(long long p) const {
+        mod_int ans(1), a(*this);
+        while (p) {
+            if (p & 1) ans *= a;
+            a *= a;
+            p /= 2;
+        }
+        return ans;
+    }
+    
+    mod_int inv() const {
+        return pow(MOD - 2);
+    }
+    
+    mod_int& operator/=(const mod_int &other) {
+        return *this *= other.inv();
+    }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const {
+        return mod_int((long long)value & other.value);
+    }
+    mod_int& operator&=(const mod_int &other) {
+        value &= other.value;
+        return *this;
+    }
+    
+    mod_int operator|(const mod_int &other) const {
+        return mod_int((long long)value | other.value);
+    }
+    mod_int& operator|=(const mod_int &other) {
+        value |= other.value;
+        return *this;
+    }
+    
+    mod_int operator^(const mod_int &other) const {
+        return mod_int((long long)value ^ other.value);
+    }
+    mod_int& operator^=(const mod_int &other) {
+        value ^= other.value;
+        return *this;
+    }
+    
+    mod_int operator<<(int shift) const {
+        return mod_int(((long long)value << shift) % MOD);
+    }
+    mod_int& operator<<=(int shift) {
+        value = int(((long long)value << shift) % MOD);
+        return *this;
+    }
+    
+    mod_int operator>>(int shift) const {
+        return mod_int(value >> shift);
+    }
+    mod_int& operator>>=(int shift) {
+        value >>= shift;
+        return *this;
+    }
+    
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) {
+        os << a.value;
+        return os;
+    }
+    
+    friend std::istream& operator>>(std::istream &is, mod_int &a) {
+        long long v;
+        is >> v;
+        a = mod_int(v);
+        return is;
+    }
+};
+
+using mint = mod_int<int(1e9 + 7)>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+
+template<class T>
+class SGT {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    T DEFAULT;  
+    
+    SGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        idx += size;
+        root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) {
+            root[idx] = merge(root[idx << 1], root[idx << 1 | 1]);
+        }
+    }
+    
+    T queries_range(int l, int r) {
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size;
+        r += size;
+        while (l <= r) {
+            if ((l & 1) == 1) {
+                res_left = merge(res_left, root[l]);
+                l++;
+            }
+            if ((r & 1) == 0) {
+                res_right = merge(root[r], res_right);
+                r--;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        return merge(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        return root[idx + size];
+    }
+
+    T get() {
+        return root[1];
+    }
+
+    T merge(const T &left, const T &right) {
+        return left + right;
+    }
+};
+
+
 void solve() {
+    int n; cin >> n;
+    SGT<mint> root(MX, 0);
+    set<int> s;
+    while(n--) {
+        int x; cin >> x;
+        auto v = root.queries_range(0, x); // multiply everything by x is the same as shifting them by x in binary, then + x is create a new sequences
+        v *= x;
+        v += x;
+        debug(x, v);
+        root.update_at(x, v);
+        s.insert(x);
+    }
+    cout << root.get() << endl;
 }
 
 signed main() {
@@ -253,3 +435,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

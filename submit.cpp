@@ -205,46 +205,143 @@ const static int MK = 20;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
+int min_bit(ll x) { return __builtin_ctzll(x); }
+int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-void solve() {
-    ll n, x, y; cin >> n >> x >> y;
-    vll a(n); cin >> a;
-    srt(a);
-    auto f = [&](ll k) -> bool {
-        ll score = x;
-        ll t = k;
-        for(int i = 0; i < n && k && score < y; i++) {
-            if(score >= a[i]) {
-                score++;
-                k--;
-                continue;
-            }
-            ll gain = i * 2 - n;
-            if(gain <= 0) break;
-            ll diff = a[i] - score;
-            ll need = min(k, ((diff + gain - 1) / gain) * n);
-            k -= need;
-            score += need / gain;
-            if(need % gain) {
-                score += gain - max(0LL, need - gain);
-                break;
+class GRAPH { 
+    public: 
+    int n;  
+    vvi dp, graph; 
+    vi depth, parent, subtree;
+    vi tin, tout, low, ord;
+    int timer = 0;
+    GRAPH(vvi& graph, int root = 0) {   
+        this->graph = graph;
+        n = graph.size();
+        dp.rsz(n, vi(MK));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+		subtree.rsz(n, 1);
+        tin.rsz(n);
+        tout.rsz(n);
+		ord.rsz(n);
+        dfs(root);
+        init();
+    }
+    
+    void dfs(int node = 0, int par = -1) {   
+		tin[node] = timer++;
+		ord[tin[node]] = node;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+			dfs(nei, node);
+			subtree[node] += subtree[nei];
+        }
+		tout[node] = timer - 1;
+    }
+
+    bool isAncestor(int u, int v) { 
+        return tin[u] <= tin[v] && tin[v] <= tout[u]; 
+    }
+    
+    void init() {  
+        for(int j = 1; j < MK; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
             }
         }
-        debug(t, k, score);
-        return k || score >= y;
-    };
-    debug(a);
-    ll left = 1, right = 20, res = -1;
-    while(left <= right) {
-        ll middle = midPoint;
-        if(f(middle)) res = middle, right = middle - 1;
-        else left = middle + 1;
     }
+	
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = MK - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+	
+	int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	int k_ancestor(int a, int k) {
+        for(int i = MK - 1; i >= 0; i--) {   
+            if((k >> i) & 1) a = dp[a][i];
+        }
+        return a;
+    }
+
+    int rooted_lca(int a, int b, int c) { // determine if 3 points are in the same path
+        return lca(a, c) ^ lca(a, b) ^ lca(b, c);
+    }
+
+    int rooted_parent(int u, int v) { // move one level down from u closer to v
+        return k_ancestor(v, depth[v] - depth[u] - 1);
+    }
+
+    void reroot(int root) {
+        fill(all(parent), -1);
+        dfs(root);
+        init();
+    }
+};
+
+void solve() {
+    // find all pair 2 * min(du, dv) - 2 * d(lca(u, v)) - 1; for all pair
+    // iterate for all du, dv from max to min
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    GRAPH g(graph);
+    vvi D(n + 1);
+    for(int i = 0; i < n; i++) {
+        D[g.depth[i]].pb(g.subtree[i]);
+    }
+    ll res = 0;
+    for(ll d = n, rem = 0; d >= 0; d--) {
+        for(auto& u : D[d]) {
+            res += d * (++rem - u); // all greater_than_or_equal to node u minus subtree[u]
+        }
+    }
+    res <<= 1;
+    ll v = 0, p = 0;
+    for(int i = 0; i < n; i++) {
+        for(auto& j : graph[i]) {
+            if(j == g.parent[i]) continue;
+            ll pair = ((ll)g.subtree[i] - 1 - g.subtree[j]) * g.subtree[j];
+            v += g.depth[i] * pair; // all pair << 1 so >> 1 later
+            p += pair;
+        }
+    }
+    res -= v + p / 2;
     cout << res << endl;
 }
 

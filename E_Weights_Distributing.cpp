@@ -205,17 +205,54 @@ const static int MK = 20;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
-bool have_bit(ll x, int b) { return (x >> b) & 1; }
-int min_bit(ll x) { return __builtin_ctzll(x); }
-int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
-int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) {return n - sum_even_series(n);}
 
 void solve() {
+    int n, m, a, b, c; cin >> n >> m >> a >> b >> c;
+    a--, b--, c--;
+    vll cost(m); cin >> cost;
+    vvi graph(n);
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    auto bfs = [&](int src) -> vi {
+        vi dis(n, -1);
+        dis[src] = 0;
+        queue<int> q;
+        q.push(src);
+        while(!q.empty()) {
+            int node = q.front(); q.pop();
+            for(auto& nei : graph[node]) {
+                if(dis[nei] == -1) {
+                    dis[nei] = dis[node] + 1;
+                    q.push(nei);
+                }
+            }
+        }
+        return dis;
+    };
+    auto disA = bfs(a), disB = bfs(b), disC = bfs(c);
+    cost.pb(0);
+    srt(cost);
+    for(int i = 1; i <= m; i++) cost[i] += cost[i - 1];
+    ll res = INF;
+    for(int x = 0; x < n; x++) {
+        int A = disA[x];
+        int B = disB[x];
+        int C = disC[x];
+        if(A + B + C > m) continue;
+        ll curr = cost[B] * 2;
+        curr += cost[A + B + C] - cost[B];
+        res = min(res, curr);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -226,7 +263,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

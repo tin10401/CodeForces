@@ -215,7 +215,94 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) {
+        value = int(v % MOD);
+        if (value < 0) value += MOD;
+    }
+    
+    mod_int& operator+=(const mod_int &other) {
+        value += other.value;
+        if (value >= MOD) value -= MOD;
+        return *this;
+    }
+    
+    mod_int& operator-=(const mod_int &other) {
+        value -= other.value;
+        if (value < 0) value += MOD;
+        return *this;
+    }
+    
+    mod_int& operator*=(const mod_int &other) {
+        value = int((ll)value * other.value % MOD);
+        return *this;
+    }
+    
+    mod_int pow(ll p) const {
+        mod_int ans(1), a(*this);
+        while (p) {
+            if (p & 1) ans *= a;
+            a *= a;
+            p /= 2;
+        }
+        return ans;
+    }
+    
+    // Inverse assumes MOD is prime.
+    mod_int inv() const {
+        return pow(MOD - 2);
+    }
+    
+    mod_int& operator/=(const mod_int &other) {
+        return *this *= other.inv();
+    }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    
+    friend ostream& operator<<(ostream &os, const mod_int &a) {
+        os << a.value;
+        return os;
+    }
+    
+    friend istream& operator>>(istream &is, mod_int &a) {
+        ll v;
+        is >> v;
+        a = mod_int(v);
+        return is;
+    }
+};
+
+using mint = mod_int<998244353>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    srt(a);
+    int s = sum(a);
+    vmint dp(s + 1);
+    dp[0] = 1;
+    mint res = 0;
+    for(auto& x : a) {
+        for(int sm = 0; sm <= s; sm++) {
+            int t = max(x, (sm + x + 1) / 2);
+            res += dp[sm] * t;
+        }
+        for(int i = s; i >= x; i--) {
+            dp[i] += dp[i - x];
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
