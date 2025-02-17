@@ -211,23 +211,49 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
 void solve() {
     int n, q; cin >> n >> q;
     vi a(n); cin >> a;
-    rev(a);
-    while(q--) {
-        int x; cin >> x;
+    auto queries = [&](ll x) -> int {
+        min_heap<int> q;
         int res = 0;
         for(auto& v : a) {
-            if(x < v) break;
-            x ^= v;
-            res ++;
+            q.push(v); 
+            x += v;
+            if(x < 0) {
+                x -= q.top();
+                q.pop();
+                res++;
+            }
         }
-        cout << res << (q == 0 ? '\n' : ' ');
+        return res;
+    };
+    vpll Q(q);
+    for(int i = 0; i < q; i++) {
+        cin >> Q[i].ff;
+        Q[i].ss = i;
     }
+    srt(Q);
+    vi dp(q, n);
+    for(int i = 0; i <= n; i++) {
+        int left = 0, right = q - 1, id = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            if(queries(Q[middle].ff) <= i) id = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        if(id != -1) dp[id] = min(dp[id], i);
+    }
+    for(int i = 1; i < q; i++) dp[i] = min(dp[i], dp[i - 1]);
+    vi ans(q);
+    for(int i = 0; i < q; i++) {
+        ans[Q[i].ss] = dp[i];
+    }
+    output_vector(ans);
 }
 
 signed main() {
@@ -238,7 +264,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -265,3 +291,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

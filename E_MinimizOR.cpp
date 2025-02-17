@@ -94,8 +94,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
-#define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
 #define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
@@ -204,6 +202,8 @@ const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
+ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
+ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
@@ -211,22 +211,71 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+
+template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = {a[i], i};
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
 
 void solve() {
-    int n, q; cin >> n >> q;
+    int n; cin >> n;
     vi a(n); cin >> a;
-    rev(a);
+    SparseTable<pii> g(a, [](const pii& a, const pii& b) {return min(a, b);});
+    int q; cin >> q;
     while(q--) {
-        int x; cin >> x;
-        int res = 0;
-        for(auto& v : a) {
-            if(x < v) break;
-            x ^= v;
-            res ++;
+        int l, r; cin >> l >> r;
+        l--, r--;
+        auto cmp = [&](const pii& x, const pii& y) {
+            return g.query(x.ff, x.ss).ff > g.query(y.ff, y.ss).ff; 
+        };
+        priority_queue<pii, vpii, decltype(cmp)> heap(cmp);
+        heap.push({l, r}); 
+        vi v;
+        auto process = [&](int left, int right) -> void {
+            if(left > right) return;
+            heap.push({left, right});
+        };
+        while(v.size() < 31 && !heap.empty()) {
+            auto [left, right] = heap.top(); heap.pop();
+            auto it = g.query(left, right);
+            if(v.size() > 2 && max_bit(it.ff) > max_bit(v.back())) break;
+            v.pb(it.ff);
+            process(left, it.ss - 1);
+            process(it.ss + 1, right);
         }
-        cout << res << (q == 0 ? '\n' : ' ');
+        int res = INT_MAX;
+        int N = v.size();
+        for(int i = 0; i < N; i++) {
+            for(int j = i + 1; j < N; j++) {
+                res = min(res, v[i] | v[j]);
+            }
+        }
+        cout << res << endl;
     }
 }
 

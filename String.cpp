@@ -66,7 +66,7 @@ class Binary_Trie {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
             if(b_bits) {
-				if(T[cnt][bits]) {
+				if(T[curr][bits]) {
 					res += cnt[T[curr][bits]];
 				}
                 curr = T[curr][!bits];
