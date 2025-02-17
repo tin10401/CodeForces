@@ -211,23 +211,21 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
-    rev(a);
-    while(q--) {
-        int x; cin >> x;
-        int res = 0;
-        for(auto& v : a) {
-            if(x < v) break;
-            x ^= v;
-            res ++;
+    int a, b, c; cin >> a >> b >> c;
+    for(int i = 0; i <= b; i++) {
+        a *= 10;
+        if(a / b == c) {
+            cout << i + 1 << endl;
+            return;
         }
-        cout << res << (q == 0 ? '\n' : ' ');
+        a %= b;
     }
+    cout << -1 << endl;
 }
 
 signed main() {
@@ -238,7 +236,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

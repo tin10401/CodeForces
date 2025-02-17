@@ -202,7 +202,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e7 + 5;
 const static int MOD = 1e9 + 7;
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
@@ -211,23 +211,49 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+
+vi first_divisor(MX);
+bitset<MX> primeBits;
+
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
+}
+
+vi factor_prime(int x) {
+    vi d;
+    while(x > 1) {
+        int t = first_divisor[x];
+        d.pb(t);
+        while(x % t == 0) x /= t;
+    }
+    return d;
+}
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
-    rev(a);
-    while(q--) {
-        int x; cin >> x;
-        int res = 0;
-        for(auto& v : a) {
-            if(x < v) break;
-            x ^= v;
-            res ++;
-        }
-        cout << res << (q == 0 ? '\n' : ' ');
+    int x, y; cin >> x >> y;
+    int d = y - x;
+    if(d == 1) {
+        cout << -1 << endl;
+        return;
     }
+    int res = inf;
+    for(auto& v : factor_prime(d)) {
+        res = min(res, (x + v - 1) / v * v); 
+    }
+    cout << res - x << endl;
 }
 
 signed main() {
@@ -235,7 +261,7 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     cin >> t;

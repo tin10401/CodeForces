@@ -26,6 +26,16 @@ void generatePrime() {  primeBits.set(2);
     }
 }
 
+vi factor_prime(int x) {
+    vi d;
+    while(x > 1) {
+        int t = first_divisor[x];
+        d.pb(t);
+        while(x % t == 0) x /= t;
+    }
+    return d;
+}
+
 vi factor(int x) {
     vi a;
     for(int i = 1; i * i <= x; i++) {
@@ -34,13 +44,15 @@ vi factor(int x) {
             if(i * i != x) a.pb(x / i);
         }
     }
+	srt(a);
     return a;
 }
 
+template<class T> 
 class Combinatoric {    
     public: 
     int n;  
-    vll fact, inv;   
+    vt<T> fact, inv;   
     Combinatoric(int n) {   
         this->n = n;    
         fact.rsz(n + 1), inv.rsz(n + 1);
@@ -50,17 +62,17 @@ class Combinatoric {
     void init() {   
         fact[0] = 1;
         for(int i = 1; i <= n; i++) {   
-            fact[i] = (fact[i - 1] * i) % MOD;
+            fact[i] = fact[i - 1] * i;
         }
-        inv[n] = modExpo(fact[n], MOD - 2, MOD);
+        inv[n] = fact[n].inv();
         for(int i = n - 1; i >= 0; i--) {   
-            inv[i] = (inv[i + 1] * (i + 1)) % MOD;
+            inv[i] = inv[i + 1] * (i + 1);
         }
     }
     
-    ll choose(int a, int b) {  
+    T choose(int a, int b) {  
         if(a < b) return 0;
-        return fact[a] * inv[b] % MOD * inv[a - b] % MOD;
+        return fact[a] * inv[b] * inv[a - b];
     }
 	
 	ll choose_no_mod(ll a, ll b) {
@@ -68,6 +80,11 @@ class Combinatoric {
         for(int i = 0; i < b; i++) res *= (a - i);
         for(int i = 2; i <= b; i++) res /= i;
         return res;
+    }
+
+    T catalan(int k) { // # of pair of balanced bracket of length n is catalan(n / 2)
+        if(k == 0) return 1;
+        return choose(2 * k, k) - choose(2 * k, k - 1);
     }
 };
 
@@ -77,6 +94,26 @@ ll XOR(ll n) {
 	if(n % 4 == 2) return n + 1;
 	return 0;
 };
+
+ll AND(ll l, ll r) {
+    int shift = 0;
+    while (l < r) {
+        l >>= 1;
+        r >>= 1;
+        shift++;
+    }
+    return l << shift;
+}
+
+ll OR(ll l, ll r) {
+    int shift = 0;
+    while (l < r) {
+        l >>= 1;
+        r >>= 1;
+        shift++;
+    }
+    return (l << shift) | ((1 << shift) - 1);
+}
 
 vll countBit(ll n) {    
 	int m = 62;
@@ -149,6 +186,33 @@ int find_y(int x, int p, int c) { // find y such that (x * y) % p == c
     int y0 = (ll)c1 * inv % p1;
     return y0 < 0 ? y0 + p1 : y0;
 }
+
+//for(auto& p : primes) {
+//	for(int c = m / p; c >= 1; c--) f[c] += f[c * p];
+//}
+//for (int d = m; d >= 1; d--) {
+//    dp[d] = f[d] * d;
+//    for (auto &p : primes) {
+//        if ((ll)d * p > m) break;
+//        dp[d] = max(dp[d], dp[d * p] + (f[d] - f[d * p]) * d);
+//    }
+//}
+//same as 
+//for(int i = 1; i <= m; i++) {
+//	for(int j = i * 2; j <= m; j++) {
+//		g[i] += g[j];
+//	}
+//}
+//for(ll i = m; i >= 1; i--) {
+//    dp[i] = f[i] * i;
+//    for(int j = i * 2; j <= m; j += i) {
+//        dp[i] = max(dp[i], dp[j] + (f[i] - f[j]) * i);
+//    }
+//}
+
+
+
+// number of ways to make up the sum of s is 2 ^ (s - 1)
 
 //    ll curr = 1;
 //    while(curr <= j) {

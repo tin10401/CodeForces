@@ -94,8 +94,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
-#define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
 #define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
@@ -202,8 +200,10 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
-const static int MOD = 1e9 + 7;
+const static int MX = 2e5 + 5;
+const static int MOD = 1e9 + 1;
+ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
+ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
@@ -211,22 +211,122 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+
+int mx[MX * 120], mn[MX * 120], lazy[MX * 120], ptr; // MX should be 1e5
+pii child[MX * 120];
+class implit_segtree {
+    public:
+    int n;
+    int root = 0;
+    implit_segtree(int n) {
+        this->n = n;
+        create_node(root, 0, n - 1);
+    } 
+
+    void create_node(int& node, int left, int right) {
+        if(node) return;
+        node = ++ptr;
+        mn[node] = left, mx[node] = right;
+        lazy[node] = 0;
+        child[node] = {0, 0};
+    }
+
+    void update_range(int start, int end, int x) {
+        update_range(root, 0, n - 1, start, end, x);
+    }
+
+    void update_range(iter, int start, int end, int x) {
+        pushDown;
+        if(left > end || start > right) return;
+        if(start <= left && right <= end) {
+			apply(i, left, right, x);
+            pushDown;
+            return;
+        }
+        int middle = midPoint;
+        create_node(child[i].ff, left, middle);
+        create_node(child[i].ss, middle + 1, right);
+        update_range(child[i].ff, left, middle, start, end, x);
+        update_range(child[i].ss, middle + 1, right, start, end, x);
+        mx[i] = max(mx[child[i].ff], mx[child[i].ss]);
+        mn[i] = min(mn[child[i].ff], mn[child[i].ss]);
+    }
+
+	void apply(iter, int val) {
+        mx[i] += val;
+        mn[i] += val;
+        lazy[i] += val;
+    }
+
+    void push(iter) {
+        if(lazy[i] && left != right) {
+            int middle = midPoint;
+            create_node(child[i].ff, left, middle);
+            create_node(child[i].ss, middle + 1, right);
+			apply(child[i].ff, left, middle, lazy[i]);
+            apply(child[i].ss, middle + 1, right, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+    
+    int find_right_most(int t) {
+        return find_right_most(root, 0, n - 1, t);
+    }
+
+    int find_right_most(iter, int t) {
+        if(!i) return t;
+        pushDown;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(child[i].ss && mn[child[i].ss] <= t) return find_right_most(child[i].ss, middle + 1, right, t);
+        return find_right_most(child[i].ff, left, middle, t);
+    }
+
+    int find_left_most(int t) {
+        return find_left_most(root, 0, n - 1, t);
+    }
+
+    int find_left_most(iter, int t) {
+        if(!i) return t;
+        pushDown;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(child[i].ff && mx[child[i].ff] >= t) return find_left_most(child[i].ff, left, middle, t);
+        return find_left_most(child[i].ss, middle + 1, right, t);
+    }
+
+    int query_at(int p) {
+        return query_at(root, 0, n - 1, p);
+    }
+
+    int query_at(iter, int p) {
+        if(!i) return p;
+        pushDown;
+        if(left == right) return mx[i];
+        int middle = midPoint;
+        if(p <= middle) return query_at(child[i].ff, left, middle, p);
+        return query_at(child[i].ss, middle + 1, right, p);
+    }
+};
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
-    rev(a);
-    while(q--) {
-        int x; cin >> x;
-        int res = 0;
-        for(auto& v : a) {
-            if(x < v) break;
-            x ^= v;
-            res ++;
+    int n; cin >> n;
+    int last = 0;
+    implit_segtree seg(MOD);
+    for(int i = 0; i < n; i++) {
+        int t; cin >> t;
+        if(mn[1] < t) seg.update_range(0, seg.find_right_most(t - 1), 1);
+        if(mx[1] > t) seg.update_range(seg.find_left_most(t + 1), MOD - 1, -1);
+        int k; cin >> k;
+        while(k--) {
+            int x; cin >> x;
+            last = (last + x) % MOD;
+            last = seg.query_at(last);
+            cout << last << endl;
         }
-        cout << res << (q == 0 ? '\n' : ' ');
     }
 }
 
@@ -238,7 +338,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

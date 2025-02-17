@@ -202,13 +202,14 @@ public:
 
 };
     
-template<class T>
+template<class T, typename F = function<T(const T&, const T&)>>
 class FW {  
     public: 
     int n, N;
     vt<T> root;    
     T DEFAULT;
-    FW(int n, T DEFAULT) { 
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
         this->n = n;    
         this->DEFAULT = DEFAULT;
         N = log2(n);
@@ -217,7 +218,7 @@ class FW {
     
     void update(int id, T val) {  
         while(id < n) {    
-            root[id] = merge(root[id], val);
+            root[id] = func(root[id], val);
             id |= (id + 1);
         }
     }
@@ -225,7 +226,7 @@ class FW {
     T get(int id) {   
         T res = DEFAULT;
         while(id >= 0) { 
-            res = merge(res, root[id]);
+            res = func(res, root[id]);
             id = (id & (id + 1)) - 1;
         }
         return res;
@@ -239,7 +240,7 @@ class FW {
 		root.assign(n, 0);
 	}
 
-    int search(int x) { // get pos where sum >= x
+    int select(int x) { // get pos where sum >= x
         int global = get(n), curr = 0;
         for(int i = N; i >= 0; i--) {
             int t = curr ^ (1LL << i);
@@ -249,9 +250,6 @@ class FW {
             }
         }
         return curr + 1;
-    }
-	
-	T merge(T A, T B) {
     }
 };
 
@@ -356,20 +354,24 @@ class FW_2D {
     }
 };
 
-template<class T>   
+template<typename T, typename I = int, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
 class SGT { 
     public: 
     int n;  
     vt<T> root;
-	vll lazy;
+	vt<II> lazy;
     T DEFAULT;
-	SGT(int n, T DEFAULT) {    
+    F func;
+    G apply_func;
+	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
         this->n = n;
         this->DEFAULT = DEFAULT;
 		int k = 1;
         while(k < n) k <<= 1; 
         root.rsz(k << 1);    
         lazy.rsz(k << 1); // careful with initializing lazy_value
+		// *** when doing merging close_interval, do middle, right instead of middle + 1, right for right child, and check for nullptr by right - left <= 1 instead of left == right like normal
+		// and right <= start || left >= end instead of normally you don't have the '=' sign
 
     }
     
@@ -386,36 +388,31 @@ class SGT {
         int middle = midPoint;  
         if(id <= middle) update_at(lp, id, val);   
         else update_at(rp, id, val);   
-        root[i] = merge(root[lc], root[rc]);
+        root[i] = func(root[lc], root[rc]);
     }
 
-    void update_range(int start, int end, T val) { 
+    void update_range(int start, int end, I val) { 
         update_range(entireTree, start, end, val);
     }
     
-    void update_range(iter, int start, int end, T val) {    
+    void update_range(iter, int start, int end, I val) {    
         pushDown;   
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
-			apply(i, left, right, val);
+			apply_func(i, left, right, val);
             pushDown;   
             return;
         }
         int middle = midPoint;  
         update_range(lp, start, end, val);    
         update_range(rp, start, end, val);    
-        root[i] = merge(root[lc], root[rc]);
-    }
-    
-	void apply(iter, T val) {
-        root[i] += val;
-        lazy[i] += val;
+        root[i] = func(root[lc], root[rc]);
     }
 
     void push(iter) {   
         if(lazy[i] && left != right) {
 			int middle = midPoint;
-            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
             lazy[i] = 0;
         }
     }
@@ -443,7 +440,7 @@ class SGT {
         if(left > end || start > right) return DEFAULT;
         if(left >= start && right <= end) return root[i];   
         int middle = midPoint;  
-        return merge(queries_range(lp, start, end), queries_range(rp, start, end));
+        return func(queries_range(lp, start, end), queries_range(rp, start, end));
     }
 	
 	T get() {
@@ -465,11 +462,7 @@ class SGT {
         print(lp);  print(rp);
     }
 
-    T merge(T left, T right) {  
-        
-    }
-	
-	//    T merge(const T &left, const T &right) {
+//    T merge(const T &left, const T &right) {
 //        T res;
 //        for (int a = 0; a < 2; ++a) {
 //            for (int b = 0; b < (a ? 1 : 2); ++b) {
@@ -491,15 +484,16 @@ class SGT {
 //    }
 };
 
-template<class T>
+template<class T, typename F = function<T(const T, const T)>>
 class SGT {
 public:
     int n;    
     int size;  
     vt<T> root;
+    F func;
     T DEFAULT;  
     
-    SGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT) {
+    SGT(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
         size = 1;
         while (size < n) size <<= 1;
         root.assign(size << 1, DEFAULT);
@@ -509,7 +503,7 @@ public:
         idx += size;
         root[idx] = val;
         for (idx >>= 1; idx > 0; idx >>= 1) {
-            root[idx] = merge(root[idx << 1], root[idx << 1 | 1]);
+            root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
         }
     }
     
@@ -519,17 +513,17 @@ public:
         r += size;
         while (l <= r) {
             if ((l & 1) == 1) {
-                res_left = merge(res_left, root[l]);
+                res_left = func(res_left, root[l]);
                 l++;
             }
             if ((r & 1) == 0) {
-                res_right = merge(root[r], res_right);
+                res_right = func(root[r], res_right);
                 r--;
             }
             l >>= 1;
             r >>= 1;
         }
-        return merge(res_left, res_right);
+        return func(res_left, res_right);
     }
 	
 	T queries_at(int idx) {
@@ -538,10 +532,6 @@ public:
 
     T get() {
         return root[1];
-    }
-
-    T merge(const T &left, const T &right) {
-        
     }
 };
 
@@ -812,34 +802,79 @@ public:
     }
 };
 
+template<typename T, typename F = function<T(const T&, const T&)>>
+struct SparseTable2D {
+    int n, m, LOGN, LOGM;
+    vt<vt<vt<vt<T>>>> st;
+    vt<int> logn, logm;
+    F f;
+    T DEFAULT;
+    SparseTable2D(const vt<vt<T>> &a, T DEFAULT, F func) : f(func), DEFAULT(DEFAULT) {
+        n = a.size();
+        m = a[0].size();
+        LOGN = log2(n) + 1;
+        LOGM = log2(m) + 1;
+        logn.rsz(n + 1, 0);
+        logm.rsz(m + 1, 0);
+        for (int i = 2; i <= n; i++) logn[i] = logn[i / 2] + 1;
+        for (int j = 2; j <= m; j++) logm[j] = logm[j / 2] + 1;
+        st.assign(LOGN, vt<vt<vt<T>>>(LOGM, vt<vt<T>>(n, vt<T>(m))));
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++)
+                st[0][0][i][j] = a[i][j];
+        for (int l = 1; l < LOGM; l++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j + (1 << l) <= m; j++) {
+                    st[0][l][i][j] = f(st[0][l-1][i][j], st[0][l-1][i][j + (1 << (l-1))]);
+                }
+            }
+        }
+        for (int k = 1; k < LOGN; k++) {
+            for (int l = 0; l < LOGM; l++) {
+                for (int i = 0; i + (1 << k) <= n; i++) {
+                    for (int j = 0; j < m; j++) {
+                        st[k][l][i][j] = f(st[k-1][l][i][j], st[k-1][l][i + (1 << (k-1))][j]);
+                    }
+                }
+            }
+        }
+    }
+    T query(int r1, int c1, int r2, int c2) {
+        if(r2 < r1 || c2 < c1 || r1 <= 0 || r2 > n || c1 <= 0 || c2 > m) return DEFAULT;
+        int h = r2 - r1 + 1, w = c2 - c1 + 1;
+        int k = logn[h], l = logm[w];
+        T a1 = st[k][l][r1][c1],
+          a2 = st[k][l][r2 - (1 << k) + 1][c1],
+          a3 = st[k][l][r1][c2 - (1 << l) + 1],
+          a4 = st[k][l][r2 - (1 << k) + 1][c2 - (1 << l) + 1];
+        return f(f(a1, a2), f(a3, a4));
+    }
+};
+
+template<typename T>
 class TWO_DIMENSIONAL_RANGE_QUERY {   
     public: 
-    vvll prefix;
-    vvi grid;
+    vt<vt<T>> prefix;
     int n, m;
-    TWO_DIMENSIONAL_RANGE_QUERY(vvi& grid) {  
+    TWO_DIMENSIONAL_RANGE_QUERY(const vvi& grid) {  
         n = grid.size(), m = grid[0].size();
-        this->grid = grid;
-        prefix.assign(n + 1, vll(m + 1));  
-        init();
+        prefix.assign(n + 1, vt<T>(m + 1));  
+        for(int i = 1; i <= n; i++) {  
+            T sm = 0;
+            for(int j = 1; j <= m; j++) {  
+                sm += grid[i - 1][j - 1];
+                prefix[i][j] = sm + prefix[i - 1][j];
+            }
+        }
     }
     
-    ll get(int r1, int c1, int r2, int c2) {   
-        ll bottomRight = prefix[r2][c2];   
-        ll topLeft = prefix[r1 - 1][c1 - 1];
-        ll topRight = prefix[r1 - 1][c2];  
-        ll bottomLeft = prefix[r2][c1 - 1];
+    T get(int r1, int c1, int r2, int c2) {   
+        if(r2 < r1 || c2 < c1 || r1 <= 0 || r2 > n || c1 <= 0 || c2 > m) return -inf;
+        T bottomRight = prefix[r2][c2];   
+        T topLeft = prefix[r1 - 1][c1 - 1];
+        T topRight = prefix[r1 - 1][c2];  
+        T bottomLeft = prefix[r2][c1 - 1];
         return bottomRight - topRight - bottomLeft + topLeft;
-    }
-
-    void init() {   
-         for(int i = 1; i <= n; i++) {  
-             ll sm = 0;
-             for(int j = 1; j <= m; j++) {  
-                 sm += grid[i - 1][j - 1];
-                 prefix[i][j] = sm + prefix[i - 1][j];
-             }
-         }
     }
 };
 

@@ -94,8 +94,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
-#define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
 #define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
@@ -204,6 +202,8 @@ const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
+ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
+ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }

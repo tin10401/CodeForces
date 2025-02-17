@@ -94,8 +94,6 @@ template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, t
 #define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
 #define SORTED(x) is_sorted(all(x))
 #define rev(x) reverse(all(x))
-#define gcd(a, b) __gcd(a, b)
-#define lcm(a, b) (a * b) / gcd(a, b)
 #define MAX(a) *max_element(all(a)) 
 #define MIN(a) *min_element(all(a))
 #define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
@@ -204,6 +202,8 @@ const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
 const static int MOD = 1e9 + 7;
+ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
+ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
 bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
@@ -211,23 +211,27 @@ int max_bit(ll x) { return 63 - __builtin_clzll(x); }
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);}
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
 void solve() {
-    int n, q; cin >> n >> q;
+    int n; cin >> n;
     vi a(n); cin >> a;
-    rev(a);
-    while(q--) {
-        int x; cin >> x;
-        int res = 0;
-        for(auto& v : a) {
-            if(x < v) break;
-            x ^= v;
-            res ++;
-        }
-        cout << res << (q == 0 ? '\n' : ' ');
+    int m = MAX(a);
+    vll f(m + 1);
+    for(auto& x : a) f[x]++;
+    for(int i = 1; i <= m; i++) {
+        for(int j = i * 2; j <= m; j += i) f[i] += f[j];
     }
+    vll dp(m + 1);
+    for(ll i = m; i >= 1; i--) {
+        dp[i] = f[i] * i;
+        for(int j = i * 2; j <= m; j += i) {
+            dp[i] = max(dp[i], dp[j] + (f[i] - f[j]) * i);
+        }
+    }
+    cout << dp[1] << endl;
 }
 
 signed main() {
@@ -238,7 +242,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
