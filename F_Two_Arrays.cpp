@@ -215,33 +215,66 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
+struct info {
+    int w;
+    vi arr;
+};
 void solve() {
-    int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
+    int n, m; cin >> n >> m;
+    vt<info> a(n);
+    vi b;
+    for(int i = 0; i < n; i++) {
+        a[i].arr.rsz(m);
+        cin >> a[i].arr;
+        cin >> a[i].w;
+        b.insert(end(b), all(a[i].arr));
+    }
+    sort(all(a), [](const info& a, const info& b) { return a.w < b.w; });
+    srtU(b);
+    const int K = 100;
+    int N = b.size();
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    vvi pos(N);
+    for(int i = 0; i < n; i++) {
+        for(auto& x : a[i].arr) {
+            x = get_id(x);
+            pos[x].pb(i);
+        }
+    }
+    vt<bitset<MX>> g; 
+    vi id(N);
+    for(int i = 0, ptr = 0; i < N; i++) {
+        if(pos[i].size() >= K) {
+            g.pb(bitset<MX>());
+            id[i] = g.size() - 1;
+            auto& now = g.back();
+            for(auto& v : pos[i]) {
+                now.set(v);
             }
         }
-        swap(dp, next);
     }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
+    bitset<MX> all, curr;
+    for(int i = 0; i <= n; i++) all.set(i);
+    ll res = INF;
+    for(int i = 0; i < n; i++) {
+        for(auto& x : a[i].arr) {
+            if(pos[x].size() >= K) {
+                curr |= g[id[x]];
+            }
+            else {
+                for(auto& v : pos[x]) curr.set(v);
+            }
         }
+        curr ^= all;
+        int j = curr._Find_first();
+        if(j < n) {
+            res = min(res, (ll)a[i].w + a[j].w);
+        }
+        curr.reset();
     }
-    cout << 0 << endl;
+    cout << (res == INF ? -1 : res) << endl;
 }
 
 signed main() {

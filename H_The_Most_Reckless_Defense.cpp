@@ -1,4 +1,4 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
+//██████
 //╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
 //░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
 //░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
@@ -215,33 +215,121 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-void solve() {
-    int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
+struct MCMF {
+    public:
+    int V;
+    struct Edge {
+        int to, _rev;
+        ll capacity, cost;
+        Edge() {}
+
+        Edge(int to, int _rev, ll capacity, ll cost) : to(to), _rev(_rev), capacity(capacity), cost(cost) {}
+    };
+
+    vt<vt<Edge>> graph;
+    MCMF(int V) : V(V), graph(V) {}
+
+    void add_edge(int u, int v, ll capacity, ll cost) {
+        Edge a(v, int(graph[v].size()), capacity, cost);
+        Edge b(u, int(graph[u].size()), 0, -cost);
+        graph[u].pb(a);
+        graph[v].pb(b);
+    }
+
+    pll min_cost_flow(int s, int t, ll max_f) { // negate the sign to make max_cost
+        ll flow = 0, flow_cost = 0;
+        vll prev_v(V, -1), prev_e(V, -1);
+        while(flow < max_f) {
+            vll dist(V, INF);
+            vb vis(V, false);
+            queue<int> q;
+            dist[s] = 0;
+            q.push(s);
+            vis[s] = true;
+            while(!q.empty()) {
+                auto u = q.front(); q.pop();
+                vis[u] = false;
+                for(int i = 0; i < graph[u].size(); i++) {
+                    auto& e = graph[u][i];
+                    if(e.capacity > 0 && dist[e.to] > dist[u] + e.cost) {
+                        dist[e.to] = dist[u] + e.cost;
+                        prev_v[e.to] = u;
+                        prev_e[e.to] = i;
+                        q.push(e.to);
+                        if(!vis[e.to]) {
+                            vis[e.to] = true;
+                        }
+                    } 
+                }
+            }
+            if(dist[t] == INF) break;
+            ll df = max_f - flow;
+            int v = t;
+            while(v != s) {
+                int u = prev_v[v];
+                int e_idx = prev_e[v];
+                df = min(df, graph[u][e_idx].capacity);
+                v = u;
+            }
+            flow += df;
+            flow_cost += df * dist[t];
+            v = t;
+            while(v != s) {
+                int u = prev_v[v];
+                int e_idx = prev_e[v];
+                graph[u][e_idx].capacity -= df;
+                graph[v][graph[u][e_idx]._rev].capacity += df;
+                v = u;
             }
         }
-        swap(dp, next);
+        return {flow, flow_cost};
     }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
+};
+
+void solve() {
+    int n, m, k; cin >> n >> m >> k;
+    vvc a(n, vc(m)); cin >> a;
+    var(3) tower(k);
+    for(auto& [x, y, p] : tower) {
+        cin >> x >> y >> p;
+        x--, y--;
+    }
+    const int K = 21;
+    int N = K + k;
+    int src = N, sink = N + 1;
+    MCMF graph(N + 2);
+    ll p = 1;
+    for(int r = 0; r < K; r++) {
+        if(r) p *= 3;
+        for(int j = 0; j < k; j++) {
+            if(r == 0) {
+                graph.add_edge(r, j + K, 1, 0);
+                continue;
+            }
+            ll v = p;
+            auto& [row, col, pp] = tower[j];
+            for(int dx = -r; dx <= r; dx++) {
+                for(int dy = -r; dy <= r; dy++) {
+                    if(dx * dx + dy * dy <= r * r) {
+                        int nr = row + dx;
+                        int nc = col + dy;
+                        if(nr >= 0 && nc >= 0 && nr < n && nc < m && a[nr][nc] == '#') {
+                            v -= pp; 
+                        }
+                    }
+                }
+            }
+            graph.add_edge(r, j + K, 1, v);
         }
     }
-    cout << 0 << endl;
+    graph.add_edge(src, 0, k, 0);
+    for(int i = 0; i < K; i++) {
+        graph.add_edge(src, i, 1, 0);
+    }
+    for(int i = 0; i < k; i++) {
+        graph.add_edge(i + K, sink, 1, 0);
+    }
+    cout << -graph.min_cost_flow(src, sink, INF).ss << endl;
 }
 
 signed main() {
@@ -252,7 +340,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

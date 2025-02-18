@@ -356,16 +356,44 @@ class MANACHER {
     public: 
     string s;   
     string ans; 
-    RabinKarp a, b;
     int n;
-    MANACHER(const string& s) : a(s), b(string(s.rbegin(), s.rend())) { 
+    vi man;
+    MANACHER(const string& s) { 
         this->n = s.size();
+        this->s = s;
+        build_manacher();
         string odd = get_max_palindrome(s, 1);  
         string even = get_max_palindrome(s, 0);
         ans = odd.size() > even.size() ? odd : even;
     }
     
-    string get() {  
+    void build_manacher() {
+        string t;
+        for (char c : s) {
+            t.push_back('#');
+            t.push_back(c);
+        }
+        t.push_back('#');
+        int T = t.size();
+        man.assign(T, 0);
+        int L = 0, R = 0;
+        for (int i = 0; i < T; i++) {
+            if (i < R) {
+                man[i] = min(R - i, man[L + R - i]);
+            } else {
+                man[i] = 0;
+            }
+            while (i - man[i] >= 0 && i + man[i] < T && t[i - man[i]] == t[i + man[i]]) {
+                man[i]++;
+            }
+            if (i + man[i] > R) {
+                L = i - man[i] + 1;
+                R = i + man[i] - 1;
+            }
+        }
+    }
+
+    string longest_palindrome() {  
         return ans;
     }
 
@@ -429,8 +457,8 @@ class MANACHER {
     };
 
     bool is_palindrome(int left, int right) {
-        int rev_left = n - right - 1, rev_right = n - left - 1;
-        return a.get_hash(left, right + 1) == b.get_hash(rev_left, rev_right + 1);
+        int center = left + right + 1;
+        return man[center] >= (right - left + 1);
     }
 };
 

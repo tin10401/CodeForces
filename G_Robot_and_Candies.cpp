@@ -216,32 +216,30 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
 void solve() {
-    int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
-            }
-        }
-        swap(dp, next);
-    }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
+    int n, m; cin >> n >> m;
+    vpii c[2];
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < m; j++) {
+            char ch; cin >> ch;
+            if(ch == '1') {
+                c[(i + j) & 1].pb({i + j, i - j});
+            } 
         }
     }
-    cout << 0 << endl;
+    int res = 0;
+    for(auto& it : c) {
+        srt(it);
+        vi p;
+        for(auto& [_, x] : it) {
+            x = -x;
+            auto it = lb(all(p), x);
+            if(it == end(p)) p.pb(x);
+            else *it = x;
+        }
+        res += p.size();
+        debug(it, p);
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -252,7 +250,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
