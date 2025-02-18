@@ -215,33 +215,181 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) {
+        value = int(v % MOD);
+        if (value < 0) value += MOD;
+    }
+    
+    mod_int& operator+=(const mod_int &other) {
+        value += other.value;
+        if (value >= MOD) value -= MOD;
+        return *this;
+    }
+    
+    mod_int& operator-=(const mod_int &other) {
+        value -= other.value;
+        if (value < 0) value += MOD;
+        return *this;
+    }
+    
+    mod_int& operator*=(const mod_int &other) {
+        value = int((long long)value * other.value % MOD);
+        return *this;
+    }
+    
+    mod_int pow(long long p) const {
+        mod_int ans(1), a(*this);
+        while (p) {
+            if (p & 1) ans *= a;
+            a *= a;
+            p /= 2;
+        }
+        return ans;
+    }
+    
+    mod_int inv() const {
+        return pow(MOD - 2);
+    }
+    
+    mod_int& operator/=(const mod_int &other) {
+        return *this *= other.inv();
+    }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const {
+        return mod_int((long long)value & other.value);
+    }
+    mod_int& operator&=(const mod_int &other) {
+        value &= other.value;
+        return *this;
+    }
+    
+    mod_int operator|(const mod_int &other) const {
+        return mod_int((long long)value | other.value);
+    }
+    mod_int& operator|=(const mod_int &other) {
+        value |= other.value;
+        return *this;
+    }
+    
+    mod_int operator^(const mod_int &other) const {
+        return mod_int((long long)value ^ other.value);
+    }
+    mod_int& operator^=(const mod_int &other) {
+        value ^= other.value;
+        return *this;
+    }
+    
+    mod_int operator<<(int shift) const {
+        return mod_int(((long long)value << shift) % MOD);
+    }
+    mod_int& operator<<=(int shift) {
+        value = int(((long long)value << shift) % MOD);
+        return *this;
+    }
+    
+    mod_int operator>>(int shift) const {
+        return mod_int(value >> shift);
+    }
+    mod_int& operator>>=(int shift) {
+        value >>= shift;
+        return *this;
+    }
+    
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) {
+        os << a.value;
+        return os;
+    }
+    
+    friend std::istream& operator>>(std::istream &is, mod_int &a) {
+        long long v;
+        is >> v;
+        a = mod_int(v);
+        return is;
+    }
+};
+
+
+using mint = mod_int<998244353>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)]--;
+    }
+};
+
 void solve() {
-    int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
-            }
-        }
-        swap(dp, next);
+    int n; cin >> n;
+    vi a(n + 2), c(n + 2);
+    DSU root(n + 1);
+    for(int i = 1; i <= n; i++) {
+        int x; cin >> x;
+        a[x] = i;
     }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
-        }
+    for(int i = 1; i <= n; i++) {
+        cin >> c[i];
+        if(c[i] == c[i - 1]) root.merge(i - 1, i); // when you drop adjacent cell together, they'll end up the same cause of the color
     }
-    cout << 0 << endl;
+    vi l(n + 1), r(n + 1);
+    for(int i = 1; i <= n; i++) {
+        l[i] = i - 1, r[i] = i + 1; // immediate neighbor of i
+    }
+    mint ans = 1;
+    for(int i = 1; i <= n; i++) {
+        int x = a[i];
+        ans *= root.getRank(x);
+        int L = l[x], R = r[x];
+        if(L && R && c[L] == c[R]) root.merge(L, R); // after dropping everything in the middle, the immediate neighbor of this block get merge
+        if(R <= n && L >= 1) r[L] = R, l[R] = L;
+    }
+    cout << ans << endl;
 }
 
 signed main() {
@@ -252,7 +400,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

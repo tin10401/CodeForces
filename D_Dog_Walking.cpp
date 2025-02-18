@@ -217,31 +217,39 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 
 void solve() {
     int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
+    vpll prefix(n + 1), suffix(n + 2), g(n + 1);
+    for(int i = 1; i <= n; i++) {
+        int x; cin >> x;
+        if(x == 0) g[i] = {-k, k};
+        else g[i] = {x, x};
+    }
+    auto merge = [](const pll& a, const pll& b) -> pll {
+        return {a.ff + b.ff, a.ss + b.ss};
+    };
+    for(int i = 1; i <= n; i++) {
+        prefix[i] = merge(prefix[i - 1], g[i]);
+    }
+    for(int i = n; i >= 0; i--) {
+        suffix[i] = merge(suffix[i + 1], g[i]);
+    }
+    auto merge2 = [](const pll& a, const pll& b) -> pll {
+        return {max(a.ff, b.ff), min(a.ss, b.ss)};
+    };
+    ll res = -1;
+    for(int l = 0; l <= n; l++) {
+        pll now = {0, 0};
+        for(int m = l + 1; m <= n; m++) {
+            now = merge(now, g[m]);
+            auto LR = merge(prefix[l], suffix[m + 1]);
+            auto M = now;
+            M = {-M.ss, -M.ff};
+            M = merge2(LR, M);
+            if(M.ff <= M.ss) {
+                res = max(res, max(abs(M.ff), abs(M.ss)) + 1);
             }
         }
-        swap(dp, next);
     }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
-        }
-    }
-    cout << 0 << endl;
+    cout << res << endl;
 }
 
 signed main() {

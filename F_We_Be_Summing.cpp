@@ -215,33 +215,90 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-void solve() {
-    int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
             }
         }
-        swap(dp, next);
+        return curr + 1;
     }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
+};
+
+void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n); cin >> a;
+    // for R
+    auto next_greater = closest_right(a, greater<int>());
+    auto prev_greater_equal = closest_left(a, greater_equal<int>());
+    
+    // for L
+    auto next_less_equal = closest_right(a, less_equal<int>());
+    auto prev_less = closest_left(a, less<int>());
+
+    FW<ll> root(n, 0, [](const ll& a, const ll& b) { return a + b; });
+    vvi pos(k + 1);
+    for(int i = 0; i < n; i++) {
+        if(a[i] <= k) pos[a[i]].pb(i);
+    }
+    ll res = 0;
+    auto update_right = [&](int i, int delta) -> void {
+        root.update(max(0, prev_greater_equal[i] - 1), delta * (next_greater[i] - i + 1));
+    };
+    for(int mn = 1, mx = k - 1; mn <= k; mn++, mx--) {
+        auto& L = pos[mn];
+        auto& R = pos[mx];
+        if(R.empty() || L.empty()) continue;
+        for(auto& i : R) update_right(i, 1);
+        int N = R.size(), j = 0;
+        for(auto& i : L) {
+            while(j < N && R[j] <= i) update_right(R[j++], -1);
+            res += root.get(next_less_equal[i]) * ((ll)i - prev_less[i] + 1);
         }
+        while(j < N) update_right(R[j++], -1);
     }
-    cout << 0 << endl;
+    cout << res << endl;
 }
 
 signed main() {
@@ -252,7 +309,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

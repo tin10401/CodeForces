@@ -217,31 +217,25 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 
 void solve() {
     int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
-            }
-        }
-        swap(dp, next);
+    string s; cin >> s;
+    srt(s);
+    if(k == 1) {
+        cout << s << endl;
+        return;
     }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
-        }
+    if(s[0] != s[k - 1] || k == n) {
+        cout << s[k - 1] << endl;
+        return;
     }
-    cout << 0 << endl;
+    if(s[k] != s.back()) { // because if you take away any of them, it will shifted, and in that order, it'll be not smaller
+        cout << s.substr(k - 1) << endl;
+        return;
+    }
+    string res = {s[k - 1]};
+    int len = n - k;
+    int total = len / k + (len % k > 0);
+    res += string(total, s.back());
+    cout << res << endl;
 }
 
 signed main() {
@@ -252,7 +246,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
