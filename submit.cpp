@@ -152,6 +152,16 @@ vi closest_right(const vt<T>& a, Compare cmp) {
     return closest;
 }
 
+template<typename T, typename V = string>
+vt<pair<T, int>> encode(const V& s) {
+    vt<pair<T, int>> seg;
+    for(auto& ch : s) {
+        if(seg.empty() || ch != seg.back().ff) seg.pb({ch, 1});
+        else seg.back().ss++;
+    }
+    return seg;
+}
+
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -216,32 +226,6 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
 void solve() {
-    int n, k; cin >> n >> k;
-    ll tot = 0;
-    vi dp(k);
-    dp[0] = 1;
-    ll red = 0, blue = 0;
-    while(n--) {
-        int a, b; cin >> a >> b;
-        red += a, blue += b;
-        vi next(k);
-        for(int r = 0; r <= min(k - 1, a); r++) {
-            int need = (k - (a - r) % k) % k;
-            if(need > b) continue;
-            for(int p = 0; p < k; p++) {
-                next[(p + r) % k] |= dp[p];
-            }
-        }
-        swap(dp, next);
-    }
-    for(int r = 0; r < k; r++) {
-        if(dp[r]) {
-            debug(red, blue, red + blue - r, k);
-            cout << (red + blue - r) / k << '\n';
-            return;
-        }
-    }
-    cout << 0 << endl;
 }
 
 signed main() {

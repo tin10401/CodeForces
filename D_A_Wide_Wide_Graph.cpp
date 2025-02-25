@@ -152,16 +152,6 @@ vi closest_right(const vt<T>& a, Compare cmp) {
     return closest;
 }
 
-template<typename T, typename V = string>
-vt<pair<T, int>> encode(const V& s) {
-    vt<pair<T, int>> seg;
-    for(auto& ch : s) {
-        if(seg.empty() || ch != seg.back().ff) seg.pb({ch, 1});
-        else seg.back().ss++;
-    }
-    return seg;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -225,93 +215,82 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-struct Persistent_DSU {
-	int n, version;
-    vvpii parent, rank;
-	Persistent_DSU(int n) {
-		this->n = n; version = 0;
-		parent.rsz(n); rank.rsz(n);
-		for (int i = 0; i < n; i++) {
-			parent[i].pb(MP(version, i));
-			rank[i].pb(MP(version, 1));
-		}
-	}
- 
-	int find(int u, int ver) {
-		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
-        return par != u ? find(par, ver) : par;
-	}
- 
-	int getRank(int u, int ver) {
-		u = find(u, ver);
-		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
-		return sz;
-	}
- 
-	int merge(int u, int v, int ver) {
-		u = find(u, ver), v = find(v, ver);
-		if (u == v) return 0;
-		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
-
-		version = ver;
-		int szu = rank[u].back().ss;
-		int szv = rank[v].back().ss;
-		if (szu > szv) {swap(u, v);}
-		parent[u].pb({version, v});
-		int new_sz = szu + szv;
-		rank[v].pb({version, new_sz});
-		return version;
-	}
- 
-	bool same(int u, int v, int ver) {
-        return find(u, ver) == find(v, ver);
-	}
-
-    int earliest_time(int u, int v, int N) {
-        int left = 0, right = N - 1, res = -1;
-        while(left <= right) {
-            int ver = midPoint;
-            if(same(u, v, ver)) res = ver, right = ver - 1;
-            else left = ver + 1;
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
         }
-        return res;
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int getRank(int x) {    
+        return rank[find(x)];
     }
 };
 
 void solve() {
-    int n, m; cin >> n >> m;
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    auto dfs = [&](auto& dfs, int node, int par, vi& a, int d = 0) -> void {
+        a[node] = d;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node, a, d + 1);
+        }
+    };
+    vi a(n), b(n);
+    dfs(dfs, 0, -1, a);
+    int f = max_element(all(a)) - begin(a);
+    dfs(dfs, f, -1, a);
+    int g = max_element(all(a)) - begin(a);
+    dfs(dfs, g, -1, b);
     var(3) edge;
     for(int i = 0; i < n; i++) {
-        for(int j = 0; j < m; j++) {
-            int w; cin >> w;
-            edge.pb({w, i, j});
-        }
+        edge.pb({a[i], i, f});
+        edge.pb({b[i], i, g});
     }
     srtR(edge);
-    vvb ok(n, vb(m));
-    Persistent_DSU root(n * m);
-    auto get_id = [&](int i, int j) -> int {
-        return i * m + j;
-    };
-    for(int ver = 0; ver < n * m; ver++) {
-        auto& [w, i, j] = edge[ver];
-        ok[i][j] = true;
-        for(int k = 0; k < 4; k++) {
-            int r = i + dirs[k][0], c = j + dirs[k][1];
-            if(r >= 0 && c >= 0 && r < n && c < m && ok[r][c]) {
-                root.merge(get_id(i, j), get_id(r, c), ver);
-            }
+    int N = edge.size();
+    DSU root(n);
+    vi ans;
+    for(int k = n, i = 0; k >= 1; k--) {
+        while(i < N && edge[i][0] >= k) {
+            root.merge(edge[i][1], edge[i][2]);
+            i++;
         }
+        ans.pb(root.comp);
     }
-    int q; cin >> q;
-    while(q--) {
-        int r1, c1, x, r2, c2, y; cin >> r1 >> c1 >> x >> r2 >> c2 >> y;
-        r1--, c1--, r2--, c2--;
-        int j = root.earliest_time(get_id(r1, c1), get_id(r2, c2), n * m);
-        int now = edge[j][0];
-        int res = x > now && y > now ? x + y - 2 * now : abs(x - y);
-        cout << res << endl;
-    }
+    rev(ans);
+    output_vector(ans);
 }
 
 signed main() {
@@ -349,4 +328,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

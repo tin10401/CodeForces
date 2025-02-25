@@ -350,6 +350,13 @@ struct RabinKarp {
         }
         return a.get_hash(rightMost + 1 + offSet, offSet + n) == get_hash(rightMost + 1, n);
     }
+	
+	ll combine_hash(pll a, pll b, int len) {
+        a.ff = ((a.ff * pow[0][len]) + b.ff) % globalMod[0];
+        a.ss = ((a.ss * pow[1][len]) + b.ss) % globalMod[1];
+        return (a.ff << 32) | a.ss;
+    }
+
 };
 
 class MANACHER {    

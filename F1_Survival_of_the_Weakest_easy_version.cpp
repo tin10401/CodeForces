@@ -152,16 +152,6 @@ vi closest_right(const vt<T>& a, Compare cmp) {
     return closest;
 }
 
-template<typename T, typename V = string>
-vt<pair<T, int>> encode(const V& s) {
-    vt<pair<T, int>> seg;
-    for(auto& ch : s) {
-        if(seg.empty() || ch != seg.back().ff) seg.pb({ch, 1});
-        else seg.back().ss++;
-    }
-    return seg;
-}
-
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -224,94 +214,82 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
 
-struct Persistent_DSU {
-	int n, version;
-    vvpii parent, rank;
-	Persistent_DSU(int n) {
-		this->n = n; version = 0;
-		parent.rsz(n); rank.rsz(n);
-		for (int i = 0; i < n; i++) {
-			parent[i].pb(MP(version, i));
-			rank[i].pb(MP(version, 1));
-		}
-	}
- 
-	int find(int u, int ver) {
-		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
-        return par != u ? find(par, ver) : par;
-	}
- 
-	int getRank(int u, int ver) {
-		u = find(u, ver);
-		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
-		return sz;
-	}
- 
-	int merge(int u, int v, int ver) {
-		u = find(u, ver), v = find(v, ver);
-		if (u == v) return 0;
-		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
-
-		version = ver;
-		int szu = rank[u].back().ss;
-		int szv = rank[v].back().ss;
-		if (szu > szv) {swap(u, v);}
-		parent[u].pb({version, v});
-		int new_sz = szu + szv;
-		rank[v].pb({version, new_sz});
-		return version;
-	}
- 
-	bool same(int u, int v, int ver) {
-        return find(u, ver) == find(v, ver);
-	}
-
-    int earliest_time(int u, int v, int N) {
-        int left = 0, right = N - 1, res = -1;
-        while(left <= right) {
-            int ver = midPoint;
-            if(same(u, v, ver)) res = ver, right = ver - 1;
-            else left = ver + 1;
-        }
-        return res;
-    }
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+    
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
 };
 
+using mint = mod_int<int(1e9 + 7)>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+
+
 void solve() {
-    int n, m; cin >> n >> m;
-    var(3) edge;
-    for(int i = 0; i < n; i++) {
-        for(int j = 0; j < m; j++) {
-            int w; cin >> w;
-            edge.pb({w, i, j});
+    int n; cin >> n;
+    vll a(n); cin >> a;
+    srt(a);
+    mint add = 0;
+    while(n > 1) {
+        ll mn = MIN(a);
+        for(auto& x : a) x -= mn;
+        add += mint(2).pow(n - 1) * mn;
+        vll now;
+        min_heap<al(3)> q;
+        for(int i = 0; i + 1 < n; i++) {
+            q.push({a[i] + a[i + 1], i, i + 1});
         }
-    }
-    srtR(edge);
-    vvb ok(n, vb(m));
-    Persistent_DSU root(n * m);
-    auto get_id = [&](int i, int j) -> int {
-        return i * m + j;
-    };
-    for(int ver = 0; ver < n * m; ver++) {
-        auto& [w, i, j] = edge[ver];
-        ok[i][j] = true;
-        for(int k = 0; k < 4; k++) {
-            int r = i + dirs[k][0], c = j + dirs[k][1];
-            if(r >= 0 && c >= 0 && r < n && c < m && ok[r][c]) {
-                root.merge(get_id(i, j), get_id(r, c), ver);
-            }
+        while(now.size() < n - 1) {
+            auto [curr, i, j] = q.top(); q.pop();
+            now.pb(curr);
+            if(j + 1 < n) q.push({a[i] + a[j + 1], i, j + 1});
         }
+        swap(now, a);
+        n--;
     }
-    int q; cin >> q;
-    while(q--) {
-        int r1, c1, x, r2, c2, y; cin >> r1 >> c1 >> x >> r2 >> c2 >> y;
-        r1--, c1--, r2--, c2--;
-        int j = root.earliest_time(get_id(r1, c1), get_id(r2, c2), n * m);
-        int now = edge[j][0];
-        int res = x > now && y > now ? x + y - 2 * now : abs(x - y);
-        cout << res << endl;
-    }
+    add += a[0];
+    cout << add << endl;
 }
 
 signed main() {
@@ -349,4 +327,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

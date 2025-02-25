@@ -2,45 +2,15 @@ template <int MOD>
 struct mod_int {
     int value;
     
-    mod_int(long long v = 0) {
-        value = int(v % MOD);
-        if (value < 0) value += MOD;
-    }
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
     
-    mod_int& operator+=(const mod_int &other) {
-        value += other.value;
-        if (value >= MOD) value -= MOD;
-        return *this;
-    }
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
     
-    mod_int& operator-=(const mod_int &other) {
-        value -= other.value;
-        if (value < 0) value += MOD;
-        return *this;
-    }
-    
-    mod_int& operator*=(const mod_int &other) {
-        value = int((long long)value * other.value % MOD);
-        return *this;
-    }
-    
-    mod_int pow(long long p) const {
-        mod_int ans(1), a(*this);
-        while (p) {
-            if (p & 1) ans *= a;
-            a *= a;
-            p /= 2;
-        }
-        return ans;
-    }
-    
-    mod_int inv() const {
-        return pow(MOD - 2);
-    }
-    
-    mod_int& operator/=(const mod_int &other) {
-        return *this *= other.inv();
-    }
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
     
     friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
     friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
@@ -54,59 +24,30 @@ struct mod_int {
     bool operator<=(const mod_int &other) const { return value <= other.value; }
     bool operator>=(const mod_int &other) const { return value >= other.value; }
     
-    mod_int operator&(const mod_int &other) const {
-        return mod_int((long long)value & other.value);
-    }
-    mod_int& operator&=(const mod_int &other) {
-        value &= other.value;
-        return *this;
-    }
-    
-    mod_int operator|(const mod_int &other) const {
-        return mod_int((long long)value | other.value);
-    }
-    mod_int& operator|=(const mod_int &other) {
-        value |= other.value;
-        return *this;
-    }
-    
-    mod_int operator^(const mod_int &other) const {
-        return mod_int((long long)value ^ other.value);
-    }
-    mod_int& operator^=(const mod_int &other) {
-        value ^= other.value;
-        return *this;
-    }
-    
-    mod_int operator<<(int shift) const {
-        return mod_int(((long long)value << shift) % MOD);
-    }
-    mod_int& operator<<=(int shift) {
-        value = int(((long long)value << shift) % MOD);
-        return *this;
-    }
-    
-    mod_int operator>>(int shift) const {
-        return mod_int(value >> shift);
-    }
-    mod_int& operator>>=(int shift) {
-        value >>= shift;
-        return *this;
-    }
-    
-    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) {
-        os << a.value;
-        return os;
-    }
-    
-    friend std::istream& operator>>(std::istream &is, mod_int &a) {
-        long long v;
-        is >> v;
-        a = mod_int(v);
-        return is;
-    }
-};
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
 
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
+};
 
 using mint = mod_int<998244353>;
 using vmint = vt<mint>;

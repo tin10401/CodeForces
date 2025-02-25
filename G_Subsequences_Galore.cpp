@@ -225,93 +225,105 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-struct Persistent_DSU {
-	int n, version;
-    vvpii parent, rank;
-	Persistent_DSU(int n) {
-		this->n = n; version = 0;
-		parent.rsz(n); rank.rsz(n);
-		for (int i = 0; i < n; i++) {
-			parent[i].pb(MP(version, i));
-			rank[i].pb(MP(version, 1));
-		}
-	}
- 
-	int find(int u, int ver) {
-		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
-        return par != u ? find(par, ver) : par;
-	}
- 
-	int getRank(int u, int ver) {
-		u = find(u, ver);
-		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
-		return sz;
-	}
- 
-	int merge(int u, int v, int ver) {
-		u = find(u, ver), v = find(v, ver);
-		if (u == v) return 0;
-		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
 
-		version = ver;
-		int szu = rank[u].back().ss;
-		int szv = rank[v].back().ss;
-		if (szu > szv) {swap(u, v);}
-		parent[u].pb({version, v});
-		int new_sz = szu + szv;
-		rank[v].pb({version, new_sz});
-		return version;
-	}
- 
-	bool same(int u, int v, int ver) {
-        return find(u, ver) == find(v, ver);
-	}
-
-    int earliest_time(int u, int v, int N) {
-        int left = 0, right = N - 1, res = -1;
-        while(left <= right) {
-            int ver = midPoint;
-            if(same(u, v, ver)) res = ver, right = ver - 1;
-            else left = ver + 1;
-        }
-        return res;
-    }
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+    
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
 };
 
-void solve() {
-    int n, m; cin >> n >> m;
-    var(3) edge;
-    for(int i = 0; i < n; i++) {
-        for(int j = 0; j < m; j++) {
-            int w; cin >> w;
-            edge.pb({w, i, j});
-        }
-    }
-    srtR(edge);
-    vvb ok(n, vb(m));
-    Persistent_DSU root(n * m);
-    auto get_id = [&](int i, int j) -> int {
-        return i * m + j;
-    };
-    for(int ver = 0; ver < n * m; ver++) {
-        auto& [w, i, j] = edge[ver];
-        ok[i][j] = true;
-        for(int k = 0; k < 4; k++) {
-            int r = i + dirs[k][0], c = j + dirs[k][1];
-            if(r >= 0 && c >= 0 && r < n && c < m && ok[r][c]) {
-                root.merge(get_id(i, j), get_id(r, c), ver);
+using mint = mod_int<998244353>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+
+// Does the inverse of `submask_sums`; returns the input that produces the given output.
+template<typename T_out, typename T_in>
+void mobius_transform(int n, vt<T_in> &values) {
+    assert(int(values.size()) == 1 << n);
+ 
+    for (int i = 0; i < n; i++) {
+        for (int base = 0; base < 1 << n; base += 1 << (i + 1)) {
+            for (int mask = base; mask < base + (1 << i); mask++) {
+                values[mask + (1 << i)] -= values[mask];
             }
         }
     }
-    int q; cin >> q;
-    while(q--) {
-        int r1, c1, x, r2, c2, y; cin >> r1 >> c1 >> x >> r2 >> c2 >> y;
-        r1--, c1--, r2--, c2--;
-        int j = root.earliest_time(get_id(r1, c1), get_id(r2, c2), n * m);
-        int now = edge[j][0];
-        int res = x > now && y > now ? x + y - 2 * now : abs(x - y);
-        cout << res << endl;
+}
+
+void solve() {
+    int n; cin >> n;
+    vvi cnt(n, vi(26));
+    for(int i = 0; i < n; i++) {
+        string s; cin >> s;
+        for(auto& ch : s) cnt[i][ch - 'a']++;
     }
+    vmint dp(1 << n);
+    dp[0] = 0;
+    var(26) min_cnt(1 << n);
+    for(int i = 0; i < 26; i++) min_cnt[0][i] = inf;
+    for(int mask = 1; mask < 1 << n; mask++) {
+        int i = min_bit(mask);
+        min_cnt[mask] = min_cnt[mask ^ (1LL << i)];
+        auto& t = dp[mask];
+        t++;
+        for(int j = 0; j < 26; j++) {
+            min_cnt[mask][j] = min(min_cnt[mask][j], cnt[i][j]);
+            t *= min_cnt[mask][j] + 1;
+        }
+    }
+    mobius_transform<mint>(n, dp);
+    for(int i = 0; i < 1 << n; i++) {
+        if(pct(i) % 2 == 0) dp[i] *= -1;
+    }
+    ll ans = 0;
+    for(int mask = 1; mask < 1 << n; mask++) {
+        int sm = 0;
+        for(int i = 0; i < n; i++) {
+            if(have_bit(mask, i)) sm += i + 1;
+        }
+        ans ^= (ll)(dp[mask].value) * pct(mask) * sm;
+    }
+    cout << ans << endl;
 }
 
 signed main() {
@@ -349,4 +361,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
