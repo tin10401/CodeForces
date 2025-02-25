@@ -175,7 +175,7 @@ class DSU {
         return find(u) == find(v);
     }
     
-    int getRank(int x) {    
+    int get_rank(int x) {    
         return rank[find(x)];
     }
 };
@@ -239,7 +239,7 @@ struct Persistent_DSU {
         return par != u ? find(par, ver) : par;
 	}
  
-	int getRank(int u, int ver) {
+	int get_rank(int u, int ver) {
 		u = find(u, ver);
 		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
 		return sz;
@@ -263,60 +263,15 @@ struct Persistent_DSU {
 	bool same(int u, int v, int ver) {
         return find(u, ver) == find(v, ver);
 	}
-};
 
-class Undo_DSU {
-    public:
-    vi par, rank;
-    stack<ar(4)> st;
-    int n;
-    int comp;
-    ll res;
-    Undo_DSU(int n) {
-        this->n = n;
-        this->comp = n;
-        res = 0;
-        par.rsz(n), rank.rsz(n, 1);
-        iota(all(par), 0);
-    }
- 
-    int find(int v) {
-        if (par[v] == v) return v;
-        return find(par[v]);
-    }
- 
-    bool merge(int a, int b, bool save = false) {
-        a = find(a); b = find(b);
-        if (a == b) return false;
-        comp--;
-        if (rank[a] < rank[b]) swap(a, b);
-        if (save) st.push({a, rank[a], b, rank[b]});
-        ll v = 1LL * rank[a] * rank[b];
-        res += v;
-        par[b] = a;
-        rank[a] += rank[b];
-        return true;
-    }
- 
-    void rollBack() {
-        if(!st.empty()) {
-            comp++;
-            auto x = st.top(); st.pop();
-            ll v = 1LL * x[1] * x[3];
-            res -= v;
-            par[x[0]] = x[0];
-            rank[x[0]] = x[1];
-            par[x[2]] = x[2];
-            rank[x[2]] = x[3];
+    int earliest_time(int u, int v, int N) {
+        int left = 0, right = N - 1, res = -1;
+        while(left <= right) {
+            int ver = midPoint;
+            if(same(u, v, ver)) res = ver, right = ver - 1;
+            else left = ver + 1;
         }
-    }
- 
-    bool same(int u, int v) {
-        return find(u) == find(v);
-    }
- 
-    int getRank(int u) {
-        return rank[find(u)];
+        return res;
     }
 };
 

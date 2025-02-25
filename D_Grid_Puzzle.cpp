@@ -225,93 +225,26 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-struct Persistent_DSU {
-	int n, version;
-    vvpii parent, rank;
-	Persistent_DSU(int n) {
-		this->n = n; version = 0;
-		parent.rsz(n); rank.rsz(n);
-		for (int i = 0; i < n; i++) {
-			parent[i].pb(MP(version, i));
-			rank[i].pb(MP(version, 1));
-		}
-	}
- 
-	int find(int u, int ver) {
-		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
-        return par != u ? find(par, ver) : par;
-	}
- 
-	int getRank(int u, int ver) {
-		u = find(u, ver);
-		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
-		return sz;
-	}
- 
-	int merge(int u, int v, int ver) {
-		u = find(u, ver), v = find(v, ver);
-		if (u == v) return 0;
-		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
-
-		version = ver;
-		int szu = rank[u].back().ss;
-		int szv = rank[v].back().ss;
-		if (szu > szv) {swap(u, v);}
-		parent[u].pb({version, v});
-		int new_sz = szu + szv;
-		rank[v].pb({version, new_sz});
-		return version;
-	}
- 
-	bool same(int u, int v, int ver) {
-        return find(u, ver) == find(v, ver);
-	}
-
-    int earliest_time(int u, int v, int N) {
-        int left = 0, right = N - 1, res = -1;
-        while(left <= right) {
-            int ver = midPoint;
-            if(same(u, v, ver)) res = ver, right = ver - 1;
-            else left = ver + 1;
-        }
-        return res;
-    }
-};
-
 void solve() {
-    int n, m; cin >> n >> m;
-    var(3) edge;
-    for(int i = 0; i < n; i++) {
-        for(int j = 0; j < m; j++) {
-            int w; cin >> w;
-            edge.pb({w, i, j});
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    int res = 0;
+    for(auto& x : a) res += int(x > 0);
+    int i = 0;
+    while(i < n) {
+        if(a[i] == 0 || a[i] > 2) {
+            i++;
+            continue;
         }
-    }
-    srtR(edge);
-    vvb ok(n, vb(m));
-    Persistent_DSU root(n * m);
-    auto get_id = [&](int i, int j) -> int {
-        return i * m + j;
-    };
-    for(int ver = 0; ver < n * m; ver++) {
-        auto& [w, i, j] = edge[ver];
-        ok[i][j] = true;
-        for(int k = 0; k < 4; k++) {
-            int r = i + dirs[k][0], c = j + dirs[k][1];
-            if(r >= 0 && c >= 0 && r < n && c < m && ok[r][c]) {
-                root.merge(get_id(i, j), get_id(r, c), ver);
-            }
+        int j = i + 1;
+        while(j < n && (a[j] == 3 || a[j] == 4)) j++;
+        if(j < n && ((a[j] == 1 || a[j] == 2)  && (j - i) % 2 == 1)) {
+            res--;
+            i = j + 1;
         }
+        else i++;
     }
-    int q; cin >> q;
-    while(q--) {
-        int r1, c1, x, r2, c2, y; cin >> r1 >> c1 >> x >> r2 >> c2 >> y;
-        r1--, c1--, r2--, c2--;
-        int j = root.earliest_time(get_id(r1, c1), get_id(r2, c2), n * m);
-        int now = edge[j][0];
-        int res = x > now && y > now ? x + y - 2 * now : abs(x - y);
-        cout << res << endl;
-    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -322,7 +255,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -349,4 +282,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

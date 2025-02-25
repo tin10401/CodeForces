@@ -152,6 +152,16 @@ vi closest_right(const vt<T>& a, Compare cmp) {
     return closest;
 }
 
+template<typename T, typename V = string>
+vt<pair<T, int>> encode(const V& s) {
+    vt<pair<T, int>> seg;
+    for(auto& ch : s) {
+        if(seg.empty() || ch != seg.back().ff) seg.pb({ch, 1});
+        else seg.back().ss++;
+    }
+    return seg;
+}
+
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {

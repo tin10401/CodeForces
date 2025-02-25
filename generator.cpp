@@ -156,9 +156,9 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 int main(int argc, char* argv[]) {
-    int N = 10;
+    int N = 13;
     int Q = 10;
-    const int V = 10; // 1e8
+    const int V = 1000; // 1e8
     // Define distributions
     uniform_int_distribution<int> dist_n(1, N);
     uniform_int_distribution<int> dist_q(1, Q);
@@ -166,13 +166,10 @@ int main(int argc, char* argv[]) {
     uniform_int_distribution<int> val(1, V); // if you need negative values, adjust accordingly
 
     cout << 1 << endl;
-    int n = dist_n(rng), m = dist_q(rng);
-    cout << n << ' ' << m << endl;
-    for(int i = 0; i < n; i++) {
-        cout << val(rng) << (i == n - 1 ? '\n' :  ' ');
-    }
-    while(m--) {
-        cout << val(rng) << (m == 0 ? '\n' : ' ');
+    int n = dist_n(rng);
+    cout << n << endl;
+    while(n--) {
+        cout << val(rng) << (n == 0 ? '\n' : ' ');
     }
 
     return 0;

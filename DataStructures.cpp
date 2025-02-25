@@ -535,6 +535,65 @@ public:
     }
 };
 
+struct merge_sort_tree {
+    int n;
+    vvi arr;
+    vi ans;
+    int res = inf;
+    merge_sort_tree(vi& a) : n(a.size()) {
+        arr.rsz(n * 4);
+        ans.rsz(n * 4);
+        build(entireTree, a);
+    }
+
+    void build(iter, vi& a) {
+        ans[i] = inf;
+        for(int j = left; j <= right; j++) arr[i].pb(a[j]);
+        srt(arr[i]);
+        if(left == right) return;
+        int middle = midPoint;
+        build(lp, a);
+        build(rp, a);
+    }
+
+    void update_range(int start, int end, int x) {
+        update_range(entireTree, start, end, x);
+    }
+
+    void update_range(iter, int s, int e, int x) {
+        if(left > e || s > right) return;
+        if(s <= left && right <= e) {
+            auto it = lb(all(arr[i]), x);
+            int t = inf;
+            if(it != end(arr[i])) t = min(t, abs(*it - x));
+            if(it != begin(arr[i])) t = min(t, abs(*--it - x));
+            ans[i] = min(ans[i], t);
+            if(t >= res) return;
+        }
+        if(left == right) {
+            res = min(res, ans[i]);
+            return;
+        }
+        int middle = midPoint;
+        update_range(rp, s, e, x);
+        res = min(res, ans[rc]);
+        update_range(lp, s, e, x);
+        ans[i] = min(ans[lc], ans[rc]);
+        res = min(res, ans[i]);
+    }
+
+    int queries_range(int left, int right) {
+        return queries_range(entireTree, left, right);
+    }
+
+    int queries_range(iter, int s, int e) {
+        if(left > e || s > right) return inf;
+        if(s <= left && right <= e) return ans[i];
+        int middle = midPoint;
+        return min(queries_range(lp, s, e), queries_range(rp, s, e));
+    }
+};
+
 // PERSISTENT SEGTREE
 int t[MX * MK], ptr, root[MX * 120]; // log2 = MX * 200; careful to match root with the type of template below
 pii child[MX * 120];
@@ -1079,36 +1138,6 @@ class SegTree_Graph {
 //        update(lp, start, end, u, w, type);    
 //        update(rp, start, end, u, w, type);    
 //    }
-};
-
-struct DynaCon { 
-    int SZ;  
-    Undo_DSU D;
-    vvpii seg;
-    vll ans;
-    DynaCon(int n, int dsuSize) : D(dsuSize) {
-		SZ = 1;
-        while(SZ < n) SZ <<= 1;
-        seg.resize(SZ << 1);
-        ans.rsz(SZ);
-    }
-
-    void update_range(int l, int r, pii p) {  
-        l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
-            l >>= 1; r >>= 1;
-        }
-    }
-    
-    void process(int ind = 1) {
-        int c = 0;
-        for(auto &[u, v] : seg[ind]) if(D.merge(u, v, true)) c++;
-        if (ind >= SZ) { ans[ind - SZ] = D.res; }
-        else { process(2 * ind); process(2 * ind + 1); }
-        while(c--) D.rollBack();
-    }
 };
 
 template<class T>

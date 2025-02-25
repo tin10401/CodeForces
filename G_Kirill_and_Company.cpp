@@ -225,93 +225,67 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 
-struct Persistent_DSU {
-	int n, version;
-    vvpii parent, rank;
-	Persistent_DSU(int n) {
-		this->n = n; version = 0;
-		parent.rsz(n); rank.rsz(n);
-		for (int i = 0; i < n; i++) {
-			parent[i].pb(MP(version, i));
-			rank[i].pb(MP(version, 1));
-		}
-	}
- 
-	int find(int u, int ver) {
-		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
-        return par != u ? find(par, ver) : par;
-	}
- 
-	int getRank(int u, int ver) {
-		u = find(u, ver);
-		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
-		return sz;
-	}
- 
-	int merge(int u, int v, int ver) {
-		u = find(u, ver), v = find(v, ver);
-		if (u == v) return 0;
-		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
-
-		version = ver;
-		int szu = rank[u].back().ss;
-		int szv = rank[v].back().ss;
-		if (szu > szv) {swap(u, v);}
-		parent[u].pb({version, v});
-		int new_sz = szu + szv;
-		rank[v].pb({version, new_sz});
-		return version;
-	}
- 
-	bool same(int u, int v, int ver) {
-        return find(u, ver) == find(v, ver);
-	}
-
-    int earliest_time(int u, int v, int N) {
-        int left = 0, right = N - 1, res = -1;
-        while(left <= right) {
-            int ver = midPoint;
-            if(same(u, v, ver)) res = ver, right = ver - 1;
-            else left = ver + 1;
-        }
-        return res;
-    }
-};
-
 void solve() {
     int n, m; cin >> n >> m;
-    var(3) edge;
-    for(int i = 0; i < n; i++) {
-        for(int j = 0; j < m; j++) {
-            int w; cin >> w;
-            edge.pb({w, i, j});
-        }
+    vvi graph(n);
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
-    srtR(edge);
-    vvb ok(n, vb(m));
-    Persistent_DSU root(n * m);
-    auto get_id = [&](int i, int j) -> int {
-        return i * m + j;
-    };
-    for(int ver = 0; ver < n * m; ver++) {
-        auto& [w, i, j] = edge[ver];
-        ok[i][j] = true;
-        for(int k = 0; k < 4; k++) {
-            int r = i + dirs[k][0], c = j + dirs[k][1];
-            if(r >= 0 && c >= 0 && r < n && c < m && ok[r][c]) {
-                root.merge(get_id(i, j), get_id(r, c), ver);
+    int h; cin >> h;
+    vi f(h); cin >> f;
+    for(auto& x : f) x--;
+    int k; cin >> k;
+    vi no_car(h), have(n);
+    for(int i = 0; i < k; i++) {
+        int x; cin >> x;
+        x--;
+        have[f[x]] |= 1 << i;
+        no_car[x] = true;
+    }
+    queue<int> q;
+    q.push(0);
+    vvi dp(n, vi(1 << k));
+    vi dis(n, inf);
+    dis[0] = 0;
+    dp[0][0] = true;
+    while(!q.empty()) {
+        auto node = q.front(); q.pop();
+        for(auto& nei : graph[node]) {
+            int new_cost = dis[node] + 1;
+            if(new_cost <= dis[nei]) {
+                for(int mask = 0; mask < 1 << k; mask++) {
+                    if(dp[node][mask]) {
+                        dp[nei][mask | have[nei]] = true;
+                    }
+                }
+                if(new_cost < dis[nei]) {
+                    dis[nei] = new_cost;
+                    q.push(nei);
+                }
             }
         }
     }
-    int q; cin >> q;
-    while(q--) {
-        int r1, c1, x, r2, c2, y; cin >> r1 >> c1 >> x >> r2 >> c2 >> y;
-        r1--, c1--, r2--, c2--;
-        int j = root.earliest_time(get_id(r1, c1), get_id(r2, c2), n * m);
-        int now = edge[j][0];
-        int res = x > now && y > now ? x + y - 2 * now : abs(x - y);
-        cout << res << endl;
+    vi ok(1 << k);
+    ok[0] = true;
+    for(int i = 0; i < h; i++) {
+        if(no_car[i]) continue;
+        for(int s = (1 << k) - 1; s >= 0; s--) {
+            if(!ok[s]) continue;
+            for(int t = 0; t < 1 << k; t++) {
+                ok[s | t] |= dp[f[i]][t];
+            }
+        }
     }
+    int res = k;
+    for(int mask = 0; mask < 1 << k; mask++) {
+        if(ok[mask]) {
+            res = min(res, k - pct(mask));
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -322,7 +296,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -349,4 +323,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

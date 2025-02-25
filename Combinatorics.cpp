@@ -16,7 +16,8 @@ void generatePrime() {  primeBits.set(2);
     }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 
-	mu[1] = 1;
+	iota(all(mu), 0); // for placeholder value
+    // mu[1] = 1; // for count of occurences
     for(int i = 1; i < MX; i++) {   
         if(!primeBits[i]) continue;
         for(int j = i; j < MX; j += i) {   
@@ -75,12 +76,41 @@ class Combinatoric {
         return fact[a] * inv[b] * inv[a - b];
     }
 	
-	ll choose_no_mod(ll a, ll b) {
-		ll res = 1;
-        for(int i = 0; i < b; i++) res *= (a - i);
-        for(int i = 2; i <= b; i++) res /= i;
-        return res;
+    ll nCk(int n, int r) {
+        ll ans = 1;
+        for(int i = 1 ; i <= r ; i++) {
+            ans *= n - i + 1;
+            ans /= i ;   
+        }
+        return ans ;
     }
+
+//    ll nCk_mod_Lucas_Theorem(int n, int r, int mod) {
+//        if(r > n) return 0 ;
+//        ll res = 1;
+//        while(n && r) {
+//            res *= nCk(n % mod, r % mod) ;
+//            res %= mod ;
+//            n /= mod ;
+//            r /= mod ; 
+//        }
+//        return res ;
+//    }
+//
+//    int nCk_lucas(int n, int r, int mod) {
+//        vi ans;
+//        for(auto& x : DIV[mod]) {
+//            ans.pb(nCk_mod_Lucas_Theorem(n, r, x));
+//        }
+//        ll res = 0;
+//        for(int i = 0; i < int(DIV[mod].size()); i++) {
+//            int p = DIV[mod][i];
+//            ll m = mod / p;
+//            ll inv = modExpo(m, p - 2, p);
+//            res = (res + ans[i] * m % mod * inv) % mod;
+//        }
+//        return res;
+//    }
 
     T catalan(int k) { // # of pair of balanced bracket of length n is catalan(n / 2)
         if(k == 0) return 1;
@@ -145,6 +175,20 @@ ll get_mask(ll a, ll k) { // get bit_mask representation in base k
         cnt++;
     }
     return res;
+}
+
+// Does the inverse of `submask_sums`; returns the input that produces the given output.
+template<typename T_out, typename T_in>
+void mobius_transform(int n, vt<T_in> &values) { // remember to set dp[mask] = -dp[mask] if(pct(mask) % 2 == 0) later
+    assert(int(values.size()) == 1 << n);
+ 
+    for (int i = 0; i < n; i++) {
+        for (int base = 0; base < 1 << n; base += 1 << (i + 1)) {
+            for (int mask = base; mask < base + (1 << i); mask++) {
+                values[mask + (1 << i)] -= values[mask];
+            }
+        }
+    }
 }
 
 vi get_pair_gcd(vi& a) {
