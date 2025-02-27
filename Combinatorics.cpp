@@ -29,12 +29,31 @@ void generatePrime() {  primeBits.set(2);
 
 vi factor_prime(int x) {
     vi d;
-    while(x > 1) {
-        int t = first_divisor[x];
-        d.pb(t);
-        while(x % t == 0) x /= t;
+    for(auto& p : primes) {
+        if(p * p > x) break;
+        if(x % p) continue;
+        d.pb(p);
+        while(x % p == 0) x /= p;
     }
+    if(x > 1) d.pb(x);
     return d;
+}
+
+ll count_coprime(int up, int x) { // count number from [1 to up] where gcd(num, x) == 1
+    auto d = factor_prime(x);
+    int N = d.size();
+    ll ans = 0;
+    for (int mask = 0; mask < (1 << N); mask++) {
+        int prod = up, sign = 1;
+        for (int i = 0; i < N; i++) {
+            if (have_bit(mask, i)) {
+                prod /= d[i];
+                sign *= -1;
+            }
+        }
+        ans += prod * sign;
+    }
+    return ans;
 }
 
 vi factor(int x) {
