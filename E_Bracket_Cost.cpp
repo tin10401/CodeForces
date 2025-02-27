@@ -226,35 +226,60 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
-void solve() {
-    int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
-    vll prefix_sum(n + 1), prefix_xor(n + 1);
-    for(int i = 1; i <= n; i++) {
-        prefix_sum[i] = prefix_sum[i - 1] + a[i - 1];
-        prefix_xor[i] = prefix_xor[i - 1] ^ a[i - 1];
-    }
-    auto get = [&](int l, int r) -> ll {
-        return (prefix_sum[r] - prefix_sum[l - 1]) - (prefix_xor[r] ^ prefix_xor[l - 1]);
-    };
-    while(q--) {
-        int l, r; cin >> l >> r;
-        ll target = get(l, r);
-        int L = -1, R = inf;
-        for(int i = l, j = l; i <= r; i++) {
-            int left = i, right = r, left_most = -1;
-            while(left <= right) {
-                int middle = midPoint;
-                if(get(i, middle) >= target) left_most = middle, right = middle - 1;
-                else left = middle + 1;
-            }
-            if(left_most == -1) continue;
-            if(left_most - i + 1 < R - L + 1) {
-                L = i, R = left_most;
+template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
             }
         }
-        cout << L << ' ' << R << endl;
     }
+
+    T query(int L, int R) {
+        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    vi curr;
+    curr.pb(0);
+    for(auto& ch : s) {
+        curr.pb(curr.back() + (ch == ')' ? -1 : 1));
+    }
+    ll res = 0;
+    int N = curr.size();
+    vi id(N);
+    iota(all(id), 0);
+    SparseTable<int> t(id, [&](const int& a, const int& b) { return curr[a] < curr[b] ? a : b;});
+    auto dfs = [&](auto& dfs, int l, int r) -> void {
+        if(l > r) return;
+        int m = t.query(l, r);
+        res -= ((ll)(r - m + 1) * (m - l + 1) - 1) * curr[m];
+        dfs(dfs, l, m - 1);
+        dfs(dfs, m + 1, r);
+    };
+    dfs(dfs, 0, N - 1);
+    srt(curr);
+    debug(res, curr);
+    for(int i = 0; i < N; i++) {
+        res += curr[i] * i;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -292,4 +317,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

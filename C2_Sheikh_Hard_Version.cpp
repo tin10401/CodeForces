@@ -228,11 +228,13 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 
 void solve() {
     int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
     vll prefix_sum(n + 1), prefix_xor(n + 1);
+    vi pos;
     for(int i = 1; i <= n; i++) {
-        prefix_sum[i] = prefix_sum[i - 1] + a[i - 1];
-        prefix_xor[i] = prefix_xor[i - 1] ^ a[i - 1];
+        int x; cin >> x;
+        if(x) pos.pb(i);
+        prefix_sum[i] = prefix_sum[i - 1] + x;
+        prefix_xor[i] = prefix_xor[i - 1] ^ x;
     }
     auto get = [&](int l, int r) -> ll {
         return (prefix_sum[r] - prefix_sum[l - 1]) - (prefix_xor[r] ^ prefix_xor[l - 1]);
@@ -240,17 +242,45 @@ void solve() {
     while(q--) {
         int l, r; cin >> l >> r;
         ll target = get(l, r);
-        int L = -1, R = inf;
-        for(int i = l, j = l; i <= r; i++) {
+        if(target == 0) {
+            cout << l << ' ' << l << endl;
+            continue;
+        }
+        int L = l, R = r;
+        int c = 0;
+        for(auto it = lb(all(pos), l); it != end(pos) && *it <= r && c < 32; it++, c++) {
+            int i = *it;
             int left = i, right = r, left_most = -1;
             while(left <= right) {
                 int middle = midPoint;
-                if(get(i, middle) >= target) left_most = middle, right = middle - 1;
+                if(get(i, middle) == target) left_most = middle, right = middle - 1;
                 else left = middle + 1;
             }
-            if(left_most == -1) continue;
-            if(left_most - i + 1 < R - L + 1) {
-                L = i, R = left_most;
+            if(left_most != -1) {
+                if(left_most - i < R - L) {
+                    L = i, R = left_most;
+                }
+            }
+        }
+        auto it = ub(all(pos), r);
+        if(it != begin(pos)) {
+            it--;
+            c = 0;
+            for(; *it >= l && c < 32; c++) {
+                int i = *it;
+                int left = l, right = i, right_most = -1;
+                while(left <= right) {
+                    int middle = midPoint;
+                    if(get(middle, i) == target) right_most = middle, left = middle + 1;
+                    else right = middle - 1;
+                }
+                if(right_most != -1) {
+                    if(i - right_most < R - L) {
+                        L = right_most, R = i;
+                    }
+                }
+                if(it == begin(pos)) break;
+                it--;
             }
         }
         cout << L << ' ' << R << endl;

@@ -224,6 +224,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
 }

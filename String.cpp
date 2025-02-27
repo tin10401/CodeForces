@@ -363,15 +363,26 @@ class MANACHER {
     public: 
     string s;   
     string ans; 
+    ll total_palindrome;
     int n;
     vi man;
     MANACHER(const string& s) { 
+        total_palindrome = 0;
         this->n = s.size();
         this->s = s;
         build_manacher();
         string odd = get_max_palindrome(s, 1);  
         string even = get_max_palindrome(s, 0);
         ans = odd.size() > even.size() ? odd : even;
+        for(int i = 0; i < n; i++) {
+            int even = longest_even_palindrome_at(i);
+            int odd = longest_odd_palindrome_at(i);
+            total_palindrome += (even + 1) / 2 + (odd + 1) / 2;
+        }
+    }
+
+    ll get_total_palindrome() {
+        return total_palindrome;
     }
     
     void build_manacher() {
@@ -442,30 +453,43 @@ class MANACHER {
         return result;
     }
         
-    string get_max_palindrome(const string& s, bool odd) {  
+	string get_max_palindrome(const string& s, bool odd) {  
         auto manacher = get_manacher(s, odd);
         int N = manacher.size();
         int start = 0, max_len = 0;
         for(int i = 0; i < N; i++) {    
             int len = manacher[i] * 2 - odd;
             if(len < max_len) continue;
-            if(i - manacher[i] + 1 == 0) {  // max prefix_palindrome
-                max_len = len;  
-                start = 0;
-            }
-            else if(i + manacher[i] + !odd == N) { // max_suffix_palindrome
-                max_len = len;  
-                start = i - manacher[i] + 1;
-            }
-            //start = i - manacher[i] + 1; // max_palindrome overall
-            //max_len = len;
+//            if(i - manacher[i] + 1 == 0) {  // max prefix_palindrome
+//                max_len = len;  
+//                start = 0;
+//            }
+//            else if(i + manacher[i] + !odd == N) { // max_suffix_palindrome
+//                max_len = len;  
+//                start = i - manacher[i] + 1;
+//            }
+            start = i - manacher[i] + 1; // max_palindrome overall
+            max_len = len;
         }
         return s.substr(start, max_len);
     };
 
+
     bool is_palindrome(int left, int right) {
         int center = left + right + 1;
         return man[center] >= (right - left + 1);
+    }
+
+    int longest_odd_palindrome_at(int i) {
+        int center = 2 * i + 1;
+        if (center >= (int)man.size()) return 0;
+        return man[center] - 1;
+    }
+    
+    int longest_even_palindrome_at(int i) {
+        int center = 2 * i + 2;
+        if (center >= (int)man.size()) return 0;
+        return man[center] - 1; 
     }
 };
 

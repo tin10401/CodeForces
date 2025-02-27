@@ -224,37 +224,108 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
+};
+
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
-    vll prefix_sum(n + 1), prefix_xor(n + 1);
-    for(int i = 1; i <= n; i++) {
-        prefix_sum[i] = prefix_sum[i - 1] + a[i - 1];
-        prefix_xor[i] = prefix_xor[i - 1] ^ a[i - 1];
+    ll n, k; cin >> n >> k;
+    mint ans = 0;
+    if(k > n) {
+        ans += mint(n) * (k - n); // 1 digit only which is n % p where p > n
+        k = n;
     }
-    auto get = [&](int l, int r) -> ll {
-        return (prefix_sum[r] - prefix_sum[l - 1]) - (prefix_xor[r] ^ prefix_xor[l - 1]);
-    };
-    while(q--) {
-        int l, r; cin >> l >> r;
-        ll target = get(l, r);
-        int L = -1, R = inf;
-        for(int i = l, j = l; i <= r; i++) {
-            int left = i, right = r, left_most = -1;
-            while(left <= right) {
-                int middle = midPoint;
-                if(get(i, middle) >= target) left_most = middle, right = middle - 1;
-                else left = middle + 1;
-            }
-            if(left_most == -1) continue;
-            if(left_most - i + 1 < R - L + 1) {
-                L = i, R = left_most;
-            }
+    auto f = [&](int p) -> mint {
+        int x = n;
+        vi dig;
+        while(x) {
+            dig.pb(x % p);
+            x /= p;
         }
-        cout << L << ' ' << R << endl;
+        rev(dig);
+        mint res = 0, P = 1;
+        for(auto& x : dig) {
+            res += P * x;
+            P *= p;
+        }
+        return res;
+    };
+    for(int p = 2; p * p <= n && p <= k; p++) {
+        ans += f(p);
     }
+    // for 2 digit
+    // it's (n % p) * p + n / p as the reverse
+    // = n * p + (n / p) * (1 - p * p);
+    int p = int(sqrt(n)) + 1;
+    if(k >= p) {
+        auto g = [](mint x) -> mint {
+            return x * (x + 1) / 2;
+        };
+        ans += mint(n) * (g(k) - g(p - 1));
+        while(p <= k) {
+            ll add = n / p;
+            ll last = n / (ll)add;
+            int low = p, high = min(k, last);
+            int len = high - low + 1;
+            ans -= add * (sum_of_square(high) - sum_of_square(low - 1) - len);
+            p = last + 1;
+        }
+    }
+    cout << ans << endl;
 }
 
 signed main() {
@@ -292,4 +363,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

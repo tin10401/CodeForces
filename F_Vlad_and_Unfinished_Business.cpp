@@ -224,37 +224,49 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
-ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
-    int n, q; cin >> n >> q;
-    vi a(n); cin >> a;
-    vll prefix_sum(n + 1), prefix_xor(n + 1);
-    for(int i = 1; i <= n; i++) {
-        prefix_sum[i] = prefix_sum[i - 1] + a[i - 1];
-        prefix_xor[i] = prefix_xor[i - 1] ^ a[i - 1];
+    int n, k; cin >> n >> k;
+    int x, y; cin >> x >> y;
+    x--, y--;
+    vi size(n);
+    for(int i = 0; i < k; i++) {
+        int u; cin >> u;
+        u--;
+        size[u] = 1;
     }
-    auto get = [&](int l, int r) -> ll {
-        return (prefix_sum[r] - prefix_sum[l - 1]) - (prefix_xor[r] ^ prefix_xor[l - 1]);
-    };
-    while(q--) {
-        int l, r; cin >> l >> r;
-        ll target = get(l, r);
-        int L = -1, R = inf;
-        for(int i = l, j = l; i <= r; i++) {
-            int left = i, right = r, left_most = -1;
-            while(left <= right) {
-                int middle = midPoint;
-                if(get(i, middle) >= target) left_most = middle, right = middle - 1;
-                else left = middle + 1;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi son(n, -1);
+    auto dfs = [&](auto& dfs, int node, int par = -1) -> void {
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+            if(son[nei] != -1 || nei == y) {
+                son[node] = nei;
             }
-            if(left_most == -1) continue;
-            if(left_most - i + 1 < R - L + 1) {
-                L = i, R = left_most;
-            }
+            size[node] += size[nei];
         }
-        cout << L << ' ' << R << endl;
-    }
+    };
+    int res = -1;
+    auto dfs2 = [&](auto& dfs2, int node, int par = -1) -> void {
+        res++;
+        for(auto& nei : graph[node]) {
+            if(nei == par || !size[nei] || son[node] == nei) continue; // go over as a circle an then visit son[node] last
+            dfs2(dfs2, nei, node);
+            res++;
+        }
+        if(son[node] != -1) dfs2(dfs2, son[node], node);
+    };
+    dfs(dfs, x);
+    dfs2(dfs2, x);
+    cout << res << endl;
+    
 }
 
 signed main() {
@@ -292,4 +304,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
