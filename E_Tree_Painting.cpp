@@ -227,6 +227,33 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi size(n, 1);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+            size[node] += size[nei];
+        }
+    };
+    ll res = 0;
+    auto dfs2 = [&](auto& dfs2, int node = 0, int par = -1, ll curr = 0) -> void {
+        res = max(res, curr); 
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs2(dfs2, nei, node, curr - size[nei] + n - size[nei]);
+        }
+    };
+    dfs(dfs);
+    dfs2(dfs2, 0, -1, sum(size));
+    cout << res << endl;
 }
 
 signed main() {

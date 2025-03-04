@@ -226,7 +226,71 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    var(4) edge;
+    vi a;
+    while(m--) {
+        int u, v, l, r; cin >> u >> v >> l >> r;
+        edge.pb({r, l, u - 1, v - 1});
+        a.pb(l);
+    }
+    srtR(edge);
+    srtU(a);
+    int res = -1;
+    for(auto& L : a) {
+        DSU root(n);
+        for(auto& [r, l, u, v] : edge) {
+            if(l <= L && L <= r) {
+                root.merge(u, v);
+                if(root.same(0, n - 1)) {
+                    res = max(res, r - L + 1);
+                    break;
+                }
+            }
+        }
+    }
+    if(res == -1) {
+        cout << "Nice work, Dima!" << endl;
+        return;
+    }
+    cout << res << endl;
 }
 
 signed main() {

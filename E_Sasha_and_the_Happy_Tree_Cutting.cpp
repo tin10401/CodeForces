@@ -227,6 +227,41 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    // find minimum # of edge to cover such that each of the k pairs will have at least one edge cover
+    // at any point, if there's a node with some mask on from its children, it indicates that it'll cover these node from it to its parent
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi a(n);
+    int k; cin >> k;
+    for(int i = 0; i < k; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        a[u] ^= 1LL << i;
+        a[v] ^= 1LL << i;
+    }
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+            a[node] ^= a[nei];
+        }
+    };
+    dfs(dfs);
+    srtU(a);
+    vi dp(1 << k, inf);
+    dp[0] = 0;
+    for(int mask = 0; mask < 1 << k; mask++) {
+        for(auto& x : a) {
+            dp[x | mask] = min(dp[x | mask], dp[mask] + 1);
+        }
+    }
+    cout << dp.back() << endl;
 }
 
 signed main() {
@@ -237,7 +272,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

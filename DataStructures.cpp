@@ -98,13 +98,27 @@ public:
         merge(root, root, B);
     }
 	
-	void insert_at(int k, int x) {
+	void insert_at(int k, T x) { // one base index
+        if(size(root) < k) {
+            cout << "Can't insert" << endl;
+            return;
+        }
         TreapNode* A;
         split(root, root, A, k - 1);
         merge(root, root, new TreapNode(x));
         merge(root, root, A);
     }
 
+    void erase_at(int k) { // one base index
+        if(size(root) < k) {
+            cout << "Can't erase" << endl;
+            return;
+        }
+        TreapNode*A, *B;
+        split(root, root, A, k - 1);
+        split(A, A, B, 1);
+        merge(root, root, B);
+    }
 	
 	void split_and_swap(int k) { // off_set by 1
         if(k == 0 || k == size(root)) return; 
@@ -201,7 +215,7 @@ public:
     }
 
 };
-    
+ 
 template<class T, typename F = function<T(const T&, const T&)>>
 class FW {  
     public: 
@@ -232,8 +246,12 @@ class FW {
         return res;
     }
 
-    T queries(int left, int right) {  
+    T queries_range(int left, int right) {  
         return get(right) - get(left - 1);
+    }
+
+    T queries_at(int i) {
+        return queries_range(i, i);
     }
 	
 	void reset() {
@@ -1856,6 +1874,121 @@ public:
         res.flip();
         return res;
     }
+    BITSET& operator<<=(int shift) {
+        if(shift >= sz) {
+            fill(blocks.begin(), blocks.end(), 0ULL);
+            return *this;
+        }
+        const int B = 8 * (int)sizeof(ubig);
+        int blockShift = shift / B;
+        int bitShift = shift % B;
+        int nblocks = blocks.size();
+        vector<ubig> newBlocks(nblocks, 0ULL);
+        for (int i = nblocks - 1; i >= 0; i--) {
+            int srcIndex = i - blockShift;
+            if (srcIndex < 0) continue;
+            newBlocks[i] |= blocks[srcIndex] << bitShift;
+            if (bitShift > 0 && srcIndex - 1 >= 0)
+                newBlocks[i] |= blocks[srcIndex - 1] >> (B - bitShift);
+        }
+        blocks.swap(newBlocks);
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator<<(int shift) const {
+        BITSET res(*this);
+        res <<= shift;
+        return res;
+    }
+    
+    BITSET& operator>>=(int shift) {
+        if (shift >= sz) {
+            fill(blocks.begin(), blocks.end(), 0ULL);
+            return *this;
+        }
+        const int B = 8 * (int)sizeof(ubig);
+        int blockShift = shift / B;
+        int bitShift = shift % B;
+        int nblocks = blocks.size();
+        vector<ubig> newBlocks(nblocks, 0ULL);
+        for (int i = 0; i < nblocks; i++) {
+            int srcIndex = i + blockShift;
+            if (srcIndex >= nblocks) continue;
+            newBlocks[i] |= blocks[srcIndex] >> bitShift;
+            if (bitShift > 0 && srcIndex + 1 < nblocks)
+                newBlocks[i] |= blocks[srcIndex + 1] << (B - bitShift);
+        }
+        blocks.swap(newBlocks);
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator>>(int shift) const {
+        BITSET res(*this);
+        res >>= shift;
+        return res;
+    }
+    
+    int find_first() const {
+        const int B = 8 * (int)sizeof(ubig);
+        for (size_t b = 0; b < blocks.size(); b++) {
+            if (blocks[b] != 0ULL) {
+                int tz = __builtin_ctzll(blocks[b]);
+                int pos = b * B + tz;
+                if (pos < sz)
+                    return pos;
+                else
+                    return -1;
+            }
+        }
+        return -1;
+    }
+    int find_prev_set_bit(int pos) const {
+        if(pos < 0) return -1;
+        if(pos >= sz) pos = sz - 1;
+        if(test(pos)) return pos;
+        const int B = 8 * (int)sizeof(ubig);
+        int block = pos / B, offset = pos % B;
+        for (int b = block; b >= 0; b--) {
+            ubig mask = (b == block) ? ((1ULL << offset) - 1ULL) : ~0ULL;
+            ubig curr = blocks[b] & mask;
+            if (curr != 0ULL) {
+                int lz = __builtin_clzll(curr);
+                return b * B + (B - 1 - lz);
+            }
+        }
+        return -1;
+    }
+
+    int find_next_set_bit(int pos) const {
+        if(pos < 0) pos = 0;
+        if(pos < sz && test(pos)) return pos;
+        const int B = 8 * (int)sizeof(ubig);
+        int block = pos / B, offset = pos % B;
+        ubig mask = ~((1ULL << (offset + 1)) - 1ULL);
+        ubig curr = blocks[block] & mask;
+        if(curr != 0ULL) {
+            int tz = __builtin_ctzll(curr);
+            int res = block * B + tz;
+            return (res < sz ? res : -1);
+        }
+        for(size_t b = block + 1; b < blocks.size(); b++) {
+            if(blocks[b] != 0ULL) {
+                int tz = __builtin_ctzll(blocks[b]);
+                int res = b * B + tz;
+                return (res < sz ? res : -1);
+            }
+        }
+        return -1;
+    }
+    
     bool operator==(const BITSET& other) const {
         return blocks == other.blocks;
     }
@@ -1863,3 +1996,26 @@ public:
         return !(*this == other);
     }
 };
+
+// Computes all possible subset sums from 0 to n that can be made using values from sizes. Runs in O(n sqrt n / 64) if
+// the sum of sizes is bounded by n, and O(n^2 / 64) otherwise.
+BITSET possible_subsets_knapsack(int n, const vi &sizes) {
+    vi freq(n + 1); 
+    for (int s : sizes) {
+        if (1 <= s && s <= n) {
+            freq[s]++;
+        }
+    }
+    BITSET knapsack(n + 1);
+    knapsack.set(0);
+    for (int s = 1; s <= n; s++) {
+        if (freq[s] >= 3) {
+            int move = (freq[s] - 1) / 2;
+            if (2 * s <= n) freq[2 * s] += move;
+            freq[s] -= 2 * move;
+        }
+        for (int r = 0; r < freq[s]; r++)
+            knapsack |= knapsack << s;
+    }
+    return knapsack;
+}

@@ -226,7 +226,112 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+			comp--;
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi p(n);
+    for(int i = 0; i < n; i++) {
+        cin >> p[i];
+        p[i]--;
+    }
+    vpii special(m);
+    DSU root(n);
+    vi next(n, -1), prev(n, -1);
+    vi id(n);
+    for(auto& [u, v] : special) {
+        cin >> u >> v;
+        u--, v--;
+        if(root.same(u, v)) {
+            cout << 0 << endl;
+            return;
+        }
+        root.merge(u, v);
+        next[u] = v, prev[v] = u;
+    }
+    vvi paths;
+    for(int i = 0, j = 0; i < n; i++) {
+        if(prev[i] == -1) {
+            vi path;
+            for(int x = i; x >= 0; x = next[x]) {
+                path.pb(x);
+            }
+            id[i] = j++;
+            paths.pb(path);
+        }
+    }
+    int N = paths.size();
+    vvi graph(N);
+    vi degree(N);
+    for(int i = 0; i < n; i++) {
+        if(p[i] == -1) continue;
+        int u = root.find(p[i]), v = root.find(i);
+        if(u != v) {
+            debug(u, v, i, p[i]);
+            graph[id[u]].pb(id[v]); 
+            degree[id[v]]++;
+        }
+    }
+    queue<int> q;
+    for(int i = 0; i < N; i++) {
+        if(degree[i] == 0) q.push(i);
+    }
+    vi ans;
+    while(!q.empty()) {
+        int node = q.front(); q.pop();
+        ans.insert(end(ans), all(paths[node]));
+        for(auto& nei : graph[node]) {
+            if(--degree[nei] == 0) q.push(nei);
+        }
+    }
+    if(ans.size() != n) {
+        cout << 0 << endl;
+        return;
+    }
+    vi pos(n);
+    for(int i = 0; i < n; i++) {
+        pos[ans[i]] = i;
+    }
+    for(int i = 0; i < n; i++) {
+        if(p[i] >= 0 && pos[p[i]] > pos[i]) {
+            cout << 0 << endl;
+            return;
+        }
+    }
+    for(auto& x : ans) cout << x + 1 << ' ';
+    cout << endl;
 }
 
 signed main() {

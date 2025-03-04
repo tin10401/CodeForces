@@ -95,13 +95,21 @@ class Combinatoric {
         return fact[a] * inv[b] * inv[a - b];
     }
 	
-    ll nCk(int n, int r) {
-        ll ans = 1;
+    T nCk(int n, int r) { // change to ll if needed
+        T ans = 1;
         for(int i = 1 ; i <= r ; i++) {
             ans *= n - i + 1;
             ans /= i ;   
         }
         return ans ;
+    }
+
+    T nCk_increasing_sequence(int l, int r, int len) { // given a range of number from l to r, len k, 
+                                                       // return the number of ways to choose those element in increasing order
+        return nCk(r - l + len, len);
+        // x _ _ _ y
+        // # of way to choose the _ unknown value
+        // len = pos[y] - pos[x] - 1
     }
 
 //    ll nCk_mod_Lucas_Theorem(int n, int r, int mod) {

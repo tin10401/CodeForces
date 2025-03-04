@@ -227,6 +227,21 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vpll a(n); cin >> a;
+    vvll dp(n, vll(n + 10, -1));
+    auto dfs = [&](auto& dfs, int i = 0, int t = 0) -> ll {
+        if(t >= n) return 0;
+        if(i == n) return INF;
+        auto& res = dp[i][t];
+        if(res != -1) return res;
+        res = min(dfs(dfs, i + 1, t), a[i].ss + dfs(dfs, i + 1, t + a[i].ff + 1)); // we choose to take or not take to make the sum greater than or equal to n,
+                                                                                   // then it's indicating that we can steal the whole thing
+                                                                                   // it takes a[i].ff to steal the rest
+                                                                                   // takes extra 1 to steal this one(add as a dummy thing)
+        return res;
+    };
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {

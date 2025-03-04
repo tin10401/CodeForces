@@ -226,7 +226,244 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class BITSET {
+public:
+    using ubig = unsigned long long;
+    int sz;
+    vector<ubig> blocks;
+    BITSET(int n) : sz(n) {
+        int len = (n + 8 * (int)sizeof(ubig) - 1) / (8 * (int)sizeof(ubig));
+        blocks.assign(len, 0ULL);
+    }
+    void set(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] |= (1ULL << offset);
+    }
+    BITSET& set() {
+        for (auto &blk : blocks)
+            blk = ~0ULL;
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    bool test(int i) const {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        return (blocks[block] >> offset) & 1ULL;
+    }
+    BITSET& reset() {
+        fill(blocks.begin(), blocks.end(), 0ULL);
+        return *this;
+    }
+    void reset(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] &= ~(1ULL << offset);
+    }
+    BITSET& flip() {
+        for (auto &blk : blocks)
+            blk = ~blk;
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    void flip(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] ^= (1ULL << offset);
+    }
+    int count() const {
+        int cnt = 0;
+        for (auto blk : blocks)
+            cnt += __builtin_popcountll(blk);
+        return cnt;
+    }
+    bool any() const {
+        for (auto blk : blocks)
+            if (blk != 0) return true;
+        return false;
+    }
+    bool none() const {
+        return !any();
+    }
+    bool all() const {
+        int fullBlocks = sz / (8 * (int)sizeof(ubig));
+        for (int i = 0; i < fullBlocks; i++)
+            if (blocks[i] != ~0ULL) return false;
+        int remaining = sz % (8 * (int)sizeof(ubig));
+        if (remaining > 0) {
+            ubig mask = (1ULL << remaining) - 1;
+            if (blocks[fullBlocks] != mask) return false;
+        }
+        return true;
+    }
+    string to_string() const {
+        string s;
+        s.resize(sz);
+        for (int i = 0; i < sz; i++)
+            s[sz - 1 - i] = test(i) ? '1' : '0';
+        return s;
+    }
+    BITSET& operator|=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] |= other.blocks[i];
+        return *this;
+    }
+    BITSET& operator&=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] &= other.blocks[i];
+        return *this;
+    }
+    BITSET& operator^=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] ^= other.blocks[i];
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator|(const BITSET& other) const {
+        BITSET res(*this);
+        res |= other;
+        return res;
+    }
+    BITSET operator&(const BITSET& other) const {
+        BITSET res(*this);
+        res &= other;
+        return res;
+    }
+    BITSET operator^(const BITSET& other) const {
+        BITSET res(*this);
+        res ^= other;
+        return res;
+    }
+    BITSET operator~() const {
+        BITSET res(*this);
+        res.flip();
+        return res;
+    }
+    BITSET& operator<<=(int shift) {
+        if(shift >= sz) {
+            fill(blocks.begin(), blocks.end(), 0ULL);
+            return *this;
+        }
+        const int B = 8 * (int)sizeof(ubig);
+        int blockShift = shift / B;
+        int bitShift = shift % B;
+        int nblocks = blocks.size();
+        vector<ubig> newBlocks(nblocks, 0ULL);
+        for (int i = nblocks - 1; i >= 0; i--) {
+            int srcIndex = i - blockShift;
+            if (srcIndex < 0) continue;
+            newBlocks[i] |= blocks[srcIndex] << bitShift;
+            if (bitShift > 0 && srcIndex - 1 >= 0)
+                newBlocks[i] |= blocks[srcIndex - 1] >> (B - bitShift);
+        }
+        blocks.swap(newBlocks);
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator<<(int shift) const {
+        BITSET res(*this);
+        res <<= shift;
+        return res;
+    }
+    
+    BITSET& operator>>=(int shift) {
+        if (shift >= sz) {
+            fill(blocks.begin(), blocks.end(), 0ULL);
+            return *this;
+        }
+        const int B = 8 * (int)sizeof(ubig);
+        int blockShift = shift / B;
+        int bitShift = shift % B;
+        int nblocks = blocks.size();
+        vector<ubig> newBlocks(nblocks, 0ULL);
+        for (int i = 0; i < nblocks; i++) {
+            int srcIndex = i + blockShift;
+            if (srcIndex >= nblocks) continue;
+            newBlocks[i] |= blocks[srcIndex] >> bitShift;
+            if (bitShift > 0 && srcIndex + 1 < nblocks)
+                newBlocks[i] |= blocks[srcIndex + 1] << (B - bitShift);
+        }
+        blocks.swap(newBlocks);
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator>>(int shift) const {
+        BITSET res(*this);
+        res >>= shift;
+        return res;
+    }
+    bool operator==(const BITSET& other) const {
+        return blocks == other.blocks;
+    }
+    bool operator!=(const BITSET& other) const {
+        return !(*this == other);
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int p; cin >> p;
+        p--;
+        graph[p].pb(i);
+    }
+    vi size(n, 1);
+    auto dfs = [&](auto& dfs, int node = 0) -> void {
+        for(auto& nei : graph[node]) {
+            dfs(dfs, nei);
+            size[node] += size[nei];
+        }
+    };
+    dfs(dfs);
+    auto knapsack = [](const vi& curr) -> ll {
+        if(curr.empty()) return 0;
+        int sm = sum(curr);
+        BITSET bit(sm);
+        bit.set(0);
+        for(auto& it : curr) {
+            bit |= bit << it;
+        }
+        ll res = 0;
+        for(int i = 0; i <= sm; i++) {
+            if(bit.test(i)) {
+                res = max(res, (ll)i * (sm - i));
+            }
+        }
+        return res;
+    };
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+        vi curr;
+        for(auto& nei : graph[i]) {
+            curr.pb(size[nei]);
+        }
+        res += knapsack(curr);
+    }
+    cout << res << endl;
 }
 
 signed main() {

@@ -227,6 +227,47 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, k; cin >> n >> k;
+    k--;
+    vi a(n); cin >> a;
+    vpll left, right;
+    ll sm = 0, mn = 0;
+    for(int i = k - 1; i >= 0; i--) {
+        sm += a[i];
+        mn = min(mn, sm);
+        if(sm > 0) {
+            left.pb({sm, mn});
+            sm = mn = 0;
+        }
+    }
+    left.pb({sm, mn});
+    sm = mn = 0;
+    for(int i = k + 1; i < n; i++) {
+        sm += a[i];
+        mn = min(mn, sm);
+        if(sm > 0) {
+            right.pb({sm, mn});
+            sm = mn = 0;
+        }
+    }
+    right.pb({sm, mn});
+    rev(left), rev(right);
+    ll score = a[k];
+    while(!left.empty() && !right.empty()) {
+        if(score >= -left.back().ss) {
+            score += left.back().ff;
+            left.pop_back();
+        }
+        else if(score >= -right.back().ss){
+            score += right.back().ff;
+            right.pop_back();
+        }
+        else {
+            cout << "NO" << endl;
+            return;
+        }
+    }
+    cout << "YES" << endl;
 }
 
 signed main() {
@@ -237,7 +278,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -227,6 +227,39 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vpii a(n);
+    for(int i = 0; i < n; i++) {
+        cin >> a[i].ff;
+        a[i].ss = i;
+    }
+    srt(a);
+    vi dp(n, -1);
+    vi choose(n);
+    auto dfs = [&](auto& dfs, int i = 0) -> int {
+        if(i == n) return true;
+        auto& res = dp[i];
+        if(res != -1) return res;
+        res = inf;
+        for(int j = i + 2; j < min(n, i + 6); j++) {
+            auto now = a[j].ff - a[i].ff + dfs(dfs, j + 1);
+            if(now < res) {
+                res = now;
+                choose[i] = j;
+            }
+        }
+        return res;
+    };
+    auto ans = dfs(dfs);
+    vi res(n);
+    for(int i = 0, team = 1; i < n; team++) {
+        for(int j = i; j <= choose[i]; j++) {
+            res[a[j].ss] = team;
+        }
+        i = choose[i] + 1;
+    }
+    cout << ans - 1 << ' ' << MAX(res) << endl;
+    output_vector(res);
 }
 
 signed main() {

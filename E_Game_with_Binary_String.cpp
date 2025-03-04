@@ -226,7 +226,85 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    T queries_at(int i) {
+        return queries_range(i, i);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    vi a;
+    for(int i = 0, curr = 0; i < n; i++) {
+        curr += s[i] == '0' ? 1 : -3;
+        a.pb(curr);
+        a.pb(curr - 2);
+        a.pb(curr + 1);
+    }
+    srtU(a);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(a), x) - begin(a));
+    };
+    ll res = 0;
+    int N = a.size();
+    FW<int> root(N, 0, [](const int&a, const int& b) { return a + b; });
+    root.update(get_id(0), 1);
+    for(int i = 0, curr = 0; i < n; i++) {
+        curr += s[i] == '0' ? 1 : -3;
+        res += root.get(get_id(curr - 2)) + root.queries_at(get_id(curr + 1));
+        root.update(get_id(curr), 1);
+    }
+    cout << res << endl;
 }
 
 signed main() {

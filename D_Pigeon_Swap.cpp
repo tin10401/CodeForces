@@ -227,6 +227,26 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vi pigeon(n + 1), nest(n + 1), actual(n + 1);
+    iota(all(pigeon), 0), iota(all(nest), 0), iota(all(actual), 0);
+    while(q--) {
+        int op; cin >> op;
+        if(op == 3) {
+            int a; cin >> a;
+            cout << actual[pigeon[a]] << endl;
+            continue;
+        }
+        int a, b; cin >> a >> b;
+        if(op == 1) {
+            pigeon[a] = nest[b];
+            continue;
+        }
+        int A = nest[a], B = nest[b];
+        swap(nest[a], nest[b]);
+        actual[A] = b;
+        actual[B] = a;
+    }
 }
 
 signed main() {

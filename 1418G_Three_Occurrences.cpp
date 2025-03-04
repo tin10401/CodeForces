@@ -226,8 +226,163 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<typename T, typename I = int, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vt<II> lazy;
+    T DEFAULT;
+    F func;
+    G apply_func;
+	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1);    
+        lazy.rsz(k << 1); // careful with initializing lazy_value
+		// *** when doing merging close_interval, do middle, right instead of middle + 1, right for right child, and check for nullptr by right - left <= 1 instead of left == right like normal
+		// and right <= start || left >= end instead of normally you don't have the '=' sign
+
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, I val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, I val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply_func(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return func(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+};
+
+struct info {
+    int mx = 0, cnt = 1;
+    info(int mx = 0, int c = 0) : mx(mx), cnt(c) {}
+};
+
 void solve() {
+    int n; cin >> n;    
+    vi a(n); cin >> a;  
+    vvi pos(n);
+    SGT<info> root(n, info(), [](const info& a, const info& b) {
+                                info res;
+                                res.mx = max(a.mx, b.mx);
+                                res.cnt = (a.mx == res.mx ? a.cnt : 0) + (b.mx == res.mx ? b.cnt : 0);
+                                return res;
+                            },
+                              [&](int i, int left, int right, int val) {
+                                root.root[i].mx += val;
+                                root.lazy[i] += val;
+                              });
+    for(int i = 0; i < n; i++) {    
+        pos[i].pb(n);
+        a[i]--;
+        root.update_at(i, info(n, 1));
+    }
+    const int k = 3;
+    ll res = 0;
+    for(int i = n - 1; i >= 0; i--) {   
+        auto& curr = pos[a[i]];
+        auto update = [&](int v) -> void {  
+            int N = curr.size();
+            if(N >= k + 1) {  
+                int sec_last = curr[N - k];    
+                int last = curr[N - k - 1];
+                root.update_range(sec_last, last - 1, v);
+            }
+            if(curr.back()) {   
+                root.update_range(0, curr.back() - 1, v);
+            }
+        };
+        update(-1); 
+        curr.pb(i); 
+        update(1);
+        auto T = root.queries_range(i, n - 1);    
+        if(T.mx == n) res += T.cnt;
+    }
+    cout << res << endl;
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator

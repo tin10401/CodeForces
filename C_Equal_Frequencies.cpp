@@ -227,6 +227,51 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    vt<pair<int, vi>> now(26);
+    for(int i = 0; i < n; i++) {
+        now[s[i] - 'a'].ss.pb(i);
+    }
+    for(int i = 0; i < 26; i++) {
+        now[i].ff = i;
+    }
+    sort(all(now), [](const pair<int, vi>& a, const pair<int, vi>& b) {return a.ss.size() > b.ss.size();});
+    int best = -1;
+    string ans;
+    for(int seg = 1; seg <= 26; seg++) {
+        if(n % seg == 0) {
+            int curr = 0;
+            for(int j = 0; j < seg; j++) {
+                curr += min(n / seg, int(now[j].ss.size()));
+            }
+            if(curr <= best) continue;
+            best = curr;
+            vc extra;
+            string res = string(n, '.');
+            for(int i = 0; i < seg; i++) {
+                auto& a = now[i].ss;
+                char ch = char(now[i].ff + 'a');
+                for(int j = 0; j < n / seg; j++) {
+                    if(j < a.size()) {
+                        res[a[j]] = ch;
+                    }
+                    else {
+                        extra.pb(ch);
+                    }
+                }
+            }
+            for(auto& ch : res) {
+                if(ch == '.') {
+                    ch = extra.back();
+                    extra.pop_back();
+                }
+            }
+            swap(ans, res);
+        }
+    }
+    cout << n - best << endl;
+    cout << ans << endl;
 }
 
 signed main() {
@@ -237,7 +282,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

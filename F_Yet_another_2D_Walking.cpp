@@ -227,6 +227,52 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vpii a(n);
+    vi b;
+    for(int i = 0; i < n; i++) {
+        cin >> a[i];
+        b.pb(max(a[i].ff, a[i].ss));
+    }
+    b.pb(0);
+    srtU(b);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    int N = b.size();
+    vvpii level(N);
+    for(int i = 0; i < n; i++) {
+        auto& [u, v] = a[i];
+        level[get_id(max(u, v))].pb({u, v});
+    }
+    level[0].pb({0, 0});
+    vvpii now;
+    for(auto& it : level) {
+        sort(begin(it), end(it), [](const pii& a, const pii& b) {
+                    if(a.ff != b.ff) return a.ff < b.ff;
+                    return a.ss > b.ss;
+                });
+        now.pb({it[0], it.back()});
+    }
+    swap(level, now);
+    auto get_dis = [](const pii& a, const pii& b) -> ll {
+        return abs(a.ff - b.ff) + abs(a.ss - b.ss);
+    };
+    vvll dp(N, vll(2, -1));
+    auto dfs = [&](auto& dfs, int i = 0, int v = 0) -> ll {
+        auto& res = dp[i][v];
+        if(res != -1) return res;
+        ll left = get_dis(level[i][v], level[i][1]) + get_dis(level[i][1], level[i][0]);
+        ll right = get_dis(level[i][v], level[i][0]) + get_dis(level[i][0], level[i][1]);
+        if(i + 1 == N) res = min(left, right);
+        else {
+            left += min(get_dis(level[i][0], level[i + 1][0]) + dfs(dfs, i + 1, 0), get_dis(level[i][0], level[i + 1][1]) + dfs(dfs, i + 1, 1));
+            right += min(get_dis(level[i][1], level[i + 1][0]) + dfs(dfs, i + 1, 0), get_dis(level[i][1], level[i + 1][1]) + dfs(dfs, i + 1, 1));
+            res = min(left, right);
+        }
+        return res;
+    };
+    cout << dfs(dfs) << endl;
 }
 
 signed main() {

@@ -227,7 +227,38 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    // our goal is to sort the two string and see if they're the same
+    // case1 : the frequency is not the same -> false
+    // case2 : max occurence > 1 -> true because you can sort s, and then you can use the two duplicate to sort around and not changing s any more
+    // case3 : parity of inversion is same -> true because it takes # inversion to sort a string, then the parity is what matters
+    int n; cin >> n;
+    string s[2];
+    vvi cnt(2, vi(26));
+    for(int i = 0; i < 2; i++) {
+        cin >> s[i];
+        for(auto& ch : s[i]) cnt[i][ch - 'a']++;
+    }
+    if(cnt[0] != cnt[1]) {
+        cout << "NO" << endl;
+        return;
+    }
+    if(MAX(cnt[1]) > 1) { 
+        cout << "YES" << endl;
+        return;
+    }
+    auto inv = [](const string& s) -> int {
+        int inversion = 0;
+        int n = s.size();
+        for(int i = 0; i < n; i++) {
+            for(int j = i + 1; j < n; j++) {
+                if(s[i] > s[j]) inversion++;
+            }
+        }
+        return inversion;
+    };
+    cout << (inv(s[0]) % 2 == inv(s[1]) % 2 ? "YES" : "NO") << endl;
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator
@@ -237,7 +268,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

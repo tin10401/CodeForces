@@ -227,6 +227,24 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    ll n, l, r; cin >> n >> l >> r;
+    vi a(n + 1); 
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+        a[i] ^= a[i - 1];
+    }
+    if(n % 2 == 0) {
+        a.pb(a[++n / 2] ^ a.back());
+    }
+    auto dfs = [&](auto& dfs, ll k) -> ll {
+        if(k <= n) return a[k] ^ a[k - 1];
+        ll m = k / 2;
+        if(m <= n) return a[m];
+        if(m % 2 == 1) return a[n];
+        return a[n] ^ dfs(dfs, m);
+    };
+    // after n, it's repeating pair of same value
+    cout << dfs(dfs, r) << endl;
 }
 
 signed main() {
@@ -237,7 +255,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

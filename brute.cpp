@@ -227,34 +227,24 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
-    int n, q; cin >> n >> q;
+    int n, m, k; cin >> n >> m >> k;
     vi a(n); cin >> a;
-    vll prefix_sum(n + 1), prefix_xor(n + 1);
-    for(int i = 1; i <= n; i++) {
-        prefix_sum[i] = prefix_sum[i - 1] + a[i - 1];
-        prefix_xor[i] = prefix_xor[i - 1] ^ a[i - 1];
-    }
-    auto get = [&](int l, int r) -> ll {
-        return (prefix_sum[r] - prefix_sum[l - 1]) - (prefix_xor[r] ^ prefix_xor[l - 1]);
-    };
-    while(q--) {
-        int l, r; cin >> l >> r;
-        ll target = get(l, r);
-        int L = -1, R = inf;
-        for(int i = l, j = l; i <= r; i++) {
-            int left = i, right = r, left_most = -1;
-            while(left <= right) {
-                int middle = midPoint;
-                if(get(i, middle) >= target) left_most = middle, right = middle - 1;
-                else left = middle + 1;
+    int res = 0;
+    for(int i = 0; i < n; i++) {
+        int rem = m;
+        int now = 0;
+        ll curr = 0;
+        for(int j = i; j < n && rem; j++) {
+            curr += a[j];
+            if(curr > k) {
+                curr = a[j];
+                if(--rem == 0) break;
             }
-            if(left_most == -1) continue;
-            if(left_most - i + 1 < R - L + 1) {
-                L = i, R = left_most;
-            }
+            now++;
         }
-        cout << L << ' ' << R << endl;
+        res = max(res, now);
     }
+    cout << res << endl;
 }
 
 signed main() {
@@ -265,7 +255,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

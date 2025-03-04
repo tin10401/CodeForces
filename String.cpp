@@ -302,11 +302,12 @@ void initGlobalHashParams() {
         globalMod[i]  = candidateMods[i];
     }
 }
+template<class T = string>
 struct RabinKarp {
     vvll prefix, pow;
     int n;
     
-    RabinKarp(const string &s) {
+    RabinKarp(const T &s) {
         initGlobalHashParams();
         n = s.size();
         prefix.rsz(HASH_COUNT);
@@ -318,7 +319,7 @@ struct RabinKarp {
         buildHash(s);
     }
     
-    void buildHash(const string &s) {
+    void buildHash(const T &s) {
         for (int j = 1; j <= n; j++) {
             int x = s[j - 1] - 'a' + 1;
             for (int i = 0; i < HASH_COUNT; i++) {
@@ -356,7 +357,6 @@ struct RabinKarp {
         a.ss = ((a.ss * pow[1][len]) + b.ss) % globalMod[1];
         return (a.ff << 32) | a.ss;
     }
-
 };
 
 class MANACHER {    
@@ -493,22 +493,44 @@ class MANACHER {
     }
 };
 
-int lcs(const string& s, const string& t) { // longest common subsequences
-    int n = s.size(), m = t.size(); 
-    vvi dp(n + 1, vi(m + 1));
-    for(int i = 1; i <= n; i++) {   
-        for(int j = 1; j <= m; j++) {   
-            if(s[i - 1] == t[j - 1]) {  
-                dp[i][j] = dp[i - 1][j - 1] + 1;
-            }
-            else {  
-                dp[i][j] = max({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
+struct LCS { // longest common subsequence
+    string lcs;
+    string shortest_supersequence; // find the shortest string where covers both s and t as subsequence
+    LCS(const string& s, const string& t) {
+        int n = s.size(), m = t.size();
+        vvi dp(n + 1, vi(m + 1));
+        for(int i = 1; i <= n; i++) {
+            for(int j = 1; j <= m; j++) {
+                if(s[i - 1] == t[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+                else dp[i][j] = max({dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]});
             }
         }
+        int curr = dp[n][m];
+        for(int i = n; i >= 1; i--) {
+            for(int j = m; j >= 1; j--) {
+                if(dp[i][j] == curr && s[i - 1] == t[j - 1]) {
+                    lcs += s[i - 1];
+                    curr--;
+                    break;
+                }
+            }
+        }
+        rev(lcs);
+        int i = 0, j = 0;
+        for(auto& ch : lcs) {
+            while(i < n && s[i] != ch) {
+                shortest_supersequence += s[i++];
+            }
+            while(j < m && t[j] != ch) {
+                shortest_supersequence += t[j++];
+            }
+            shortest_supersequence += ch;
+            i++, j++;
+        }
+        while(i < n) shortest_supersequence += s[i++];
+        while(j < m) shortest_supersequence += t[j++];
     }
-    //return n + m - 2 * dp[n][m];
-    return dp[n][m];
-}
+};
 
 class suffix_array {
     public:

@@ -227,6 +227,51 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    var(3) a(n);
+    map<int, vi> mp;
+    for(int i = 0; i < n; i++) {
+        auto& [fish, meat, lim] = a[i]; cin >> fish >> meat >> lim;
+        mp[fish + meat - lim].pb(i);
+    }
+    vi ans(n);
+    int res = 0;
+    for(auto& [_, it] : mp) {
+        var(3) now;
+        for(auto& i : it) {
+            auto& [fish, meat, lim] = a[i];
+            int left = max(0, fish - lim);
+            int right = fish - max(0, lim - meat);
+            now.pb({left, right, i});
+        }
+        srt(now);
+        min_heap<pii> q;
+        for(auto& [l, r, i] : now) {
+            if(!q.empty() && q.top().ff < l) {
+                res++;
+                int target = q.top().ff;
+                while(!q.empty()) {
+                    auto [_, id] = q.top(); q.pop();
+                    auto& [fish, meat, lim ] = a[id];
+                    fish -= target;
+                    meat = lim - fish;
+                }
+            }
+            q.push({r, i});
+        }
+        res++;
+        int target = q.top().ff;
+        while(!q.empty()) {
+            auto [_, id] = q.top(); q.pop();
+            auto& [fish, meat, lim ] = a[id];
+            fish -= target;
+            meat = lim - fish;
+        }
+    }
+    cout << res << endl;
+    for(auto& [fish, meat, lim] : a) {
+        cout << fish << ' ' << meat << endl;
+    }
 }
 
 signed main() {
@@ -237,7 +282,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

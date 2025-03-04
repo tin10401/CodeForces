@@ -226,7 +226,91 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries_range(int left, int right) {  
+        if(left <= right) {
+            return get(right) - get(left - 1);
+        }
+        return get(right) + get(n - 1) - get(left - 1);
+    }
+
+    T queries_at(int i) {
+        return queries_range(i, i);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi b(a);
+    srtU(b);
+    int N = b.size();
+    vvi g(N);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    FW<int> root(n, 0, [](const int& a, const int& b) {return a + b;});
+    for(int i = 0; i < n; i++) {
+        g[get_id(a[i])].pb(i); 
+        root.update(i, 1);
+    }
+    ll res = 0;
+    int last = 0;
+    for(auto& it : g) {
+        int M = it.size();
+        int now = it[(lb(all(it), last) - begin(it) - 1 + M) % M];
+        res += root.queries_range(last, now);
+        for(auto& i : it) {
+            root.update(i, -1);
+        }
+        last = now;
+    }
+    cout << res << endl;
 }
 
 signed main() {

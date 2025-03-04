@@ -227,6 +227,34 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vi v(n); cin >> v;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int p; cin >> p;
+        p--;
+        graph[p].pb(i);
+    }
+    int leaf = 0;
+    // if it's require min, meaning all subtree of this node's children is require
+    // if it's max, we only care about one subtree, because it's max, so we take the min of its children
+    // the answer is leaf - loss + 1 meaning that if a[0] = 1(max), then leaf = 4, dp[0] = 2
+    // meaning that the minimal loss for some of its children min is 2 node
+    // so the answer is leaf - loss + 1
+    auto dfs = [&](auto& dfs, int node = 0) -> int {
+        if(graph[node].empty()) {
+            leaf++;
+            return 1;
+        }
+        int now = v[node] == 0 ? 0 : inf;
+        for(auto& nei : graph[node]) {
+            int t = dfs(dfs, nei);
+            now = v[node] == 0 ? now + t : min(now, t);
+        }
+        return now;
+    };
+    auto loss = dfs(dfs);
+    cout << leaf - loss + 1 << endl;
 }
 
 signed main() {

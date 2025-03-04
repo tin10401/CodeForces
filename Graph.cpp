@@ -189,6 +189,7 @@ vi toposort(vvi& graph, vi degree) {
         auto i = q.front(); q.pop(); ans.pb(i);
         for(auto& j : graph[i]) if(--degree[j] == 0) q.push(j);
     }
+	if(ans.size() != n) return {};
     return ans;
 }
 
@@ -394,8 +395,9 @@ struct CD { // centroid_decomposition
 
 struct CYCLE {
     vvi graph;
+    vi degree;
     int n;
-    CYCLE(vvi &graph) : graph(graph) { n = graph.size(); }
+    CYCLE(vvi &graph, vi& degree) : graph(graph), degree(degree) { n = graph.size(); }
  
     vi reconstruct_cycle(int u, int v, const vi &parent) {
         vi pathU, pathV;
@@ -484,6 +486,81 @@ struct CYCLE {
         };
         dfs(dfs, src, -1, 0);
         return group[0].size() > group[1].size() ? group[0] : group[1];
+    }
+
+    vi longest_cycle_path() { // return longest path where each vertex is visited once in a DIRECTED GRAPH
+        queue<int> q;
+        vi vis(n);
+        for(int i = 0; i < n; i++) {
+            if(degree[i] == 0) {
+                q.push(i);
+                vis[i] = true;
+            }
+        }
+        while(!q.empty()) {
+            auto node = q.front(); q.pop();
+            vis[node] = true;
+            for(auto& nei : graph[node]) {
+                if(--degree[nei] == 0) q.push(nei);
+            }
+        }
+        vi cycle(n);
+        for(int i = 0; i < n; i++) {
+            if(!vis[i]) {
+                cycle[i] = true;
+            }
+        }
+        DSU root(n);
+        for(int i = 0; i < n; i++) {
+            if(cycle[i]) {
+                for(auto& j : graph[i]) {
+                    if(cycle[j]) root.merge(i, j);
+                }
+            }
+        }    
+        vi dp(n, -1);
+        vi next(n, -1);
+        auto dfs = [&](auto& dfs, int node) -> int {
+            auto& res = dp[node];
+            if(res != -1) return res;
+            if(cycle[node]) {
+                return res = root.get_rank(node);
+            }
+            res = 1;
+            for(auto& nei : graph[node]) {
+                int v = dfs(dfs, nei) + 1;
+                if(v > res) {
+                    res = v;
+                    next[node] = nei;
+                }
+            }
+            return res;
+        };
+        for(int i = 0; i < n; i++) dfs(dfs, i);
+        int mx = max_element(all(dp)) - begin(dp);
+        vi path;
+        int node = mx;
+        while(node != -1) {
+            path.pb(node);
+            if(cycle[node]) {
+                int u = node;
+                while(true) {
+                    int nxt = -1;
+                    for(auto& nei : graph[node]) {
+                        if(root.same(nei, node)) {
+                            nxt = nei;
+                            break;
+                        }
+                    }  
+                    if(nxt == u) break;
+                    node = nxt;
+                    path.pb(node);
+                } 
+                break;
+            }
+            node = next[node];
+        }
+        return path;
     }
 };
 

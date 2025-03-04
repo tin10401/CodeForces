@@ -226,7 +226,123 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+const int HASH_COUNT = 2;
+vll globalBase;
+vll globalMod;
+void initGlobalHashParams() {
+    if (!globalBase.empty() && !globalMod.empty()) return;
+    vll candidateBases = {29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    vll candidateMods  = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL,
+                                 1000000087LL, 1000000093LL, 1000000097LL, 1000000103LL};
+								 
+	unsigned seed = chrono::steady_clock::now().time_since_epoch().count();
+    shuffle(candidateBases.begin(), candidateBases.end(), default_random_engine(seed));
+    shuffle(candidateMods.begin(), candidateMods.end(), default_random_engine(seed + 1));
+
+    globalBase.rsz(HASH_COUNT);
+    globalMod.rsz(HASH_COUNT);
+    for (int i = 0; i < HASH_COUNT; i++) {
+        globalBase[i] = candidateBases[i];
+        globalMod[i]  = candidateMods[i];
+    }
+}
+template<class T = string>
+struct RabinKarp {
+    vvll prefix, pow;
+    int n;
+    
+    RabinKarp(const T &s) {
+        initGlobalHashParams();
+        n = s.size();
+        prefix.rsz(HASH_COUNT);
+        pow.rsz(HASH_COUNT);
+        for (int i = 0; i < HASH_COUNT; i++) {
+            prefix[i].rsz(n + 1, 0);
+            pow[i].rsz(n + 1, 1);
+        }
+        buildHash(s);
+    }
+    
+    void buildHash(const T &s) {
+        for (int j = 1; j <= n; j++) {
+            int x = s[j - 1] - 'a' + 1;
+            for (int i = 0; i < HASH_COUNT; i++) {
+                prefix[i][j] = (prefix[i][j - 1] * globalBase[i] + x) % globalMod[i];
+                pow[i][j] = (pow[i][j - 1] * globalBase[i]) % globalMod[i];
+            }
+        }
+    }
+    
+    ll get_hash(int l, int r) {
+        if (l < 0 || r > n || l > r) return 0;
+        ll hash0 = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % globalMod[0]);
+        hash0 = (hash0 % globalMod[0] + globalMod[0]) % globalMod[0];
+        ll hash1 = prefix[1][r] - (prefix[1][l] * pow[1][r - l] % globalMod[1]);
+        hash1 = (hash1 % globalMod[1] + globalMod[1]) % globalMod[1];
+        return (hash0 << 32) | hash1;
+    }
+    
+    bool diff_by_one_char(RabinKarp &a, int offSet = 0) {
+        int left = 0, right = n, rightMost = -1;
+        while (left <= right) {
+            int middle = left + (right - left) / 2;
+            if (a.get_hash(offSet, middle + offSet) == get_hash(0, middle)) {
+                rightMost = middle;
+                left = middle + 1;
+            } else {
+                right = middle - 1;
+            }
+        }
+        return a.get_hash(rightMost + 1 + offSet, offSet + n) == get_hash(rightMost + 1, n);
+    }
+	
+	ll combine_hash(pll a, pll b, int len) {
+        a.ff = ((a.ff * pow[0][len]) + b.ff) % globalMod[0];
+        a.ss = ((a.ss * pow[1][len]) + b.ss) % globalMod[1];
+        return (a.ff << 32) | a.ss;
+    }
+
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi b(a); 
+    srtU(b);
+    int N = b.size();
+    vvi g(N);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    for(int i = 0; i < n; i++) {
+        g[get_id(a[i])].pb(i);
+    }
+    vpii now;
+    RabinKarp<vi> t(a);
+    for(auto& it : g) {
+        int m = it.size();
+        for(int i = 0; i < m; i++) {
+            for(int j = i + 1; j < m; j++) {
+                int l = it[i], r = it[j];
+                int len = r - l;
+                if(r + len > n) break;
+                if(t.get_hash(l, l + len) == t.get_hash(r, r + len)) {
+                    now.pb({len, r});
+                }
+            }
+        }
+    }
+    srt(now);
+    int mx = 0;
+    for(auto& [x, r] : now) {
+        if(r - x < mx) continue;
+        mx = max(mx, r);
+    }
+    cout << n - mx << endl;
+    for(int i = mx; i < n; i++) {
+        cout << a[i] << ' ';
+    }
+    cout << endl;
 }
 
 signed main() {

@@ -227,6 +227,36 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, r; cin >> n >> r;
+    vpii pos, neg;
+    for(int i = 0; i < n; i++) {
+        int a, b; cin >> a >> b;
+        if(b < 0) neg.pb({a, b});
+        else pos.pb({a, b});
+    }
+    srt(pos);
+    sort(all(neg), [](const pii& a, const pii& b) {return a.ff + a.ss > b.ff + b.ss;}); // sort by ai + bi because after finishing this probject, you'd have a better rating
+    int res = 0;
+    for(auto& [rating, b] : pos) {
+        if(rating > r) {
+            break;
+        }
+        r += b;
+        res++;
+    }
+    const int N = neg.size();
+    vvi dp(N, vi(r + 1, -1));
+    auto dfs = [&](auto& dfs, int i = 0, int rating = 0) -> int {
+        if(i == N) return false;
+        auto& res = dp[i][rating];
+        if(res != -1) return res;
+        res = dfs(dfs, i + 1, rating);
+        if(rating >= max(neg[i].ff, -neg[i].ss)) {
+            res = max(res, dfs(dfs, i + 1, rating + neg[i].ss) + 1);
+        }
+        return res;
+    };
+    cout << res + dfs(dfs, 0, r) << endl;
 }
 
 signed main() {

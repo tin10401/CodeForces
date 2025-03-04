@@ -227,6 +227,26 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vi fish(n), meat(n);
+    vi A(n), B(n);
+    ll diff = 0;
+    for(int i = 0; i < n; i++) {
+        cin >> fish[i] >> meat[i];
+        A[i] = min(fish[i], m);
+        B[i] = m - A[i];
+        diff += -(fish[i] - A[i]) + (meat[i] - B[i]);
+    }
+    for(int i = 0; i < n; i++) {
+        ll mn = fmax(0, fmin(diff / 2, min(A[i], meat[i] - B[i])));
+        diff -= 2 * mn;
+        A[i] -= mn;
+        B[i] += mn;
+    }
+    cout << abs(diff) << endl;
+    for(int i = 0; i < n; i++) {
+        cout << A[i] << ' ' << B[i] << endl;
+    }
 }
 
 signed main() {
@@ -237,7 +257,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
