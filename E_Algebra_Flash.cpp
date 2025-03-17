@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,49 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vll c(n); cin >> c;
+    for(auto& x : c) x--;
+    vll cost(m); cin >> cost;
+    vll g(m);
+    for(int i = 0; i < n - 1; i++) {
+        int u = c[i], v = c[i + 1];
+        g[u] |= 1LL << v;
+        g[v] |= 1LL << u;
+    }
+    g[c[0]] |= 1LL << c[0];
+    g[c[n - 1]] |= 1LL << c[n - 1];
+    const int N = m / 2, M = m - N;
+    vll dp(1 << N, INF);
+    for(int mask = 0; mask < 1LL << M; mask++) {
+        ll now = 0, other = 0;
+        for(int i = 0; i < M; i++) {
+            if(have_bit(mask, i)) now += cost[i + N];
+            else other |= g[i + N];
+        }
+        if(((other >> N) | mask) != mask) continue;
+        other &= (1LL << N) - 1;
+        dp[other] = min(dp[other], now);
+    }
+    for(int bit = 0; bit < N; bit++) {
+        for(int mask = 0; mask < 1 << N; mask++) {
+            if(have_bit(mask, bit)) {
+                dp[mask] = min(dp[mask ^ (1LL << bit)], dp[mask]);
+            }
+        }
+    }
+    ll res = INF;
+    for(int mask = 0; mask < 1LL << N; mask++) {
+        ll now = 0, other = 0;
+        for(int i = 0; i < N; i++) {
+            if(have_bit(mask, i)) now += cost[i];
+            else other |= g[i];
+        }
+        other &= (1LL << N) - 1;
+        if((other | mask) != mask) continue;
+        res = min(res, dp[mask] + now);
+    }
+    cout << res << endl;
 }
 
 signed main() {

@@ -1,6 +1,6 @@
 class GRAPH { 
     public: 
-    int n;  
+    int n, m; 
     vvi dp, graph; 
     vi depth, parent, subtree;
     vi tin, tout, low, ord;
@@ -9,7 +9,8 @@ class GRAPH {
     GRAPH(vvi& graph, int root = 0) {   
         this->graph = graph;
         n = graph.size();
-        dp.rsz(n, vi(MK));
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m));
         depth.rsz(n);
         parent.rsz(n, -1);
 		subtree.rsz(n, 1);
@@ -59,7 +60,7 @@ class GRAPH {
 //        depth[u] = depth[par] + 1;
 //        dp[u][0] = par;
 //        ans[u][0] = Node(x);
-//        for(int j = 1; j < MK; j++) {
+//        for(int j = 1; j < m; j++) {
 //            int p = dp[u][j - 1];
 //            dp[u][j] = dp[p][j - 1];
 //            ans[u][j] = merge(ans[u][j - 1], ans[p][j - 1]);
@@ -71,7 +72,7 @@ class GRAPH {
     }
     
     void init() {  
-        for(int j = 1; j < MK; j++) {   
+        for(int j = 1; j < m; j++) {   
             for(int i = 0; i < n; i++) {    
                 dp[i][j] = dp[dp[i][j - 1]][j - 1];
             }
@@ -83,13 +84,13 @@ class GRAPH {
             swap(a, b);
         }
         int d = depth[b] - depth[a];    
-        for(int i = MK - 1; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             if((d >> i) & 1) {  
                 b = dp[b][i];
             }
         }
         if(a == b) return a;    
-        for(int i = MK - 1; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             if(dp[a][i] != dp[b][i]) {  
                 a = dp[a][i];   
                 b = dp[b][i];
@@ -104,7 +105,7 @@ class GRAPH {
     }
 	
 	int k_ancestor(int a, int k) {
-        for(int i = MK - 1; i >= 0; i--) {   
+        for(int i = m - 1; i >= 0; i--) {   
             if((k >> i) & 1) a = dp[a][i];
         }
         return a;
@@ -152,6 +153,7 @@ class DSU {
         this->n = n;    
 		comp = n;
         root.rsz(n, -1), rank.rsz(n, 1);
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
     }
     
     int find(int x) {   

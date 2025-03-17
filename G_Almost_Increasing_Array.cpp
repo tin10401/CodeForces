@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -226,8 +226,91 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<class T, typename F = function<T(const T, const T)>>
+class SGT {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    SGT(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        idx += size;
+        root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) {
+            root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+        }
+    }
+    
+    T queries_range(int l, int r) {
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size;
+        r += size;
+        while (l <= r) {
+            if ((l & 1) == 1) {
+                res_left = func(res_left, root[l]);
+                l++;
+            }
+            if ((r & 1) == 0) {
+                res_right = func(root[r], res_right);
+                r--;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        return root[idx + size];
+    }
+
+    T get() {
+        return root[1];
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n + 1, -inf);
+    vi b;
+    b.pb(-inf);
+    b.pb(-inf - 1);
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+        a[i] -= i;
+        b.pb(a[i]);
+        b.pb(a[i] - 1);
+    }
+    srtU(b);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    debug(a);
+    for(auto& x : a) x = get_id(x);
+    vi prefix(n + 1);
+    int N = b.size();
+    SGT<int> root(N, 0, [](const int& a, const int& b) {return max(a, b);});
+    for(int i = 1; i <= n; i++) {
+        prefix[i] = root.queries_range(0, a[i]) + 1;
+        root.update_at(a[i], prefix[i]);
+    }
+    for(int i = 0; i < N; i++) root.update_at(i, 0);
+    int res = 0;
+    for(int i = n; i > 0; i--) {
+        res = max(res, prefix[i - 1] + 1 + root.queries_range(get_id(b[a[i - 1]] - 1), N - 1));
+        root.update_at(a[i], 1 + root.queries_range(a[i], N - 1));
+    }
+    cout << n - res << endl;
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator

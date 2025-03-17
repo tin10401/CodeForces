@@ -226,7 +226,83 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<class T, typename F = function<T(const T, const T)>>
+class SGT {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    SGT(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        idx += size, root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+    
+    T queries_range(int l, int r) {
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while (l <= r) {
+            if ((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if ((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        return root[idx + size];
+    }
+
+    T get() {
+        return root[1];
+    }
+};
+
+struct info {
+    int prefix0, prefix1, xor_sm;
+    bool bad;
+    info(int x = 0) : prefix0(0), prefix1(x == 0 ? 0 : 1LL << max_bit(x)), xor_sm(x), bad(false) {}
+};
+
 void solve() {
+    int n, q; cin >> n >> q;
+    SGT<info> root(n, info(), [](const info& a, const info& b) {
+                                    info res = a;
+                                    res.xor_sm ^= b.xor_sm;
+                                    for(int i = 0; i < 30; i++) {
+                                        int prefix0 = have_bit(b.prefix0, i);
+                                        int prefix1 = have_bit(b.prefix1, i);
+                                        if(have_bit(a.xor_sm, i)) {
+                                            res.bad |= prefix1;
+                                            res.prefix0 |= prefix1;
+                                            res.prefix1 |= prefix0;
+                                        } 
+                                        else {
+                                            res.bad |= prefix0;
+                                            res.prefix0 |= prefix0;
+                                            res.prefix1 |= prefix1;
+                                        }
+                                    }
+                                    return res;
+                                });
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        root.update_at(i, info(x));
+    }
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        cout << (!root.queries_range(l, r).bad);
+    }
+    cout << endl;
 }
 
 signed main() {
@@ -237,7 +313,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

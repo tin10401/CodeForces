@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,31 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m, k; cin >> n >> m >> k;
+    vpii a(m); cin >> a;
+    for(auto& [l, r] : a) l--, r--;
+    int res = 0;
+    for(int i = 0; i + k <= n; i++) {
+        int L = i, R = i + k - 1; 
+        vi dp(n + k + 10);
+        int add = 0;
+        for(auto& [l, r] : a) {
+            auto modify = [&](int l, int r, int delta) -> void {
+                l += k, r += k;
+                dp[l] += delta;
+                dp[r + 1] -= delta;
+            };
+            int intersect = max(0, min(r, R) - max(l, L) + 1);
+            add += intersect;
+            modify(l - (k - intersect) + 1, min(l, r - k + 1), 1);
+            modify(max(l + 1, r - k + 2), r + 1, -1);
+        }
+        int N = dp.size();
+        for(int i = 1; i < N; i++) dp[i] += dp[i - 1];
+        for(int i = 1; i < N; i++) dp[i] += dp[i - 1];
+        res = max(res, add + MAX(dp));
+    }
+    cout << res << endl;
 }
 
 signed main() {

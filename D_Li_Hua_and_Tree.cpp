@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,47 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vvi graph(n + 1);
+    vll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vt<set<pii>> s(n + 1);
+    vi size(n + 1, 1), parent(n + 1);
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
+        for(auto&nei : graph[node]) {
+            if(nei == par) continue;
+            parent[nei] = node;
+            dfs(dfs, nei, node);
+            a[node] += a[nei];
+            s[node].insert({-size[nei], nei});
+            size[node] += size[nei];
+        } 
+    };
+    dfs(dfs);
+    while(q--) {
+        int op, x; cin >> op >> x;
+        if(op == 1) {
+            cout << a[x] << endl;
+            continue;
+        }
+        if(s[x].empty()) continue;
+        int y = s[x].begin()->ss;
+        s[x].erase(s[x].begin());
+        s[parent[x]].erase({-size[x], x});
+        size[x] -= size[y];
+        size[y] += size[x];
+        a[x] -= a[y];
+        a[y] += a[x];
+        s[y].insert({-size[x], x});
+        s[parent[x]].insert({-size[y], y});
+        parent[y] = parent[x];
+        parent[x] = y;
+    }
 }
 
 signed main() {

@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,29 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    ll n, k; cin >> n >> k;
+    vpll a(n);
+    for(auto& it : a) cin >> it.ff;
+    for(auto& it : a) cin >> it.ss;
+    ll res = INF;
+    ll long_len = 0, short_len = 0;
+    for(int i = 0; i < n; i++) {
+        auto& [l, r] = a[i];
+        ll len = r - l + 1;
+        if(len == 1) short_len++;
+        else long_len += len;
+        if(long_len < k) {
+            if(long_len + short_len >= k) {
+                ll now = r + 2 * (i + 1 - short_len + (k - long_len));
+                res = min(res, now);
+            }
+        }
+        else {
+            res = min(res, r - (long_len - k) + 2 * (i + 1 - short_len));
+            break;
+        }
+    }
+    cout << (res == INF ? -1 : res) << endl;
 }
 
 signed main() {
@@ -237,7 +260,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

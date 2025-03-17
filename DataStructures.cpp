@@ -503,7 +503,7 @@ class SGT {
 };
 
 template<class T, typename F = function<T(const T, const T)>>
-class SGT {
+class basic_segtree {
 public:
     int n;    
     int size;  
@@ -511,35 +511,24 @@ public:
     F func;
     T DEFAULT;  
     
-    SGT(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+    basic_segtree(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
         size = 1;
         while (size < n) size <<= 1;
         root.assign(size << 1, DEFAULT);
     }
     
     void update_at(int idx, T val) {
-        idx += size;
-        root[idx] = val;
-        for (idx >>= 1; idx > 0; idx >>= 1) {
-            root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
-        }
+        idx += size, root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
     }
     
     T queries_range(int l, int r) {
         T res_left = DEFAULT, res_right = DEFAULT;
-        l += size;
-        r += size;
+        l += size, r += size;
         while (l <= r) {
-            if ((l & 1) == 1) {
-                res_left = func(res_left, root[l]);
-                l++;
-            }
-            if ((r & 1) == 0) {
-                res_right = func(root[r], res_right);
-                r--;
-            }
-            l >>= 1;
-            r >>= 1;
+            if ((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if ((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
         }
         return func(res_left, res_right);
     }
@@ -552,6 +541,117 @@ public:
         return root[1];
     }
 };
+
+template<class T, class I = int, typename F = function<T(const T, const T)>>
+class iterative_lazy_segtree {
+public:
+    int n, size, h;
+    vt<T> root;
+    vt<I> lazy;
+    F func;
+    T DEFAULT;
+    
+    iterative_lazy_segtree(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+        lazy.assign(size << 1, 0);
+        h = 0;
+        for (int i = size; i > 0; i >>= 1) h++;
+    }
+    
+    inline void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size;
+        for (int s = h; s > 0; s--) 
+            push(idx >> s);
+        root[idx] = val;
+        for (idx /= 2; idx > 0; idx /= 2) {
+            root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+            root[idx] += lazy[idx];
+        }
+    }
+    
+    inline void update_range(int l, int r, I val) {
+        if(l < 0 || r >= n || l > r) return;
+        int L = l + size, R = r + size;
+        int l0 = L, r0 = R;
+        for (int s = h; s > 0; s--) {
+            if ((L >> s) << s != L) push(L >> s);
+            if ((R >> s) << s != R) push(R >> s);
+        }
+        while (L <= R) {
+            if (L & 1) { apply(L, val); L++; }
+            if (!(R & 1)) { apply(R, val); R--; }
+            L >>= 1; R >>= 1;
+        }
+        rebuild(l0);
+        rebuild(r0);
+    }
+    
+    inline T queries_range(int l, int r) {
+        if(l < 0 || r >= n || l > r) return DEFAULT;
+        int L = l + size, R = r + size;
+        for (int s = h; s > 0; s--) {
+            if ((L >> s) << s != L) push(L >> s);
+            if ((R >> s) << s != R) push(R >> s);
+        }
+        T res_left = DEFAULT, res_right = DEFAULT;
+        while (L <= R) {
+            if (L & 1) res_left = func(res_left, root[L++]);
+            if (!(R & 1)) res_right = func(root[R--], res_right);
+            L >>= 1; R >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+    
+    inline T queries_at(int idx) {
+        if(idx < 0 || idx >= n) return DEFAULT;
+        idx += size;
+        for (int s = h; s > 0; s--)
+            push(idx >> s);
+        return root[idx];
+    }
+    
+    inline T get() { return root[1]; }
+    
+private:
+    inline void apply(int i, I val) {
+        root[i] += val; 
+        if (i < size)
+            lazy[i] += val;
+    }
+    
+    inline void push(int i) {
+        if (lazy[i] != 0) {
+            apply(i << 1, lazy[i]);
+            apply(i << 1 | 1, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+    
+    inline void rebuild(int i) {
+        for (i /= 2; i > 0; i /= 2) {
+            root[i] = func(root[i << 1], root[i << 1 | 1]);
+            root[i] += lazy[i];
+        }
+    }
+};
+
+//struct info {
+//    ll ans, suffix, prefix, sm;
+//    info(ll x = -INF) : suffix(x), prefix(x), ans(max(0LL, x)), sm(x) {}
+//};
+//SGT<info> root(n, info(), [](const info& left, const info& right) {
+//                                if(left.sm == -INF) return right;
+//                                if(right.sm == -INF) return left;
+//                                info res;  
+//                                res.prefix = max(left.prefix, left.sm + right.prefix);
+//                                res.suffix = max(right.suffix, right.sm + left.suffix);
+//                                res.ans = max({left.ans, right.ans, left.suffix + right.prefix});
+//                                res.sm = left.sm + right.sm;
+//                                return res; 
+//                            });
 
 struct merge_sort_tree {
     int n;
@@ -1200,9 +1300,8 @@ class HLD {
         seg.update_at(id[i], v);
     }
 
-    T queries(int node, int par) {   
+    T queries(int node, int par) { // only query up to parent, don't include parent info
         T res = 0;    
-        int cnt = 0;
         while(node != par && node != -1) {   
             if(node == tp[node]) {   
                 res += a[node];
@@ -1218,7 +1317,7 @@ class HLD {
         return res; 
     }
 
-    T path_queries(int u, int v) {
+    T path_queries(int u, int v) { // remember to add parent info if needed
         int c = get_lca(u, v);
         T res = queries(u, c) * 2 - a[u] + a[c];
         res += queries(v, c) * 2 - a[v] + a[c];

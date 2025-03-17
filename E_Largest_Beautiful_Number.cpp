@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,36 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    string s; cin >> s;
+    vi cnt(10);
+    for(auto& ch : s) cnt[ch - '0']++;
+    int n = s.size();
+    for(int i = n - 1; i >= 0; i--) {
+        int x = s[i] - '0';
+        cnt[x]--;
+        for(int j = x - 1; j >= 0; j--) {
+            if(i == 0 && j == 0) continue;
+            cnt[j]++;
+            int odd = 0;
+            for(int k = 0; k < 10; k++) {
+                odd += cnt[k] & 1;
+            }
+            int rem = n - i - 1;
+            if(odd <= rem) {
+                cout << s.substr(0, i) << j;
+                for(int k = 0; k < rem - odd; k++) cout << 9;
+                for(int k = 9; k >= 0; k--) {
+                    if(cnt[k] & 1) {
+                        cout << k;
+                    }
+                }
+                cout << endl;
+                return;
+            }
+            cnt[j]--;
+        }
+    }
+    cout << string(n - 2, '9') << endl;
 }
 
 signed main() {
@@ -237,7 +267,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

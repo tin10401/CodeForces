@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -226,7 +226,85 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+vi KMP(const vi& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
+
+int count_substring(const vi& s, const vi& t) { // s is main string, t is pattern
+    auto kmp = KMP(t);
+    int N = s.size(), M = t.size();
+    int cnt = 0;
+    for(int i = 0, j = 0; i < N;) {
+        if(s[i] == t[j]) i++, j++;
+        else if(j) j = kmp[j - 1];
+        else i++;
+        if(j == M) {
+            cnt++;
+            j = kmp[j - 1];
+        }
+    }
+    return cnt;
+}
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n), b(m); cin >> a >> b;
+    vi c(all(a));
+    c.insert(end(c), all(b));
+    srtU(c);
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(c), x) - begin(c));
+    };
+    for(auto& x : a) x = get_id(x);
+    for(auto& x : b) x = get_id(x);
+    const int N = c.size();
+    vvi pos(N);
+    vi alt(n);
+    iota(all(alt), 0);
+    for(int i = n - 2; i >= 0; i--) {
+        if(a[i] != a[i + 1]) alt[i] = alt[i + 1];
+    }
+    for(int i = 0; i < n; i++) {
+        pos[a[i]].pb(i);
+    }
+    auto f = [&](int l, int r) -> bool {
+        int last = l - 1;
+        for(int i = 0; i < m; i++) {
+            const auto& curr = pos[b[i]];
+            auto it = ub(all(curr), last);
+            if(it == end(curr) || *it > r) return false;
+            last = *it;
+        }
+        return true;
+    };
+    ll res = 0;
+    int base = 0;
+    while(base < m && b[base] == b[0]) base++;
+    for(int i = n - 1, same = 0; i >= 0; i--) {
+        same++;
+        if(a[i] == b[0]) {
+            if(same <= base) {
+                int left = i, right = n - 1, left_most = -1;
+                while(left <= right) {
+                    int middle = midPoint;
+                    if(f(i, middle)) left_most = middle, right = middle - 1;
+                    else left = middle + 1;
+                }
+                if(left_most != -1) {
+                    res += n - left_most;
+                }
+            }
+            if(base == m && same > base) res++;
+        }
+        if(i && a[i] != a[i - 1]) same = 0;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -237,7 +315,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -226,7 +226,85 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    T queries_at(int i) {
+        return queries_range(i, i);
+    }
+	
+	void reset() {
+		root.assign(n, 0);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    vvi g(m);
+    FW<int> root(m, 0, [](const int& a, const int& b) {return a + b;});
+    ll ans = 0;
+    for(int i = 0; i < n; i++) {
+        int x = a[i];
+        g[x].pb(i);
+        ans += root.queries_range(x + 1, m - 1);
+        root.update(x, 1);
+    }
+    cout << ans << endl;
+    for(int k = 1; k < m; k++) {
+        const auto& curr = g[m - k];
+        const int N = curr.size();
+        for(int i = 0; i < N; i++) {
+            // take off the inversion to the right
+            int j = curr[i];
+            ans -= (n - 1 - j) - (N - i - 1);
+            ans += j - i;
+        }
+        cout << ans << endl;
+    }
 }
 
 signed main() {

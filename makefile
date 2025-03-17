@@ -20,6 +20,11 @@ run: $(SUBMIT)
 	@./$(OUTPUT) < $(INPUT)
 	@rm -f $(OUTPUT)
 
+# Run interactively: compile and run without redirecting input from a file.
+run-interactive: $(SUBMIT)
+	@g++ $(FLAGS) -o $(OUTPUT) $(SUBMIT)
+	@./$(OUTPUT)
+	@rm -f $(OUTPUT)
 # Run generator and then run the submit solution
 run2: $(GENERATOR) $(SUBMIT)
 	@g++ $(FLAGS) -o generator $(GENERATOR)
@@ -31,4 +36,3 @@ run2: $(GENERATOR) $(SUBMIT)
 # Clean up compiled files
 clean:
 	@rm -f $(OUTPUT) generator
-

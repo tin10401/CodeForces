@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -226,7 +226,249 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class GRAPH { 
+    public: 
+    int n, m; 
+    vvi dp, graph; 
+    vi depth, parent, subtree;
+    GRAPH(vvi& graph, int root = 0) {   
+        this->graph = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+		subtree.rsz(n, 1);
+        dfs(root);
+        init();
+    }
+    
+    void dfs(int node = 0, int par = -1) {   
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+			dfs(nei, node);
+			subtree[node] += subtree[nei];
+        }
+    }
+    void init() {  
+        for(int j = 1; j < m; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+	
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = m - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = m - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+};
+
+const int BITS = 20;
+ 
+template<typename T>
+struct xor_basis {
+    // A list of basis values sorted in decreasing order, where each value has a unique highest bit.
+    // We use a static array instead of a vector for better performance.
+    T basis[BITS];
+    int n = 0;
+ 
+    T min_value(T start) const {
+        if (n == BITS) return 0;
+        for (int i = 0; i < n; i++)
+            start = min(start, start ^ basis[i]);
+        return start;
+    }
+ 
+    T max_value(T start = 0) const { 
+        if (n == BITS) return (T(1) << BITS) - 1;
+        for (int i = 0; i < n; i++)
+            start = max(start, start ^ basis[i]);
+        return start;
+    }
+ 
+    bool add(T x) {
+        x = min_value(x);
+        if (x == 0) return false;
+        basis[n++] = x;
+        int k = n - 1;
+        // Insertion sort.
+        while (k > 0 && basis[k] > basis[k - 1]) {
+            swap(basis[k], basis[k - 1]);
+            k--;
+        }
+        // Optional: remove the highest bit of x from other basis elements.
+        // for (int i = k - 1; i >= 0; i--)
+        //     basis[i] = min(basis[i], basis[i] ^ x);
+        return true;
+    }
+ 
+    void merge(const xor_basis<T> &other) {
+        for (int i = 0; i < other.n && n < BITS; i++)
+            add(other.basis[i]);
+    }
+ 
+    void merge(const xor_basis<T> &a, const xor_basis<T> &b) {
+        if (a.n > b.n) {
+            *this = a;
+            merge(b);
+        } else {
+            *this = b;
+            merge(a);
+        }
+    }
+
+    bool operator==(const xor_basis<T> &other) const {
+        if(n != other.n) return false;
+        for (int i = 0; i < n; i++)
+            if(basis[i] != other.basis[i])
+                return false;
+        return true;
+    }
+};
+
+template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+    SparseTable() {}
+
+    SparseTable(const vt<T>& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
+
+
+using info = xor_basis<int>;
+template<class T>
+class HLD {
+    public:
+    SparseTable<info> t;
+    vi id, tp, sz, parent;
+    int ct;
+    vvi graph;
+    int n;
+    GRAPH g;
+    vi orig;
+    HLD(vvi& graph, const vi& orig) : g(graph), graph(graph), n(graph.size()), orig(orig) {
+        swap(parent, g.parent);
+        swap(sz, g.subtree);
+        ct = 0;
+        id.rsz(n), tp.rsz(n), sz.rsz(n);
+        dfs();
+        vt<T> a(n);
+        for(int i = 0; i < n; i++) {
+            a[id[i]].add(orig[i]);
+        }
+        t = SparseTable<info>(a, [](const info& a, const info& b) {
+                                    info res = a;
+                                    res.merge(b);
+                                    return res;
+                                });
+    }
+        
+    void dfs(int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs(nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs(nei, node, nei);  
+        }   
+    }
+
+    T queries(int node, int par) { // query up to parent only, don't do parent
+        T res;   
+        while(node != par && node != -1) {   
+            if(node == tp[node]) {   
+                res.add(orig[node]);
+                node = parent[node];
+            } else if(g.depth[tp[node]] > g.depth[par]) {   
+                res.merge(t.query(id[tp[node]], id[node]));    
+                node = parent[tp[node]];
+            } else {   
+                res.merge(t.query(id[par] + 1, id[node])); 
+                break;  
+            } 
+        }   
+        return res; 
+    }
+
+    T path_queries(int u, int v) { // remember to add parent after if needed
+        int c = get_lca(u, v);
+        T res = queries(u, c);
+        res.merge(queries(v, c));
+        res.add(orig[c]);
+        return res;
+    }
+
+    int get_lca(int a, int b) {
+        return g.lca(a, b);
+    }
+};
+
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    HLD<info> root(graph, a);
+    int q; cin >> q;
+    while(q--) {
+        int u, v, k; cin >> u >> v >> k;
+        u--, v--;
+        auto now = root.path_queries(u, v);
+        cout << (now.min_value(k) == 0 ? "YES" : "NO") << endl;
+    }
 }
 
 signed main() {
@@ -264,3 +506,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

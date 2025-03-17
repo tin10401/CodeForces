@@ -17,8 +17,85 @@ struct Point {
     }
 };
 
-bool collinear(const Point &a, const Point &b, const Point &c) {
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) == 0;
+struct Circle {
+    ld x, y, r;
+    Circle(ld x = 0, ld y = 0, ld r = 0) : x(x), y(y), r(r) {}
+};
+
+struct Rectangle {
+    ld x, y, w, h;
+    Rectangle(ld x = 0, ld y = 0, ld w = 0, ld h = 0) : x(x), y(y), w(w), h(h) {}
+};
+
+bool circlesMergeWithinRect(const Circle &c1, const Circle &c2, const Rectangle &rect) { // check if the both circle intersect
+                                                                                         // where the intersection is within the rectangle
+    ld dx = c2.x - c1.x;
+    ld dy = c2.y - c1.y;
+    ld d = std::sqrt(dx * dx + dy * dy);
+    if (d > c1.r + c2.r || d < fabsl(c1.r - c2.r)) return false;
+    ld a = (c1.r * c1.r - c2.r * c2.r + d * d) / (2 * d);
+    ld temp = c1.r * c1.r - a * a;
+    if(temp < 0) temp = 0;
+    ld h = std::sqrt(temp);
+    ld px = c1.x + a * dx / d;
+    ld py = c1.y + a * dy / d;
+    if (fabs(h) < eps) {
+        return (px >= rect.x && px <= rect.x + rect.w &&
+                py >= rect.y && py <= rect.y + rect.h);
+    } else {
+        ld rx = -h * dy / d;
+        ld ry = h * dx / d;
+        ld ix1 = px + rx;
+        ld iy1 = py + ry;
+        ld ix2 = px - rx;
+        ld iy2 = py - ry;
+        bool inside1 = (ix1 >= rect.x && ix1 <= rect.x + rect.w &&
+                        iy1 >= rect.y && iy1 <= rect.y + rect.h);
+        bool inside2 = (ix2 >= rect.x && ix2 <= rect.x + rect.w &&
+                        iy2 >= rect.y && iy2 <= rect.y + rect.h);
+        return inside1 || inside2;
+    }
+}
+
+bool circleRectangleIntersect(const Circle &c, const Rectangle &rect) { // check if circle intersect with the rectangle
+    ld closestX = std::max(rect.x, std::min(c.x, rect.x + rect.w));
+    ld closestY = std::max(rect.y, std::min(c.y, rect.y + rect.h));
+    ld dx = c.x - closestX;
+    ld dy = c.y - closestY;
+    return (dx * dx + dy * dy) <= c.r * c.r;
+}
+
+bool circlesIntersect(const Circle &c1, const Circle &c2) { // check if two circle intersect
+    ld dx = c1.x - c2.x;
+    ld dy = c1.y - c2.y;
+    ld distanceSq = dx * dx + dy * dy;
+    ld radiusSum = c1.r + c2.r;
+    return distanceSq <= radiusSum * radiusSum;
+}
+
+bool circleLineIntersect(const Circle &c, const Point &p1, const Point &p2) { // check if a circle intersect with a line
+                                                                              // (x1, y1) to (x2, y2) inclusive
+    long double cx = c.x, cy = c.y, cr = c.r;
+    long double dx = p2.x - p1.x, dy = p2.y - p1.y;
+    long double lenSq = dx * dx + dy * dy;
+    if (lenSq == 0.0L) {
+        long double distSq = (cx - p1.x) * (cx - p1.x) + (cy - p1.y) * (cy - p1.y);
+        return distSq <= cr * cr;
+    }
+    long double t = ((cx - p1.x) * dx + (cy - p1.y) * dy) / lenSq;
+    long double closestX, closestY;
+    if (t < 0.0L) {
+        closestX = p1.x;
+        closestY = p1.y;
+    } else if (t > 1.0L) {
+        closestX = p2.x;
+        closestY = p2.y;
+    } else {
+        closestX = p1.x + t * dx;
+        closestY = p1.y + t * dy;
+    }
+    long double distSq = (cx - closestX) * (cx - closestX) + (cy - closestY) * (cy - closestY);
+    return distSq <= cr * cr;
 }
 
 class CHT {
@@ -77,7 +154,14 @@ struct Line {
     }
 };
 
-vvi rotate90(const vvi &matrix) {
+vvi rotate90(const vvi matrix) {
+    int n = matrix.size(), m = matrix[0].size();
+    vvi res(m, vi(n));
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            res[j][n - 1 - i] = matrix[i][j];
+    return res;
+}
 
 struct CHT : multiset<Line> {
     const ll inf = INF;

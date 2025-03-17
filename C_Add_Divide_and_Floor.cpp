@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,22 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    int mx = MAX(a), mn = MIN(a);
+    vi ans;
+    while(mn != mx) { // goal is to make mn == mx in minimum moves
+                      // when mn = 1, you don't want to add 0 because 1 / 2 = 0
+                      // instead adding 1 would keep it that way
+        int x = mn & 1;
+        ans.pb(x);
+        mn = (mn + x) / 2, mx = (mx + x) / 2;
+    }
+    if(ans.size() > n) cout << ans.size() << endl;
+    else {
+        cout << ans.size() << endl;
+        output_vector(ans);
+    }
 }
 
 signed main() {
@@ -237,7 +253,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

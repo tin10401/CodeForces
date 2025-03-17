@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,56 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, q; cin >> n >> q;
+    vpii prefix(n + 1);
+    for(int i = 1; i <= n; i++) {
+        prefix[i] = prefix[i - 1];
+        char c; cin >> c;
+        if(c == 'R') prefix[i].ff++;
+        else if(c == 'L') prefix[i].ff--;
+        else if(c == 'U') prefix[i].ss++;
+        else prefix[i].ss--;
+    }
+    vvar(3) s(n + 1), e(n + 1);
+    set<ar(3)> now;
+    vvar(4) Q(n + 1);
+    for(int i = 0; i < q; i++) {
+        int x, y, l, r; cin >> x >> y >> l >> r; 
+        s[l].pb({x, y, i});
+        e[r].pb({x, y, i});
+        now.insert({x, y, i});
+        Q[l].pb({r, x, y, i});
+    }
+    vi ans(q);
+    auto process = [&](pii p) -> void {
+        for(auto it = now.lb(ar(3){p.ff, p.ss, -1}); it != end(now) && (*it)[0] == p.ff && (*it)[1] == p.ss;) {
+            ans[(*it)[2]] = true;
+            it = now.erase(it);
+        }
+    };
+    for(int i = 0; i <= n; i++) {
+        for(auto& it : s[i]) {
+            now.erase(it);
+        }
+        process(prefix[i]);
+        for(auto& it : e[i]) {
+            if(ans[it[2]]) continue;
+            now.insert(it);
+        }
+    }
+    map<pii, int> last;
+    last[prefix[n]] = n;
+    for (int l = n; l >= 1; l--) {
+        last[prefix[l - 1]] = l - 1;
+        for (auto& [r, x, y, i] : Q[l]) {
+            if (ans[i]) continue;
+            pii need = {prefix[r].first - (x - prefix[l - 1].first),
+                prefix[r].second - (y - prefix[l - 1].second)};
+            if (last.count(need) && last[need] <= r)
+                ans[i] = true;
+        }
+    }
+    for(auto& it : ans) cout << (it ? "YES" : "NO") << endl;
 }
 
 signed main() {

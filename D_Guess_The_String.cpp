@@ -215,7 +215,7 @@ const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+bool have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -227,6 +227,54 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    auto ask1 = [&](int i) -> char {
+        i++;
+        cout << "? 1 " << i << endl;
+        char x; cin >> x;
+        cout.flush();
+        if(x == -1) exit(0);
+        return x;
+    };
+    auto ask2 = [&](int l, int r) -> int {
+        l++, r++;
+        cout << "? 2 " << l << ' ' << r << endl;
+        int x; cin >> x;
+        cout.flush();
+        if(x == -1) exit(0);
+        return x;
+    };
+    string s;
+    vi last(26, -1);
+    for(int i = 0, cnt = 0; i < n; i++) {
+        int d = ask2(0, i);
+        if(d > cnt) {
+            cnt++;
+            auto c = ask1(i);
+            last[c - 'a'] = i;
+            s += c;
+            continue;
+        }
+        vpii now;
+        for(int j = 0; j < 26; j++) {
+            if(last[j] == -1) continue;
+            now.pb({last[j], j});
+        }
+        srtR(now);
+        int N = now.size();
+        int left = 0, right = N - 1, left_most = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            int len = ask2(now[middle].ff, i);
+            if(len != middle + 2) left_most = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        int x = now[left_most].ss;
+        s += char(x + 'a');
+        last[x] = i;
+    }
+    cout << "! " << s << '\n';
+    cout.flush();
 }
 
 signed main() {

@@ -194,6 +194,15 @@ class Trie
             }
         }
     }
+	
+	void reset() {
+        for(int i = 0; i < count; i++) {
+            nodes[i] = TrieNode();
+        }
+        count = 0;
+        root = newTrieNode();
+    }
+
 };
 
 vi KMP(const string& s) {   
