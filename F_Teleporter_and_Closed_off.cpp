@@ -236,6 +236,43 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vvi graph(n + 1), rev_graph(n + 1);
+    for(int i = 1; i <= n; i++) {
+        for(int j = 1; j <= m; j++) {
+            char c; cin >> c;
+            if(c == '1') {
+                int k = i + j;
+                if(1 <= k && k <= n) graph[i].pb(k), rev_graph[k].pb(i);
+            }
+        }
+    }
+    auto dikstra = [&](int src, const vvi& g) -> vi {
+        vi dp(n + 1, inf);
+        dp[src] = 0;
+        queue<int> q;
+        q.push(src);
+        while(!q.empty()) {
+            auto node = q.front(); q.pop();
+            for(auto& nei : g[node]) {
+                if(dp[nei] > dp[node] + 1) {
+                    dp[nei] = dp[node] + 1;
+                    q.push(nei);
+                }
+            }
+        }
+        return dp;
+    };
+    auto dp1 = dikstra(1, graph), dp2 = dikstra(n, rev_graph);
+    for(int k = 2; k < n; k++) {
+        int res = inf;
+        for(int i = max(1, k - m); i < k; i++) {
+            for(auto& j : graph[i]) {
+                if(j > k) res = min(res, dp1[i] + dp2[j] + 1);
+            }
+        }
+        cout << (res == inf ? -1 : res) << (k == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {

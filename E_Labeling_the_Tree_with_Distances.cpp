@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -235,7 +226,96 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+const int HASH_COUNT = 2;
+vll globalBase;
+vll globalMod;
+void initGlobalHashParams() {
+    if (!globalBase.empty() && !globalMod.empty()) return;
+    vll candidateBases = {29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    vll candidateMods  = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL,
+                                 1000000087LL, 1000000093LL, 1000000097LL, 1000000103LL};
+								 
+	unsigned seed = chrono::steady_clock::now().time_since_epoch().count();
+    shuffle(candidateBases.begin(), candidateBases.end(), default_random_engine(seed));
+    shuffle(candidateMods.begin(), candidateMods.end(), default_random_engine(seed + 1));
+
+    globalBase.rsz(HASH_COUNT);
+    globalMod.rsz(HASH_COUNT);
+    for (int i = 0; i < HASH_COUNT; i++) {
+        globalBase[i] = candidateBases[i];
+        globalMod[i]  = candidateMods[i];
+    }
+}
+
+ll base[2], mod[2];
 void solve() {
+    int n; cin >> n;
+    vi a(n - 1); cin >> a;
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vvll p(2, vll(n + 1));
+    p[0][0] = p[1][0] = 1;
+    for(int i = 1; i <= n; i++) {
+        for(int j = 0; j < 2; j++) {
+            p[j][i] = (p[j][i - 1] * base[j]) % mod[j];
+        }
+    }
+    ll hash[2] = {};
+    for(auto& x : a) {
+        for(int i = 0; i < 2; i++) {
+            hash[i] = (hash[i] + p[i][x]) % mod[i];
+        }
+    }
+    vvll dp(n, vll(2));
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+            for(int i = 0; i < 2; i++) {
+                dp[node][i] = (dp[node][i] + dp[nei][i] * base[i]) % mod[i];
+            }
+        }
+        for(int i = 0; i < 2; i++) {
+            dp[node][i] = (dp[node][i] + 1) % mod[i];
+        }
+    };
+    dfs(dfs);
+    set<ll> s;
+    for(int i = 0; i <= n; i++) {
+        ll now[2] = {};
+        for(int j = 0; j < 2; j++) {
+            now[j] = (hash[j] + p[j][i]) % mod[j];
+        }
+        ll h = (now[0] << 32) | now[1];
+        s.insert(h);
+    }
+    map<ll, vi> mp;
+    vi ans;
+    auto dfs2 = [&](auto& dfs2, int node = 0, int par = -1) -> void {
+        ll now = (dp[node][0] << 32) | dp[node][1];
+        if(s.count(now)) ans.pb(node + 1);
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            for(int i = 0; i < 2; i++) {
+                dp[node][i] = (dp[node][i] - dp[nei][i] * base[i] % mod[i] + mod[i]) % mod[i];
+                dp[nei][i] = (dp[nei][i] + dp[node][i] * base[i] % mod[i] + mod[i]) % mod[i];
+            }
+            dfs2(dfs2, nei, node);
+            for(int i = 0; i < 2; i++) {
+                dp[nei][i] = (dp[nei][i] - dp[node][i] * base[i] % mod[i] + mod[i]) % mod[i];
+                dp[node][i] = (dp[node][i] + dp[nei][i] * base[i] % mod[i]) % mod[i];
+            }
+        }
+    };
+    dfs2(dfs2);
+    srt(ans);
+    cout << ans.size() << endl;
+    output_vector(ans);
 }
 
 signed main() {
@@ -243,6 +323,9 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
+    initGlobalHashParams();
+    mod[0] = globalMod[0], mod[1] = globalMod[1];
+    base[0] = globalBase[0], base[1] = globalBase[1];
     //generatePrime();
 
     int t = 1;
@@ -273,3 +356,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

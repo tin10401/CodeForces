@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -236,6 +227,35 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m, a, b; cin >> n >> m >> a >> b;
+    a--, b--;
+    vvi graph(n);
+    while(m--) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    auto bfs = [=](int src, int t) -> int {
+        vi vis(n);
+        vis[src] = true;
+        queue<int> q;
+        q.push(src);
+        int cnt = 0;
+        while(!q.empty()) {
+            auto node = q.front(); q.pop();
+            for(auto& nei : graph[node]) {
+                if(nei == t || vis[nei]) continue;
+                vis[nei] = true;
+                q.push(nei);
+                cnt++;
+            }
+        }
+        return cnt;
+    };
+    ll A = (n - 2) - bfs(a, b);
+    ll B = (n - 2) - bfs(b, a);
+    cout << A * B << endl;
 }
 
 signed main() {
@@ -246,7 +266,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

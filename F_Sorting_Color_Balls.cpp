@@ -235,7 +235,91 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    T queries_at(int i) {
+        return queries_range(i, i);
+    }
+	
+	void reset() {
+		root.assign(n, DEFAULT);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
+
 void solve() {
+    // minimum moves to sorted this
+    // cost 0 if same color otherwise cost 1
+    // answer is total # of inversion - total # of inversion in each group of same color
+    int n; cin >> n;
+    vi c(n); cin >> c;
+    vvi a(n + 1);
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        x--;
+        a[c[i]].pb(x);
+        a[0].pb(x);
+    }
+    ll res = 0;
+    FW<int> root(n + 1, 0, [](const int& a, const int& b) {return a + b;});
+    for(int i = 0; i <= n; i++) {
+        const auto& curr = a[i];
+        int N = curr.size();
+        for(auto& x : curr) {
+            int t = root.queries_range(x + 1, n);
+            if(i == 0) res += t;
+            else res -= t;
+            root.update(x, 1);
+        }
+        for(auto& x : curr) {
+            root.update(x, -1);
+        }
+    }
+    cout << res << '\n';
+     
 }
 
 signed main() {

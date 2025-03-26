@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -235,7 +226,74 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    srtU(a);
+    const int N = a.back();
+    n = a.size();
+    vi next(N + 1, -1);
+    for(int i = 0; i < n; i++) {
+        next[a[i]] = i;
+    }
+    for(int i = N - 1; i >= 0; i--) {
+        if(next[i] == -1) next[i] = next[i + 1];
+    }
+    var(3) edge;
+    for(int u = 0; u < n; u++) {
+        if(u < n - 1) {
+            edge.pb({a[u + 1] % a[u], u, u + 1});
+        }
+        for(int x = a[u] * 2; x <= N; x += a[u]) {
+            assert(next[x] != -1);
+            int v = next[x];
+            edge.pb({a[v] - x, u, v});
+        }
+    }
+    srt(edge);
+    ll res = 0;
+    DSU root(n);
+    for(auto& [w, u, v] : edge) {
+        if(root.merge(u, v)) res += w;
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -246,7 +304,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

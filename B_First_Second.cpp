@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -219,7 +210,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e6 + 5;
 const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
@@ -235,8 +226,85 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+struct TrieNode {
+    TrieNode*children[26];
+    int end = false;
+};
+ 
+static TrieNode nodes[MX];
+ 
+class Trie {
+public:
+    TrieNode* root;
+    int count;
+    Trie() {
+        count = 0;
+        root = newTrieNode();
+    }
+    TrieNode* newTrieNode() {
+        nodes[count] = TrieNode();
+        return &nodes[count++];
+    }
+    void insert(const string& s) {
+        TrieNode* curr = root;
+        int n = s.size();
+        for(int i = 0; i < n; i++) {
+            int idx = s[i] - 'a';
+            if(!curr->children[idx]) curr->children[idx] = newTrieNode();
+            curr = curr->children[idx];
+        }
+        curr->end = true;
+    }
+    void reset() {
+        for(int i = 0; i < count; i++) nodes[i] = TrieNode();
+        count = 0;
+        root = newTrieNode();
+    }
+
+    int search(const string& s) {
+        int res = 0;
+        vi cnt(26);
+        TrieNode*curr = root;
+        int n = s.size();
+        bool ok = true;
+        for(auto& ch : s) {
+            if(ok) {
+                for(int j = 0; j < 26; j++) {
+                    if(curr->children[j]) {
+                        cnt[j] += curr->children[j]->end;
+                    }
+                }
+            }
+            res += cnt[ch - 'a'];
+            cnt[ch - 'a'] = 0;
+            if(ok) {
+                if(!curr->children[ch - 'a']) {
+                    ok = false;
+                    continue;
+                }
+                curr = curr->children[ch - 'a'];
+            }
+        }
+        return res;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vs a(n); cin >> a;
+    sort(all(a), [](const string& s, const string& t) { return s.size() < t.size();});
+    ll res = 0;
+    Trie tree;
+    debug(a);
+    for(int i = 0; i < n; i++) {
+        rev(a[i]);
+        res += tree.search(a[i]);
+        debug(a[i], res);
+        tree.insert(a[i]);
+    }
+    cout << res << endl;
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator

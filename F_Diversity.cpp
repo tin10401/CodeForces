@@ -236,6 +236,25 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, x, k; cin >> n >> x >> k;
+    vvpii color(n + 1);
+    for(int i = 0; i < n; i++) {
+        int p, u, c; cin >> p >> u >> c;
+        color[c].pb(MP(p, u));
+    }
+    vll dp(x + 1, -INF);
+    dp[0] = 0;
+    for(int c = 0; c <= n; c++) {
+        auto next(dp);
+        for(auto& [p, w] : color[c]) {
+            for(int j = x; j >= p; j--) {
+                next[j] = max(next[j], dp[j - p] + w + k);
+                next[j] = max(next[j], next[j - p] + w);
+            } 
+        }
+        swap(dp, next);
+    }
+    cout << MAX(dp) << '\n';
 }
 
 signed main() {

@@ -235,7 +235,64 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    vvi graph(n);
+    DSU root(n);
+    var(3) edges;
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        if(a[u] > a[v]) swap(u, v);
+        if(a[u] == a[v]) root.merge(u, v);
+        else edges.pb({a[u], u, v});
+    }
+    vi dp(n, -inf);
+    dp[root.find(0)] = 1;
+    srt(edges);
+    for(auto& [_, u, v] : edges) {
+        u = root.find(u), v = root.find(v);
+        dp[v] = max(dp[v], dp[u] + 1);
+    }
+    cout << max(0, dp[root.find(n - 1)]) << '\n';
 }
 
 signed main() {
@@ -273,3 +330,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

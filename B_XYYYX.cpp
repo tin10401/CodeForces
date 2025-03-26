@@ -236,6 +236,39 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, k; cin >> n >> k;
+    string s; cin >> s;
+    if(k > count(all(s), 'X')) {
+        k = n - k;
+        for(auto& ch : s) {
+            ch = ch == 'X' ? 'Y' : 'X';
+        }
+    }
+    auto a = encode<char, string>(s);
+    const int N = a.size();
+    vpii seg;
+    for(int i = 0, j = 0; i < N; i++) {
+        const auto& [ch, x] = a[i];
+        int e = j + x;
+        for(; j < e; j++) {
+            if(ch == 'X') {
+                seg.pb(MP(i == 0 || i == N - 1 ? inf : x, j));
+            } else {
+                seg.pb(MP(inf, j));
+            }
+        }
+    }
+    srt(seg);
+    for(int i = 0; i < k; i++) {
+        int id = seg[i].ss;
+        s[id] = s[id] == 'X' ? 'Y' : 'X';
+    }
+    int res = 0;
+    debug(s);
+    for(int i = 0; i < n - 1; i++) {
+        if(s[i] == s[i + 1] && s[i] == 'Y') res++;
+    }
+    cout << res << '\n';
 }
 
 signed main() {

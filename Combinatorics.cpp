@@ -94,7 +94,7 @@ class Combinatoric {
     }
     
     T choose(int a, int b) {  
-        if(a < b) return 0;
+        if(a < b || a > n) return 0;
         return fact[a] * inv[b] * inv[a - b];
     }
 	
@@ -257,6 +257,22 @@ struct xor_basis {
     }
 };
 
+string get_base_negk_to_string(ll n, ll k) {
+    if(n == 0) return "0";
+    string s;
+    while(n) {
+        ll r = n % (-k);
+        n /= (-k);
+        if(r < 0) {
+            r += k;
+            n++;
+        }
+        s.push_back('0' + r);
+    }
+    rev(s);
+    return s;
+}
+
 ll get_mask(ll a, ll k) { // get bit_mask representation in base k
     ll res = 0;
     int cnt = 0;
@@ -282,6 +298,23 @@ void mobius_transform(int n, vt<T_in> &values) { // remember to set dp[mask] = -
             }
         }
     }
+}
+
+ll extended_gcd(ll a, ll b, ll &x, ll &y) {
+    if(b == 0) { x = 1; y = 0; return a; }
+    ll g = extended_gcd(b, a % b, y, x);
+    y -= (a / b) * x;
+    return g;
+}
+
+pair<ll, ll> find_solution(ll a, ll b, ll x) { // find [c, d] such that a * c - b * d = x
+    ll X, Y;
+    ll g = extended_gcd(a, b, X, Y);
+    if(x % g != 0) return {-1, -1};
+    ll factor = x / g;
+    ll d = factor * X;
+    ll c = -factor * Y;
+    return {c, d};
 }
 
 vi get_pair_gcd(vi& a) {

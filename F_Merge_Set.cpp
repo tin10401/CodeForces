@@ -235,7 +235,77 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n, m; cin >> n >> m;
+    vvi g(m + 1);
+    queue<int> q;
+    vvi a(n);
+    vi dp(n + 1, -1);
+    for(int i = 0; i < n; i++) {
+        int k; cin >> k;
+        while(k--) {
+            int x; cin >> x;
+            a[i].pb(x);
+            g[x].pb(i);
+            if(x == 1) q.push(i), dp[i] = 0;
+        }
+    }
+    DSU root(m + 1);
+    while(!q.empty()) {
+        auto node = q.front(); q.pop();
+        for(auto& x : a[node]) {
+            if(x == m) {
+                cout << dp[node] << '\n';
+                return;
+            }
+            if(root.merge(1, x)) {
+                for(auto& v : g[x]) {
+                    if(dp[v] == -1) {
+                        dp[v] = dp[node] + 1;
+                        q.push(v);
+                    }
+                }
+            }
+        }
+    }
+    cout << -1 << '\n';
 }
 
 signed main() {

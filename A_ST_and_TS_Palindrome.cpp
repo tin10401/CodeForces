@@ -236,6 +236,23 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    ll n, k; cin >> n >> k;
+    string s; cin >> s;
+    auto check = [](string s) -> bool {
+        return s == string(s.rbegin(), s.rend());
+    };
+    k %= 2 * n;
+    if(k <= n) {
+        string t = s.substr(0, k);
+        rev(t);
+        cout << (check(s + t) && check(t + s) ? "Yes" : "No") << '\n';
+        return;
+    }
+    string t = string(rbegin(s), rend(s)) + string(k - n, '?');
+    for(int i = 0; i < n; i++) {
+        t[k - i - 1] = s[i];
+    }
+    cout << (check(s + t) && check(t + s) ? "Yes" : "No") << '\n';
 }
 
 signed main() {
@@ -246,7 +263,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

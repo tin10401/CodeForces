@@ -220,7 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
-const static int MOD = 1e9 + 7;
+const static int MOD = 998244353;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -234,8 +234,151 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
+class SCC {
+    public:
+    int n, curr_comp;
+    vvi graph, revGraph;
+    vi vis, comp, degree;
+    stack<int> s;
+ 
+    SCC(int n) {
+        this->n = n;
+        curr_comp = 0;
+        graph.resize(n), revGraph.resize(n), vis.resize(n), comp.resize(n, -1), degree.rsz(n);
+		// don't forget to build after adding edges
+    }
+ 
+    void add_directional_edge(int a, int b) {    
+        graph[a].pb(b); 
+        revGraph[b].pb(a);
+    }
+ 
+    void dfs(int node) {
+        if(vis[node]) return;
+        vis[node] = true;
+        for(auto& nei : graph[node]) dfs(nei);
+        s.push(node);
+    }
+ 
+    void dfs2(int node) {
+        if(comp[node] != -1) return;
+        comp[node] = curr_comp;
+        for(auto& nei : revGraph[node]) dfs2(nei);
+    }
+ 
+    void build() {
+        for(int i = 0; i < n; i++) dfs(i);
+        while(!s.empty()) {
+            int node = s.top(); s.pop();
+            if(comp[node] != -1) continue;
+            dfs2(node);
+            curr_comp++;
+        }
+    }
+    
+    vvi compress_graph() {    
+        vvi g(curr_comp);   
+        for(int i = 0; i < n; i++) {    
+            for(auto& j : graph[i]) {   
+                if(comp[i] != comp[j]) {    
+                    g[comp[i]].pb(comp[j]);
+                    degree[comp[j]]++;
+                }
+            }
+        }
+        for(auto& it : g) srtU(it);
+        return g;
+    }
+};
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
+};
+
+using mint = mod_int<998244353>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    SCC g(n);
+    for(int i = 0; i < n; i++) {
+        a[i]--;
+        if(a[i] != i) {
+            g.add_directional_edge(a[i], i);
+        }
+    }
+    g.build();
+    auto graph = g.compress_graph();
+    const int N = graph.size();
+    vvmint dp(N, vmint(m + 1));
+    auto dfs = [&](auto& dfs, int node = 0) -> void {
+        for(auto& nei : graph[node]) dfs(dfs, nei);
+        for(int x = 1; x <= m; x++) {
+            mint prod = 1; 
+            for(auto& nei : graph[node]) {
+                prod *= dp[nei][x];
+            }
+            dp[node][x] = dp[node][x - 1] + prod;
+        }
+    };
+    mint res = 1;
+    for(int i = 0; i < N; i++) {
+        if(g.degree[i] == 0) {
+            dfs(dfs, i);
+            res *= dp[i][m];
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {

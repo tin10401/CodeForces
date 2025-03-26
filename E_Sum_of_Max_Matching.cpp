@@ -235,7 +235,83 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    vvi dp;
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1), dp.rsz(n, vi(2));
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            dp[u][0] += dp[v][0];
+            dp[u][1] += dp[v][1];
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+
+    void modify(int i, int j, int delta) {
+        dp[find(i)][j] += delta;
+    }
+
+    int get_min(int x) {
+        return MIN(dp[find(x)]);
+    }
+};
+
 void solve() {
+    int n, m, k; cin >> n >> m >> k;
+    var(3) edges(m);
+    for(auto& [w, u, v] : edges) {
+        cin >> u >> v >> w;
+        u--, v--;
+    }
+    srt(edges);
+    DSU root(n);
+    for(int i = 0; i < k; i++) {
+        int u; cin >> u;
+        u--;
+        root.modify(u, 0, 1);
+    }
+    for(int i = 0; i < k; i++) {
+        int u; cin >> u;
+        u--;
+        root.modify(u, 1, 1);
+    }
+    ll res = 0;
+    for(auto& [w, u, v] : edges) {
+        if(root.same(u, v)) continue;
+        root.merge(u, v);
+        ll t = root.get_min(u);
+        res += t * w;
+        root.modify(u, 0, -t);
+        root.modify(u, 1, -t);
+    }
+    cout << res << '\n';
 }
 
 signed main() {

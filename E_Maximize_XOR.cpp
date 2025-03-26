@@ -236,6 +236,26 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vll a(n); cin >> a; srtU(a);
+    n = a.size();
+    ll res = 0;
+    auto dfs = [&](auto& dfs, int i = 0, int c = 0, ll x = 0) -> void {
+        if(c == 0) {
+            res = max(res, x);
+            return;
+        }
+        if(i == n) return;
+        dfs(dfs, i + 1, c, x);
+        dfs(dfs, i + 1, c - 1, x ^ a[i]);
+    };
+    if(k <= n - k) dfs(dfs, 0, k, 0);
+    else {
+        ll xor_sm = 0;
+        for(auto& x : a) xor_sm ^= x;
+        dfs(dfs, 0, n - k, xor_sm);
+    }
+    cout << res << '\n';
 }
 
 signed main() {

@@ -156,26 +156,36 @@ const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 
 int main(int argc, char* argv[]) {
-    int N = 100;
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    mt19937 rng((unsigned) chrono::steady_clock::now().time_since_epoch().count());
+    
+    int N = 10;
     int Q = 10;
-    const int V = 10; // 1e8
+    const int V = 1e9; // 1e7 (adjust if needed)
+    
     // Define distributions
-    uniform_int_distribution<int> dist_n(1, N);
-    uniform_int_distribution<int> dist_q(1, Q);
-    uniform_int_distribution<int> A(1, 1e9);
-    uniform_int_distribution<int> val(1, V); // if you need negative values, adjust accordingly
+    uniform_int_distribution<int> dist_n(2, N);  // n is at least 2.
+    uniform_int_distribution<int> dist_q(1, Q);  // n is at least 2.
+    // uniform_int_distribution<int> dist_q(1, Q); // Not used here.
+    uniform_int_distribution<int> A(1, 1000000000);
+    uniform_int_distribution<int> val(1, V);       // For generating random numbers
+    
+    cout << 1 << '\n';
+    int n = dist_n(rng);
+    cout << n << '\n';
+    for(int i = 0; i < n; i++) {
+        cout << val(rng) << (i == n - 1 ? '\n' : ' ');
+    }
+    int q = dist_q(rng);
+    q = 1;
+    cout << q << '\n';
+    while(q--) {
+        int x = val(rng), y = val(rng);
+        cout << x << ' ' << y << '\n';
+    }
 
-    cout << 1 << endl;
-    int n = dist_n(rng), m = dist_q(rng);
-    if(n < m) swap(n, m);
-    cout << n << ' ' << m << endl;
-    while(n--) {
-        cout << val(rng) << (n == 0 ? '\n' : ' ');
-    }
-    while(m--) {
-        cout << val(rng) << (m == 0 ? '\n' : ' ');
-    }
+    
     return 0;
 }
-
-

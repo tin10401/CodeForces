@@ -235,7 +235,95 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n), b(n); cin >> a >> b;
+    ll res = 0;
+    DSU root(n * 2);
+    for(int bit = 30; bit >= 0; bit--) {
+        int both = 0, none = 0;
+        for(int i = 0; i < n; i++) {
+            bool A = have_bit(a[i], bit);
+            bool B = have_bit(b[i], bit);
+            if(!A && !B) {
+                none = true;
+                break;
+            }
+            if(A && B) both++;
+        }
+        if(none) continue;
+        if(both == n) {
+            res += 1LL << (bit + 1);
+            continue;
+        }
+        vi g1, g2;
+        DSU now = root;
+        for(int i = 0; i < n; i++) {
+            bool A = have_bit(a[i], bit);
+            bool B = have_bit(b[i], bit);
+            if(A && !B) g1.pb(i);
+            if(!A && B) g2.pb(i);
+        }
+        const int N = g1.size(), M = g2.size();
+        for(int i = 1; i < N; i++) {
+            now.merge(g1[i - 1], g1[i]);
+            now.merge(g1[i - 1] + n, g1[i] + n);
+        }
+        for(int i = 1; i < M; i++) {
+            now.merge(g2[i - 1], g2[i]);
+            now.merge(g2[i - 1] + n, g2[i] + n);
+        }
+        if(!g1.empty() && !g2.empty()) {
+            now.merge(g1[0], g2[0] + n);
+            now.merge(g2[0], g1[0] + n);
+        }
+        bool ok = true;
+        for(int i = 0; i < n; i++) {
+            if(now.same(i, i + n)) ok = false;
+        }
+        if(ok) {
+            swap(now, root);
+            res += 1LL << bit;
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -246,7 +334,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

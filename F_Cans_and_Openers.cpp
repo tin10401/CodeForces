@@ -236,7 +236,42 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m; cin >> n >> m;
+    vvll a(3);
+    for(int i = 0; i < n; i++) {
+        int t, x; cin >> t >> x;
+        a[t].pb(x);
+    }
+    auto& A = a[0], &B = a[1], &C = a[2];
+    srt(A), A.pb(0), rev(A);
+    srt(B);
+    srt(C);
+    int N = A.size(), M = B.size(), K = C.size();
+    debug(A, B, C);
+    ll res = 0;
+    vll other(m + 1);
+    for(int i = 0, c = 0; i < m; i++) {
+        other[i + 1] = other[i];
+        if(c == 0) {
+            if(C.empty()) continue;
+            c += C.back(), C.pop_back(); 
+        } else {
+            if(B.empty()) continue;
+            c--;
+            other[i + 1] += B.back();
+            B.pop_back();
+        }
+    }
+    ll now = 0;
+    for(int i = 0; i <= m; i++) {
+        int j = m - i;
+        if(i < N) now += A[i];
+        debug(i, j, now, other[j]);
+        res = max(res, now + other[j]);
+    }
+    cout << res << '\n';
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator

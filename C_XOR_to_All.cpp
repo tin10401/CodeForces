@@ -236,6 +236,31 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi bits(30);
+    for(auto& x : a) {
+        for(int j = 0; j < 30; j++) {
+            bits[j] += bool(have_bit(x, j));
+        }
+    }
+    debug(bits);
+    ll res = sum(a);
+    for(auto& x : a) {
+        ll curr = 0;
+        for(int j = 0; j < 30; j++) {
+            ll t = 1LL << j;
+            if(x & t) {
+                curr += (n - bits[j]) * t;
+            }
+            else {
+                curr += bits[j] * t;
+            }
+        }
+        debug(a, x, curr);
+        res = max(res, curr);
+    }
+    cout << res << '\n';
 }
 
 signed main() {

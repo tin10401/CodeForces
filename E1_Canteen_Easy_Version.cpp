@@ -236,6 +236,70 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    ll n, K; cin >> n >> K;
+    vll a(n), b(n); cin >> a >> b;
+    if(sum(a) <= K) {
+        cout << 0 << '\n';
+        return;
+    }
+    vll prefix(n + 1);
+    ll need = 0;
+    for(int i = 0; i < n; i++) {
+        prefix[i + 1] = prefix[i] + a[i] - b[i];
+    }
+    int p = min_element(all(prefix)) - begin(prefix);
+    ROTATE(a, p);
+    ROTATE(b, p);
+    auto f = [&](int k) -> bool {
+        set<int> s;
+        auto d(a);
+        for(int i = 0; i < n; i++) {
+            if(d[i]) s.insert(i);
+        }
+        k--;
+        ll total = sum(a);
+        for(int i = 0; i < n; i++) {
+            auto need = b[i];
+            auto process = [&](int l, int r) -> void {
+                auto it = s.ub(r);
+                if(it == begin(s)) return;
+                it--;
+                while(*it >= l && need) {
+                    int j = *it;
+                    int t = min(d[j], need);
+                    need -= t; d[j] -= t;
+                    total -= t;
+                    if(it == begin(s)) {
+                        if(d[j] == 0) {
+                            s.erase(it);
+                        }
+                        break;
+                    }
+                    auto it2 = prev(it);
+                    if(d[j] == 0) s.erase(it);
+                    it = it2;
+                }
+            };
+            if(i >= k) {
+                process(i - k, i);
+            }
+            else {
+                process(0, i);
+            }
+            if(total <= K) {
+                debug(K, k, total);
+                return true;
+            }
+        }
+        return false;
+    };
+    int left = 1, right = n, res = -1;
+    while(left <= right) {
+        int middle = midPoint;
+        if(f(middle)) res = middle, right = middle - 1;
+        else left = middle + 1;
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -246,7 +310,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -17,6 +17,16 @@ struct Point {
     }
 };
 
+bool is_collinear(const Point &p1, const Point &p2, const Point &p3) {
+    ld cross = (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
+    return std::fabs(cross) < eps;
+}
+
+ld triangle_area(const Point &p1, const Point &p2, const Point &p3) {
+    ld cross = (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
+    return std::fabs(cross) / 2.0;
+}
+
 struct Circle {
     ld x, y, r;
     Circle(ld x = 0, ld y = 0, ld r = 0) : x(x), y(y), r(r) {}

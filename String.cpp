@@ -122,87 +122,108 @@ void reset() {
     ptr = 0;
 }
 
-struct TrieNode
-{
-    TrieNode* sfx, *dict, *children[26];
-    int id = -1;
+struct TrieNode {
+    TrieNode*children[26];
+    int end = false;
 };
-
-static TrieNode nodes[(int)5e4 + 1];
-
-class Trie
-{
-    public:
+ 
+static TrieNode nodes[MX];
+ 
+class Trie {
+public:
     TrieNode* root;
-    int count = 0;
-	
-	TrieNode* newTrieNode() {
+    int count;
+    Trie() {
+        count = 0;
+        root = newTrieNode();
+    }
+    TrieNode* newTrieNode() {
         nodes[count] = TrieNode();
         return &nodes[count++];
     }
-	
-	Trie() {    
-        count = 0;
-        root = newTrieNode();   
-    }
-
-//    Trie(vector<string>& words, vector<int>& costs, string target) {
-//        root = newTrieNode();
-//        root->sfx = root->dict = root;
-//
-//    }
-
-    
-    void insert(const string& s) {  
+    void insert(const string& s) {
         TrieNode* curr = root;
-        for(auto& ch : s) {
-            if(!curr->children[ch - 'a']) curr->children[ch - 'a'] = newTrieNode();
-            curr = curr->children[ch - 'a'];
+        int n = s.size();
+        for(int i = 0; i < n; i++) {
+            int idx = s[i] - 'a';
+            if(!curr->children[idx]) curr->children[idx] = newTrieNode();
+            curr = curr->children[idx];
         }
-
+        curr->end = true;
     }
-    
-    void aho_corasick() {   
+    void reset() {
+        for(int i = 0; i < count; i++) nodes[i] = TrieNode();
+        count = 0;
+        root = newTrieNode();
+    }
+
+    int search(const string& s) {
+        int res = 0;
+        vi cnt(26);
+        TrieNode*curr = root;
+        int n = s.size();
+        bool ok = true;
+        for(auto& ch : s) {
+            if(ok) {
+                for(int j = 0; j < 26; j++) {
+                    if(curr->children[j]) {
+                        cnt[j] += curr->children[j]->end;
+                    }
+                }
+            }
+            res += cnt[ch - 'a'];
+            cnt[ch - 'a'] = 0;
+            if(ok) {
+                if(!curr->children[ch - 'a']) {
+                    ok = false;
+                    continue;
+                }
+                curr = curr->children[ch - 'a'];
+            }
+        }
+        return res;
+    }
+};
+
+class AHO {
+public:
+    Trie* trie;
+    AHO(Trie* t) { trie = t; }
+    void build() {
         queue<TrieNode*> q;
-        q.push(root);
-        while(!q.empty()) {
+        trie->root->sfx = trie->root;
+        trie->root->dict = trie->root;
+        q.push(trie->root);
+        while(!q.empty()){
             TrieNode* par = q.front();
             q.pop();
-            for(int i = 0; i < 26; i++) {
+            for(int i = 0; i < 26; i++){
                 TrieNode* child = par->children[i];
                 if(!child) continue;
                 TrieNode* suff = par->sfx;
-                while(suff != root && !suff->children[i]) suff = suff->sfx;
-                if(par != root && suff->children[i]) child->sfx = suff->children[i];
-                else child->sfx = root;
-
-                child->dict = child->sfx->id == -1 ? child->sfx->dict : child->sfx;
+                while(suff != trie->root && !suff->children[i])
+                    suff = suff->sfx;
+                if(par != trie->root && suff->children[i])
+                    child->sfx = suff->children[i];
+                else
+                    child->sfx = trie->root;
+                child->dict = (child->sfx->id == -1 ? child->sfx->dict : child->sfx);
                 q.push(child);
             }
         }
     }
-
-    void queries(TrieNode*& prev, int i, char ch)
-    {
-        while(prev != root && !prev->children[ch - 'a']) prev = prev->sfx;
-        if(prev->children[ch - 'a']) {
+    void query(TrieNode*& prev, int i, char ch) {
+        while(prev != trie->root && !prev->children[ch - 'a'])
+            prev = prev->sfx;
+        if(prev->children[ch - 'a']){
             prev = prev->children[ch - 'a'];
-            TrieNode* curr = prev->id == -1 ? prev->dict : prev;
+            TrieNode* curr = (prev->id == -1 ? prev->dict : prev);
             while(curr->id != -1){
                 int j = curr->id;
                 curr = curr->dict;
             }
         }
     }
-	
-	void reset() {
-        for(int i = 0; i < count; i++) {
-            nodes[i] = TrieNode();
-        }
-        count = 0;
-        root = newTrieNode();
-    }
-
 };
 
 vi KMP(const string& s) {   

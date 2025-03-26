@@ -119,6 +119,15 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
+template<typename T, size_t N>
+istream& operator>>(istream& is, array<T, N>& arr) {
+    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
+}
+
+template<typename T, size_t N>
+istream& operator>>(istream& is, vector<array<T, N>>& vec) {
+    for (auto &arr : vec) { is >> arr; } return is;
+}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     

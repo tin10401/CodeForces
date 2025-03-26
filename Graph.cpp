@@ -185,7 +185,7 @@ class DSU {
 vi toposort(vvi& graph, vi degree) {
     queue<int> q;
     int n = graph.size();
-    for(int i = 1; i < n; i++) if(degree[i] == 0) q.push(i);
+    for(int i = 0; i < n; i++) if(degree[i] == 0) q.push(i);
     vi ans;
     while(!q.empty()) {
         auto i = q.front(); q.pop(); ans.pb(i);
@@ -565,6 +565,74 @@ struct CYCLE {
         return path;
     }
 };
+
+vi bidirectional_cycle_vector(int n, const vvi& graph) { // return a cycle_vector to mark which node is part of the cycle
+    vi inCycle(n, true);
+    vi degree(n);
+    queue<int> q;
+    for(int i = 0; i < n; i++) {
+        for(auto& j : graph[i]) degree[j]++;
+    }
+    for (int i = 0; i < n; i++) {
+        if (degree[i] == 1) {
+            q.push(i);
+            inCycle[i] = false;
+        }
+    }
+    while (!q.empty()) {
+        auto u = q.front(); q.pop();
+        for (int v : graph[u]) {
+            if (inCycle[v]) {
+                if (--degree[v] == 1) {
+                    inCycle[v] = false;
+                    q.push(v);
+                }
+            }
+        }
+    }
+    return inCycle;
+}
+
+vi directional_cycle_vector(const vvi& out_graph) {
+    int n = out_graph.size();
+    vvi in_graph(n);
+    vi in_deg(n, 0), out_deg(n, 0), in_cycle(n, true);
+    for (int u = 0; u < n; u++) {
+        out_deg[u] = out_graph[u].size();
+        for (int v : out_graph[u]) {
+            in_graph[v].push_back(u);
+            in_deg[v]++;
+        }
+    }
+    queue<int> q;
+    for (int i = 0; i < n; i++) {
+        if (in_deg[i] == 0 || out_deg[i] == 0) {
+            q.push(i);
+            in_cycle[i] = false;
+        }
+    }
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        for (int v : out_graph[u]) {
+            if (in_cycle[v]) {
+                if (--in_deg[v] == 0) {
+                    in_cycle[v] = false;
+                    q.push(v);
+                }
+            }
+        }
+        for (int v : in_graph[u]) {
+            if (in_cycle[v]) {
+                if(--out_deg[v] == 0) {
+                    in_cycle[v] = false;
+                    q.push(v);
+                }
+            }
+        }
+    }
+    return in_cycle;
+}
 
 // Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.
 template<typename flow_t>

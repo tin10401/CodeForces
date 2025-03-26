@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -219,7 +210,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
@@ -235,7 +226,45 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+ll dp[MX][2][2];
 void solve() {
+    int n, m; cin >> n >> m;
+    vvpii graph(n);
+    for(int i = 0; i < m; i++) {
+        int u, v, w; cin >> u >> v >> w;
+        u--, v--;
+        graph[u].pb({v, w});
+        graph[v].pb({u, w});
+    }
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < 2; j++) {
+            for(int k = 0; k < 2; k++) {
+                dp[i][j][k] = INF;
+            }
+        }
+    }
+    dp[0][0][0] = 0;
+    min_heap<al(4)> q;
+    q.push({0, 0, 0, 0});
+    auto process = [&](ll cost, int node, int mn, int mx) -> void {
+        if(cost < dp[node][mn][mx]) {
+            dp[node][mn][mx] = cost;
+            q.push({cost, node, mn, mx});
+        }
+    };
+    while(!q.empty()) {
+        auto [cost, node, mn, mx] = q.top(); q.pop();
+        if(dp[node][mn][mx] != cost) continue;
+        for(auto& [nei, w] : graph[node]) {
+            process(cost + w, nei, mn, mx);
+            if(!mn) process(cost + 2 * w, nei, 1, mx);
+            if(!mx) process(cost, nei, mn, 1);
+            if(!mn && !mx) process(cost + w, nei, 1, 1);
+        }
+    }
+    for(int i = 1; i < n; i++) {
+        cout << dp[i][1][1] << (i == n - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {

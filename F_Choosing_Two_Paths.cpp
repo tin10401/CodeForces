@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -236,6 +227,51 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n; cin >> n;
+    vvi graph(n + 1);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi depth(n + 1), leaf(n + 1);
+    pii best = {0, 0};
+    vi mx1(n + 1), mx2(n + 1);
+    int best_center = -1;
+    auto dfs = [&](auto& dfs, int node = 1, int par = -1, int d = 1) -> void {
+        depth[node] = d; 
+        int child = 0;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue; 
+            dfs(dfs, nei, node, d + 1);
+            child++;
+            if(depth[mx1[node]] < depth[mx1[nei]]) {
+                mx2[node] = mx1[node];
+                mx1[node] = mx1[nei];
+            }
+            else if(depth[mx1[nei]] > depth[mx2[node]]) {
+                mx2[node] = mx1[nei];
+            }
+        }
+        if(child == 0) mx1[node] = node;
+        if(child >= 2) {
+            pii now = {depth[node], depth[mx1[node]] + depth[mx2[node]]};
+            if(now > best) {
+                best = now;
+                best_center = node;
+            }
+        }
+    };
+    int ans[4];
+    dfs(dfs);
+    ans[0] = mx1[best_center], ans[1] = mx2[best_center];
+    best = {0, 0};
+    fill(all(mx1), 0), fill(all(mx2), 0);
+    dfs(dfs, best_center);
+    ans[2] = mx1[best_center], ans[3] = mx2[best_center];
+    cout << ans[0] << ' ' << ans[2] << endl;
+    cout << ans[1] << ' ' << ans[3] << endl;
+
 }
 
 signed main() {

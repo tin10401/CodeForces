@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -219,7 +210,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
@@ -234,8 +225,97 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
+class Undo_DSU {
+    public:
+    vi par, rank;
+    stack<ar(4)> st;
+    int n;
+    int comp;
+    ll res;
+    Undo_DSU(int n) {
+        this->n = n;
+        this->comp = n;
+        res = 0;
+        par.rsz(n), rank.rsz(n, 1);
+        iota(all(par), 0);
+    }
+ 
+    int find(int v) {
+        if (par[v] == v) return v;
+        return find(par[v]);
+    }
+ 
+    bool merge(int a, int b, bool save = true) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        comp--;
+        if (rank[a] < rank[b]) swap(a, b);
+        if (save) st.push({a, rank[a], b, rank[b]});
+        ll v = 1LL * rank[a] * rank[b];
+        res += v;
+        par[b] = a;
+        rank[a] += rank[b];
+        return true;
+    }
+ 
+    void rollBack() {
+        while(!st.empty()) {
+            comp++;
+            auto x = st.top(); st.pop();
+            ll v = 1LL * x[1] * x[3];
+            res -= v;
+            par[x[0]] = x[0];
+            rank[x[0]] = x[1];
+            par[x[2]] = x[2];
+            rank[x[2]] = x[3];
+        }
+    }
+ 
+    bool same(int u, int v) {
+        return find(u) == find(v);
+    }
+ 
+    int get_rank(int u) {
+        return rank[find(u)];
+    }
+};
+
 
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vll freq(MX), f(MX);
+    for(auto& x : a) freq[x]++;
+    vvpii g(MX);
+    for(int i = 0; i < n - 1; i++) {
+        int u, v; cin >> u >> v; 
+        u--, v--;
+        int c = gcd(a[u], a[v]);
+        g[c].pb(MP(u, v));
+    }
+    Undo_DSU root(n);
+    for(int i = 1; i < MX; i++) {
+        for(int j = i; j < MX; j += i) {
+            f[i] += freq[j];
+        }
+        for(int j = i; j < MX; j += i) {
+            for(auto& [u, v] : g[j]) {
+                f[i] += (ll)root.get_rank(u) * root.get_rank(v);
+                root.merge(u, v);
+            }
+        }
+        root.rollBack();
+    }
+    for(int i = MX - 1; i > 0; i--) {
+        for(int j = i * 2; j < MX; j += i) {
+            f[i] -= f[j];
+        }
+    }
+    for(int i = 1; i < MX; i++) {
+        if(f[i]) {
+            cout << i << ' ' << f[i] << '\n';
+        }
+    }
 }
 
 signed main() {

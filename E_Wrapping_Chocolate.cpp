@@ -236,6 +236,31 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
 void solve() {
+    int n, m; cin >> n >> m;
+    var(3) a;
+    vi c(n); cin >> c;
+    for(int i = 0; i < n; i++) {
+        int h; cin >> h;
+        a.pb({c[i], h, 0});
+    }
+    c.rsz(m); cin >> c;
+    for(int i = 0; i < m; i++) {
+        int h; cin >> h;
+        a.pb({c[i], h, 1});
+    }
+    srt(a);
+    multiset<int> s;
+    debug(a);
+    for(auto& [w, h, t] : a) {
+        if(t == 0) s.insert(h);
+        else {
+            auto it = s.ub(h);
+            if(it == begin(s)) continue;
+            it--;
+            s.erase(it);
+        }
+    }
+    cout << (s.empty() ? "Yes" : "No") << '\n';
 }
 
 signed main() {

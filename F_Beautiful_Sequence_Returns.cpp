@@ -119,15 +119,6 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
-template<typename T, size_t N>
-istream& operator>>(istream& is, array<T, N>& arr) {
-    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
-}
-
-template<typename T, size_t N>
-istream& operator>>(istream& is, vector<array<T, N>>& vec) {
-    for (auto &arr : vec) { is >> arr; } return is;
-}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -235,7 +226,188 @@ ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);}
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 
+template<typename T, typename I = int, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vt<II> lazy;
+    T DEFAULT;
+    F func;
+    G apply_func;
+	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1);    
+        lazy.rsz(k << 1); // careful with initializing lazy_value
+		// *** when doing merging close_interval, do middle, right instead of middle + 1, right for right child, and check for nullptr by right - left <= 1 instead of left == right like normal
+		// and right <= start || left >= end instead of normally you don't have the '=' sign
+
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, I val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, I val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply_func(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    void push(iter) {   
+        if(lazy[i] && left != right) {
+			int middle = midPoint;
+            apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return func(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+    
+    void print(iter) {  
+        pushDown;
+        if(left == right) { 
+            cout << root[i] << ' ';
+            return;
+        }
+        int middle = midPoint;  
+        print(lp);  print(rp);
+    }
+
+    int find(int x) {
+        return find(entireTree, x);
+    }
+
+    int find(iter, int x) {
+        if(root[i].mn >= x) return inf;
+        if(left == right) {
+            return left;
+        }
+        int middle = midPoint;
+        int t = find(lp, x);
+        if(t != inf) return t;
+        return find(rp, x);
+    }
+};
+
+struct info {
+    int mn, cnt;
+    info(int mn = inf, int cnt = -inf) : mn(mn), cnt(cnt) {}
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vi is_mn(n), is_mx(n);
+    for(int i = 0, mn = inf; i < n; i++) {
+        if(a[i] < mn) {
+            is_mn[i] = true;
+            mn = a[i];
+        }
+    }
+    for(int i = n - 1, mx = -inf; i >= 0; i--) {
+        if(a[i] > mx) {
+            is_mx[i] = true;
+            mx = a[i];
+        }
+    }
+    SGT<info> root(n, info(), [](const info& a, const info& b) {return info(min(a.mn, b.mn), max(a.cnt, b.cnt));}, 
+                              [&](iter, int v) {
+                                auto& r = root.root;
+                                auto& l = root.lazy;
+                                r[i].cnt += v;
+                                l[i] += v;
+                              });
+    for(int i = 0; i < n; i++) root.update_at(i, info());
+    queue<int> min_q;
+    max_heap<ar(3)> mid_q;
+    int res = 1;
+    for(int i = 0; i < n; i++) {
+        if(is_mx[i]) {
+            while(!min_q.empty() && a[min_q.front()] >= a[i]) {
+                int j = min_q.front(); min_q.pop();
+                root.update_at(j, info());
+            }
+            while(!mid_q.empty() && mid_q.top()[0] >= a[i]) {
+                auto [_, l, r] = mid_q.top(); mid_q.pop();
+                root.update_range(l, r, -1);
+            }
+            res = max(res, root.get().cnt + 2);
+            continue;
+        }
+        int r = i;
+        if(is_mn[i]) {
+            root.update_at(i, info(a[i], 0));
+            min_q.push(i);
+            r--;
+        }
+        int l = root.find(a[i]);
+        if(l <= r) {
+            root.update_range(l, r, 1);
+            mid_q.push({a[i], l, r});
+        }
+    }
+    cout << res << endl;
 }
 
 signed main() {
@@ -246,7 +418,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -273,3 +445,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

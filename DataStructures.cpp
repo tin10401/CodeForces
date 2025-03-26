@@ -255,7 +255,7 @@ class FW {
     }
 	
 	void reset() {
-		root.assign(n, 0);
+		root.assign(n, DEFAULT);
 	}
 
     int select(int x) { // get pos where sum >= x
@@ -502,7 +502,7 @@ class SGT {
 //    }
 };
 
-template<class T, typename F = function<T(const T, const T)>>
+template<class T, typename F = function<T(const T&, const T&)>>
 class basic_segtree {
 public:
     int n;    
@@ -638,6 +638,49 @@ private:
     }
 };
 
+//    SGT<ll, pll, pll> prefix(n, 0, [](const ll& a, const ll& b) {return a + b;}, true);
+//    prefix.apply_func = [&prefix](iter, pll v) {
+//        auto& r = prefix.root[i];
+//        ll len = right - left + 1;
+//        r += len * v.ff + len * (len + 1) / 2 * v.ss;
+//        auto& l = prefix.lazy[i];
+//        l.ff += v.ff;
+//        l.ss += v.ss;
+//    };
+//    prefix.push_func = [&prefix](iter) {
+//        auto& lz = prefix.lazy[i];
+//        pll zero = MP(0, 0);
+//        if(lz != zero && left != right) {
+//            int middle = midPoint;
+//            prefix.apply_func(lp, lz);
+//            pll rightLazy = lz;
+//            rightLazy.ff += lz.ss * (middle - left + 1);
+//            prefix.apply_func(rp, rightLazy);
+//            lz = zero;
+//        }
+//    };
+//    SGT<ll, pll, pll> suffix(n, 0, [](const ll& a, const ll& b) {return a + b;}, false);
+//    suffix.apply_func = [&suffix](iter, pll v) {
+//        auto& r = suffix.root[i];
+//        ll len = right - left + 1;
+//        r += len * v.ff + len * (len + 1) / 2 * v.ss;
+//        auto& l = suffix.lazy[i];
+//        l.ff += v.ff;
+//        l.ss += v.ss;
+//    };
+//    suffix.push_func = [&suffix](iter) {
+//        auto& lz = suffix.lazy[i];
+//        pll zero = MP(0, 0);
+//        if(lz != zero && left != right) {
+//            int middle = midPoint;
+//            suffix.apply_func(rp, lz);
+//            pll leftLazy = lz;
+//            leftLazy.ff += lz.ss * (right - middle);
+//            suffix.apply_func(lp, leftLazy);
+//            lz = zero;
+//        }
+//    };
+
 //struct info {
 //    ll ans, suffix, prefix, sm;
 //    info(ll x = -INF) : suffix(x), prefix(x), ans(max(0LL, x)), sm(x) {}
@@ -653,19 +696,22 @@ private:
 //                                return res; 
 //                            });
 
+template<typename T>
 struct merge_sort_tree {
     int n;
     vvi arr;
-    vi ans;
+    vt<T> root;
     int res = inf;
-    merge_sort_tree(vi& a) : n(a.size()) {
-        arr.rsz(n * 4);
-        ans.rsz(n * 4);
+    merge_sort_tree(const vi& a) : n(a.size()) {
+        int k = 1;
+        while(k < n) k <<= 1;
+        arr.rsz(k * 2);
+        root.rsz(k * 2);
         build(entireTree, a);
     }
 
-    void build(iter, vi& a) {
-        ans[i] = inf;
+    void build(iter, const vi& a) {
+        root[i] = inf;
         for(int j = left; j <= right; j++) arr[i].pb(a[j]);
         srt(arr[i]);
         if(left == right) return;
@@ -685,19 +731,19 @@ struct merge_sort_tree {
             int t = inf;
             if(it != end(arr[i])) t = min(t, abs(*it - x));
             if(it != begin(arr[i])) t = min(t, abs(*--it - x));
-            ans[i] = min(ans[i], t);
+            root[i] = min(root[i], t);
             if(t >= res) return;
         }
         if(left == right) {
-            res = min(res, ans[i]);
+            res = min(res, root[i]);
             return;
         }
         int middle = midPoint;
         update_range(rp, s, e, x);
-        res = min(res, ans[rc]);
+        res = min(res, root[rc]);
         update_range(lp, s, e, x);
-        ans[i] = min(ans[lc], ans[rc]);
-        res = min(res, ans[i]);
+        root[i] = min(root[lc], root[rc]);
+        res = min(res, root[i]);
     }
 
     int queries_range(int left, int right) {
@@ -706,7 +752,7 @@ struct merge_sort_tree {
 
     int queries_range(iter, int s, int e) {
         if(left > e || s > right) return inf;
-        if(s <= left && right <= e) return ans[i];
+        if(s <= left && right <= e) return root[i];
         int middle = midPoint;
         return min(queries_range(lp, s, e), queries_range(rp, s, e));
     }
@@ -1258,17 +1304,18 @@ class SegTree_Graph {
 //    }
 };
 
-template<class T>
+template<class T, typename F = function<T(const T&, const T&)>>
 class HLD {
     public:
-    SGT<T> seg;
+    basic_segtree<T> seg;
     vi id, tp, sz, parent;
     vt<T> a;
     int ct;
     vvi graph;
     int n;
     GRAPH g;
-    HLD(vvi& graph, vt<T> a) : seg(graph.size(), 0), g(graph), graph(graph), n(graph.size()), a(a) {
+    F func;
+    HLD(vvi& graph, vt<T> a, F func = [](const T& a, const T& b) {return a + b;}) : seg(graph.size(), 0, func), g(graph), graph(graph), n(graph.size()), a(a), func(func) {
         this->parent = g.parent;
         this->sz = g.subtree;
         ct = 0;
@@ -1304,13 +1351,13 @@ class HLD {
         T res = 0;    
         while(node != par && node != -1) {   
             if(node == tp[node]) {   
-                res += a[node];
+                res = func(res, a[node]);
                 node = parent[node];
             } else if(g.depth[tp[node]] > g.depth[par]) {   
-                res += seg.queries_range(id[tp[node]], id[node]);    
+                res = func(res, seg.queries_range(id[tp[node]], id[node]));
                 node = parent[tp[node]];
             } else {   
-                res += seg.queries_range(id[par] + 1, id[node]);  
+                res = func(res, seg.queries_range(id[par] + 1, id[node])); 
                 break;  
             } 
         }   
@@ -1319,8 +1366,8 @@ class HLD {
 
     T path_queries(int u, int v) { // remember to add parent info if needed
         int c = get_lca(u, v);
-        T res = queries(u, c) * 2 - a[u] + a[c];
-        res += queries(v, c) * 2 - a[v] + a[c];
+        T res = func(queries(u, c), queries(v, c));
+        // res += a[c];
         return res;
     }
 
