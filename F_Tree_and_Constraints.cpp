@@ -236,36 +236,58 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
+    vvi graph(n);
+    for(int i = 0; i < n - 1; i++) {
         int u, v; cin >> u >> v;
+        u--, v--;
         graph[u].pb(v);
         graph[v].pb(u);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
+    vi depth(n), parent(n, -1);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
         for(auto& nei : graph[node]) {
             if(nei == par) continue;
+            parent[nei] = node;
+            depth[nei] = depth[node] + 1;
             dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
+            
         }
     }; dfs(dfs);
+    auto f = [&](int u, int v) -> ll {
+        ll mask = 0;
+        auto jump = [&](int &x) -> void {
+            mask |= (1LL << x);
+            x = parent[x];
+        };
+        if(depth[u] < depth[v]) swap(u, v);
+        while(depth[u] != depth[v]) jump(u);
+        while(u != v) jump(u), jump(v);
+        assert(u != -1);
+        return mask;
+    };
+    int m; cin >> m;
+    vll a;
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        a.pb(f(u, v));
+    }
+    ll res = (1LL << (n - 1));
+    for(int mask = 1; mask < 1 << m; mask++) {
+        ll curr = 0;
+        for(int i = 0; i < m; i++) {
+            if(have_bit(mask, i)) {
+                curr |= a[i];
+            }
+        }
+        ll now = 1LL << (n - 1 - pct(curr));
+        if(pct(mask) & 1) now *= -1;
+        res += now;
+    }
     cout << res << '\n';
-    output_vector(a, 1);
 }
 
 signed main() {
@@ -303,3 +325,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

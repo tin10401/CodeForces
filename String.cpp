@@ -1,10 +1,9 @@
 int T[MX * MK][2], cnt[MX * MK], ptr;
 class Binary_Trie { 
     public:
-    int m = 20;
     void insert(ll num, int v = 1) {  
         int curr = 0;   
-        for(int i = m - 1; i >= 0; i--) {  
+        for(int i = MK - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             if(!T[curr][bits]) T[curr][bits] = ++ptr, cnt[ptr] = 0;   
             curr = T[curr][bits];
@@ -28,7 +27,7 @@ class Binary_Trie {
         
     ll max_xor(ll num) {  
         ll res = 0, curr = 0;
-        for(int i = m - 1; i >= 0; i--) {  
+        for(int i = MK - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             if(T[curr][!bits] && cnt[T[curr][!bits]]) {    
                 curr = T[curr][!bits];
@@ -44,7 +43,7 @@ class Binary_Trie {
         
     ll min_xor(ll num) {  
         ll res = num, curr = 0;
-        for(int i = m - 1; i >= 0; i--) {  
+        for(int i = MK - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             if(T[curr][bits] && cnt[T[curr][bits]]) {    
                 curr = T[curr][bits];
@@ -62,7 +61,7 @@ class Binary_Trie {
 	ll count_less_than(ll a, ll b) {
         int curr = 0;
         ll res = 0;
-        for(int i = m - 1; i >= 0; i--) {
+        for(int i = MK - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
             if(b_bits) {
@@ -76,14 +75,14 @@ class Binary_Trie {
             }
             if(!curr) break;
         }
-		// res += cnt[curr] -> count equal to, remove if needed
+		// res += cnt[curr]; // remove comments if count equal to as well
         return res;
     }
 	
 	ll count_greater_than(ll a, ll b) {
         int curr = 0;
         ll res = 0;
-        for(int i = m - 1; i >= 0; i--) {
+        for(int i = MK - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
             if(b_bits == 0 && T[curr][!bits]) {
@@ -92,14 +91,14 @@ class Binary_Trie {
             curr = T[curr][b_bits ^ bits];
             if(!curr) break;
         }
-        // res += cnt[curr]; -> counter equal to, remove if needed
+		// res += cnt[curr]; // remove comments if count equal to as well
         return res;
     }
 
 	
 	ll find_mex(ll x) { // find a first missing number
         ll mex = 0, curr = 0;
-        for(int i = m - 1; i >= 0; i--) {
+        for(int i = MK - 1; i >= 0; i--) {
             int bit = (x >> i) & 1;
             int c = T[curr][bit] ? cnt[T[curr][bit]] : 0;
             if(c < (1LL << i)) {
@@ -114,76 +113,157 @@ class Binary_Trie {
         return mex;
     }
 };
-    
+
 void reset() {  
     for(int i = 0; i <= ptr; i++) { 
         T[i][0] = T[i][1] = 0;
+        cnt[i] = 0;
     }
     ptr = 0;
 }
 
-struct TrieNode {
-    TrieNode*children[26];
-    int end = false;
-};
- 
-static TrieNode nodes[MX];
- 
-class Trie {
-public:
-    TrieNode* root;
-    int count;
-    Trie() {
-        count = 0;
-        root = newTrieNode();
-    }
-    TrieNode* newTrieNode() {
-        nodes[count] = TrieNode();
-        return &nodes[count++];
-    }
-    void insert(const string& s) {
-        TrieNode* curr = root;
-        int n = s.size();
-        for(int i = 0; i < n; i++) {
-            int idx = s[i] - 'a';
-            if(!curr->children[idx]) curr->children[idx] = newTrieNode();
-            curr = curr->children[idx];
+const int MM = MX * MK * 3;
+int root[MX], T[MM][2], ptr, cnt[MM], level[MM];
+struct PERSISTENT_TRIE {
+    int insert(int prev, int num, int v = 1, int lev = 0) {   
+        int newRoot = ++ptr;    
+        int curr = newRoot;
+        for(int i = MK - 1; i >= 0; i--)    {   
+            int bits = (num >> i) & 1;  
+            T[curr][!bits] = T[prev][!bits];
+            T[curr][bits] = ++ptr;  
+            prev = T[prev][bits];   
+            curr = T[curr][bits];   
+            level[curr] = lev;
+            cnt[curr] = cnt[prev];
+            cnt[curr] += v;
         }
-        curr->end = true;
-    }
-    void reset() {
-        for(int i = 0; i < count; i++) nodes[i] = TrieNode();
-        count = 0;
-        root = newTrieNode();
+        return newRoot;
     }
 
-    int search(const string& s) {
+    int max_xor(int curr, int num, int lev = 0) {
         int res = 0;
-        vi cnt(26);
-        TrieNode*curr = root;
-        int n = s.size();
-        bool ok = true;
+        for(int i = MK - 1; i >= 0; i--) {
+            int bits = (num >> i) & 1;
+            int nxt = T[curr][!bits];
+            if(nxt && cnt[nxt] && level[nxt] >= lev) {
+                res |= 1LL << i;
+                curr = nxt;
+            } else {
+                curr = T[curr][bits];
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+
+    int min_xor(int curr, int num, int lev = 0) {
+        int res = num;
+        for(int i = MK - 1; i >= 0; i--) {
+            int bits = (num >> i) & 1;
+            int nxt = T[curr][bits];
+            if(nxt && cnt[nxt] && level[nxt] >= lev) {
+                curr = nxt;
+                if(bits) res ^= 1LL << i;
+            }
+            else {
+                curr = T[curr][!bits];
+                if(!bits) res ^= 1LL << i;
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+
+    int find_kth(vpii curr, int x, int k) { // https://toph.co/p/jontrona-of-liakot
+        for(auto& [l, r] : curr) {
+            l = root[l];
+            r = root[r];
+        }
+        int res = 0;
+        for(int i = MK - 1; i >= 0; i--) {
+            int bits = (x >> i) & 1;
+            int same_count = 0;
+            for(auto& [l, r] : curr) {
+                same_count += (cnt[T[r][bits]] - cnt[T[l][bits]]);
+            }
+            if(same_count >= k) {
+                for(auto& [l, r] : curr) {
+                    l = T[l][bits];
+                    r = T[r][bits];
+                }
+                continue;
+            }
+            k -= same_count;
+            for(auto& [l, r] : curr) {
+                l = T[l][!bits];
+                r = T[r][!bits];
+            }
+            res |= 1LL << i;
+        } 
+        return res;
+    }
+};
+
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        T[i][0] = T[i][1] = 0;
+        cnt[i] = 0;
+        level[i] = 0;
+        if(i < MX) root[i] = 0;
+    }
+    ptr = 0;
+}
+
+const int MM = MX * 26;
+int T[MM][26], ptr, cnt[MM], ending[MM];
+struct Trie {
+    bool is_character;
+    Trie(bool is_character = true) : is_character(is_character) {}
+
+    int get(char c) {
+        return c - (is_character ? 'a' : '0');
+    }
+
+    void insert(const string& s, int v = 1) {
+        int curr = 0;
         for(auto& ch : s) {
-            if(ok) {
-                for(int j = 0; j < 26; j++) {
-                    if(curr->children[j]) {
-                        cnt[j] += curr->children[j]->end;
-                    }
-                }
-            }
-            res += cnt[ch - 'a'];
-            cnt[ch - 'a'] = 0;
-            if(ok) {
-                if(!curr->children[ch - 'a']) {
-                    ok = false;
-                    continue;
-                }
-                curr = curr->children[ch - 'a'];
-            }
+            int j = get(ch);
+            if(!T[curr][j]) T[curr][j] = ++ptr;
+            curr = T[curr][j];
+            cnt[curr] += v;
+        }
+        ending[curr] = true;
+    }
+
+    int count_word_prefix(const string& s) { // how many word is s a prefix of
+        int curr = 0;
+        for(auto& ch : s) {
+            curr = T[curr][get(ch)];
+            if(!curr || !cnt[curr]) break;
+        }
+        return curr ? cnt[curr] : 0;
+    }
+
+    int get_max_length_prefix(const string& s) { // get max lcp s[i], s[j] where i != j
+        int curr = 0, res = 0;
+        for(auto& ch : s) {
+            curr = T[curr][get(ch)];
+            if(!curr || !cnt[curr]) break;
+            res++;
         }
         return res;
     }
 };
+
+void reset() {
+    for(int i = 0; i <= ptr; i++) {
+        mset(T[i], 0);
+        cnt[i] = 0;
+        ending[i] = 0;
+    }
+    ptr = 0;
+}
 
 class AHO {
 public:
@@ -269,6 +349,21 @@ vi KMP(const string& s) {
 
 
 }
+// to check if substring s[l, r] is k period, we just check the if s[l + k, r] == s[l, r - k]
+vvi kmp_dp_vector(const string& s) {
+    int n = s.size();
+    vvi dp(n, vi(26));
+    vi prefix = KMP(s);
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < 26; j++) {
+            int k = i;
+            while(k && s[k] - 'a' != j) k = prefix[k - 1];
+            if(s[k] - 'a' == j) k++;
+            dp[i][j] = k;
+        }
+    }
+    return dp;
+}
 
 int count_substring(const string& s, const string& t) { // s is main string, t is pattern
     auto kmp = KMP(t);
@@ -310,6 +405,31 @@ vi Z_Function(const string& s) {
         }
     }
     return prefix;
+}
+
+string validate_substring(int n, const string& t, vi a) { 
+    // given a string s of len n full of '?'
+    // and a vector a indicates where t is a substring of s
+    // determine if it's a valid sequence of not
+    string s = string(n, '?');
+    srtU(a); rev(a);
+    auto z = Z_Function(t);
+    int m = t.size();
+    for(auto& i : a) {
+        i--;    
+        int r = i + m;
+        if(i + m > n) return "";
+        for(int j = i; j < r; j++) {
+            int id = j - i;
+            if(s[j] == '?') {
+                s[j] = t[id];
+                continue;
+            }
+            if(z[id] < r - j) return "";
+            break;
+        }
+    }
+    return s;
 }
 
 const int HASH_COUNT = 2;
@@ -393,10 +513,14 @@ class MANACHER {
     public: 
     string s;   
     string ans; 
+    string max_prefix, max_suffix;
     ll total_palindrome;
     int n;
     vi man;
-    MANACHER(const string& s) { 
+    vi prefix; // longest palindrome length starting at index i
+    vi suffix; // longest palindrome length ending at index i
+
+    MANACHER(const string s) { 
         total_palindrome = 0;
         this->n = s.size();
         this->s = s;
@@ -404,11 +528,41 @@ class MANACHER {
         string odd = get_max_palindrome(s, 1);  
         string even = get_max_palindrome(s, 0);
         ans = odd.size() > even.size() ? odd : even;
-        for(int i = 0; i < n; i++) {
-            int even = longest_even_palindrome_at(i);
-            int odd = longest_odd_palindrome_at(i);
-            total_palindrome += (even + 1) / 2 + (odd + 1) / 2;
+        for (int i = 0; i < n; i++) {
+            int evenLen = longest_even_palindrome_at(i);
+            int oddLen = longest_odd_palindrome_at(i);
+            total_palindrome += (evenLen + 1) / 2 + (oddLen + 1) / 2;
         }
+        prefix.assign(n, 1);
+        suffix.assign(n, 1);
+        int T = man.size(); 
+        for (int c = 0; c < T; c++) {
+            if (man[c] <= 1) continue;
+            if (c % 2 == 1) { 
+                int i = (c - 1) / 2;
+                int len = man[c] - 1;
+                int half = len / 2;
+                int L = i - half;
+                int R = i + half;
+                if (L >= 0 && R < n) {
+                    prefix[L] = max(prefix[L], len);
+                    suffix[R] = max(suffix[R], len);
+                }
+            } else { 
+                if (c == 0 || c == T - 1) continue;
+                int i = (c - 2) / 2;
+                int len = man[c] - 1; 
+                int half = (len - 1) / 2;
+                int L = i - half;
+                int R = i + 1 + half;
+                if (L >= 0 && R < n) {
+                    prefix[L] = max(prefix[L], len);
+                    suffix[R] = max(suffix[R], len);
+                }
+            }
+        }
+        max_prefix = s.substr(0, prefix[0]);
+        max_suffix = s.substr(n - suffix.back());
     }
 
     ll get_total_palindrome() {
@@ -490,15 +644,7 @@ class MANACHER {
         for(int i = 0; i < N; i++) {    
             int len = manacher[i] * 2 - odd;
             if(len < max_len) continue;
-//            if(i - manacher[i] + 1 == 0) {  // max prefix_palindrome
-//                max_len = len;  
-//                start = 0;
-//            }
-//            else if(i + manacher[i] + !odd == N) { // max_suffix_palindrome
-//                max_len = len;  
-//                start = i - manacher[i] + 1;
-//            }
-            start = i - manacher[i] + 1; // max_palindrome overall
+            start = i - manacher[i] + 1;
             max_len = len;
         }
         return s.substr(start, max_len);

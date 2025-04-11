@@ -218,8 +218,8 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
-const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MK = 30;
+const static int MX = 2e5 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -236,36 +236,84 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
+int T[MX * MK][2], cnt[MX * MK], ptr = 1, t[2];
+class Binary_Trie { 
+    public:
+    void insert(ll num, int v = 1, int root = 0) {  
+        int curr = root; 
+        for(int i = MK - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr][bits]) T[curr][bits] = ++ptr, cnt[ptr] = 0;   
+            curr = T[curr][bits];
+			cnt[curr] += v;
+        }
+    }
+	
+    ll max_xor(ll num, int root = 0) {  
+        ll res = 0, curr = root;
+        for(int i = MK - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(T[curr][!bits] && cnt[T[curr][!bits]]) {    
+                curr = T[curr][!bits];
+                res |= (1LL << i);
+            }
+            else {  
+                curr = T[curr][bits];
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+};
+
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        T[i][0] = T[i][1] = 0;
+        cnt[i] = 0;
+    }
+    ptr = 1;
+}
+
+Binary_Trie Tree;
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
+    reset();
+    int n, q; cin >> n >> q;
+    vvpii graph(n);
     for(int i = 1; i < n; i++) {
         int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+        u--, v--;
+        int w; cin >> w;
+        graph[u].pb({v, w});
+        graph[v].pb({u, w});
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
+    vi color(n), a(n);
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1, int c = 0) -> void {
+        a[node] = c;
+        for(auto& [nei, v] : graph[node]) {
             if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
+            color[nei] = !color[node];
+            dfs(dfs, nei, node, v ^ c);
+        } 
     }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    for(int i = 0; i < n; i++) {
+        Tree.insert(a[i], 1, color[i]);
+    }
+    int s = 0;
+    while(q--) {
+        char op; cin >> op;
+        if(op == '^') {
+            int x; cin >> x;
+            s ^= x;
+            continue;
+        }
+        int i, x; cin >> i >> x;
+        i--;
+        Tree.insert(a[i], -1, color[i]);
+        int res = max(Tree.max_xor(a[i] ^ x, color[i]), Tree.max_xor(a[i] ^ s ^ x, !color[i]));
+        Tree.insert(a[i], 1, color[i]);
+        cout << res << (q == 0 ? '\n' : ' ');
+    }
 }
 
 signed main() {
@@ -276,7 +324,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

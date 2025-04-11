@@ -218,8 +218,8 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
-const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MK = 30;
+const static int MX = 2e5 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -236,36 +236,86 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
-void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+int T[MX * MK][2], ptr;
+vt<set<int>> s;
+class Binary_Trie { 
+    public:
+    void insert(ll num, int v = 1, int t = 0) {  
+        int curr = 0;   
+        for(int i = MK - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr][bits]) T[curr][bits] = ++ptr, s.pb({});
+            curr = T[curr][bits];
+            s[curr].insert(t);
+        }
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
+	
+    ll max_xor(ll num, int st, int e) {  
+        ll res = 0, curr = 0;
+        for(int i = MK - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            int nxt = T[curr][!bits];
+            if(nxt) {    
+                auto it = s[nxt].lb(st);
+                if(it != end(s[nxt]) && *it <= e) {
+                    curr = T[curr][!bits];
+                    res |= (1LL << i);
+                    continue;
+                }
+            }
+            curr = T[curr][bits];
+            if(!curr) break;
+        }
+        return res;
+    }
+};
+
+void reset() {  
+    for(int i = 0; i <= ptr; i++) { 
+        T[i][0] = T[i][1] = 0;
+        s[i].clear();
+    }
+    ptr = 0;
+}
+
+Binary_Trie Tree;
+void solve() {
+    s.pb({});
+    reset();
+    int q; cin >> q;
+    var(4) Q(q);
+    vvpii graph(q + 1);
+    int c = 1;
+    for(auto& [op, u, v, x] : Q) {
+        string s; cin >> s;
+        op = s == "Query";
+        cin >> u >> x;
+        if(op == 0) {
+            v = ++c;
+            graph[u].pb({v, x});
+        } else swap(v, x);
+    }
+    vi a(c + 1);
+    vi tin(c + 1), tout(c + 1);
+    int timer = 1;
     auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
+        tin[node] = timer++;
+        for(auto& [nei, v] : graph[node]) {
             if(nei == par) continue;
+            a[nei] = a[node] ^ v;
             dfs(dfs, nei, node);
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
+        tout[node] = timer - 1;
     }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    Tree.insert(a[1], 1, tin[1]);
+    for(auto& [op, u, v, x] : Q) {
+        if(op == 0) { // Add
+            Tree.insert(a[v], 1, tin[v]);
+            continue;
+        }
+        cout << Tree.max_xor(a[u], tin[v], tout[v]) << '\n';
+    }
 }
 
 signed main() {

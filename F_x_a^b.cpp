@@ -236,36 +236,27 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    ll n; cin >> n;
+    set<ll> s;
+    auto p = [&](ll x, ll y) -> ll {
+        ll s = 1;
+        for(int i = 0; i < y; i++) {
+            if(s > n / x) return INF;
+            s *= x;
+        }
+        return s;
+    };
+    for(ll b = 3; b < 60; b++) {
+        for(ll a = 2;; a++) {
+            ll t = p(a, b); 
+            if(t > n) break;
+            ll tt = sqrt(t);
+            if(tt * tt != t) s.insert(t);
+        }
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    cout << sqrt(n) + s.size() << '\n';
 }
 
 signed main() {

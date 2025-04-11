@@ -1,13 +1,78 @@
+template<typename T, typename F = function<T(const T&, const T&)>>
+class SparseTable {
+public:
+    int n, m;
+    vt<vt<T>> st;
+    vi log_table;
+    F func;
+    
+    SparseTable() {}
+
+    SparseTable(const vt<T>& a, F func) : n(a.size()), func(func) {
+        m = floor(log2(n)) + 1;
+        st.resize(m);
+        for (int j = 0; j < m; j++) st[j].resize(n - (1 << j) + 1);
+        log_table.resize(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) st[0][i] = a[i];
+        for (int j = 1; j < m; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++)
+                st[j][i] = func(st[j - 1][i], st[j - 1][i + (1 << (j - 1))]);
+        }
+    }
+    
+    T query(int L, int R) {
+        int j = log_table[R - L + 1];
+        return func(st[j][L], st[j][R - (1 << j) + 1]);
+    }
+};
+
+template<typename T = int>
+struct LCA_O1 {
+    vi enter;
+    vpii euler;
+    SparseTable<pii> st;
+    int timer;
+    LCA_O1() {}
+    LCA_O1(const vt<vt<T>> &graph, int root = 0) : timer(0) {
+        int n = graph.size();
+        enter.resize(n, -1);
+        dfs(root, -1, 0, graph);
+        st = SparseTable<pii>(euler, [](const pii &a, const pii &b) {
+            return (a.first < b.first) ? a : b;
+        });
+        vpii().swap(euler);
+    }
+    void dfs(int node, int par, int d, const vvi &graph) {
+        enter[node] = timer++;
+        euler.pb({d, node});
+        for(auto& nxt : graph[node]) {
+            if(nxt == par) continue;
+            dfs(nxt, node, d + 1, graph);
+            euler.pb({d, node});
+            timer++;
+        }
+    }
+    int lca(int u, int v) {
+        int L = min(enter[u], enter[v]);
+        int R = max(enter[u], enter[v]);
+        return st.query(L, R).second;
+    }
+};
+
+template<typename T = int>
 class GRAPH { 
     public: 
     int n, m; 
-    vvi dp, graph; 
+    vvi dp;
     vi depth, parent, subtree;
     vi tin, tout, low, ord;
     int timer = 0;
+    LCA_O1<T> lca_01;
 //    int centroid1 = -1, centroid2 = -1, mn = inf, diameter = 0;
-    GRAPH(vvi& graph, int root = 0) {   
-        this->graph = graph;
+    GRAPH() {}
+
+    GRAPH(const vt<vt<T>>& graph, int root = 0) : lca_01(graph, root) {   
         n = graph.size();
         m = log2(n) + 1;
         dp.rsz(n, vi(m));
@@ -18,11 +83,11 @@ class GRAPH {
         tout.rsz(n);
 		ord.rsz(n);
 //        low.rsz(n);
-        dfs(root);
+        dfs(graph, root);
         init();
     }
     
-    void dfs(int node = 0, int par = -1) {   
+    void dfs(const vt<vt<T>>& graph, int node = 0, int par = -1) {   
 		tin[node] = timer++;
 		ord[tin[node]] = node;
         for(auto& nei : graph[node]) {  
@@ -30,7 +95,7 @@ class GRAPH {
             depth[nei] = depth[node] + 1;   
             dp[nei][0] = node;
             parent[nei] = node;
-			dfs(nei, node);
+			dfs(graph, nei, node);
 			subtree[node] += subtree[nei];
         }
 		tout[node] = timer - 1;
@@ -80,30 +145,14 @@ class GRAPH {
     }
 	
     int lca(int a, int b) { 
-        if(depth[a] > depth[b]) {   
-            swap(a, b);
-        }
-        int d = depth[b] - depth[a];    
-        for(int i = m - 1; i >= 0; i--) {  
-            if((d >> i) & 1) {  
-                b = dp[b][i];
-            }
-        }
-        if(a == b) return a;    
-        for(int i = m - 1; i >= 0; i--) {  
-            if(dp[a][i] != dp[b][i]) {  
-                a = dp[a][i];   
-                b = dp[b][i];
-            }
-        }
-        return dp[a][0];
+        return lca_01.lca(a, b);
     }
 	
 	int dist(int u, int v) {    
-        int a = lca(u, v);  
+        int a = lca_01.lca(u, v);  
         return depth[u] + depth[v] - 2 * depth[a];
     }
-	
+
 	int k_ancestor(int a, int k) {
         for(int i = m - 1; i >= 0; i--) {   
             if((k >> i) & 1) a = dp[a][i];
@@ -145,6 +194,134 @@ class GRAPH {
 //    };
 };
 
+template<class T, typename TT = int, typename F = function<T(const T&, const T&)>>
+class HLD {
+    private:
+	vpii get_path_helper(int node, int par) {
+        vpii seg;
+        while(node != par && node != -1) {   
+            if(g.depth[tp[node]] > g.depth[par]) {   
+                seg.pb({id[tp[node]], id[node]});
+                node = parent[tp[node]];
+            } else {   
+                seg.pb({id[par] + 1, id[node]});
+                break;  
+            } 
+        }   
+        seg.pb({id[par], id[par]});
+        return seg;
+    }
+
+	T path_queries_helper(int node, int par) { // only query up to parent, don't include parent info
+        T res = DEFAULT;
+        while(node != par && node != -1) {   
+            if(g.depth[tp[node]] > g.depth[par]) {   
+                T t = seg.queries_range(id[tp[node]], id[node]);
+                res = func(t, res);
+                node = parent[tp[node]];
+            } else {   
+                T t = seg.queries_range(id[par] + 1, id[node]);
+                res = func(t, res);
+                break;  
+            } 
+        }   
+        return res; 
+    }
+
+	void update_path_helper(int node, int par, int val) {
+        while(node != par && node != -1) {   
+            if(g.depth[tp[node]] > g.depth[par]) {   
+                seg.update_range(id[tp[node]], id[node], val);
+                node = parent[tp[node]];
+            } else {   
+                seg.update_range(id[par] + 1, id[node], val); 
+                break;  
+            } 
+        }   
+    }
+    public:
+    basic_segtree<T> seg;
+    vi id, tp, sz, parent;
+    int ct;
+    vvi graph;
+    int n;
+    GRAPH<TT> g;
+    T DEFAULT;
+    F func;
+    HLD() {}
+
+    HLD(vt<vt<TT>>& graph, vi a, F func, int root = 0, T DEFAULT = 0) : seg(graph.size(), DEFAULT, func), g(graph, root), n(graph.size()), func(func), DEFAULT(DEFAULT) {
+        this->parent = move(g.parent);
+        this->sz = move(g.subtree);
+        ct = 0;
+        id.rsz(n), tp.rsz(n);
+        dfs(graph);
+        for(int i = 0; i < n; i++) seg.update_at(id[i], a[i]);
+    }
+        
+    void dfs(const vvi& graph, int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs(graph, nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs(graph, nei, node, nei);  
+        }   
+    }
+
+    void update_at(int i, T v) {
+        seg.update_at(id[i], v);
+    }
+	
+	void update_subtree(int i, T v) {
+        seg.update_range(id[i], id[i] + sz[i] - 1, v);
+    }
+
+	vpii get_path(int u, int v) {
+        int p = g.lca(u, v);
+        auto path = get_path(u, p);
+        auto other = get_path(v, p);
+        other.pop_back();
+        rev(other);
+        path.insert(end(path), all(other));
+        return path;
+    }
+
+	T path_queries(int u, int v) { // remember to include the info of parents
+        int c = lca(u, v);
+        T res = func(seg.queries_at(id[c]), func(path_queries_helper(u, c), path_queries_helper(v, c)));
+        return res;
+    }
+
+
+    void update_path(int u, int v, int val) {
+        int c = lca(u, v);
+        update_path_helper(u, c, val);
+        update_path_helper(v, c, val);
+        seg.update_at(id[c], val);
+    }
+
+    int dist(int a, int b) {
+        return g.dist(a, b);
+    }
+
+    int lca(int a, int b) {
+        return g.lca(a, b);
+    }
+
+    bool contain_all_node(int u, int v) {
+        return path_queries(u, v) == dist(u, v);
+    }
+};
+
 class DSU { 
     public: 
     int n, comp;  
@@ -179,6 +356,14 @@ class DSU {
     
     int get_rank(int x) {    
         return rank[find(x)];
+    }
+    
+    vvi get_group() {
+        vvi ans(n);
+        for(int i = 0; i < n; i++) {
+            ans[find(i)].pb(i);
+        }
+        return ans;
     }
 };
 
@@ -242,7 +427,7 @@ struct Persistent_DSU {
         return par != u ? find(par, ver) : par;
 	}
  
-	int get_rank(int u, int ver) {
+	int getRank(int u, int ver) {
 		u = find(u, ver);
 		auto [v, sz] = *(ub(all(rank[u]), MP(ver + 1, -1)) - 1);
 		return sz;
@@ -251,31 +436,19 @@ struct Persistent_DSU {
 	int merge(int u, int v, int ver) {
 		u = find(u, ver), v = find(v, ver);
 		if (u == v) return 0;
-		if(rank[u].back().ss < rank[v].back().ss) swap(u, v);
-
 		version = ver;
 		int szu = rank[u].back().ss;
 		int szv = rank[v].back().ss;
-		if (szu > szv) {swap(u, v);}
-		parent[u].pb({version, v});
+		if (szu < szv) {swap(u, v);}
+		parent[v].pb({version, u});
 		int new_sz = szu + szv;
-		rank[v].pb({version, new_sz});
+		rank[u].pb({version, new_sz});
 		return version;
 	}
  
 	bool same(int u, int v, int ver) {
         return find(u, ver) == find(v, ver);
 	}
-
-    int earliest_time(int u, int v, int N) {
-        int left = 0, right = N - 1, res = -1;
-        while(left <= right) {
-            int ver = midPoint;
-            if(same(u, v, ver)) res = ver, right = ver - 1;
-            else left = ver + 1;
-        }
-        return res;
-    }
 };
 
 class SCC {
@@ -335,17 +508,19 @@ class SCC {
     }
 };
 
+template<typename T>
 struct CD { // centroid_decomposition
     int n, root;
     vvi graph;
     vi size, parent, vis;
-    GRAPH g;
+    ll ans;
+    GRAPH<T> g;
     vi best;
-    CD(vvi& graph) : graph(graph), n(graph.size()), g(graph) {
+    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()), g(graph), best(graph.size(), inf) {
+        ans = 0;
         size.rsz(n);
         parent.rsz(n, -1);
         vis.rsz(n);
-        best.rsz(n, inf);
         root = init();
     }
  
@@ -366,16 +541,45 @@ struct CD { // centroid_decomposition
         return node;
     }
  
+    int mx;
+    void modify(int node, int par, int depth, int delta) {
+        for(auto& nei : graph[node]) {
+            if(vis[nei] || nei == par) continue;
+            modify(nei, node, depth + 1, delta);
+        }
+    }
+    void cal(int node, int par, int depth) {
+        for(auto& nei : graph[node]) {
+            if(vis[nei] || nei == par) continue;
+            cal(nei, node, depth + 1);
+        }
+    }
+ 
+    int get_max_depth(int node, int par = -1, int depth = 0) {
+        int max_depth = depth;
+        for(auto& nei : graph[node]) {
+            if(nei == par || vis[nei]) continue;
+            max_depth = max(max_depth, get_max_depth(nei, node, depth + 1));
+        }
+        return max_depth;
+    }
+ 
     int get_centroid(int src) { 
         get_size(src, -1);
         int centroid = get_center(src, -1, size[src]);
         vis[centroid] = true;
         return centroid;
     }
-
+ 
     int init(int root = 0, int par = -1) {
         root = get_centroid(root);
         parent[root] = par;
+        mx = get_max_depth(root, par);
+        for(auto& nei : graph[root]) {
+            if(vis[nei] || nei == par) continue;
+            cal(nei, root, 1);
+            modify(nei, root, 1, 1);
+        }
         for(auto&nei : graph[root]) {
             if(nei == par || vis[nei]) continue;
             init(nei, root);
@@ -383,15 +587,22 @@ struct CD { // centroid_decomposition
         return root;
     }
 
-    int ans = inf;
-    void update(int u) {
-        int v = u;
+    void update(int node) {
+        int u = node;
         while(u != -1) {
-            int t = g.dist(u, v); 
-            ans = min(ans, t + best[u]);
-            best[u] = min(best[u], t);
+            best[u] = min(best[u], g.dist(u, node));
             u = parent[u];
         }
+    }
+
+    int get_ans(int node) {
+        int u = node;
+        int res = inf;
+        while(u != -1){ 
+            res = min(res, g.dist(u, node) + best[u]);
+            u = parent[u];
+        }
+        return res;
     }
 };
 

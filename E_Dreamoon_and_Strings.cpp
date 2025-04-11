@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +236,65 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+vi KMP(const string& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+}
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    string s, t; cin >> s >> t;
+    auto kmp = KMP(t);
+    int n = s.size(), m = t.size();
+    vvi next(m, vi(26));
+    for(int i = 0; i < m; i++) {
+        for(int j = 0; j < 26; j++) {
+            int k = i;
+            while(k && t[k] != (j + 'a')) k = kmp[k - 1];
+            if(t[k] - 'a' == j) k++;
+            next[i][j] = k;
+        }
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    vt<vvvi> dp(2, vvvi(n, vvi(m, vi(n / m + 1, -1))));
+
+    auto dfs = [&](auto& dfs, int i = 0, int j = 0, int k = 0, int is_mn = 0) -> int {
+        if(k == 0) return is_mn ? 0 : n - i;
+        if(i == n) {
+            return is_mn ? inf : -inf;
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+        auto& res = dp[is_mn][i][j][k];
+        if(res != -1) return res;
+        res = dfs(dfs, i + 1, j, k, is_mn) + 1;
+        j = next[j][s[i] - 'a'];
+        if(j == m) {
+            k--;
+            j = 0;
+        }
+        if(is_mn) {
+            res = min(res, dfs(dfs, i + 1, j, k, is_mn));
+        }
+        else {
+            res = max(res, dfs(dfs, i + 1, j, k, is_mn));
+        }
+        return res;
+    };
+    vi ans(n + 1);
+    for(int k = 0; k * m <= n; k++) {
+        int l = dfs(dfs,0, 0, k, 1); 
+        int r = dfs(dfs,0, 0, k, 0); 
+        debug(k, l, r);
+        if(l <= r && l >= 0 && r <= n) {
+            for(int i = l; i <= r; i++) {
+                ans[i] = k;
             }
-            res += 2;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    }
+    output_vector(ans);
 }
 
 signed main() {

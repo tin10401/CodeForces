@@ -236,36 +236,254 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
+class GRAPH { 
+    public: 
+    int n, m; 
+    vvi dp, graph; 
+    vi depth, parent, subtree;
+    vi tin, tout, low, ord;
+    int timer = 0;
+    GRAPH(vvi& graph, int root = 0) {   
+        this->graph = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m));
+        depth.rsz(n);
+        parent.rsz(n);
+		subtree.rsz(n, 1);
+        tin.rsz(n);
+        tout.rsz(n);
+		ord.rsz(n);
+        dfs(root);
+        init();
+    }
+    
+    void dfs(int node = 0, int par = -1) {   
+		tin[node] = timer++;
+		ord[tin[node]] = node;
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+			dfs(nei, node);
+			subtree[node] += subtree[nei];
+        }
+		tout[node] = timer - 1;
+    }
+
+    bool isAncestor(int u, int v) { 
+        return tin[u] <= tin[v] && tin[v] <= tout[u]; 
+    }
+    
+    void init() {  
+        for(int j = 1; j < m; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+	
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = m - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = m - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+	
+	int dist(int u, int v) {    
+        int a = lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	int k_ancestor(int a, int k) {
+        for(int i = m - 1; i >= 0; i--) {   
+            if((k >> i) & 1) a = dp[a][i];
+        }
+        return a;
+    }
+
+    int rooted_lca(int a, int b, int c) { // determine if 3 points are in the same path
+        return lca(a, c) ^ lca(a, b) ^ lca(b, c);
+    }
+
+    int rooted_parent(int u, int v) { // move one level down from u closer to v
+        return k_ancestor(v, depth[v] - depth[u] - 1);
+    }
+
+    void reroot(int root) {
+        fill(all(parent), -1);
+        dfs(root);
+        init();
+    }
+};
+
+int t[MX * MK], ptr;
+ull root[MX * 100]; 
+pii child[MX * 100]; 
+template<class T>
+struct PSGT {
+    int n;
+    T DEFAULT;
+    void assign(int n, T DEFAULT) {
+        this->DEFAULT = DEFAULT;
+        this->n = n;
+    }
+
+	void update(int &curr, int prev, int id, T delta, int left, int right) {  
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+			root[curr] = merge(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
+        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[curr];
+        int middle = midPoint;  
+		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
+    };
+
+        
+    T get(int curr, int prev, int k, int left, int right) {    
+        if(root[curr] - root[prev] < k) return DEFAULT;
+        if(left == right) return left;
+        int leftCount = root[child[curr].ff] - root[child[prev].ff];
+        int middle = midPoint;
+        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
+        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
+    }
+
+    T get(int l, int r, int k) {
+        return get(t[r], t[l - 1], k, 0, n - 1);
+    }
+	
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(root[curr] < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
+        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
+    }
+
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = t[i] = 0;
+            child[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+
+    int add(int i, int prev, int id, T delta) { 
+        t[i] = ++ptr;
+        update(t[i], prev, id, delta, 0, n - 1); 
+        return t[i];
+    }
+
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+    }
+
+	T queries_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return DEFAULT;
+        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+        auto R = queries_at(r, low, high);
+        return R - L;
+    }
+
+    T merge(T left, T right) {
+        return left + right;
+    }
+
+    vi ans;
+    vi find(int u1, int v1, int p1, int pp1, int u2, int v2, int p2, int pp2, int k) {
+        ans.clear();
+        find(t[u1], t[v1], t[p1], t[pp1], t[u2], t[v2], t[p2], t[pp2], k, 0, n - 1);
+        return ans;
+    }
+    
+    void find(int u1, int v1, int p1, int pp1, int u2, int v2, int p2, int pp2, int k, int left, int right) {
+        auto s1 = root[u1] + root[v1] - root[p1] - root[pp1];
+        auto s2 = root[u2] + root[v2] - root[p2] - root[pp2];
+        if(s1 == s2 || ans.size() >= k) return;
+        if(left == right) {
+            ans.pb(left);
+            return;
+        }
+        int middle = midPoint;
+        find(child[u1].ff, child[v1].ff, child[p1].ff, child[pp1].ff, child[u2].ff, child[v2].ff, child[p2].ff, child[pp2].ff, k, left, middle);
+        find(child[u1].ss, child[v1].ss, child[p1].ss, child[pp1].ss, child[u2].ss, child[v2].ss, child[p2].ss, child[pp2].ss, k, middle + 1, right);
+    }
+};
+
+PSGT<ull> Tree;
 void solve() {
     int n; cin >> n;
+    vi a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    auto b(a); srtU(b);
+    const int N = b.size();
+    map<int, ull> mp;
+    for(auto& x : b) {
+        mp[x] = rng();
+    }
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
     vvi graph(n + 1);
     for(int i = 1; i < n; i++) {
         int u, v; cin >> u >> v;
         graph[u].pb(v);
         graph[v].pb(u);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
+    Tree.assign(N, 0);
+    vi id(n + 1), parent(n + 1);
+    auto dfs = [&](auto& dfs, int node = 1, int par = 0) -> void {
+        id[node] = Tree.add(node, id[par], get_id(a[node]), mp[a[node]]);
         for(auto& nei : graph[node]) {
             if(nei == par) continue;
+            parent[nei] = node;
             dfs(dfs, nei, node);
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
     }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    GRAPH g(graph, 1);
+    int q; cin >> q;  
+    while(q--) {
+        int u1, v1, u2, v2, k; cin >> u1 >> v1 >> u2 >> v2 >> k;
+        int lca1 = g.lca(u1, v1);
+        int lca2 = g.lca(u2, v2);
+        auto ans = Tree.find(u1, v1, lca1, parent[lca1], u2, v2, lca2, parent[lca2], k);
+        const int N = ans.size();
+        cout << N << ' ';
+        for(auto& x : ans) cout << b[x] << ' ';
+        cout << '\n';
+    }
+    
 }
 
 signed main() {

@@ -235,37 +235,58 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, m; cin >> n >> m;
+    vi a(n);
+    vvpii op(n, vpii(2));
+    for(int i = 0; i < n; i++) {
+        cin >> a[i] >> op[i];
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    vvpii dp(n + 1, vpii(2, MP(m, -m)));
+    vvi to(n, vi(2, -1));
+    dp[n][0] = dp[n][1] = MP(-m, m);
+    for(int i = n - 1; i >= 0; i--) {
+        for(int j = 0; j < 2; j++) {
+            auto in = [](const pii& a, int x) -> bool {
+                return a.ff <= x && x <= a.ss;
+            };
+            if(in(op[i][j], a[i])) {
+                if(in(dp[i + 1][j], a[i])) { // if it fits both the current and the future branch, we would need to not swap in the future
+                                             // and by doing dp[i][!j] = op[i][!j]
+                                             // we potentially is forcing a higher chance of the previous hand to swap to this
+                    dp[i][!j] = op[i][!j]; // forcing it, then when the previous hand look at dp[i][!j], it will swap with this hand next
+                                           // making it valid
+                    to[i][j] = !j;
+                } else {
+                    auto merge = [](const pii& a, const pii& b) -> pii {
+                        return MP(max(a.ff, b.ff), min(a.ss, b.ss));
+                    };
+                    dp[i][!j] = merge(dp[i + 1][!j], op[i][!j]);
+                    to[i][j] = j; // now it's not in the future query, we need to swap it now
+                                  // we're now forcing it to pick this hand as well
+                                  // but constraint is tighter since interval is overlapping
+                }
             }
-            res += 2;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    }
+    int t = -1;
+    for(int i = 0; i < 2; i++) {
+        if(dp[0][i].ff <= 0 && 0 <= dp[0][i].ss) {
+            t = !i;
+            break;
+        }
+    }
+    if(t < 0) {
+        cout << "NO" << '\n';
+        return;
+    }
+    cout << "YES" << '\n';
+    for(int i = 0; i < n; i++) {
+        assert(t != -1);
+        cout << t << (i == n - 1 ? '\n' : ' ');
+        t = to[i][t];
+    }
 }
 
 signed main() {

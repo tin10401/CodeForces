@@ -108,61 +108,9 @@ bool circleLineIntersect(const Circle &c, const Point &p1, const Point &p2) { //
     return distSq <= cr * cr;
 }
 
-class CHT {
-    public:
-    int is_mx;
-    vll m_slopes, b_intercepts;
-    CHT(int is_mx) : is_mx(is_mx) {
-        add_line(0, 0);
-    }
-
-    db cross(int i, int j, int k) {
-        db A = (db)(1.00 * m_slopes[j] - m_slopes[i]) * (b_intercepts[k] - b_intercepts[i]);
-        db B = (db)(1.00 * m_slopes[k] - m_slopes[i]) * (b_intercepts[j] - b_intercepts[i]);
-        return is_mx ? A < B : A >= B;
-    }
-
-    void add(ll a, ll b) {
-        if(is_mx) add_line(a, -b);
-        else add_line(-a, b);
-    }
-
-    ll queries(ll x) {
-        return is_mx ? -get(x) : get(x);
-    }
-
-    void add_line(ll slope, ll intercept) {
-        m_slopes.push_back(slope);
-        b_intercepts.push_back(intercept);
-        while(m_slopes.size() >= 3 && cross(m_slopes.size() - 3, m_slopes.size() - 2, m_slopes.size() - 1)) {
-            m_slopes.erase(m_slopes.end() - 2);
-            b_intercepts.erase(b_intercepts.end() - 2);
-        }
-    }
-
-    ll get(ll x) {
-        if(m_slopes.empty()) return INF;
-        int l = 0, r = m_slopes.size() - 1;
-        while(l < r) {
-            int mid = l + (r - l) / 2;
-            ll f1 = m_slopes[mid] * x + b_intercepts[mid];
-            ll f2 = m_slopes[mid + 1] * x + b_intercepts[mid + 1];
-            if(f1 > f2) l = mid + 1;
-            else r = mid;
-        }
-        return m_slopes[l] * x + b_intercepts[l];
-    }
-};
-
-struct Line {
-    mutable ll m, c, p;
-    bool isQuery;
-    bool operator<(const Line& o) const {
-        if(o.isQuery)
-            return p < o.p;
-        return m < o.m;
-    }
-};
+pll getMidpointKey(const pll& p1, const pll& p2) { // return the key to determine if two line are parallel
+    return { p1.first + p2.first, p1.second + p2.second };
+}
 
 vvi rotate90(const vvi matrix) {
     int n = matrix.size(), m = matrix[0].size();
@@ -173,32 +121,162 @@ vvi rotate90(const vvi matrix) {
     return res;
 }
 
-struct CHT : multiset<Line> {
-    const ll inf = INF;
-    int is_mx;
-    ll div(ll a, ll b) {
-        return a / b - ((a ^ b) < 0 && a % b); }
+struct Line {
+    mutable ll m, c, p;
+    bool isQuery;
+    bool operator<(const Line& o) const { if(o.isQuery) return p < o.p; return m < o.m; }
+};
+
+struct CHT : multiset<Line> { // cht max, for min just inverse the sign
+    mutable iterator best;
+    mutable bool init = false;
+
+    ll div(ll a, ll b) { return a / b - ((a ^ b) < 0 && a % b); }
+
     bool isect(iterator x, iterator y) {
-        if (y == end()) { x->p = inf; return false; }
-        if (x->m == y->m) x->p = x->c > y->c ? inf : -inf;
+        if (y == end()) { x->p = INF; return false; }
+        if (x->m == y->m) x->p = x->c > y->c ? INF : -INF;
         else x->p = div(y->c - x->c, x->m - y->m);
         return x->p >= y->p;
     }
+
     void add(ll m, ll c) {
         auto z = insert({m, c, 0, 0}), y = z++, x = y;
         while (isect(y, z)) z = erase(z);
         if (x != begin() && isect(--x, y)) isect(x, y = erase(y));
-        while ((y = x) != begin() && (--x)->p >= y->p)
-            isect(x, erase(y));
+        while ((y = x) != begin() && (--x)->p >= y->p) isect(x, erase(y));
     }
+
     ll query(ll x) {
-        if(empty()) return inf;
+        if(empty()) return -INF;
         Line q; q.p = x, q.isQuery = 1;
         auto l = *lower_bound(q);
         return l.m * x + l.c;
     }
-    // min will return -ans;
-    // max will return ans;
-    // max_normall is add(i, -dp)
-    // min_normal is add(-i, dp)
+
+    ll linear_query(ll x) {
+        if(empty()) return -INF;
+        if(!init) { best = begin(); init = true; }
+        while(next(best) != end() && next(best)->m * x + next(best)->c >= best->m * x + best->c) best++;
+        return best->m * x + best->c;
+    }
+};
+
+class CHT_segtree { // max cht
+public: 
+    int n, base;
+    vt<CHT> tree;
+
+    CHT_segtree(int n) : n(n) {
+        base = 1;
+        while (base < n) base <<= 1;
+        tree.rsz(base << 1);
+    }
+    
+    void update_at(int id, pll val) {  
+        if(id >= n) return;
+        int pos = id + base;
+        while (pos > 0) {
+            tree[pos].add(val.ff, val.ss);
+            pos >>= 1;
+        }
+    }
+
+    ll queries_range(int l, int r, ll x) { 
+        if(l < 0 || r >= n) return -INF;
+        ll ans = -INF;
+        l += base, r += base;
+        while (l <= r) {
+            if (l & 1) ans = max(ans, tree[l++].query(x));
+            if (!(r & 1)) ans = max(ans, tree[r--].query(x)); 
+//            if (l & 1) ans = max(ans, tree[l++].linear_query(x));
+//            if (!(r & 1)) ans = max(ans, tree[r--].linear_query(x)); 
+            l >>= 1, r >>= 1;
+        }
+        return ans;
+    }
+};
+
+struct Line {
+    ll k, b;
+    ll f(ll x) {
+        return k * x + b;
+    }
+    Line(ll k = 0, ll b = -INF) : k(k), b(b) {}
+};
+
+struct Node {
+    Line line;
+    int left;
+    int right;
+    Node(Line line) : line(line), left(-1), right(-1) {}
+    Node() : line(), left(-1), right(-1) {}
+};
+
+struct li_chao_tree {
+    int idx;
+    vector<Node> nodes;
+    int L, R; 
+
+    li_chao_tree(int n, ll L = -inf, ll R = inf) : idx(0), L(L), R(R) {
+        nodes.rsz(n);
+        nodes[0] = Node(Line());
+        idx = 1;
+    }
+
+    void add_line(int l, int r, int node, Line cur) {
+        if (l > r) return;
+        int mid = (l + r) / 2;
+        if (r - l == 1 && mid == r) {
+            mid--;
+        }
+        bool lf = cur.f(l) > nodes[node].line.f(l);
+        bool md = cur.f(mid) > nodes[node].line.f(mid);
+        if (md)
+            swap(nodes[node].line, cur);
+        if (l == r)
+            return;
+        if (lf != md) {
+            if (nodes[node].left == -1) {
+                nodes[node].left = idx;
+                nodes[idx++] = Node(cur);
+            } else {
+                add_line(l, mid, nodes[node].left, cur);
+            }
+        } else {
+            if (nodes[node].right == -1) {
+                nodes[node].right = idx;
+                nodes[idx++] = Node(cur);
+            } else {
+                add_line(mid + 1, r, nodes[node].right, cur);
+            }
+        }
+    }
+
+    void add_line(Line new_line) {
+        add_line(L, R, 0, new_line);
+    }
+
+    ll query(int l, int r, int node, ll x) {
+        if (l > r)
+            return -INF;
+        int mid = (l + r) / 2;
+        if (r - l == 1 && mid == r) {
+            mid--;
+        }
+        ll ans = nodes[node].line.f(x);
+        if (l == r)
+            return ans;
+        if (x <= mid && nodes[node].left != -1) {
+            ans = max(ans, query(l, mid, nodes[node].left, x));
+        }
+        if (x > mid && nodes[node].right != -1) {
+            ans = max(ans, query(mid + 1, r, nodes[node].right, x));
+        }
+        return ans;
+    }
+
+    ll query(ll x) {
+        return query(L, R, 0, x);
+    }
 };

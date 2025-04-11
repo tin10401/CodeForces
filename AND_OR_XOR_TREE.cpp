@@ -235,37 +235,200 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<998244353>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+class DSU { 
+    public: 
+    int n, comp;  
+    vi root, rank;  
+    DSU(int n) {    
+        this->n = n;    
+		comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1);
+		// minimum swap to sorted by swapping i and j in permutation will be base(n - root.comp) + (same(i, j) ? -1 : 1) 
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        return root[x] = find(root[x]);
+    }
+    
+    bool merge(int u, int v) {  
+        u = find(u), v = find(v);   
+        if(u != v) {    
+            if(rank[v] > rank[u]) swap(u, v); 
+			comp--;
+            rank[u] += rank[v]; 
+            root[v] = u;
+            return true;
+        }
+        return false;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+    
+    vvi get_group() {
+        vvi ans(n);
+        for(int i = 0; i < n; i++) {
+            ans[find(i)].pb(i);
+        }
+        return ans;
+    }
+};
 
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
+    vi a(n); cin >> a;
+    const int K = 26;
+    vvi graph(n);
     for(int i = 1; i < n; i++) {
         int u, v; cin >> u >> v;
+        u--, v--;
         graph[u].pb(v);
         graph[v].pb(u);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    mint AND = 0, OR = 0, XOR = 0;
+    vi valid(n);
+    auto compute = [&]() -> mint {
+        DSU root(n);
+        for(int i = 0; i < n; i++) {
+            if(!valid[i]) continue;
+            for(auto& j : graph[i]) {
+                if(!valid[j]) continue;
+                root.merge(i, j);
             }
-            res += 2;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        mint ans = 0;
+        for(int i = 0; i < n; i++) {
+            if(!valid[i] || root.find(i) != i) continue;
+            mint now = root.get_rank(i);
+            now *= now;
+            ans += now;
+        }
+        return ans;
+    };
+    auto solve_and = [&]() -> void {
+        for(int b = 0; b < K; b++) {
+            for(int c = b; c < K; c++) {
+                for(int i = 0; i < n; i++) {
+                    valid[i] = bool(have_bit(a[i], b) && have_bit(a[i], c));
+                }
+                DSU root(n);
+                for(int v = 0; v < n; v++) {
+                    if(!valid[v]) continue;
+                    for(auto& u : graph[v]) {
+                        if(!valid[u]) continue;
+                        root.merge(u, v);
+                    }
+                }
+                for(int i = 0; i < n; i++) {
+                    if(!valid[i] || root.find(i) != i) continue;
+                    mint now = root.get_rank(i);
+                    now *= now;
+                    now *= (1LL << b) * (1LL << c);
+                    if(b != c) now <<= 1;
+                    AND += now;
+                }
+            }
+        }
+    };
+    auto solve_or = [&]() -> void {
+        vmint miss(K);
+        for(int b = 0; b < K; b++) {
+            for(int i = 0; i < n; i++) {
+                valid[i] = bool(!have_bit(a[i], b)); 
+            }
+            miss[b] = compute();
+        }
+        mint total = (mint)n * n;
+        for(int b = 0; b < K; b++) {
+            for(int c = b; c < K; c++) {
+                mint cnt;
+                if(b == c) {
+                    cnt = total - miss[b]; 
+                } else {
+                    for(int i = 0; i < n; i++) {
+                        valid[i] = bool(!have_bit(a[i], b) && !have_bit(a[i], c));
+                    }
+                    cnt = total - miss[b] - miss[c] + compute();
+                }
+                mint now = cnt * (1LL << b) * (1LL << c);
+                if(b != c) now <<= 1;
+                OR += now;
+            }
+        }
+
+    };
+    auto solve_xor = [&]() -> void {
+        
+    };
+    solve_and();
+    solve_or();
+    solve_xor();
+    cout << AND << ' ' << OR << ' ' << XOR << '\n';
 }
 
 signed main() {

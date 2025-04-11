@@ -219,7 +219,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -236,36 +236,80 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
-void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+const int MM = MX * 26;
+int T[MM][26], ptr, cnt[MM];
+multiset<int> f[MX];
+struct Trie {
+    void insert(const string& s, int v = 1) {
+        int curr = 0;
+        int n = s.size();
+        for(int i = 0; i < n; i++) {
+            int j = s[i] - 'a';
+            if(!T[curr][j]) T[curr][j] = ++ptr;
+            curr = T[curr][j];
+            if(cnt[curr]) f[i].erase(f[i].find(cnt[curr]));
+            cnt[curr] += v;
+            if(cnt[curr]) f[i].insert(cnt[curr]);
+        }
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+
+    int count_word_prefix(const string& s) { // how many word is s a prefix of
+        int curr = 0;
+        for(auto& ch : s) {
+            curr = T[curr][ch - 'a'];
+            if(!curr || !cnt[curr]) break;
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+        return curr ? cnt[curr] : 0;
+    }
+
+    int get_max_length_prefix(const string& s) { // get max lcp s[i], s[j] where i != j
+        int curr = 0, res = 0;
+        for(auto& ch : s) {
+            curr = T[curr][ch - 'a'];
+            if(!curr || !cnt[curr]) break;
+            res++;
+        }
+        return res;
+    }
+};
+
+void reset() {
+    for(int i = 0; i <= ptr; i++) {
+        mset(T[i], 0);
+        cnt[i] = 0;
+    }
+    ptr = 0;
+}
+
+Trie Tree;
+void solve() {
+    reset();
+    int n; cin >> n;
+    vs a(n + 1);
+    vi remove(n + 1);
+    for(int i = 1; i <= n; i++) {
+        int op; cin >> op;
+        if(op == 1) {
+            auto& s = a[i];
+            cin >> s;
+            rev(s);
+            Tree.insert(s);
+            continue;
+        }
+        if(op == 3) {
+            int x; cin >> x;
+            if(!remove[x]) {
+                Tree.insert(a[x], -1);
+                remove[x] = true;
             }
-            res += 2;
+            continue;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        int k, l; cin >> k >> l;
+        l--;
+        auto& curr = f[l];
+        cout << (!curr.empty() && *curr.rbegin() >= k ? "YES" : "NO") << '\n';
+    }
 }
 
 signed main() {

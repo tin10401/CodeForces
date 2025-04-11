@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +236,310 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
+};
+
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+
+class GRAPH { 
+    public: 
+    int n, m; 
+    vvi dp, graph; 
+    vi depth, parent, subtree;
+    int timer = 0;
+    GRAPH(vvi& graph, int root = 0) {   
+        this->graph = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+		subtree.rsz(n, 1);
+        dfs(root);
+        init();
+    }
+    
+    void dfs(int node = 0, int par = -1) {   
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+			dfs(nei, node);
+			subtree[node] += subtree[nei];
+        }
+    }
+    
+    void init() {  
+        for(int j = 1; j < m; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+	
+	
+};
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class HLD {
+    public:
+    vi id, tp, sz, parent;
+    vt<T> a;
+    int ct;
+    vvi graph;
+    int n;
+    GRAPH g;
+    F func;
+    HLD(vvi& graph, vt<T> a, F func = [](const T& a, const T& b) {return a + b;}) : g(graph), graph(graph), n(graph.size()), a(a), func(func) {
+        this->parent = g.parent;
+        this->sz = g.subtree;
+        ct = 0;
+        id.rsz(n), tp.rsz(n), sz.rsz(n);
+        dfs();
+    }
+        
+    void dfs(int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs(nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs(nei, node, nei);  
+        }   
+    }
+
+    vpii get_path(int node, int par) {
+        vpii seg;
+        while(node != par && node != -1) {   
+            if(node == tp[node]) {   
+                seg.pb({id[node], id[node]});
+                node = parent[node];
+            } else if(g.depth[tp[node]] > g.depth[par]) {   
+                seg.pb({id[tp[node]], id[node]});
+                node = parent[tp[node]];
+            } else {   
+                seg.pb({id[par] + 1, id[node]});
+                break;  
+            } 
+        }   
+        seg.pb({id[par], id[par]});
+        return seg;
+    }
+
+};
+template<typename T, typename I = int, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vt<II> lazy;
+    T DEFAULT;
+    F func;
+    G apply_func;
+	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1, DEFAULT);    
+        lazy.rsz(k << 1); // careful with initializing lazy_value
+		// *** when doing merging close_interval, do middle, right instead of middle + 1, right for right child, and check for nullptr by right - left <= 1 instead of left == right like normal
+		// and right <= start || left >= end instead of normally you don't have the '=' sign
+
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+		pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    void update_range(int start, int end, I val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, I val) {    
+        pushDown;   
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply_func(i, left, right, val);
+            pushDown;   
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    void push(iter) {   
+        if(lazy[i] != 0 && left != right) {
+			int middle = midPoint;
+            apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
+            lazy[i] = 0;
+        }
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+		pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return func(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+};
 
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
+    var(3) g;
+    vmint weight(n);
+    mint total = 1;
+    for(int i = 0; i < n; i++) {
+        int l, r; cin >> l >> r;
+        g.pb({l, i, 0});
+        g.pb({r + 1, i, 1});
+        int len = r - l + 1;
+        total *= len;
+        weight[i] = mint(len).inv();
+    }
+    srt(g);
+    vvi graph(n);
     for(int i = 1; i < n; i++) {
         int u, v; cin >> u >> v;
+        u--, v--;
         graph[u].pb(v);
         graph[v].pb(u);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    debug(graph);
+    SGT<mint, mint, mint> below(n, 0, [](const mint& a, const mint& b) {return a + b;});
+    SGT<mint, mint, mint> above(n, 0, [](const mint& a, const mint& b) {return a + b;});
+    below.apply_func = [&](iter, mint v) {
+        below.root[i] += v * (right - left + 1);
+        below.lazy[i] += v;
+    };
+    above.apply_func = [&](iter, mint v) {
+        above.root[i] += v * (right - left + 1);
+        above.lazy[i] += v;
+    };
+    HLD<int> hld(graph, vi(n));
+    mint res = 0, curr = 0;
+    int last = 0;
+    debug(g);
+    for(auto& [t, u, type] : g) {
+        res += curr * (t - last);
+        last = t;
+        mint w = weight[u] * (type == 0 ? 1 : -1);
+        int pi = n - 1;
+        auto it = hld.get_path(u, 0);
+        for(auto& [l, r] : it) {
+            curr += w * below.queries_range(r + 1, pi);
+            curr += w * above.queries_range(l, r);
+            pi = l - 1;
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
+        pi = n - 1;
+        for(auto& [l, r] : it) {
+            above.update_range(r + 1, pi, w);
+            below.update_range(l, r, w);
+            pi = l - 1;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+    }
+    debug(res, total);
+    cout << res * total << '\n';
 }
 
 signed main() {

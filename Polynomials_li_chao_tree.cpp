@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +236,114 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+struct Line {
+    ll a0, a1, a2, a3;
+    ll f(ll x) {
+        return a0 + a1 * x + a2 * x * x + a3 * x * x * x;
+    }
+    Line(ll a0 = -INF, ll a1 = 0, ll a2 = 0, ll a3 = 0) : a0(a0), a1(a1), a2(a2), a3(a3) {}
+};
+
+struct Node {
+    Line line;
+    int left;
+    int right;
+    Node(Line line) : line(line), left(-1), right(-1) {}
+    Node() : line(), left(-1), right(-1) {}
+};
+
+struct li_chao_tree {
+    int idx;
+    vector<Node> nodes;
+    int L, R; 
+
+    li_chao_tree(int n, ll L = -inf, ll R = inf) : idx(0), L(L), R(R) {
+        nodes.rsz(n);
+        nodes[0] = Node(Line());
+        idx = 1;
+    }
+
+    void add_line(int l, int r, int node, Line cur) {
+        if (l > r) return;
+        int mid = (l + r) / 2;
+        if (r - l == 1 && mid == r) {
+            mid--;
+        }
+        bool lf = cur.f(l) > nodes[node].line.f(l);
+        bool md = cur.f(mid) > nodes[node].line.f(mid);
+        if (md)
+            swap(nodes[node].line, cur);
+        if (l == r)
+            return;
+        if (lf != md) {
+            if (nodes[node].left == -1) {
+                nodes[node].left = idx;
+                nodes[idx++] = Node(cur);
+            } else {
+                add_line(l, mid, nodes[node].left, cur);
+            }
+        } else {
+            if (nodes[node].right == -1) {
+                nodes[node].right = idx;
+                nodes[idx++] = Node(cur);
+            } else {
+                add_line(mid + 1, r, nodes[node].right, cur);
+            }
+        }
+    }
+
+    void add_line(Line new_line) {
+        add_line(L, R, 0, new_line);
+    }
+
+    ll query(int l, int r, int node, ll x) {
+        if (l > r)
+            return -INF;
+        int mid = (l + r) / 2;
+        if (r - l == 1 && mid == r) {
+            mid--;
+        }
+        ll ans = nodes[node].line.f(x);
+        if (l == r)
+            return ans;
+        if (x <= mid && nodes[node].left != -1) {
+            ans = max(ans, query(l, mid, nodes[node].left, x));
+        }
+        if (x > mid && nodes[node].right != -1) {
+            ans = max(ans, query(mid + 1, r, nodes[node].right, x));
+        }
+        return ans;
+    }
+
+    ll query(ll x) {
+        return query(L, R, 0, x);
+    }
+};
 
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    vt<Line> a(n);
+    const int K = 450;
+    li_chao_tree root(n + 10, K, MX);
+    for(int i = 0; i < n; i++) {
+        cin >> a[i].a0 >> a[i].a1 >> a[i].a2 >> a[i].a3;
+        a[i].a0 *= -1, a[i].a1 *= -1, a[i].a2 *= -1, a[i].a3 *= -1;
+        root.add_line(a[i]);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    vll ans(n, INF);
+    for(int i = 0; i < K; i++) {
+        for(auto& x : a) {
+            ans[i] = min(ans[i], -x.f(i));
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        
+    }
+    int q; cin >> q;
+    while(q--) {
+        int x; cin >> x;
+        cout << (x < K ? ans[x] : -root.query(x)) << '\n';
+
+    }
 }
 
 signed main() {
@@ -276,7 +354,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

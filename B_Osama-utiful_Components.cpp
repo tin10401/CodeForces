@@ -236,36 +236,92 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+struct Persistent_DSU {
+	int n, version;
+    vvpii parent;
+    vvar(3) rank;
+    vt<set<int>> s;
+	Persistent_DSU(int n, const vi& v) {
+		this->n = n; version = 0;
+		parent.rsz(n); rank.rsz(n), s.rsz(n);
+		for (int i = 0; i < n; i++) {
+			parent[i].pb(MP(version, i));
+			rank[i].pb({version, 1, 1});
+            s[i].insert(v[i]);
+		}
+        debug(s);
+	}
+ 
+	int find(int u, int ver) {
+		auto [v, par] = *(ub(all(parent[u]), MP(ver + 1, -1)) - 1);
+        return par != u ? find(par, ver) : par;
+	}
+ 
+	int get_rank(int u, int ver) {
+		u = find(u, ver);
+        ar(3) it = {ver + 1, -1, -1};
+		auto [v, sz, value] = *(ub(all(rank[u]), it) - 1);
+        return value;
+	}
+ 
+	int merge(int u, int v, int ver) {
+		u = find(u, ver), v = find(v, ver);
+		if (u == v) return 0;
+		version = ver;
+		int szu = rank[u].back()[1];
+		int szv = rank[v].back()[1];
+        if(szu < szv) swap(u, v);
+		parent[v].pb({version, u});
+		int new_sz = szu + szv;
+        int new_ans = rank[u].back()[2];
+        for(auto& value : s[v]) {
+            if(s[u].count(value)) continue;
+            bool l = s[u].count(value - 1);
+            bool r = s[u].count(value + 1);
+            if(l && r) new_ans--;
+            else if(!l && !r) new_ans++;
+            s[u].insert(value);
+        }
+        set<int>().swap(s[v]);
+        debug(s, new_ans, u, v);
+		rank[u].pb({version, new_sz, new_ans});
+		return version;
+	}
+ 
+	bool same(int u, int v, int ver) {
+        return find(u, ver) == find(v, ver);
+	}
+
+    int earliest_time(int u, int v, int N) {
+        int left = 0, right = N - 1, res = -1;
+        while(left <= right) {
+            int ver = midPoint;
+            if(same(u, v, ver)) res = ver, right = ver - 1;
+            else left = ver + 1;
+        }
+        return res;
+    }
+};
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    Persistent_DSU root(n, a);
+    vi ans(q + 1, 1);
+    for (int i = 1; i <= q; i++) {
+        int op, u, v, x; cin >> op >> u >> v >> x;
+        x = ans[x];
+        u = (u * 1LL * x) % n;
+        if(op == 1) {
+            v = (v * 1LL * x) % n;
+            root.merge(u, v, i);
+            continue;
+        }
+        v = ((v * 1LL * x) % i) + 1;
+        ans[i] = root.get_rank(u, v);
+        cout << ans[i] << '\n';
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
 }
 
 signed main() {

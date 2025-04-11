@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -233,39 +234,252 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
-string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
-string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
+// Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.
+template<typename flow_t>
+struct dinic {
+    struct edge {
+        int node, _rev;
+        flow_t capacity;
+ 
+        edge() {}
+ 
+        edge(int _node, int _rev, flow_t _capacity) : node(_node), _rev(_rev), capacity(_capacity) {}
+    };
+ 
+    int V = -1;
+    vt<vt<edge>> adj;
+    vi dist, edge_index;
+    bool flow_called;
+ 
+    dinic(int vertices = -1) {
+        if (vertices >= 0)
+            init(vertices);
+    }
+ 
+    void init(int vertices) {
+        V = vertices;
+        adj.assign(V, {});
+        dist.resize(V);
+        edge_index.resize(V);
+        flow_called = false;
+    }
+ 
+    int _add_edge(int u, int v, flow_t capacity1, flow_t capacity2) {
+        assert(0 <= u && u < V && 0 <= v && v < V);
+        assert(capacity1 >= 0 && capacity2 >= 0);
+        edge uv_edge(v, int(adj[v].size()) + (u == v ? 1 : 0), capacity1);
+        edge vu_edge(u, int(adj[u].size()), capacity2);
+        adj[u].push_back(uv_edge);
+        adj[v].push_back(vu_edge);
+        return adj[u].size() - 1;
+    }
+ 
+    int add_directional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, 0);
+    }
+ 
+    int add_bidirectional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, capacity);
+    }
+ 
+    edge &reverse_edge(const edge &e) {
+        return adj[e.node][e._rev];
+    }
+ 
+    void bfs_check(queue<int> &q, int node, int new_dist) {
+        if (new_dist < dist[node]) {
+            dist[node] = new_dist;
+            q.push(node);
+        }
+    }
+ 
+    bool bfs(int source, int sink) {
+        dist.assign(V, inf);
+        queue<int> q;
+        bfs_check(q, source, 0);
+        while (!q.empty()) {
+            int top = q.front(); q.pop();
+            for (edge &e : adj[top])
+                if (e.capacity > 0)
+                    bfs_check(q, e.node, dist[top] + 1);
+        }
+ 
+        return dist[sink] < inf;
+    }
+ 
+    flow_t dfs(int node, flow_t path_cap, int sink) {
+        if (node == sink)
+            return path_cap;
+ 
+        if (dist[node] >= dist[sink])
+            return 0;
+ 
+        flow_t total_flow = 0;
+ 
+        // Because we are only performing DFS in increasing order of dist, we don't have to revisit fully searched edges
+        // again later.
+        while (edge_index[node] < int(adj[node].size())) {
+            edge &e = adj[node][edge_index[node]];
+ 
+            if (e.capacity > 0 && dist[node] + 1 == dist[e.node]) {
+                flow_t path = dfs(e.node, min(path_cap, e.capacity), sink);
+                path_cap -= path;
+                e.capacity -= path;
+                reverse_edge(e).capacity += path;
+                total_flow += path;
+            }
+ 
+            // If path_cap is 0, we don't want to increment edge_index[node] as this edge may not be fully searched yet.
+            if (path_cap == 0)
+                break;
+ 
+            edge_index[node]++;
+        }
+ 
+        return total_flow;
+    }
+ 
+    flow_t flow(int source, int sink) {
+        assert(V >= 0);
+        flow_t total_flow = 0;
+ 
+        while (bfs(source, sink)) {
+            edge_index.assign(V, 0);
+            total_flow += dfs(source, inf, sink);
+        }
+ 
+        flow_called = true;
+        return total_flow;
+    }
+ 
+    vector<bool> reachable;
+ 
+    void reachable_dfs(int node) {
+        reachable[node] = true;
+ 
+        for (edge &e : adj[node])
+            if (e.capacity > 0 && !reachable[e.node])
+                reachable_dfs(e.node);
+    }
+ 
+    // Returns a list of {capacity, {from_node, to_node}} representing edges in the min cut.
+    // TODO: for bidirectional edges, divide the resulting capacities by two.
+    vector<pair<flow_t, pair<int, int>>> min_cut(int source) {
+        assert(flow_called);
+        reachable.assign(V, false);
+        reachable_dfs(source);
+        vector<pair<flow_t, pair<int, int>>> cut;
+ 
+        for (int node = 0; node < V; node++)
+            if (reachable[node])
+                for (edge &e : adj[node])
+                    if (!reachable[e.node])
+                        cut.emplace_back(reverse_edge(e).capacity, make_pair(node, e.node));
+ 
+        return cut;
+    }
+	
+	vt<vt<flow_t>> assign_flow(int n) {
+        vt<vt<flow_t>> assign(n, vt<flow_t>(n));   
+        for(int i = 0; i < n; i++) {
+            for(auto& it : adj[i]) {
+                int j = it.node - n;
+                auto e = reverse_edge(it);
+                if(j >= 0 && j < n) {
+                    assign[i][j] = e.capacity;
+                }
+            }
+        }
+        return assign;
+    }
+	
+	vvi construct_path(int n, vi& a) {
+        vi vis(n), A;
+        vvi ans, G(n);
+
+        auto dfs = [&](auto& dfs, int node) -> void {
+            vis[node] = true;
+            A.pb(node + 1); 
+            for(auto& nei : G[node]) {
+                if(!vis[nei]) {
+                    dfs(dfs, nei);
+                    return;
+                }
+            }
+        };
+        for(int i = 0; i < n; i++) {
+            if(a[i] % 2 == 0) continue; // should only add node where going from source to this
+            for(auto& it : adj[i]) {
+                int j = it.node;
+                if(j < n && it.capacity == 0) {
+                    G[i].pb(j);
+                    G[j].pb(i);
+                }
+            }
+        }
+        for(int i = 0; i < n; i++) {
+            if(vis[i]) continue;
+            A.clear();
+            dfs(dfs, i);
+            ans.pb(A);
+        }
+        return ans;
+    }
+
+};
+
+vi KMP(const string& s) {   
+    int n = s.size();
+    vi prefix(n);
+    for(int i = 1, j = 0; i < n; i++) { 
+        while(j && s[i] != s[j]) j = prefix[j - 1]; 
+        if(s[i] == s[j]) prefix[i] = ++j;
+    }
+    return prefix;
+	// property of finding period by kmp : if(len % (len - kmp[i]) == 0) period = len - kmp[i], otherwise period = len
+}
+
+int count_substring(const string& s, const string& t) { // s is main string, t is pattern
+    auto kmp = KMP(t);
+    int N = s.size(), M = t.size();
+    int cnt = 0;
+    for(int i = 0, j = 0; i < N;) {
+        if(s[i] == t[j]) i++, j++;
+        else if(j) j = kmp[j - 1];
+        else i++;
+        if(j == M) {
+            cnt++;
+            j = 0;
+        }
+    }
+    return cnt;
+}
+
+using info = pair<string, int>;
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    vt<info> s(n); 
+    for(auto& it : s) cin >> it.ff;
+    for(auto& it : s) cin >> it.ss;
+    sort(all(s), [](const info& a, const info& b) {return a.ff.size() < b.ff.size();});
+    const int N = 2 * n;
+    int src = N, sink = N + 1;
+    dinic<ll> graph(N + 2);
+    for(int i = 0; i < n; i++) {
+        graph.add_directional_edge(src, i, s[i].ss);
+        graph.add_directional_edge(i + n, sink, s[i].ss);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    ll sm = 0;
+    for(int i = 0; i < n; i++) {
+        for(int j = i + 1; j < n; j++) {
+            if(count_substring(s[j].ff, s[i].ff)) {
+                graph.add_directional_edge(i, j + n, inf);
+            }            
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        sm += s[i].ss;
+    }
+    cout << sm - graph.flow(src, sink) << '\n';
 }
 
 signed main() {

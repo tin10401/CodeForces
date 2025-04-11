@@ -42,7 +42,7 @@ vi factor_prime(int x) {
     return d;
 }
 
-ll count_coprime(int up, int x) { // count number from [1 to up] where gcd(num, x) == 1
+ll count_coprime(ll up, ll x) { // count number from [1 to up] where gcd(num, x) == 1
     auto d = factor_prime(x);
     int N = d.size();
     ll ans = 0;
@@ -71,6 +71,100 @@ vi factor(int x) {
     return a;
 }
 
+vll prime_factorize(ll mod) {
+    vll primes;
+    for(ll i = 2; i * i <= mod; i++){
+        if(mod % i == 0){
+            primes.push_back(i);
+            while(mod % i == 0) mod /= i;
+        }
+    }
+    if(mod > 1) primes.push_back(mod);
+    return primes;
+}
+
+struct NCkMod {
+    static ll modPow(ll a, ll b, ll m) {
+        ll r = 1; a %= m;
+        while(b){ if(b & 1) r = r * a % m; a = a * a % m; b >>= 1; }
+        return r;
+    }
+    static ll egcd(ll a, ll b, ll &x, ll &y) {
+        if(!b){ x = 1; y = 0; return a; }
+        ll g = egcd(b, a % b, y, x); y -= (a / b) * x; return g;
+    }
+    static ll modInv(ll a, ll m) {
+        ll x, y; ll g = egcd(a, m, x, y);
+        if(g != 1) return -1; return (x % m + m) % m;
+    }
+    using vec = vt<pair<ll, int>>;
+    static vec factorize(int m) {
+        vec f;
+        for (int d = 2; d * d <= m; d++) if(m % d == 0){ int cnt = 0; while(m % d == 0){ cnt++; m /= d; } f.pb({d, cnt}); }
+        if(m > 1) f.pb({m, 1}); return f;
+    }
+    static pll facto(ll n, int p, int pw, const vll& fact) {
+        if(n < pw) {
+            ll r = 1, e = 0;
+            for (int i = 1; i <= n; i++){
+                int x = i;
+                while(x % p == 0){ e++; x /= p; }
+                r = (r * x) % pw;
+            }
+            return {r, e};
+        }
+        auto sub = facto(n / p, p, pw, fact);
+        ll r = modPow(fact[pw - 1], n / pw, pw);
+        r = (r * fact[n % pw]) % pw;
+        r = (r * sub.first) % pw;
+        ll e = n / p + sub.second;
+        return {r, e};
+    }
+    static ll binomPP(ll n, ll k, int p, int q) {
+        int pw = 1; for (int i = 0; i < q; i++) pw *= p;
+        vll fact(pw); fact[0] = 1;
+        for (int i = 1; i < pw; i++)
+            fact[i] = (i % p == 0 ? fact[i - 1] : fact[i - 1] * i % pw);
+        auto A = facto(n, p, pw, fact);
+        auto B = facto(k, p, pw, fact);
+        auto C = facto(n - k, p, pw, fact);
+        ll e = A.second - B.second - C.second;
+        ll inv = modInv((B.first * C.first) % pw, pw);
+        ll res = (A.first * inv) % pw;
+        return (res * modPow(p, e, pw)) % pw;
+    }
+    static ll calc(ll n, ll k, int mod) {
+        if(k < 0 || k > n) return 0;
+        auto fac = factorize(mod);
+        ll M = 1, ans = 0;
+        vpll rem;
+        for(auto &f : fac) {
+            int p = f.first, q = f.second, pw = 1; for (int i = 0; i < q; i++) pw *= p;
+            ll r = binomPP(n, k, p, q);
+            rem.pb({r, pw}); M *= pw;
+        }
+        for(auto &r : rem) {
+            ll m_i = r.second, a_i = r.first, M_i = M / m_i;
+            ll inv = modInv(M_i, m_i);
+            ans = (ans + a_i * M_i % M * inv) % M;
+        }
+        return ans;
+    }
+};
+
+vi computeCatalan(int limit, int mod) {
+    vi catalan(limit + 1, 0);
+    catalan[0] = 1;
+    for (int n = 1; n <= limit; n++) {
+        ll temp = 0;
+        for (int i = 0; i < n; i++) {
+            temp = (temp + (ll)catalan[i] * catalan[n - 1 - i]) % mod;
+        }
+        catalan[n] = temp;
+    }
+    return catalan;
+}
+
 template<class T> 
 class Combinatoric {    
     public: 
@@ -94,7 +188,8 @@ class Combinatoric {
     }
     
     T choose(int a, int b) {  
-        if(a < b || a > n) return 0;
+        if(a < b) return 0;
+        assert(max(a, b) <= n);
         return fact[a] * inv[b] * inv[a - b];
     }
 	
@@ -107,13 +202,16 @@ class Combinatoric {
         return ans ;
     }
 
-    T nCk_increasing_sequence(int l, int r, int len) { // given a range of number from l to r, len k, 
+	T nCk_increasing_sequence(int l, int r, int len) { // given a range of number from l to r, len k, 
                                                        // return the number of ways to choose those element in increasing order
-        return nCk(r - l + len, len);
+//        if(len > r - l + 1) return 0;  // not enough numbers
+//        return choose(r - l + 1, len); // for strictly increasing/decreasing
+        return choose(r - l + len, len);
         // x _ _ _ y
         // # of way to choose the _ unknown value
         // len = pos[y] - pos[x] - 1
     }
+
 
 //    ll nCk_mod_Lucas_Theorem(int n, int r, int mod) {
 //        if(r > n) return 0 ;
@@ -146,7 +244,30 @@ class Combinatoric {
         if(k == 0) return 1;
         return choose(2 * k, k) - choose(2 * k, k - 1);
     }
-};
+
+	T monotonic_array_count(int n, int m) {// len n, element from 1 to m increasing/decreasing
+        return choose(n + m - 1, n);
+    }
+
+}; Combinatoric<mint> comb(MX);
+
+// pascal triangle
+// dp[n][k] = dp[n - 1][k] + dp[n - 1][k - 1];
+// for nck sweep line, we go from highest k to 0
+//        for(int j = k; j < K; j++) { // because it's not normal sweepline for updating from [l, r - 1]
+//            for(auto& [l, r] : Q[j]) {
+//                int d = j - k;
+//                dp[r] -= comb.choose(r - l - 1 + d, d);
+//            }
+//        }
+
+//        dp[i] = comb.choose(r + c - 2, c - 1);
+//        for(int j = 0; j < i; j++) {
+//            if(a[j].ff <= r && a[j].ss <= c) {
+//                int nr = r - a[j].ff, nc = c - a[j].ss;
+//                dp[i] -= dp[j] * comb.choose(nr + nc, nr);
+//            }
+//        }
 
 ll XOR(ll n) {    
 	if(n % 4 == 0) return n;

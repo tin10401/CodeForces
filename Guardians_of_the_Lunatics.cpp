@@ -1,23 +1,3 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
-//╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
-//░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
-//░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
-//░░░██║░░░██║██║░╚███║  ███████╗███████╗
-//░░░╚═╝░░░╚═╝╚═╝░░╚══╝  ╚══════╝╚══════╝
-//   __________________
-//  | ________________ |
-//  ||          ____  ||
-//  ||   /\    |      ||
-//  ||  /__\   |      ||
-//  || /    \  |____  ||
-//  ||________________||
-//  |__________________|
-//  \###################\
-//   \###################\
-//    \        ____       \
-//     \_______\___\_______\
-// An AC a day keeps the doctor away.
-
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -220,6 +200,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +216,46 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, k; cin >> n >> k;
+    vll prefix(n + 1);
+    for(int i = 1; i <= n; i++) {
+        cin >> prefix[i];
+        prefix[i] += prefix[i - 1];
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    if(k >= n) {
+        cout << prefix.back() << '\n';
+        return;
+    }
+    auto cost = [&](int l, int r) -> ll {
+        if(l > r) return 0;
+        return (prefix[r] - prefix[l - 1]) * (r - l + 1);
+    };
+    vll dp(n + 1);
+    for(int i = 1; i <= n; i++) {
+        dp[i] = cost(1, i);
+    }
+    for(int g = 1; g < k; g++) {
+        vll next(n + 1, INF);
+        auto dfs = [&dp, &next, &cost](auto& dfs, int l, int r, int idl, int idr) -> void {
+            if(l > r) return;
+            int middle = (l + r) / 2;
+            int j = -1;
+            for(int i = idl; i <= min(idr, middle); i++) {
+                ll now = dp[i - 1] + cost(i, middle);
+                if(now < next[middle]) {
+                    next[middle] = now;
+                    j = i;
+                }
             }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+            dfs(dfs, l, middle - 1, idl, min(middle - 1, j));
+            dfs(dfs, middle + 1, r, j, min(idr, r));
+        };
+        dfs(dfs, 1, n, 1, n);
+        swap(dp, next);
+    }
+    cout << dp[n] << '\n';
 }
 
 signed main() {
@@ -289,17 +279,3 @@ signed main() {
 
     return 0;
 }
-
-//███████████████████████████████████████████████████████████████████████████████████████████████████████
-//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
-//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
-//█░░▄▀░░░░░░░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░░░░░░░█
-//█░░▄▀░░█████████░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
-//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
-//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░░░░░█
-//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░█
-//█░░▄▀░░█████████░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░█
-//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░▄▀░░█
-//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
-//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
-//███████████████████████████████████████████████████████████████████████████████████████████████████████

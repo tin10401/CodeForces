@@ -236,36 +236,296 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+class GRAPH { 
+    public: 
+    int n, m; 
+    vvi dp, graph; 
+    vi depth, parent, subtree;
+    GRAPH(vvi& graph, int root = 0) {   
+        this->graph = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+		subtree.rsz(n, 1);
+        dfs(root);
+        init();
+    }
+    
+    void dfs(int node = 0, int par = -1) {   
+        for(auto& nei : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] = depth[node] + 1;   
+            dp[nei][0] = node;
+            parent[nei] = node;
+			dfs(nei, node);
+			subtree[node] += subtree[nei];
+        }
+    }
+
+    void init() {  
+        for(int j = 1; j < m; j++) {   
+            for(int i = 0; i < n; i++) {    
+                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+            }
+        }
+    }
+	
+    int lca(int a, int b) { 
+        if(depth[a] > depth[b]) {   
+            swap(a, b);
+        }
+        int d = depth[b] - depth[a];    
+        for(int i = m - 1; i >= 0; i--) {  
+            if((d >> i) & 1) {  
+                b = dp[b][i];
+            }
+        }
+        if(a == b) return a;    
+        for(int i = m - 1; i >= 0; i--) {  
+            if(dp[a][i] != dp[b][i]) {  
+                a = dp[a][i];   
+                b = dp[b][i];
+            }
+        }
+        return dp[a][0];
+    }
+};
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class HLD {
+    public:
+    vi id, tp, sz, parent;
+    int ct;
+    vvi graph;
+    int n;
+    GRAPH g;
+    F func;
+    HLD(vvi& graph) : g(graph, 0), graph(graph), n(graph.size()) {
+        this->parent = g.parent;
+        this->sz = g.subtree;
+        ct = 0;
+        id.rsz(n), tp.rsz(n);
+        dfs();
+    }
+        
+    void dfs(int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs(nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs(nei, node, nei);  
+        }   
+    }
+
+	vpii get_path(int node, int par) {
+        vpii seg;
+        while(node != par && node) {   
+            if(node == tp[node]) {   
+                seg.pb({id[node], id[node]});
+                node = parent[node];
+            } else if(g.depth[tp[node]] > g.depth[par]) {   
+                seg.pb({id[tp[node]], id[node]});
+                node = parent[tp[node]];
+            } else {   
+                seg.pb({id[par] + 1, id[node]});
+                break;  
+            } 
+        }   
+        seg.pb({id[par], id[par]});
+        return seg;
+    }
+
+    vpii get_path_u_v(int u, int v) {
+        int p = g.lca(u, v);
+        auto path = get_path(u, p);
+        auto other = get_path(v, p);
+        other.pop_back();
+        rev(other);
+        for(auto& [l, r] : path) swap(l, r);
+        path.insert(end(path), all(other));
+        return path;
+    }
+};
+
+const int MM = MX * 350;
+int ptr;
+ll root[MM];
+pll lazy[MM];
+pii child[MM];
+template<typename T>
+struct lazy_PSGT {
+    int n;
+    T DEFAULT;
+    void assign(int n, T DEFAULT) {
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+    }
+
+    T merge(T a, T b) {
+        return a + b;
+    }
+
+    int create_node(int prev) {
+        ++ptr;
+        if(ptr > MM) {
+            cout << "NO" << '\n';
+            exit(0);
+        }
+        root[ptr] = root[prev];
+        lazy[ptr] = lazy[prev];
+        child[ptr] = child[prev];
+        return ptr;
+    }
+
+    void apply(int curr, int left, int right, pll val) {
+        ll len = right - left + 1;
+        root[curr] += len * val.ff + len * (len - 1) / 2 * val.ss;
+        lazy[curr].ff += val.ff;
+        lazy[curr].ss += val.ss;
+    }
+
+    void push_down(int curr, int left, int right) {
+        pll zero = {0, 0};
+        if(lazy[curr] == zero || left == right) return;
+        int middle = midPoint;
+        if(child[curr].ff) {
+            child[curr].ff = create_node(child[curr].ff);
+            apply(child[curr].ff, left, middle, lazy[curr]); 
+        }
+        if(child[curr].ss) {
+            child[curr].ss = create_node(child[curr].ss);
+            lazy[curr].ff += lazy[curr].ss * (middle - left + 1);
+            apply(child[curr].ss, middle + 1, right, lazy[curr]);
+        }
+        lazy[curr] = zero;
+    }
+
+    void update_range(int &i, int start, int end, pll delta, bool is_prefix) {
+        update_range(i, i, delta, start, end, 0, n - 1, is_prefix);
+    }
+
+    void update_range(int& curr, int prev, pll val, int start, int end, int left, int right, bool is_prefix) {
+        push_down(curr, left, right);
+        if(left > end || start > right) return;
+        curr = create_node(prev);
+        if(start <= left && right <= end) {
+            apply(curr, left, right, {val.ss * (is_prefix ? (left - start) : (end - left)) + val.ff, is_prefix ? val.ss : -val.ss});
+            push_down(curr, left, right);
+            return;
+        }
+        int middle = midPoint;
+        update_range(child[curr].ff, child[prev].ff, val, start, end, left, middle, is_prefix);
+        update_range(child[curr].ss, child[prev].ss, val, start, end, middle + 1, right, is_prefix);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    T queries_range(int i, int start, int end) {
+        return queries_range(i, start, end, 0, n - 1);
+    }
+
+    T queries_range(int curr, int start, int end, int left, int right) {
+        push_down(curr, left, right);
+        if(start > right || left > end) return DEFAULT;
+        if(start <= left && right <= end) return root[curr];
+        int middle = midPoint;
+        return merge(queries_range(child[curr].ff, start, end, left, middle), queries_range(child[curr].ss, start, end, middle + 1, right));
+    }
+
+    void update_at(int& i, int id, T delta) {
+        update_at(i, i, id, delta, 0, n - 1);
+    }
+
+    void update_at(int &curr, int prev, int id, T delta, int left, int right) {  
+        push_down(curr, left, right);
+        curr = create_node(prev);
+        if(left == right) { 
+			root[curr] = merge(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update_at(child[curr].ff, child[prev].ff, id, delta, left, middle); 
+        else update_at(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    void reset() {
+        for(int i = 0; i <= ptr; i++) {
+            root[i] = 0;
+            child[i] = {0, 0};
+            lazy[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+};
+
+lazy_PSGT<ll> Tree;
+int curr_time = 0;
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
+    int n, q; cin >> n >> q;
+    vvi graph(n);
+    Tree.assign(n, 0);
     for(int i = 1; i < n; i++) {
         int u, v; cin >> u >> v;
+        u--, v--;
         graph[u].pb(v);
         graph[v].pb(u);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    for(int i = 0; i < n; i++) {
+        Tree.update_at(curr_time, i, 0);
+    }
+    HLD<ll> g(graph);
+    ll last = 0;
+    int total = 1;
+    vi state;
+    state.pb(curr_time);
+    while(q--) {
+        char op; cin >> op;
+        if(op == 'c') {
+            int x, y;
+            ll a, b; cin >> x >> y >> a >> b;
+            x = ((x + last) % n);
+            y = ((y + last) % n);
+            auto path = g.get_path_u_v(x, y);
+            ll off = 0;
+            for(auto& [l, r] : path) {
+                bool prefix = true;
+                if(l > r) prefix = false, swap(l, r);
+                Tree.update_range(curr_time, l, r, {a + off * b, b}, prefix);
+                off += r - l + 1;
             }
-            res += 2;
+            state.pb(curr_time);
+            continue;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        if(op == 'q') {
+            int u, v; cin >> u >> v;
+            u = ((u + last) % n);
+            v = ((v + last) % n);
+            auto path = g.get_path_u_v(u, v);
+            last = 0;
+            for(auto& [l, r] : path) {
+                if(l > r) swap(l, r);
+                last += Tree.queries_range(curr_time, l, r);
+            }
+            cout << last << '\n';
+            continue;
+        }
+        int x; cin >> x;
+        curr_time = state[(x + last) % int(state.size())];
+    }
+    Tree.reset();
 }
 
 signed main() {
@@ -303,3 +563,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

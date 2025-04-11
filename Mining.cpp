@@ -1,23 +1,3 @@
-//████████╗██╗███╗░░██╗  ██╗░░░░░███████╗
-//╚══██╔══╝██║████╗░██║  ██║░░░░░██╔════╝
-//░░░██║░░░██║██╔██╗██║  ██║░░░░░█████╗░░
-//░░░██║░░░██║██║╚████║  ██║░░░░░██╔══╝░░
-//░░░██║░░░██║██║░╚███║  ███████╗███████╗
-//░░░╚═╝░░░╚═╝╚═╝░░╚══╝  ╚══════╝╚══════╝
-//   __________________
-//  | ________________ |
-//  ||          ____  ||
-//  ||   /\    |      ||
-//  ||  /__\   |      ||
-//  || /    \  |____  ||
-//  ||________________||
-//  |__________________|
-//  \###################\
-//   \###################\
-//    \        ____       \
-//     \_______\___\_______\
-// An AC a day keeps the doctor away.
-
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -220,6 +200,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +216,68 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, k; cin >> n >> k;
+    vpll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    srt(a);
+    vll prefix(n + 1), prefix_weight(n + 1);
+    for(int i = 1; i <= n; i++) {
+        prefix[i] = prefix[i - 1] + a[i].ff * a[i].ss;
+        prefix_weight[i] = prefix_weight[i - 1] + a[i].ss;
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    vvll cost(n + 1, vll(n + 1));
+    auto get_cost = [&](int l, int r, int i) -> ll {
+        ll left = a[i].ff * (prefix_weight[i] - prefix_weight[l - 1]) - (prefix[i] - prefix[l - 1]);
+        ll right = (prefix[r] - prefix[i - 1]) - (a[i].ff * (prefix_weight[r] - prefix_weight[i - 1]));
+        return left + right;
+    };
+    for(int i = 1; i <= n; i++) {
+        auto dfs = [&](auto& dfs, int l, int r, int idl, int idr) -> void {
+            if(l > r) return;
+            int nxt = -1;
+            int middle = (l + r) >> 1;
+            cost[i][middle] = INF + 1;
+            for(int b = max(i, idl); b <= min(idr, middle); b++) {
+                ll now = get_cost(i, middle, b); 
+                if(nxt == -1 || now < cost[i][middle]) {
+                    cost[i][middle] = now;
+                    nxt = b;
+                }
             }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+            dfs(dfs, l, middle - 1, idl, nxt);
+            dfs(dfs, middle + 1, r, nxt, idr);
+        };
+        dfs(dfs, i, n, i, n);
+    }
+    vll dp(n + 1);
+    for(int i = 1; i <= n; i++) {
+        dp[i] = cost[1][i];
+    }
+    for(int g = 2; g <= k; g++) {
+        vll next(n + 1, INF);
+        auto dfs = [&](auto& dfs, int l, int r, int idl, int idr) -> void {
+            if(l > r) return;
+            int nxt = -1;
+            int middle = (l + r) >> 1;
+            auto get_group_cost = [&](int x) -> ll {
+                return dp[x - 1] + cost[x][middle];
+            };
+            for(int b = idl; b <= min(idr, middle); b++) {
+                if(nxt == -1 || get_group_cost(nxt) > get_group_cost(b)) {
+                    nxt = b;
+                }
+            }
+            next[middle] = get_group_cost(nxt);
+            dfs(dfs, l, middle - 1, idl, nxt);
+            dfs(dfs, middle + 1, r, nxt, idr);
+        };
+        dfs(dfs, g, n, g, n);
+        swap(dp, next);
+    }
+    cout << dp[n] << '\n';
+
 }
 
 signed main() {
@@ -289,17 +301,3 @@ signed main() {
 
     return 0;
 }
-
-//███████████████████████████████████████████████████████████████████████████████████████████████████████
-//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
-//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░░░░░░░░░██░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
-//█░░▄▀░░░░░░░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀▄▀▄▀▄▀▄▀░░██░░▄▀░░█░░▄▀░░░░░░░░░░█
-//█░░▄▀░░█████████░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░░░░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
-//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░█████████
-//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░░░░░█
-//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░██░░▄▀░░█░░▄▀░░██░░▄▀░░█
-//█░░▄▀░░█████████░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░███░░▄▀░░███░░▄▀░░██░░▄▀░░░░░░▄▀░░█░░▄▀░░██░░▄▀░░█
-//█░░▄▀░░░░░░░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░▄▀▄▀░░█░░░░▄▀░░░░█░░▄▀░░██░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░░░░░▄▀░░█
-//█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
-//█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
-//███████████████████████████████████████████████████████████████████████████████████████████████████████

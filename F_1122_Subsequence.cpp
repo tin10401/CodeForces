@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -233,39 +234,32 @@ int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp)
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
-string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
-string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    vi a(n); cin >> a;
+    const int K = MAX(a);
+    vvi next(n + 2, vi(K + 1, n));
+    for(int i = n - 1; i >= 0; i--) {
+        next[i] = next[i + 1];
+        next[i][a[i] - 1] = i;
     }
-    vi a(n + 1);
-    iota(all(a), 0);
+    vi dp(1 << K, n);
+    dp[0] = 0;
     int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    for(int mask = 0; mask < 1 << K; mask++) {
+        int cnt = 0;
+        for(int i = 0; i < K; i++) {
+            if(have_bit(mask, i)) {
+                int prev_mask = mask ^ (1LL << i);
+                int j = next[dp[prev_mask]][i];
+                dp[mask] = min(dp[mask], next[j + 1][i]);
+                cnt += 2;
             }
-            res += 2;
         }
-    }; dfs(dfs);
+        if(dp[mask] < n) res = max(res, cnt);
+    }
     cout << res << '\n';
-    output_vector(a, 1);
 }
 
 signed main() {

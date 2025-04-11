@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +236,74 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
+class SparseTable {
+public:
+    int n;
+    vt<vt<T>> dp;
+    vi log_table;
+    F func;
+
+    SparseTable() {}
+    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
+        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) dp[i][0] = a[i];
+        for (int j = 1; (1 << j) <= n; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++) {
+                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    T query(int L, int R) {
+        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
+        int j = log_table[R - L + 1];
+        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
+    }
+};
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
+    int n, m; cin >> n >> m;
+    vll prefix(n);
     for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+        cin >> prefix[i];
+        prefix[i] += prefix[i - 1];
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    vvi b(m + 1, vi(n + 1));
+    for(int i = 1; i <= n; i++) {
+        for(int j = 1; j <= m; j++) {
+            cin >> b[j][i];
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    }
+    vt<SparseTable<int>> t(m + 1);
+    for(int i = 1; i <= m; i++) {
+        t[i] = SparseTable<int>(b[i], [](const int& a, const int& b) {return max(a, b);});
+    }
+    ll res = 0;
+    auto dfs = [&](auto& dfs, int l, int r, int idl, int idr) -> void {
+        if(l > r) return;
+        int middle = (l + r) >> 1;
+        ll best = -INF, nxt = -1;
+        for(int i = idl; i <= min(middle, idr); i++) {
+            ll now = 0;
+            for(int b = 1; b <= m; b++) {
+                now += t[b].query(i, middle);
             }
-            res += 2;
+            now -= prefix[middle - 1] - prefix[i - 1];
+            if(now > best) {
+                best = now;
+                nxt = i;
+            }
         }
-    }; dfs(dfs);
+        res = max(res, best);
+        dfs(dfs, l, middle - 1, idl, nxt);
+        dfs(dfs, middle + 1, r, nxt, idr);
+    };
+    dfs(dfs, 1, n, 1, n);
     cout << res << '\n';
-    output_vector(a, 1);
 }
 
 signed main() {

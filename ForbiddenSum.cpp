@@ -236,36 +236,127 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
+// PERSISTENT SEGTREE
+int t[MX * MK], ptr, root[MX * 120]; // log2 = MX * 200; careful to match root with the type of template below
+pii child[MX * 120]; // maybe * 100 instead of 120
+template<class T>
+struct PSGT {
+    int n;
+    T DEFAULT;
+    void assign(int n, T DEFAULT) {
+        this->DEFAULT = DEFAULT;
+        this->n = n;
+    }
+
+	void update(int &curr, int prev, int id, T delta, int left, int right) {  
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+			root[curr] = merge(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
+        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[curr];
+        int middle = midPoint;  
+		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
+    };
+
+        
+    T get(int curr, int prev, int k, int left, int right) {    
+        if(root[curr] - root[prev] < k) return DEFAULT;
+        if(left == right) return left;
+        int leftCount = root[child[curr].ff] - root[child[prev].ff];
+        int middle = midPoint;
+        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
+        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
+    }
+
+    T get(int l, int r, int k) {
+        return get(t[r], t[l - 1], k, 0, n - 1);
+    }
+	
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(root[curr] < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
+        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
+    }
+
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = t[i] = 0;
+            child[i] = {0, 0};
+        }
+        ptr = 0;
+    }
+
+    void add(int i, int& prev, int id, T delta) { 
+        t[i] = ++ptr;
+        update(t[i], prev, id, delta, 0, n - 1); 
+        prev = t[i];
+    }
+
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+    }
+
+	T queries_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return DEFAULT;
+        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+        auto R = queries_at(r, low, high);
+        return R - L;
+    }
+
+    T merge(T left, T right) {
+        return left + right;
+    }
+};
+
+PSGT<int> Tree;
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    vi a(n); cin >> a;
+    auto b(a); srtU(b);
+    const int N = b.size();
+    auto get_id = [&](ll x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    Tree.assign(N, 0);
+    for(int i = 0, prev = 0; i < n; i++) {
+        Tree.add(i, prev, get_id(a[i]), a[i]);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    auto run = [&](int l, int r) -> int {
+        int s = 0;
+        while(true) {
+            int p = get_id(s + 2) - 1;
+            int ns = Tree.queries_range(l, r, 0, p);
+            if(ns == s) break;
+            s = ns;
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
-        }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        return s + 1;
+    };
+    int q; cin >> q;
+
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        cout << run(l, r) << '\n';
+    }
+    
 }
 
 signed main() {

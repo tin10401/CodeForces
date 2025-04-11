@@ -100,7 +100,7 @@ public:
 	
 	void insert_at(int k, T x) { // one base index
         if(size(root) < k) {
-            cout << "Can't insert" << endl;
+            insert(x);
             return;
         }
         TreapNode* A;
@@ -119,6 +119,17 @@ public:
         split(A, A, B, 1);
         merge(root, root, B);
     }
+	
+	void update_at(int k, T x) {
+        if(size(root) < k) return;
+        TreapNode*A, *B;
+        split(root, root, A, k - 1);
+        split(A, A, B, 1);
+        A = new TreapNode(x);
+        merge(root, root, A);
+        merge(root, root, B);
+    }
+
 	
 	void split_and_swap(int k) { // off_set by 1
         if(k == 0 || k == size(root)) return; 
@@ -148,6 +159,17 @@ public:
         merge(root, root, C);
         return ans;
     }
+	
+	T queries_range(int l, int r) {
+        TreapNode*A, *B;
+        split(root, root, A, l - 1);
+        split(A, A, B, r - l + 1);
+        T res = A->inf.ans;
+        merge(root, root, A);
+        merge(root, root, B);
+        return res;
+    }
+
 	
 	TreapNode* erase(int l, int r) {
         TreapNode* A, *B;
@@ -275,7 +297,8 @@ template<class T>
 class FW_2D {
     public:
     int n;
-    vt<vt<T>> coord, root;
+    vt<vt<T>> root;
+	vvi coord;
     T DEFAULT;
     FW_2D(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT) {
         coord.rsz(n), root.rsz(n);
@@ -289,7 +312,7 @@ class FW_2D {
         id = (id & (id + 1)) - 1;
     }
  
-    void add_coord(int i, T x, bool is_up = true) {
+    void add_coord(int i, int x, bool is_up = true) {
         while(i >= 0 && i < n) {
             coord[i].pb(x);
             if(is_up) go_up(i);
@@ -359,12 +382,12 @@ class FW_2D {
     }
  
     T bit_range_queries(int i, int low, int high) {
-        if(low > high) return 0;
+        if(low > high) return DEFAULT;
         return point_query(i, high) - point_query(i, low - 1);
     }
  
     T range_queries(int l, int r, int low, int high) {
-        if(l > r || low > high) return 0;
+        if(l > r || low > high) return DEFAULT;
         return bit_range_queries(r, low, high) - bit_range_queries(l - 1, low, high);
     }
 
@@ -372,7 +395,170 @@ class FW_2D {
     }
 };
 
-template<typename T, typename I = int, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
+template<typename T> // for queries and updating rectangle
+struct BIT2D {
+    int n, m;
+    vt<vt<T>> B1, B2, B3, B4;
+    
+    BIT2D(int n, int m) : n(n), m(m) {
+        B1.assign(n + 1, vt<T>(m + 1, 0));
+        B2.assign(n + 1, vt<T>(m + 1, 0));
+        B3.assign(n + 1, vt<T>(m + 1, 0));
+        B4.assign(n + 1, vt<T>(m + 1, 0));
+    }
+    
+    void add(vt<vt<T>> &B, int x, int y, T v) {
+        for (int i = x; i <= n; i += i & -i)
+            for (int j = y; j <= m; j += j & -j)
+                B[i][j] += v;
+    }
+    
+    void update_range(int x1, int y1, int x2, int y2, T v) {
+        add(B1, x1, y1, v);
+        add(B1, x1, y2 + 1, -v);
+        add(B1, x2 + 1, y1, -v);
+        add(B1, x2 + 1, y2 + 1, v);
+        
+        add(B2, x1, y1, v * (x1 - 1));
+        add(B2, x1, y2 + 1, -v * (x1 - 1));
+        add(B2, x2 + 1, y1, -v * x2);
+        add(B2, x2 + 1, y2 + 1, v * x2);
+        
+        add(B3, x1, y1, v * (y1 - 1));
+        add(B3, x1, y2 + 1, -v * y2);
+        add(B3, x2 + 1, y1, -v * (y1 - 1));
+        add(B3, x2 + 1, y2 + 1, v * y2);
+        
+        add(B4, x1, y1, v * (x1 - 1) * (y1 - 1));
+        add(B4, x1, y2 + 1, -v * (x1 - 1) * y2);
+        add(B4, x2 + 1, y1, -v * x2 * (y1 - 1));
+        add(B4, x2 + 1, y2 + 1, v * x2 * y2);
+    }
+    
+    T query(vt<vt<T>> &B, int x, int y) {
+        T sum = 0;
+        for (int i = x; i > 0; i -= i & -i)
+            for (int j = y; j > 0; j -= j & -j)
+                sum += B[i][j];
+        return sum;
+    }
+    
+    T prefix_sum(int x, int y) {
+        return query(B1, x, y) * x * y
+             - query(B2, x, y) * y
+             - query(B3, x, y) * x
+             + query(B4, x, y);
+    }
+    
+    T queries_range(int x1, int y1, int x2, int y2) {
+        return prefix_sum(x2, y2)
+             - prefix_sum(x1 - 1, y2)
+             - prefix_sum(x2, y1 - 1)
+             + prefix_sum(x1 - 1, y1 - 1);
+    }
+    
+    void update_at(int r, int c, T v) {
+        update_range(r, c, r, c, v);
+    }
+    
+    T queries_at(int r, int c) {
+        return queries_range(r, c, r, c);
+    }
+};
+
+template<class T>
+struct BIT2D_XOR {
+    int n, m;
+    vector<vector<T>> data0, data1, data2, data3;
+    BIT2D_XOR() { }
+    BIT2D_XOR(int n, int m) : n(n), m(m), data0(n, vector<T>(m, 0)), data1(n, vector<T>(m, 0)), data2(n, vector<T>(m, 0)), data3(n, vector<T>(m, 0)) { }
+    BIT2D_XOR(int n, int m, T init) : BIT2D_XOR(vector<vector<T>>(n, vector<T>(m, init))) { }
+    BIT2D_XOR(const vector<vector<T>> &v) : n((int)v.size()), m((int)v[0].size()), data0(n, vector<T>(m, 0)), data1(n, vector<T>(m, 0)), data2(n, vector<T>(m, 0)), data3(v) {
+        for(auto i = 1; i <= n; ++i) 
+            if(i + (i & -i) <= n) 
+                for(auto j = 0; j < m; ++j) 
+                    data3[i + (i & -i) - 1][j] ^= data3[i - 1][j];
+        for(auto i = 0; i < n; ++i) 
+            for(auto j = 1; j <= m; ++j) 
+                if(j + (j & -j) <= m) 
+                    data3[i][j + (j & -j) - 1] ^= data3[i][j - 1];
+    }
+    void update_range(int xl, int xr, int yl, int yr, T x) {
+        xl--, yl--;
+        assert(0 <= xl && xl <= xr && xr <= n);
+        assert(0 <= yl && yl <= yr && yr <= m);
+        if(xl == xr || yl == yr) return;
+        for(auto i = xl + 1; i <= n; i += i & -i) 
+            for(auto j = yl + 1; j <= m; j += j & -j) {
+                data0[i - 1][j - 1] ^= x;
+                data1[i - 1][j - 1] ^= (xl & 1) * x;
+                data2[i - 1][j - 1] ^= (yl & 1) * x;
+                data3[i - 1][j - 1] ^= (xl & yl & 1) * x;
+            }
+        for(auto i = xl + 1; i <= n; i += i & -i) 
+            for(auto j = yr + 1; j <= m; j += j & -j) {
+                data0[i - 1][j - 1] ^= x;
+                data1[i - 1][j - 1] ^= (xl & 1) * x;
+                data2[i - 1][j - 1] ^= (yr & 1) * x;
+                data3[i - 1][j - 1] ^= (xl & yr & 1) * x;
+            }
+        for(auto i = xr + 1; i <= n; i += i & -i) 
+            for(auto j = yl + 1; j <= m; j += j & -j) {
+                data0[i - 1][j - 1] ^= x;
+                data1[i - 1][j - 1] ^= (xr & 1) * x;
+                data2[i - 1][j - 1] ^= (yl & 1) * x;
+                data3[i - 1][j - 1] ^= (xr & yl & 1) * x;
+            }
+        for(auto i = xr + 1; i <= n; i += i & -i) 
+            for(auto j = yr + 1; j <= m; j += j & -j) {
+                data0[i - 1][j - 1] ^= x;
+                data1[i - 1][j - 1] ^= (xr & 1) * x;
+                data2[i - 1][j - 1] ^= (yr & 1) * x;
+                data3[i - 1][j - 1] ^= (xr & yr & 1) * x;
+            }
+    }
+    void update_at(int x, int y, T x_val) {
+        update_range(x, x + 1, y, y + 1, x_val);
+    }
+    T pref(int xr, int yr) const {
+        assert(0 <= xr && xr <= n);
+        assert(0 <= yr && yr <= m);
+        T sum0 = {}, sum1 = {}, sum2 = {}, sum3 = {};
+        for(auto x = xr; x > 0; x -= x & -x) 
+            for(auto y = yr; y > 0; y -= y & -y) {
+                sum0 ^= data0[x - 1][y - 1];
+                sum1 ^= data1[x - 1][y - 1];
+                sum2 ^= data2[x - 1][y - 1];
+                sum3 ^= data3[x - 1][y - 1];
+            }
+        return (xr & yr & 1) * sum0 ^ (yr & 1) * sum1 ^ (xr & 1) * sum2 ^ sum3;
+    }
+    T queries_range(int xl, int xr, int yl, int yr) const {
+        xl--, yl--;
+        assert(0 <= xl && xl <= xr && xr <= n);
+        assert(0 <= yl && yl <= yr && yr <= m);
+        if(xl == xr || yl == yr) return {};
+        return pref(xr, yr) ^ pref(xl, yr) ^ pref(xr, yl) ^ pref(xl, yl);
+    }
+    T queries_at(int x, int y) const {
+        x--, y--;
+        return queries_range(x, x + 1, y, y + 1);
+    }
+    template<class output_stream>
+    friend output_stream &operator<<(output_stream &out, const BIT2D_XOR<T> &solver) {
+        for(auto i = 0; i < solver.n; ++i) {
+            out << "\n[";
+            for(auto j = 0; j < solver.m; ++j) {
+                out << solver.queries_range(i, i + 1, j, j + 1);
+                if(j != solver.m - 1) out << ", ";
+            }
+            out << "]\n";
+        }
+        return out;
+    }
+};
+
+template<typename T, typename I = ll, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
 class SGT { 
     public: 
     int n;  
@@ -386,11 +572,10 @@ class SGT {
         this->DEFAULT = DEFAULT;
 		int k = 1;
         while(k < n) k <<= 1; 
-        root.rsz(k << 1);    
+        root.rsz(k << 1, DEFAULT);    
         lazy.rsz(k << 1); // careful with initializing lazy_value
 		// *** when doing merging close_interval, do middle, right instead of middle + 1, right for right child, and check for nullptr by right - left <= 1 instead of left == right like normal
 		// and right <= start || left >= end instead of normally you don't have the '=' sign
-
     }
     
     void update_at(int id, T val) {  
@@ -417,7 +602,8 @@ class SGT {
         pushDown;   
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
-			apply_func(i, left, right, val);
+			apply(i, left, right, val);
+            // apply_func(i, left, right, val);
             pushDown;   
             return;
         }
@@ -427,13 +613,18 @@ class SGT {
         root[i] = func(root[lc], root[rc]);
     }
 
+	void apply(iter, I val) {
+    }
+
     void push(iter) {   
-        if(lazy[i] && left != right) {
+        if(lazy[i] != -INF && left != right) {
 			int middle = midPoint;
-            apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
-            lazy[i] = 0;
+            apply(lp, lazy[i]), apply(rp, lazy[i]);
+            //apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
+            lazy[i] = -INF;
         }
     }
+
 
 	T queries_at(int id) {
 		return queries_at(entireTree, id);
@@ -479,6 +670,7 @@ class SGT {
         int middle = midPoint;  
         print(lp);  print(rp);
     }
+};
 
 //    T merge(const T &left, const T &right) {
 //        T res;
@@ -500,7 +692,13 @@ class SGT {
 //        }
 //        return res;
 //    }
-};
+
+//    root.apply_func = [&root](iter, pmm val) -> void { -> apply ai * x + y
+//        auto& r = root.root[i];
+//        auto& l = root.lazy[i];
+//        r = r * val.ff + val.ss * (right - left + 1);
+//        l = {l.ff * val.ff, val.ff * l.ss + val.ss};
+//    };
 
 template<class T, typename F = function<T(const T&, const T&)>>
 class basic_segtree {
@@ -536,165 +734,225 @@ public:
 	T queries_at(int idx) {
         return root[idx + size];
     }
+	
+	void update_range(int l, int r, ll v) {}
 
     T get() {
         return root[1];
     }
 };
 
-template<class T, class I = int, typename F = function<T(const T, const T)>>
+template<class T, class I = int, typename F = function<T(const T&, const T&)>>
 class iterative_lazy_segtree {
 public:
     int n, size, h;
-    vt<T> root;
+    vt<T> seg;
     vt<I> lazy;
-    F func;
-    T DEFAULT;
+    F f;
+    T default_val;
     
-    iterative_lazy_segtree(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+    iterative_lazy_segtree(int n, T default_val, F f)
+        : n(n), default_val(default_val), f(f)
+    {
         size = 1;
-        while (size < n) size <<= 1;
-        root.assign(size << 1, DEFAULT);
+        while(size < n) size <<= 1;
+        seg.assign(size << 1, default_val);
         lazy.assign(size << 1, 0);
         h = 0;
-        for (int i = size; i > 0; i >>= 1) h++;
+        for(int i = size; i > 0; i >>= 1)
+            h++;
     }
+	
+	T get() {
+		return seg[1];
+	}
     
     inline void update_at(int idx, T val) {
         if(idx < 0 || idx >= n) return;
         idx += size;
-        for (int s = h; s > 0; s--) 
-            push(idx >> s);
-        root[idx] = val;
-        for (idx /= 2; idx > 0; idx /= 2) {
-            root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
-            root[idx] += lazy[idx];
-        }
+        push_to(idx);
+        seg[idx] = val;
+        rebuild_from(idx);
     }
     
     inline void update_range(int l, int r, I val) {
         if(l < 0 || r >= n || l > r) return;
         int L = l + size, R = r + size;
         int l0 = L, r0 = R;
-        for (int s = h; s > 0; s--) {
-            if ((L >> s) << s != L) push(L >> s);
-            if ((R >> s) << s != R) push(R >> s);
-        }
-        while (L <= R) {
-            if (L & 1) { apply(L, val); L++; }
-            if (!(R & 1)) { apply(R, val); R--; }
+        push_to(L);
+        push_to(R);
+        while(L <= R) {
+            if(L & 1) { apply(L, val); L++; }
+            if(!(R & 1)) { apply(R, val); R--; }
             L >>= 1; R >>= 1;
         }
-        rebuild(l0);
-        rebuild(r0);
+        rebuild_from(l0);
+        rebuild_from(r0);
     }
     
     inline T queries_range(int l, int r) {
-        if(l < 0 || r >= n || l > r) return DEFAULT;
+        if(l < 0 || r >= n || l > r) return default_val;
         int L = l + size, R = r + size;
-        for (int s = h; s > 0; s--) {
-            if ((L >> s) << s != L) push(L >> s);
-            if ((R >> s) << s != R) push(R >> s);
-        }
-        T res_left = DEFAULT, res_right = DEFAULT;
-        while (L <= R) {
-            if (L & 1) res_left = func(res_left, root[L++]);
-            if (!(R & 1)) res_right = func(root[R--], res_right);
+        push_to(L);
+        push_to(R);
+        T res_left = default_val, res_right = default_val;
+        while(L <= R) {
+            if(L & 1) res_left = f(res_left, seg[L++]);
+            if(!(R & 1)) res_right = f(seg[R--], res_right);
             L >>= 1; R >>= 1;
         }
-        return func(res_left, res_right);
+        return f(res_left, res_right);
     }
     
     inline T queries_at(int idx) {
-        if(idx < 0 || idx >= n) return DEFAULT;
+        if(idx < 0 || idx >= n) return default_val;
         idx += size;
-        for (int s = h; s > 0; s--)
-            push(idx >> s);
-        return root[idx];
+        push_to(idx);
+        return seg[idx];
     }
-    
-    inline T get() { return root[1]; }
     
 private:
     inline void apply(int i, I val) {
-        root[i] += val; 
-        if (i < size)
+        seg[i] += val;
+        if(i < size)
             lazy[i] += val;
     }
     
     inline void push(int i) {
-        if (lazy[i] != 0) {
+        if(lazy[i] != 0) {
             apply(i << 1, lazy[i]);
             apply(i << 1 | 1, lazy[i]);
             lazy[i] = 0;
         }
     }
     
-    inline void rebuild(int i) {
-        for (i /= 2; i > 0; i /= 2) {
-            root[i] = func(root[i << 1], root[i << 1 | 1]);
-            root[i] += lazy[i];
+    inline void push_to(int i) {
+        for(int s = h; s >= 1; s--) {
+            int idx = i >> s;
+            push(idx);
+        }
+    }
+    
+    inline void rebuild_from(int i) {
+        for(i /= 2; i > 0; i /= 2) {
+            seg[i] = f(seg[i << 1], seg[i << 1 | 1]) + lazy[i];
         }
     }
 };
 
-//    SGT<ll, pll, pll> prefix(n, 0, [](const ll& a, const ll& b) {return a + b;}, true);
-//    prefix.apply_func = [&prefix](iter, pll v) {
-//        auto& r = prefix.root[i];
-//        ll len = right - left + 1;
-//        r += len * v.ff + len * (len + 1) / 2 * v.ss;
-//        auto& l = prefix.lazy[i];
-//        l.ff += v.ff;
-//        l.ss += v.ss;
-//    };
-//    prefix.push_func = [&prefix](iter) {
-//        auto& lz = prefix.lazy[i];
-//        pll zero = MP(0, 0);
-//        if(lz != zero && left != right) {
-//            int middle = midPoint;
-//            prefix.apply_func(lp, lz);
-//            pll rightLazy = lz;
-//            rightLazy.ff += lz.ss * (middle - left + 1);
-//            prefix.apply_func(rp, rightLazy);
-//            lz = zero;
-//        }
-//    };
-//    SGT<ll, pll, pll> suffix(n, 0, [](const ll& a, const ll& b) {return a + b;}, false);
-//    suffix.apply_func = [&suffix](iter, pll v) {
-//        auto& r = suffix.root[i];
-//        ll len = right - left + 1;
-//        r += len * v.ff + len * (len + 1) / 2 * v.ss;
-//        auto& l = suffix.lazy[i];
-//        l.ff += v.ff;
-//        l.ss += v.ss;
-//    };
-//    suffix.push_func = [&suffix](iter) {
-//        auto& lz = suffix.lazy[i];
-//        pll zero = MP(0, 0);
-//        if(lz != zero && left != right) {
-//            int middle = midPoint;
-//            suffix.apply_func(rp, lz);
-//            pll leftLazy = lz;
-//            leftLazy.ff += lz.ss * (right - middle);
-//            suffix.apply_func(lp, leftLazy);
-//            lz = zero;
-//        }
-//    };
+template<typename T, typename F = function<T(const T, const T)>>
+class arithmetic_segtree { // add a + d * (i - left) to [left, right] 
+    public: 
+    int n;  
+    vt<T> root;
+    vpll lazy;
+    T DEFAULT;
+    F func;
+    bool is_prefix, inclusive;
+	arithmetic_segtree(int n, T DEFAULT, F func = [](const T a, const T b) {return a + b;}, bool is_prefix = true, bool inclusive = true) : n(n), DEFAULT(DEFAULT), is_prefix(is_prefix), inclusive(inclusive), func(func) {    
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1);    
+        lazy.rsz(k << 1); 
+    }
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+        pushDown;
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = func(root[lc], root[rc]);
+    }
 
-//struct info {
-//    ll ans, suffix, prefix, sm;
-//    info(ll x = -INF) : suffix(x), prefix(x), ans(max(0LL, x)), sm(x) {}
-//};
-//SGT<info> root(n, info(), [](const info& left, const info& right) {
-//                                if(left.sm == -INF) return right;
-//                                if(right.sm == -INF) return left;
-//                                info res;  
-//                                res.prefix = max(left.prefix, left.sm + right.prefix);
-//                                res.suffix = max(right.suffix, right.sm + left.suffix);
-//                                res.ans = max({left.ans, right.ans, left.suffix + right.prefix});
-//                                res.sm = left.sm + right.sm;
-//                                return res; 
-//                            });
+    void update_range(int start, int end, pll val) { 
+        update_range(entireTree, start, end, val);
+    }
+    
+    void update_range(iter, int start, int end, pll val) {    
+        pushDown;
+        if(left > end || start > right) return; 
+        if(left >= start && right <= end) { 
+			apply(i, left, right, MP(val.ss * (ll)(is_prefix ? left - start : end - right) + val.ff, val.ss));
+			// apply(curr, left, right, {val.ss * (is_prefix ? (left - start) : (end - left)) + val.ff, is_prefix ? val.ss : -val.ss});
+            pushDown;
+            return;
+        }
+        int middle = midPoint;  
+        update_range(lp, start, end, val);    
+        update_range(rp, start, end, val);    
+        root[i] = func(root[lc], root[rc]);
+    }
+
+	T queries_at(int id) {
+		return queries_at(entireTree, id);
+	}
+	
+	T queries_at(iter, int id) {
+        pushDown;
+		if(left == right) {
+			return root[i];
+		}
+		int middle = midPoint;
+		if(id <= middle) return queries_at(lp, id);
+		return queries_at(rp, id);
+	}
+
+    T queries_range(int start, int end) { 
+        return queries_range(entireTree, start, end);
+    }
+    
+    T queries_range(iter, int start, int end) {   
+        pushDown;
+        if(left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[i];   
+        int middle = midPoint;  
+        return func(queries_range(lp, start, end), queries_range(rp, start, end));
+    }
+	
+	T get() {
+		return root[0];
+	}
+	
+	void print() {  
+        print(entireTree);
+        cout << endl;
+    }
+
+    void apply(iter, pll v) {
+        ll len = right - left + 1;
+        root[i] += len * v.ff + (inclusive ? len * (len + 1) / 2 : len * (len - 1) / 2) * v.ss;
+        lazy[i].ff += v.ff;
+        lazy[i].ss += v.ss;
+    }
+
+    void push(iter) {
+        pll zero = MP(0, 0);
+        if(lazy[i] != zero && left != right) {
+            int middle = midPoint;
+            if(is_prefix) {
+                apply(lp, lazy[i]);
+                pll right_lazy = lazy[i];
+                right_lazy.ff += lazy[i].ss * (ll)(middle - left + 1);
+                apply(rp, right_lazy);
+            } else {
+                int middle = midPoint;
+                apply(rp, lazy[i]);
+                pll left_lazy = lazy[i];
+                left_lazy.ff += lazy[i].ss * (ll)(right - middle);
+                apply(lp, left_lazy);
+            }
+            lazy[i] = zero;
+        }
+    }
+};
 
 template<typename T>
 struct merge_sort_tree {
@@ -759,8 +1017,8 @@ struct merge_sort_tree {
 };
 
 // PERSISTENT SEGTREE
-int t[MX * MK], ptr, root[MX * 120]; // log2 = MX * 200; careful to match root with the type of template below
-pii child[MX * 120];
+int t[MX * MK], ptr, root[MX * 100]; // log2 = MX * 200; careful to match root with the type of template below
+pii child[MX * 100]; // maybe * 120
 template<class T>
 struct PSGT {
     int n;
@@ -771,7 +1029,7 @@ struct PSGT {
     }
 
 	void update(int &curr, int prev, int id, T delta, int left, int right) {  
-        if(!curr) curr = ++ptr; // comment_out if regular PERSISTENT segtree
+//        if(!curr) curr = ++ptr; // 2d seg to save space
         root[curr] = root[prev];    
         child[curr] = child[prev];
         if(left == right) { 
@@ -779,8 +1037,10 @@ struct PSGT {
             return;
         }
         int middle = midPoint;
-        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // for regular_persistent segtree, do child[curr].ff or child[curr].ss = ++ptr;
-        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
+        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+//        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // 2d seg
+//        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
         root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
     }
 
@@ -804,18 +1064,34 @@ struct PSGT {
     T get(int l, int r, int k) {
         return get(t[r], t[l - 1], k, 0, n - 1);
     }
+	
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(root[curr] < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
+        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
+    }
+
 
     void reset() {  
         for(int i = 0; i <= ptr; i++) { 
-            root[i] = t[i] = 0;
+            root[i] = 0;
             child[i] = {0, 0};
+        }
+		for(int i = 0; i < (int)(sizeof(t)/sizeof(t[0])); i++){
+            t[i] = 0;
         }
         ptr = 0;
     }
 
     void add(int i, int& prev, int id, T delta) { 
-        // t[i] = ++ptr // for regular PERSISTENT segtree
-        update(t[i], prev, id, delta, 0, n - 1); // this is for 2d_segtree
+        t[i] = ++ptr;
+        update(t[i], prev, id, delta, 0, n - 1); 
         prev = t[i];
 //        while(i < n) { 
 //            update(t[i], t[i], id, delta, 0, n - 1);
@@ -839,6 +1115,114 @@ struct PSGT {
     }
 
     T merge(T left, T right) {
+    }
+};
+
+// you have to set up by assigning size and updating from 0 to n - 1 first
+const int MM = MX * 150;
+int t[MX], ptr;
+ll root[MM], lazy[MM];
+pii child[MM];
+template<typename T>
+struct lazy_PSGT {
+    int n;
+    T DEFAULT;
+    void assign(int n, T DEFAULT) {
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+    }
+
+    T merge(T a, T b) {
+        return a + b;
+    }
+
+    int create_node(int prev) {
+        ++ptr;
+        assert(ptr < MM);
+        root[ptr] = root[prev];
+        lazy[ptr] = lazy[prev];
+        child[ptr] = child[prev];
+        return ptr;
+    }
+
+    void apply(int curr, int left, int right, T val) {
+        root[curr] += val * (right - left + 1);
+        lazy[curr] += val;
+    }
+
+    void push_down(int curr, int left, int right) {
+        if(lazy[curr] == 0 || left == right) return;
+        int middle = midPoint;
+        if(child[curr].ff) {
+            child[curr].ff = create_node(child[curr].ff);
+            apply(child[curr].ff, left, middle, lazy[curr]); 
+        }
+        if(child[curr].ss) {
+            child[curr].ss = create_node(child[curr].ss);
+            apply(child[curr].ss, middle + 1, right, lazy[curr]);
+        }
+        lazy[curr] = 0;
+    }
+
+    void update_range(int i, int prev, int start, int end, T delta) {
+        update_range(t[i], prev, delta, start, end, 0, n - 1);
+    }
+
+    void update_range(int& curr, int prev, T delta, int start, int end, int left, int right) {
+        push_down(curr, left, right);
+        if(left > end || start > right) return;
+        curr = create_node(prev);
+        if(start <= left && right <= end) {
+            apply(curr, left, right, delta);
+            push_down(curr, left, right);
+            return;
+        }
+        int middle = midPoint;
+        update_range(child[curr].ff, child[prev].ff, delta, start, end, left, middle);
+        update_range(child[curr].ss, child[prev].ss, delta, start, end, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    T queries_range(int i, int start, int end) {
+        return queries_range(t[i], start, end, 0, n - 1);
+    }
+
+    T queries_range(int curr, int start, int end, int left, int right) {
+        push_down(curr, left, right);
+        if(!curr || start > right || left > end) return DEFAULT;
+        if(start <= left && right <= end) return root[curr];
+        int middle = midPoint;
+        return merge(queries_range(child[curr].ff, start, end, left, middle), queries_range(child[curr].ss, start, end, middle + 1, right));
+    }
+
+    int update_at(int i, int prev, int id, T delta) {
+        update_at(t[i], prev, id, delta, 0, n - 1);
+        return t[i];
+    }
+
+    void update_at(int &curr, int prev, int id, T delta, int left, int right) {  
+        push_down(curr, left, right);
+        curr = create_node(prev);
+        if(left == right) { 
+			root[curr] = merge(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update_at(child[curr].ff, child[prev].ff, id, delta, left, middle); 
+        else update_at(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    void reset() {
+        for(int i = 0; i <= ptr; i++) {
+            root[i] = 0;
+            child[i] = {0, 0};
+            lazy[i] = 0;
+        }
+        for(int i = 0; i < min(ptr, (int)(sizeof(t)/sizeof(t[0]))); i++){
+            t[i] = 0;
+        }
+        ptr = 0;
     }
 };
 
@@ -897,6 +1281,10 @@ struct SGT_2D {
             end_x >>= 1;
         }
         return result;
+    }
+
+	T queries_at(int r, int c) {
+        return queries_range(r, r, c, c);
     }
 
     T merge(T A, T B) {
@@ -971,18 +1359,23 @@ class MO {
         sort(all(Q), cmp);
         vi pos(a);  
         srtU(pos); 
-        umap<int, int> mp;  
-        int N = pos.size();
-        for(int i = 0; i < N; i++) mp[pos[i]] = i;
-        for(auto& it : a) it = mp[it];
-
+        const int N = pos.size();
+        auto get_id = [&](ll x) -> int {
+            return int(lb(all(pos), x) - begin(pos));
+        };
+        for(auto& x : a) x = get_id(x);
         vll dp(N);
         ll ans = 0;
         auto modify = [&](int x, int v) -> void {    
-            if(pos[x] == 0) return;
-            if(dp[x] == pos[x]) ans--;  
-            dp[x] += v; 
-            if(dp[x] == pos[x]) ans++;
+            auto& curr = dp[x];
+            if(v == 1) {
+                ans += curr * (curr - 1) / 2;
+                curr++;
+            }
+            else {
+                curr--;
+                ans -= curr * (curr - 1) / 2;
+            }
         };
 
         vll res(q);
@@ -998,72 +1391,52 @@ class MO {
     }
 };
 
-template<typename T, typename F = function<T(const T&, const T&)>> // SparseTable<int, function<int(int, int)>>(vector, [](int x, int y) {return max(a, b);});
-class SparseTable {
-public:
-    int n;
-    vt<vt<T>> dp;
-    vi log_table;
-    F func;
-
-    SparseTable(const vi& a, F func) : n(a.size()), func(func) {
-        dp.rsz(n, vt<T>(floor(log2(n)) + 2));
-        log_table.rsz(n + 1);
-        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
-        for (int i = 0; i < n; i++) dp[i][0] = a[i];
-        for (int j = 1; (1 << j) <= n; j++) {
-            for (int i = 0; i + (1 << j) <= n; i++) {
-                dp[i][j] = func(dp[i][j - 1], dp[i + (1 << (j - 1))][j - 1]);
-            }
-        }
-    }
-
-    T query(int L, int R) {
-        assert(L >= 0 && R >= 0 && L < n && R < n && L <= R);
-        int j = log_table[R - L + 1];
-        return func(dp[L][j], dp[R - (1 << j) + 1][j]);
-    }
-};
-
 template<typename T, typename F = function<T(const T&, const T&)>>
-struct SparseTable2D {
+class SparseTable2D {
+public:
     int n, m, LOGN, LOGM;
     vt<vt<vt<vt<T>>>> st;
-    vt<int> logn, logm;
+    vi logn, logm;
     F f;
     T DEFAULT;
     SparseTable2D(const vt<vt<T>> &a, T DEFAULT, F func) : f(func), DEFAULT(DEFAULT) {
         n = a.size();
         m = a[0].size();
-        LOGN = log2(n) + 1;
-        LOGM = log2(m) + 1;
+        LOGN = floor(log2(n)) + 1;
+        LOGM = floor(log2(m)) + 1;
         logn.rsz(n + 1, 0);
         logm.rsz(m + 1, 0);
         for (int i = 2; i <= n; i++) logn[i] = logn[i / 2] + 1;
         for (int j = 2; j <= m; j++) logm[j] = logm[j / 2] + 1;
-        st.assign(LOGN, vt<vt<vt<T>>>(LOGM, vt<vt<T>>(n, vt<T>(m))));
+        st.assign(LOGN, vt<vt<vt<T>>>(LOGM));
+        for (int k = 0; k < LOGN; k++) {
+            int rows = n - (1 << k) + 1;
+            for (int l = 0; l < LOGM; l++) {
+                int cols = m - (1 << l) + 1;
+                st[k][l].rsz(rows, vt<T>(cols, DEFAULT));
+            }
+        }
         for (int i = 0; i < n; i++)
             for (int j = 0; j < m; j++)
                 st[0][0][i][j] = a[i][j];
         for (int l = 1; l < LOGM; l++) {
             for (int i = 0; i < n; i++) {
-                for (int j = 0; j + (1 << l) <= m; j++) {
+                int cols = m - (1 << l) + 1;
+                for (int j = 0; j < cols; j++)
                     st[0][l][i][j] = f(st[0][l-1][i][j], st[0][l-1][i][j + (1 << (l-1))]);
-                }
             }
         }
         for (int k = 1; k < LOGN; k++) {
+            int rows = n - (1 << k) + 1;
             for (int l = 0; l < LOGM; l++) {
-                for (int i = 0; i + (1 << k) <= n; i++) {
-                    for (int j = 0; j < m; j++) {
+                for (int i = 0; i < rows; i++) {
+                    for (int j = 0; j < m - (1 << l) + 1; j++)
                         st[k][l][i][j] = f(st[k-1][l][i][j], st[k-1][l][i + (1 << (k-1))][j]);
-                    }
                 }
             }
         }
     }
     T query(int r1, int c1, int r2, int c2) {
-        if(r2 < r1 || c2 < c1 || r1 <= 0 || r2 > n || c1 <= 0 || c2 > m) return DEFAULT;
         int h = r2 - r1 + 1, w = c2 - c1 + 1;
         int k = logn[h], l = logm[w];
         T a1 = st[k][l][r1][c1],
@@ -1302,86 +1675,6 @@ class SegTree_Graph {
 //        update(lp, start, end, u, w, type);    
 //        update(rp, start, end, u, w, type);    
 //    }
-};
-
-template<class T, typename F = function<T(const T&, const T&)>>
-class HLD {
-    public:
-    basic_segtree<T> seg;
-    vi id, tp, sz, parent;
-    vt<T> a;
-    int ct;
-    vvi graph;
-    int n;
-    GRAPH g;
-    F func;
-    HLD(vvi& graph, vt<T> a, F func = [](const T& a, const T& b) {return a + b;}) : seg(graph.size(), 0, func), g(graph), graph(graph), n(graph.size()), a(a), func(func) {
-        this->parent = g.parent;
-        this->sz = g.subtree;
-        ct = 0;
-        id.rsz(n), tp.rsz(n), sz.rsz(n);
-        dfs();
-        for(int i = 0; i < n; i++) seg.update_at(id[i], a[i]);
-    }
-        
-    void dfs(int node = 0, int par = -1, int top = 0) {   
-        id[node] = ct++;    
-        tp[node] = top;
-        int nxt = -1, max_size = -1;    
-        for(auto& nei : graph[node]) {   
-            if(nei == par) continue;    
-            if(sz[nei] > max_size) {   
-                max_size = sz[nei]; 
-                nxt = nei;  
-            }   
-        }   
-        if(nxt == -1) return;   
-        dfs(nxt, node, top);   
-        for(auto& nei : graph[node]) {   
-            if(nei != par && nei != nxt) dfs(nei, node, nei);  
-        }   
-    }
-
-    void update(int i, T v) {
-        a[i] = v;
-        seg.update_at(id[i], v);
-    }
-
-    T queries(int node, int par) { // only query up to parent, don't include parent info
-        T res = 0;    
-        while(node != par && node != -1) {   
-            if(node == tp[node]) {   
-                res = func(res, a[node]);
-                node = parent[node];
-            } else if(g.depth[tp[node]] > g.depth[par]) {   
-                res = func(res, seg.queries_range(id[tp[node]], id[node]));
-                node = parent[tp[node]];
-            } else {   
-                res = func(res, seg.queries_range(id[par] + 1, id[node])); 
-                break;  
-            } 
-        }   
-        return res; 
-    }
-
-    T path_queries(int u, int v) { // remember to add parent info if needed
-        int c = get_lca(u, v);
-        T res = func(queries(u, c), queries(v, c));
-        // res += a[c];
-        return res;
-    }
-
-    int get_dist(int a, int b) {
-        return g.dist(a, b);
-    }
-
-    int get_lca(int a, int b) {
-        return g.lca(a, b);
-    }
-
-    bool contain_all_node(int u, int v) {
-        return path_queries(u, v) == get_dist(u, v);
-    }
 };
 
 template<class T>
@@ -2165,3 +2458,79 @@ BITSET possible_subsets_knapsack(int n, const vi &sizes) {
     }
     return knapsack;
 }
+
+class median_tree {
+public:
+    void insert(int num) {
+        if(left.empty() || num <= left.top()) {
+            left.push(num);
+            left_sum += num;
+        } else {
+            right.push(num);
+            right_sum += num;
+        }
+        balance();
+        clear();
+    }
+    
+    void remove(int num) {
+        if(num <= left.top()) {
+            left_sum -= num;
+            left_removed.push(num);
+        } else {
+            right_sum -= num;
+            right_removed.push(num);
+        }
+        balance();
+        clear();
+    }
+    
+    int get_median() {
+        return left.top();
+    }
+    
+    ll get_cost() {
+        ll median = get_median();
+        return median * (left.size() - left_removed.size()) - left_sum + right_sum - median * (right.size() - right_removed.size());
+    }
+    
+private:
+    void balance() {
+        if(left.size() - left_removed.size() >= right.size() - right_removed.size() + 2) {
+            right_sum += left.top();
+            left_sum -= left.top();
+            right.push(left.top());
+            left.pop();
+        }
+        if(right.size() - right_removed.size() > left.size() - left_removed.size()) {
+            left_sum += right.top();
+            right_sum -= right.top();
+            left.push(right.top());
+            right.pop();
+        }
+    }
+    
+    void clear() {
+        while(!left_removed.empty() && !left.empty() && left_removed.top() > left.top()) {
+            right_removed.push(left_removed.top());
+            left_removed.pop();
+        }
+        while(!right_removed.empty() && !left.empty() && right_removed.top() < left.top()) {
+            left_removed.push(right_removed.top());
+            right_removed.pop();
+        }
+        while(!left_removed.empty() && !left.empty() && left.top() == left_removed.top()) {
+            left.pop();
+            left_removed.pop();
+        }
+        while(!right_removed.empty() && !right.empty() && right.top() == right_removed.top()) {
+            right.pop();
+            right_removed.pop();
+        }
+    }
+    
+    max_heap<int> left, left_removed;
+    min_heap<int> right, right_removed;
+    ll left_sum = 0, right_sum = 0;
+};
+

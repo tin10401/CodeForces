@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +236,107 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW(int n, T DEFAULT, F func) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    void update(int id, T val) {  
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(int id) {   
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    T queries_at(int i) {
+        return queries_range(i, i);
+    }
+	
+	void reset() {
+		root.assign(n, DEFAULT);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, m, q; cin >> n >> m >> q;
+    vi t(q), l(q), r(q), c(q), i(q), j(q), x(q);
+    vpii last(n, {-1, 0});
+    vll ans;
+    vvpii g(q);
+    for(int k = 0; k < q; k++) {
+        cin >> t[k];
+        if(t[k] == 1) {
+            cin >> l[k] >> r[k] >> x[k];
+            l[k]--;
+            continue;
+        }
+        if(t[k] == 2) {
+            cin >> i[k] >> x[k];
+            i[k]--;
+            auto& [id, v] = last[i[k]];
+            id = k, v = x[k];
+            continue;
+        }
+        cin >> i[k] >> j[k];
+        i[k]--, j[k]--;
+        const auto& [id, v] = last[i[k]];
+        c[k] = ans.size();
+        ans.pb(v);
+        if(id >= 0) {
+            g[id].pb({c[k], j[k]});
+        }
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    FW<ll> root(m, 0, [](const ll& a, const ll& b) {return a + b;});
+    for(int k = 0; k < q; k++) {
+        if(t[k] == 1) {
+            root.update(l[k], x[k]);
+            root.update(r[k], -x[k]);
+            continue;
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+        if(t[k] == 2) {
+            for(auto& [ii, jj] : g[k]) {
+                ans[ii] -= root.get(jj);
             }
-            res += 2;
+            continue;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        ans[c[k]] += root.get(j[k]);
+    }
+    for(auto& x : ans) cout << x << '\n';
 }
 
 signed main() {

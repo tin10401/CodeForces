@@ -49,10 +49,13 @@ struct mod_int {
     friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
 };
 
+const static int MOD = 1e9 + 7;
 using mint = mod_int<998244353>;
 using vmint = vt<mint>;
 using vvmint = vt<vmint>;
 using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
 
 typedef complex<double> cd;
 template<class T>

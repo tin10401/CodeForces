@@ -220,6 +220,7 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
+const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -235,37 +236,36 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
 void solve() {
-    int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, m; cin >> n >> m;
+    vvi g(m + 1);
+    for(int i = 0; i < n; i++) {
+        int a, b; cin >> a >> b;
+        g[a].pb(i);
+        g[b].pb(i);
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
-        }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
+    vi dp(m + 5);
+    int cnt = 0;
+    vi count(n);
+    for(int l = 1, r = 1; l <= m; l++) {
+        while(r <= m && cnt < n) {
+            for(auto& x : g[r]) {
+                if(++count[x] == 1) cnt++;
             }
-            res += 2;
+            r++;
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        if(cnt < n) break;
+        dp[r - l]++;
+        dp[m - l + 2]--;
+        for(auto& x : g[l]) {
+            if(--count[x] == 0) cnt--;
+        }
+    }
+    for(int i = 1; i <= m; i++) {
+        dp[i] += dp[i - 1];
+        cout << dp[i] << (i == m ? '\n' : ' ');
+    }
 }
 
 signed main() {

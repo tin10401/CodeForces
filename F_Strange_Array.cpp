@@ -235,37 +235,92 @@ ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd n
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
-ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
-bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        idx += size, root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+    
+    T queries_range(int l, int r) {
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while (l <= r) {
+            if ((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if ((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        return root[idx + size];
+    }
+
+    T get() {
+        return root[1];
+    }
+};
+
+struct info {
+    int min_prefix, max_prefix, min_suffix, max_suffix, sm;
+    info(int x = 0) : min_prefix(min(0, x)), min_suffix(min(0, x)), max_prefix(max(0, x)), max_suffix(max(0, x)), sm(x) {}
+};
 
 void solve() {
     int n; cin >> n;
-    vvi graph(n + 1);
-    for(int i = 1; i < n; i++) {
-        int u, v; cin >> u >> v;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    auto merge = [](const info& a, const info& b) -> info {
+        info res;
+        res.sm = a.sm + b.sm;
+        res.max_prefix = max(a.max_prefix, a.sm + b.max_prefix);
+        res.min_prefix = min(a.min_prefix, a.sm + b.min_prefix);
+
+        res.max_suffix = max(b.max_suffix, b.sm + a.max_suffix);
+        res.min_suffix = min(b.min_suffix, b.sm + a.min_suffix);
+        return res;
+    };
+    basic_segtree<info> root(n, info(), merge);
+    vvi at(n);
+    for(int i = 0; i < n; i++) {
+        int x; cin >> x;
+        x--;
+        at[x].pb(i);
+        root.update_at(i, info(1));
     }
-    vi a(n + 1);
-    iota(all(a), 0);
-    int res = 0;
-    auto dfs = [&](auto& dfs, int node = 1, int par = -1) -> void {
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node);
+    // we find the maximum subarray sum where this is more on the left half
+    // what happen is taking the sum of -1 for < x and +1 for > x
+    // it'll be equilvalent to 
+    // _ _ _ x x x x x x _ _ _
+    // where you have the size = array sum, now the answer is just n / 2(n as sum)
+    // for the part where x favor the right half,
+    // we do the same, but -1 since the median is to the right if the sum is even
+    vi ans(n);
+    for(int k = 0; k < n; k++) {
+        for(auto& i : at[k]) {
+            ans[i] = max(ans[i], (root.queries_range(0, i).max_suffix + root.queries_range(i + 1, n - 1).max_prefix) / 2);
         }
-        if(a[node] == node) {
-            if(par != -1) {
-                swap(a[node], a[par]);
-            }        
-            else {
-                swap(a[node], a[graph[node][0]]);
-            }
-            res += 2;
+        for(auto& i : at[k]) {
+            root.update_at(i, info(-1));
         }
-    }; dfs(dfs);
-    cout << res << '\n';
-    output_vector(a, 1);
+        for(auto& i : at[k]) {
+            ans[i] = max(ans[i], -(root.queries_range(0, i).min_suffix + root.queries_range(i + 1, n - 1).min_prefix + 1) / 2);
+        }
+    }
+    output_vector(ans);
 }
 
 signed main() {
