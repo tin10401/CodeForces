@@ -245,6 +245,7 @@ class FW {
     vt<T> root;    
     T DEFAULT;
     F func;
+    FW() {}
     FW(int n, T DEFAULT, F func) : func(func) { 
         this->n = n;    
         this->DEFAULT = DEFAULT;
@@ -252,7 +253,8 @@ class FW {
         root.rsz(n, DEFAULT);
     }
     
-    void update(int id, T val) {  
+    void update_at(int id, T val) {  
+        assert(id >= 0);
         while(id < n) {    
             root[id] = func(root[id], val);
             id |= (id + 1);
@@ -260,6 +262,7 @@ class FW {
     }
     
     T get(int id) {   
+        assert(id < n);
         T res = DEFAULT;
         while(id >= 0) { 
             res = func(res, root[id]);
@@ -274,6 +277,10 @@ class FW {
 
     T queries_at(int i) {
         return queries_range(i, i);
+    }
+
+    void update_range(int l, int r, T val) {
+        update_at(l, val), update_at(r + 1, -val);
     }
 	
 	void reset() {
@@ -392,6 +399,79 @@ class FW_2D {
     }
 
     T merge(T left, T right) {
+    }
+};
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class compress_FW {  
+    public: 
+    int n;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    vll coord;
+    compress_FW() {}
+    compress_FW(T DEFAULT, F func) : func(func), DEFAULT(DEFAULT) {}
+    
+    void build() {
+        srtU(coord);
+        n = coord.size();
+        root.rsz(n + 1, DEFAULT);
+    }
+
+    void add_coord(ll x) {
+        coord.pb(x);
+    }
+
+    int get_id(ll x) {
+        return int(lb(all(coord), x) - begin(coord));
+    }
+
+    void update_at(ll id, T val) {  
+        id = get_id(id);
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    T get(ll id) {   
+        id = min(n - 1, get_id(id + 1) - 1);
+        T res = DEFAULT;
+        while(id >= 0) { 
+            assert(id < n);
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    T queries_range(ll left, ll right) {  
+        return get(right) - get(left - 1);
+    }
+
+    T queries_at(ll i) {
+        return queries_range(i, i);
+    }
+
+    void update_range(ll l, ll r, T val) {
+        update_at(l, val), update_at(r + 1, -val);
+    }
+	
+	void reset() {
+		root.assign(n, DEFAULT);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n - 1), curr = 0;
+        for(int i = log2(n) - 1; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
     }
 };
 
@@ -573,9 +653,7 @@ class SGT {
 		int k = 1;
         while(k < n) k <<= 1; 
         root.rsz(k << 1, DEFAULT);    
-        lazy.rsz(k << 1); // careful with initializing lazy_value
-		// *** when doing merging close_interval, do middle, right instead of middle + 1, right for right child, and check for nullptr by right - left <= 1 instead of left == right like normal
-		// and right <= start || left >= end instead of normally you don't have the '=' sign
+        lazy.rsz(k << 1, 0);
     }
     
     void update_at(int id, T val) {  
@@ -603,7 +681,6 @@ class SGT {
         if(left > end || start > right) return; 
         if(left >= start && right <= end) { 
 			apply(i, left, right, val);
-            // apply_func(i, left, right, val);
             pushDown;   
             return;
         }
@@ -614,14 +691,15 @@ class SGT {
     }
 
 	void apply(iter, I val) {
+        root[i] = (ll)val * (right - left + 1);
+        lazy[i] = val;
     }
 
     void push(iter) {   
-        if(lazy[i] != -INF && left != right) {
+        if(lazy[i] != 0 && left != right) {
 			int middle = midPoint;
             apply(lp, lazy[i]), apply(rp, lazy[i]);
-            //apply_func(lp, lazy[i]), apply_func(rp, lazy[i]);
-            lazy[i] = -INF;
+            lazy[i] = 0;
         }
     }
 
@@ -655,21 +733,6 @@ class SGT {
 	T get() {
 		return root[0];
 	}
-	
-	void print() {  
-        print(entireTree);
-        cout << endl;
-    }
-    
-    void print(iter) {  
-        pushDown;
-        if(left == right) { 
-            cout << root[i] << ' ';
-            return;
-        }
-        int middle = midPoint;  
-        print(lp);  print(rp);
-    }
 };
 
 //    T merge(const T &left, const T &right) {
@@ -709,6 +772,8 @@ public:
     F func;
     T DEFAULT;  
     
+    basic_segtree() {}
+
     basic_segtree(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
         size = 1;
         while (size < n) size <<= 1;
@@ -716,11 +781,13 @@ public:
     }
     
     void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
         idx += size, root[idx] = val;
         for (idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
     }
     
     T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
         T res_left = DEFAULT, res_right = DEFAULT;
         l += size, r += size;
         while (l <= r) {
@@ -732,6 +799,7 @@ public:
     }
 	
 	T queries_at(int idx) {
+        if(idx <= 0 || idx >= n) return DEFAULT;
         return root[idx + size];
     }
 	
@@ -2534,3 +2602,111 @@ private:
     ll left_sum = 0, right_sum = 0;
 };
 
+struct square_root_decomp {
+    int block_size;
+    vi a;
+    vll blocks;
+    vll lazy;
+    int n;
+    
+    square_root_decomp(const vi& arr) : a(arr), n(arr.size()) {
+        block_size = sqrt(n);
+        int num_blocks = (n + block_size - 1) / block_size;
+        blocks.assign(num_blocks, 0);
+        lazy.assign(num_blocks, 0);
+        for (int i = 0; i < n; i++) {
+            blocks[i / block_size] += a[i];
+        }
+    }
+    
+    int start_id(int i) {
+        return (i / block_size) * block_size;
+    }
+    
+    int end_id(int i) {
+        return min(((i / block_size) + 1) * block_size - 1, n - 1);
+    }
+    
+    int id(int i) {
+        return i / block_size;
+    }
+    
+    void update(int i, int x) {
+        int b = id(i);
+        if (lazy[b] != 0) {
+            for (int j = start_id(i); j <= end_id(i); j++) {
+                a[j] += lazy[b];
+            }
+            lazy[b] = 0;
+        }
+        if (a[i] == x) return;
+        blocks[b] -= a[i];
+        a[i] = x;
+        blocks[b] += a[i];
+    }
+    
+    ll get(int r) {
+        ll res = 0;
+        int b = id(r);
+        for (int i = 0; i < b; i++) {
+            res += blocks[i];
+        }
+        for (int i = b * block_size; i <= r; i++) {
+            res += a[i] + lazy[b];
+        }
+        return res;
+    }
+    
+    ll queries_range(int l, int r) {
+        if(l == 0) return get(r);
+        return get(r) - get(l - 1);
+    }
+    
+    void update_range(int l, int r, ll x) {
+        int startBlock = id(l);
+        int endBlock = id(r);
+        if(startBlock == endBlock) {
+            if(lazy[startBlock] != 0) {
+                for (int i = start_id(l); i <= end_id(l); i++) {
+                    a[i] += lazy[startBlock];
+                }
+                lazy[startBlock] = 0;
+            }
+            for (int i = l; i <= r; i++) {
+                a[i] += x;
+                blocks[startBlock] += x;
+            }
+            return;
+        }
+        if(lazy[startBlock] != 0) {
+            for (int i = start_id(l); i <= end_id(l); i++) {
+                a[i] += lazy[startBlock];
+            }
+            lazy[startBlock] = 0;
+        }
+        for (int i = l; i <= end_id(l); i++) {
+            a[i] += x;
+            blocks[startBlock] += x;
+        }
+        if(lazy[endBlock] != 0) {
+            for (int i = start_id(r); i <= end_id(r); i++) {
+                a[i] += lazy[endBlock];
+            }
+            lazy[endBlock] = 0;
+        }
+        for (int i = start_id(r); i <= r; i++) {
+            a[i] += x;
+            blocks[endBlock] += x;
+        }
+        for (int block = startBlock + 1; block <= endBlock - 1; block++) {
+            lazy[block] += x;
+            int blockStart = block * block_size;
+            int blockEnd = min((block + 1) * block_size - 1, n - 1);
+            blocks[block] += x * (blockEnd - blockStart + 1);
+        }
+    }
+    
+    ll queries_at(int i) {
+        return a[i] + lazy[id(i)];
+    }
+};

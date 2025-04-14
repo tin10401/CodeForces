@@ -164,17 +164,41 @@ struct Polynomial {
 struct BigCalculator {
     string num1;
     string num2;
-    BigCalculator(const string n1, const string n2) : num1(n1), num2(n2) {}
+    BigCalculator(const string& n1, const string& n2) : num1(n1), num2(n2) {}
     string add() { return bigAdd(num1, num2); }
+    string mod() { return bigMod(num1, num2); }
     string minus() { return bigSub(num1, num2); }
     string multiply() { return bigMul(num1, num2); }
     string OR() { return bigBitOr(num1, num2); }
     string AND() { return bigBitAnd(num1, num2); }
     string XOR() { return bigBitXor(num1, num2); }
+    string divide() { return bigDiv(num1, num2); }
     string operator|(const BigCalculator &other) const { return binToDec(bigBitOr(num1, other.num1)); }
     string operator&(const BigCalculator &other) const { return binToDec(bigBitAnd(num1, other.num1)); }
     string operator^(const BigCalculator &other) const { return binToDec(bigBitXor(num1, other.num1)); }
 private:
+
+    static string bigDiv(const string &a, const string &b) {
+        if(compare(a, b) < 0) return "0";
+        string quotient, remainder = "0";
+        for(char c : a) {
+            remainder = bigAdd(bigMul(remainder, "10"), string(1, c));
+            int lo = 0, hi = 9, q = 0;
+            while(lo <= hi) {
+                int mid = (lo + hi) / 2;
+                string prod = bigMulSingle(b, mid);
+                if(compare(prod, remainder) <= 0) { q = mid; lo = mid + 1; }
+                else hi = mid-1;
+            }
+            quotient.push_back('0' + q);
+            string prod = bigMulSingle(b, q);
+            remainder = bigSub(remainder, prod);
+        }
+        int pos = 0;
+        while(pos < quotient.size() - 1 && quotient[pos]=='0') pos++;
+        return quotient.substr(pos);
+    }
+
     static string bigAdd(const string &a, const string &b) {
         int i = a.size() - 1, j = b.size() - 1, carry = 0;
         string result;
@@ -183,9 +207,9 @@ private:
             if (i >= 0) { sum += a[i] - '0'; i--; }
             if (j >= 0) { sum += b[j] - '0'; j--; }
             carry = sum / 10;
-            result.push_back('0' + sum % 10);
+            result.pb('0' + sum % 10);
         }
-        reverse(result.begin(), result.end());
+        rev(result);
         return result;
     }
     static int compare(const string &a, const string &b) {
@@ -211,7 +235,7 @@ private:
         }
         while (result.size() > 1 && result.back() == '0')
             result.pop_back();
-        reverse(result.begin(), result.end());
+        rev(result);
         if (negative) result.insert(result.begin(), '-');
         return result;
     }
@@ -245,8 +269,8 @@ private:
                 a[i] /= n;
         }
     }
-    static vector<int> multiplyFFT(const vector<int> &a, const vector<int> &b) {
-        vector<cd> fa(a.begin(), a.end()), fb(b.begin(), b.end());
+    static vi multiplyFFT(const vi &a, const vi &b) {
+        vt<cd> fa(all(a)), fb(all(b));
         int n = 1;
         while (n < int(a.size() + b.size()))
             n <<= 1;
@@ -256,15 +280,15 @@ private:
         for (int i = 0; i < n; i++)
             fa[i] *= fb[i];
         fft(fa, true);
-        vector<int> result(n);
+        vi result(n);
         int carry = 0;
         for (int i = 0; i < n; i++) {
-            long long t = static_cast<long long>(round(fa[i].real())) + carry;
+            ll t = static_cast<ll>(round(fa[i].real())) + carry;
             result[i] = t % 10;
             carry = t / 10;
         }
         while (carry) {
-            result.push_back(carry % 10);
+            result.pb(carry % 10);
             carry /= 10;
         }
         while (result.size() > 1 && result.back() == 0)
@@ -274,15 +298,15 @@ private:
     static string bigMul(const string &a, const string &b) {
         if (a == "0" || b == "0")
             return "0";
-        vector<int> A(a.size()), B(b.size());
+        vi A(a.size()), B(b.size());
         for (size_t i = 0; i < a.size(); i++)
             A[a.size() - 1 - i] = a[i] - '0';
         for (size_t i = 0; i < b.size(); i++)
             B[b.size() - 1 - i] = b[i] - '0';
-        vector<int> resultVec = multiplyFFT(A, B);
+        vi resultVec = multiplyFFT(A, B);
         string result;
         for (int i = resultVec.size() - 1; i >= 0; i--)
-            result.push_back(resultVec[i] + '0');
+            result.pb(resultVec[i] + '0');
         size_t pos = result.find_first_not_of('0');
         return (pos != string::npos) ? result.substr(pos) : "0";
     }
@@ -292,9 +316,9 @@ private:
         while (number != "0") {
             int rem;
             number = divideByTwo(number, rem);
-            bin.push_back('0' + rem);
+            bin.pb('0' + rem);
         }
-        reverse(bin.begin(), bin.end());
+        rev(bin);
         return bin;
     }
     static string binToDec(const string &bin) {
@@ -314,7 +338,7 @@ private:
             int digit = current / 2;
             carry = current % 2;
             if (!quotient.empty() || digit != 0)
-                quotient.push_back('0' + digit);
+                quotient.pb('0' + digit);
         }
         if (quotient.empty())
             quotient = "0";
@@ -327,7 +351,7 @@ private:
         string binB = string(maxLen - b.size(), '0') + b;
         string binRes;
         for (size_t i = 0; i < maxLen; i++)
-            binRes.push_back((binA[i] == '1' || binB[i] == '1') ? '1' : '0');
+            binRes.pb((binA[i] == '1' || binB[i] == '1') ? '1' : '0');
         return binRes;
     }
     static string bigBitAnd(const string &a, const string &b) {
@@ -336,7 +360,7 @@ private:
         string binB = string(maxLen - b.size(), '0') + b;
         string binRes;
         for (size_t i = 0; i < maxLen; i++)
-            binRes.push_back((binA[i] == '1' && binB[i] == '1') ? '1' : '0');
+            binRes.pb((binA[i] == '1' && binB[i] == '1') ? '1' : '0');
         return binRes;
     }
     static string bigBitXor(const string &a, const string &b) {
@@ -345,7 +369,43 @@ private:
         string binB = string(maxLen - b.size(), '0') + b;
         string binRes;
         for (size_t i = 0; i < maxLen; i++)
-            binRes.push_back((binA[i] != binB[i]) ? '1' : '0');
+            binRes.pb((binA[i] != binB[i]) ? '1' : '0');
         return binRes;
+    }
+
+    static string bigMod(const string &a, const string &b) {
+        if(compare(a, b) < 0) return a;
+        string remainder = "0";
+        for(char c : a) {
+            remainder = bigAdd(bigMul(remainder, "10"), string(1, c));
+            int lo = 0, hi = 9, q = 0;
+            while(lo <= hi) {
+                int mid = (lo + hi) / 2;
+                string prod = bigMulSingle(b, mid);
+                if(compare(prod, remainder) <= 0) { q = mid; lo = mid + 1; }
+                else hi = mid - 1;
+            }
+            string prod = bigMulSingle(b, q);
+            remainder = bigSub(remainder, prod);
+        }
+        return remainder;
+    }
+
+    static string bigMulSingle(const string &a, int d) {
+        int carry = 0;
+        string result;
+        for(int i = a.size() - 1; i >= 0; i--){
+            int prod = (a[i] - '0') * d + carry;
+            carry = prod / 10;
+            result.pb('0' + prod % 10);
+        }
+        while(carry){
+            result.pb('0' + carry % 10);
+            carry /= 10;
+        }
+        rev(result);
+        int pos = 0;
+        while(pos < result.size() - 1 && result[pos]=='0') pos++;
+        return result.substr(pos);
     }
 };

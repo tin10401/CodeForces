@@ -10,9 +10,9 @@ public:
 
     SparseTable(const vt<T>& a, F func) : n(a.size()), func(func) {
         m = floor(log2(n)) + 1;
-        st.resize(m);
-        for (int j = 0; j < m; j++) st[j].resize(n - (1 << j) + 1);
-        log_table.resize(n + 1);
+        st.rsz(m);
+        for (int j = 0; j < m; j++) st[j].rsz(n - (1 << j) + 1);
+        log_table.rsz(n + 1);
         for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
         for (int i = 0; i < n; i++) st[0][i] = a[i];
         for (int j = 1; j < m; j++) {
@@ -43,7 +43,7 @@ struct LCA_O1 {
         });
         vpii().swap(euler);
     }
-    void dfs(int node, int par, int d, const vvi &graph) {
+    void dfs(int node, int par, int d, const vt<vt<T>> &graph) {
         enter[node] = timer++;
         euler.pb({d, node});
         for(auto& nxt : graph[node]) {
@@ -228,7 +228,7 @@ class HLD {
         return res; 
     }
 
-	void update_path_helper(int node, int par, int val) {
+	void update_path_helper(int node, int par, T val) {
         while(node != par && node != -1) {   
             if(g.depth[tp[node]] > g.depth[par]) {   
                 seg.update_range(id[tp[node]], id[node], val);
@@ -240,10 +240,10 @@ class HLD {
         }   
     }
     public:
-    basic_segtree<T> seg;
+    FW<T> seg;
     vi id, tp, sz, parent;
     int ct;
-    vvi graph;
+    vt<vt<T>> graph;
     int n;
     GRAPH<TT> g;
     T DEFAULT;
@@ -259,7 +259,7 @@ class HLD {
         for(int i = 0; i < n; i++) seg.update_at(id[i], a[i]);
     }
         
-    void dfs(const vvi& graph, int node = 0, int par = -1, int top = 0) {   
+    void dfs(const vt<vt<TT>>& graph, int node = 0, int par = -1, int top = 0) {   
         id[node] = ct++;    
         tp[node] = top;
         int nxt = -1, max_size = -1;    
@@ -302,7 +302,7 @@ class HLD {
     }
 
 
-    void update_path(int u, int v, int val) {
+    void update_path(int u, int v, T val) {
         int c = lca(u, v);
         update_path_helper(u, c, val);
         update_path_helper(v, c, val);
@@ -511,7 +511,7 @@ class SCC {
 template<typename T>
 struct CD { // centroid_decomposition
     int n, root;
-    vvi graph;
+    vt<vt<T>> graph;
     vi size, parent, vis;
     ll ans;
     GRAPH<T> g;
@@ -540,7 +540,14 @@ struct CD { // centroid_decomposition
         }
         return node;
     }
- 
+
+    int get_centroid(int src) { 
+        get_size(src, -1);
+        int centroid = get_center(src, -1, size[src]);
+        vis[centroid] = true;
+        return centroid;
+    }
+
     int mx;
     void modify(int node, int par, int depth, int delta) {
         for(auto& nei : graph[node]) {
@@ -548,6 +555,7 @@ struct CD { // centroid_decomposition
             modify(nei, node, depth + 1, delta);
         }
     }
+
     void cal(int node, int par, int depth) {
         for(auto& nei : graph[node]) {
             if(vis[nei] || nei == par) continue;
@@ -563,23 +571,20 @@ struct CD { // centroid_decomposition
         }
         return max_depth;
     }
- 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
-    }
- 
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
+
+    void run(int root, int par) {
         mx = get_max_depth(root, par);
         for(auto& nei : graph[root]) {
             if(vis[nei] || nei == par) continue;
             cal(nei, root, 1);
             modify(nei, root, 1, 1);
         }
+    }
+
+    int init(int root = 0, int par = -1) {
+        root = get_centroid(root);
+        parent[root] = par;
+        run(root, par);
         for(auto&nei : graph[root]) {
             if(nei == par || vis[nei]) continue;
             init(nei, root);
@@ -595,7 +600,7 @@ struct CD { // centroid_decomposition
         }
     }
 
-    int get_ans(int node) {
+    int queries(int node) {
         int u = node;
         int res = inf;
         while(u != -1){ 
@@ -843,6 +848,48 @@ vi directional_cycle_vector(const vvi& out_graph) {
         }
     }
     return in_cycle;
+}
+
+template<typename T = int>
+vi diameter_vector(const vt<vt<T>>& graph) {
+    int n = graph.size();
+    vi d(n);
+    pii now = {-1, -1};
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1, int depth = 0) -> void {
+        if(depth > now.ff) now = MP(depth, node);
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node, depth + 1);
+        }
+    }; dfs(dfs);
+    int a = now.ss;
+    now = {-1, -1};
+    dfs(dfs, a);
+    int b = now.ss;
+    auto bfs = [&](int src) -> vi {
+        vi dp(n, -1);
+        queue<int> q;
+        auto process = [&](int u, int c) -> void {
+            if(dp[u] == -1) {
+                dp[u] = c;
+                q.push(u);
+            }
+        };
+        process(src, 0);
+        while(!q.empty()) {
+            int node = q.front(); q.pop();
+            for(auto& nei : graph[node]) {
+                process(nei, dp[node] + 1);
+            }
+        }
+        return dp;
+    };
+    auto dp1 = bfs(a), dp2 = bfs(b);
+    vi ans(n);
+    for(int i = 0; i < n; i++) {
+        ans[i] = max(dp1[i], dp2[i]);
+    }
+    return ans;
 }
 
 // Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.

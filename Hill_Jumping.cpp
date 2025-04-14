@@ -240,357 +240,113 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 
-template<typename T, typename F = function<T(const T&, const T&)>>
-class SparseTable {
-public:
-    int n, m;
-    vt<vt<T>> st;
-    vi log_table;
-    F func;
+struct square_root_decomp {
+    int block_size;
+    vll lazy, height;
+    vi next_greater, ending_jump, jump_count;
+    int n;
     
-    SparseTable() {}
-
-    SparseTable(const vt<T>& a, F func) : n(a.size()), func(func) {
-        m = floor(log2(n)) + 1;
-        st.resize(m);
-        for (int j = 0; j < m; j++) st[j].resize(n - (1 << j) + 1);
-        log_table.resize(n + 1);
-        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
-        for (int i = 0; i < n; i++) st[0][i] = a[i];
-        for (int j = 1; j < m; j++) {
-            for (int i = 0; i + (1 << j) <= n; i++)
-                st[j][i] = func(st[j - 1][i], st[j - 1][i + (1 << (j - 1))]);
-        }
-    }
-    
-    T query(int L, int R) {
-        int j = log_table[R - L + 1];
-        return func(st[j][L], st[j][R - (1 << j) + 1]);
-    }
-};
-
-template<typename T = int>
-struct LCA_O1 {
-    vi enter;
-    vpii euler;
-    SparseTable<pii> st;
-    int timer;
-    LCA_O1() {}
-    LCA_O1(const vt<vt<T>> &graph, int root = 0) : timer(0) {
-        int n = graph.size();
-        enter.resize(n, -1);
-        dfs(root, -1, 0, graph);
-        st = SparseTable<pii>(euler, [](const pii &a, const pii &b) {
-            return (a.first < b.first) ? a : b;
-        });
-        vpii().swap(euler);
-    }
-    void dfs(int node, int par, int d, const vt<vt<T>> &graph) {
-        enter[node] = timer++;
-        euler.pb({d, node});
-        for(auto& nxt : graph[node]) {
-            if(nxt == par) continue;
-            dfs(nxt, node, d + 1, graph);
-            euler.pb({d, node});
-            timer++;
-        }
-    }
-    int lca(int u, int v) {
-        int L = min(enter[u], enter[v]);
-        int R = max(enter[u], enter[v]);
-        return st.query(L, R).second;
-    }
-};
-
-template<typename T = int>
-class GRAPH { 
-    public: 
-    int n, m; 
-    vvi dp;
-    vi depth, parent, subtree;
-    vi tin, tout, low, ord;
-    int timer = 0;
-    LCA_O1<T> lca_01;
-    GRAPH() {}
-
-    GRAPH(const vt<vt<T>>& graph, int root = 0) : lca_01(graph, root) {   
-        n = graph.size();
-        m = log2(n) + 1;
-        dp.rsz(n, vi(m));
-        depth.rsz(n);
-        parent.rsz(n, -1);
-		subtree.rsz(n, 1);
-        tin.rsz(n);
-        tout.rsz(n);
-		ord.rsz(n);
-        dfs(graph, root);
-        init();
-    }
-    
-    void dfs(const vt<vt<T>>& graph, int node = 0, int par = -1) {   
-		tin[node] = timer++;
-		ord[tin[node]] = node;
-        for(auto& nei : graph[node]) {  
-            if(nei == par) continue;    
-            depth[nei] = depth[node] + 1;   
-            dp[nei][0] = node;
-            parent[nei] = node;
-			dfs(graph, nei, node);
-			subtree[node] += subtree[nei];
-        }
-		tout[node] = timer - 1;
+    square_root_decomp(const vi& arr) : height(all(arr)), n(arr.size()) {
+        block_size = sqrt(n) + 2;
+        int num_blocks = (n + block_size - 1) / block_size;
+        lazy.assign(num_blocks + 10, 0);
+        next_greater.assign(n + 10, -1);
+        ending_jump.assign(n + 10, -1);
+        jump_count.assign(n + 10, -1);
+        for(int i = 0; i < num_blocks; i++) rebuild(i);
     }
 
-    bool isAncestor(int u, int v) { 
-        return tin[u] <= tin[v] && tin[v] <= tout[u]; 
-    }
-    
-    void init() {  
-        for(int j = 1; j < m; j++) {   
-            for(int i = 0; i < n; i++) {    
-                dp[i][j] = dp[dp[i][j - 1]][j - 1];
+    void rebuild(int b) {
+        stack<int> s;
+        for(int i = end_id(b * block_size); i >= start_id(b * block_size); i--) {
+            while(!s.empty() && height[s.top()] <= height[i]) s.pop();
+            next_greater[i] = s.empty() ? -1 : s.top();
+            if(next_greater[i] == -1 || next_greater[i] - i > 100) {
+                ending_jump[i] = i;
+                jump_count[i] = 0;
+            } else {
+                jump_count[i] = jump_count[next_greater[i]] + 1;
+                ending_jump[i] = ending_jump[next_greater[i]];
             }
+            s.push(i);
         }
     }
-	
-    int lca(int a, int b) { 
-        return lca_01.lca(a, b);
-    }
-	
-	int dist(int u, int v) {    
-        int a = lca_01.lca(u, v);  
-        return depth[u] + depth[v] - 2 * depth[a];
-    }
 
-	int k_ancestor(int a, int k) {
-        for(int i = m - 1; i >= 0; i--) {   
-            if((k >> i) & 1) a = dp[a][i];
-        }
-        return a;
-    }
-
-    int rooted_lca(int a, int b, int c) { // determine if 3 points are in the same path
-        return lca(a, c) ^ lca(a, b) ^ lca(b, c);
-    }
-
-    int rooted_parent(int u, int v) { // move one level down from u closer to v
-        return k_ancestor(v, depth[v] - depth[u] - 1);
-    }
-
-    void reroot(int root) {
-        fill(all(parent), -1);
-        dfs(root);
-        init();
-    }
-};
-
-template<class T, typename F = function<T(const T&, const T&)>>
-class FW {  
-    public: 
-    int n, N;
-    vt<T> root;    
-    T DEFAULT;
-    F func;
-    FW() {}
-    FW(int n, T DEFAULT, F func) : func(func) { 
-        this->n = n;    
-        this->DEFAULT = DEFAULT;
-        N = log2(n);
-        root.rsz(n, DEFAULT);
+    int start_id(int i) {
+        return (i / block_size) * block_size;
     }
     
-    void update(int id, T val) {  
-        assert(id >= 0);
-        while(id < n) {    
-            root[id] = func(root[id], val);
-            id |= (id + 1);
-        }
+    int end_id(int i) {
+        return min(((i / block_size) + 1) * block_size - 1, n - 1);
     }
     
-    T get(int id) {   
-        assert(id < n);
-        T res = DEFAULT;
-        while(id >= 0) { 
-            res = func(res, root[id]);
-            id = (id & (id + 1)) - 1;
-        }
-        return res;
+    int id(int i) {
+        return i / block_size;
     }
-
-    T queries_range(int left, int right) {  
-        return get(right) - get(left - 1);
-    }
-
-    T queries_at(int i) {
-        return queries_range(i, i);
-    }
-	
-	void reset() {
-		root.assign(n, DEFAULT);
-	}
-
-    int select(int x) { // get pos where sum >= x
-        int global = get(n), curr = 0;
-        for(int i = N; i >= 0; i--) {
-            int t = curr ^ (1LL << i);
-            if(t < n && global - root[t] >= x) {
-                swap(curr, t);
-                global -= root[curr];
+    
+    void update_range(int l, int r, ll x) {
+        if(id(l) == id(r)) {
+            for(int i = l; i <= r; i++) {
+                height[i] += x;
             }
+            rebuild(id(l));
+            return;
         }
-        return curr + 1;
-    }
-};
-
-vi mn;
-bool r = false;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    GRAPH<T> g;
-    vi best;
-    vi ans;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()), g(graph), best(graph.size(), inf) {
-        ans.rsz(n);
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& nei : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
+        for(int i = l; i <= end_id(l); i++) {
+            height[i] += x;
         }
-    }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& nei : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        rebuild(id(l));
+        for(int b = id(l) + 1; b < id(r); b++) {
+            lazy[b] += x;
         }
-        return node;
+        for(int i = start_id(r); i <= r; i++) {
+            height[i] += x;
+        }
+        rebuild(id(r));
     }
 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
-    }
-
-    int mx;
-    FW<int> Tree;
-    void modify(int node, int par, int depth, int delta) {
-        if(mn[node] >= depth) {
-            Tree.update(min(mx, mn[node] - depth), delta);
+    int query(int pos, int k) {
+        while(k) {
+            if(jump_count[pos] > 0 && jump_count[pos] <= k) {
+                k -= jump_count[pos];
+                pos = ending_jump[pos];
+                continue;
+            }
+            if(next_greater[pos] != -1 && next_greater[pos] - pos <= 100) {
+                pos = next_greater[pos];
+                k--;
+                continue;
+            }
+            int ori = pos;
+            for(int i = pos; i <= min(pos + 100, n - 1); i++) {
+                if(height[i] + lazy[id(i)] > height[pos] + lazy[id(pos)]) {
+                    pos = i;
+                    k--;
+                    break;
+                }
+            }
+            if(pos == ori) break;
         }
-        for(auto& nei : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + 1, delta);
-        }
-    }
-
-    void cal(int node, int par, int depth) {
-        ans[node] += Tree.queries_range(depth, mx);
-        for(auto& nei : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + 1);
-        }
-    }
- 
-    int get_max_depth(int node, int par = -1, int depth = 0) {
-        int max_depth = depth;
-        for(auto& nei : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            max_depth = max(max_depth, get_max_depth(nei, node, depth + 1));
-        }
-        return max_depth;
-    }
-
-    void run(int root, int par) {
-        mx = get_max_depth(root, par);
-        Tree = FW<int>(mx + 1, 0, [](const int& a, const int& b) {return a + b;});
-        if(mn[root] >= 0) {
-            Tree.update(min(mx, mn[root]), 1);
-        }
-        for(auto& nei : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, 1, 1);
-        }
-        for(auto& nei : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, 1, -1);
-            cal(nei, root, 1);
-            modify(nei, root, 1, 1);
-        }
-        ans[root] += Tree.get(mx);
-    }
-
-    inline int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        if(r) run(root, par);
-        for(auto&nei : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
-        }
-        return root;
-    }
-
-    void update(int node) {
-        int u = node;
-        while(u != -1) {
-            best[u] = min(best[u], g.dist(u, node));
-            u = parent[u];
-        }
-    }
-
-    int queries(int node) {
-        int u = node;
-        int res = inf;
-        while(u != -1){ 
-            res = min(res, g.dist(u, node) + best[u]);
-            u = parent[u];
-        }
-        return res;
-    }
-
-    int dist(int u, int v) {
-        return g.dist(u, v);
+        return pos + 1;
     }
 };
 
 void solve() {
-    int n, k; cin >> n >> k;
-    vvi graph(n);
-    for(int i = 0; i < n - 1; i++) {
-        int u, v; cin >> u >> v;
-        u--, v--;
-        graph[u].pb(v);
-        graph[v].pb(u);
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    square_root_decomp root(a);
+    while(q--) {
+        int op; cin >> op;
+        if(op == 1) {
+            int i, k; cin >> i >> k;
+            i--;
+            cout << root.query(i, k) << '\n';
+            continue;
+        }
+        int l, r, x; cin >> l >> r >> x;
+        l--, r--;
+        root.update_range(l, r, x);
     }
-    mn = vi(n);
-    CD<int> g(graph);
-    while(k--) {
-        int u; cin >> u;
-        g.update(--u);
-    }
-    for(int i = 0; i < n; i++) {
-        int d = g.queries(i);
-        int f, p; cin >> f >> p;
-        f--;
-        mn[i] = min(d, g.dist(i, f) - p - 1);
-    }
-    r = true;
-    fill(all(g.vis), 0);
-    g.init();
-    output_vector(g.ans);
 }
 
 signed main() {

@@ -27,6 +27,23 @@ void generatePrime() {  primeBits.set(2);
     }
 }
 
+ll extended_gcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) { x = 1; y = 0; return a; }
+    ll d = extended_gcd(b, a % b, y, x);
+    y -= (a / b) * x;
+    return d;
+}
+
+ll modInv(ll a, ll m) {
+    ll x, y;
+    ll g = extended_gcd(a, m, x, y);
+    if (g != 1) {
+        return -1; 
+    }
+    x %= m; if (x < 0) x += m;
+    return x;
+}
+
 // calculating the number of m * n where gcd(m, n) == 1 && m * n == k
 // the answer is the number of 2 ^ (#prime divisor of k)
 
@@ -133,7 +150,7 @@ struct NCkMod {
         ll res = (A.first * inv) % pw;
         return (res * modPow(p, e, pw)) % pw;
     }
-    static ll calc(ll n, ll k, int mod) {
+    static ll nck(ll n, ll k, int mod) {
         if(k < 0 || k > n) return 0;
         auto fac = factorize(mod);
         ll M = 1, ans = 0;
@@ -150,7 +167,56 @@ struct NCkMod {
         }
         return ans;
     }
+    static ll fastPowCheck(i128 base, i128 exp, ll limit) {
+        i128 res = 1;
+        while(exp > 0) {
+            if(exp & 1) {
+                res *= base;
+                if(res > limit) return limit + 1;
+            }
+            exp >>= 1;
+            if(exp > 0) {
+                base = base * base;
+                if((i128)base > limit) base = limit + 1;
+            }
+        }
+        return (ll)res;
+    }
+    static ll nck_no_mod(ll n, ll k, ll limit = INF) {
+        if(k < 0 || k > n) return 0;
+        if(k > n - k) k = n - k;
+        i128 ans = 1;
+        for (int p : primes) {
+            if(p > n) break;
+            ll exp = 0;
+            for (ll pp = p; pp <= n; pp *= p)
+                exp += n / pp;
+            for (ll pp = p; pp <= k; pp *= p)
+                exp -= k / pp;
+            for (ll pp = p; pp <= n - k; pp *= p)
+                exp -= (n - k) / pp;
+            ll factor = fastPowCheck(p, exp, limit);
+            ans *= factor;
+            if(ans > limit) return limit + 1;
+        }
+        return (ll)ans;
+    }
 };
+
+ll get_perm(const vi& a, ll limit = INF) {
+    // calculate (n!) / (x! * y! * z!...) where x + y + ... = n and don't mod upto limit
+    ll total = sum(a), perm = 1;
+    const int N = a.size();
+    for(int i = 0; i < N; i++) {
+        if(a[i] == 0) continue;
+        perm *= NCkMod::nck_no_mod(total, a[i], limit);
+        if(perm >= limit) {
+            break;
+        }
+        total -= a[i];
+    }
+    return perm;
+}
 
 vi computeCatalan(int limit, int mod) {
     vi catalan(limit + 1, 0);
@@ -377,6 +443,26 @@ struct xor_basis {
         return true;
     }
 };
+
+string get_base_k(string n, int k) {
+    if(n == "0") return "0";
+    string s;
+    while(n != "0") {
+        string S;
+        int rem = 0;
+        for (char ch : n) {
+            int curr = rem * 10 + (ch - '0');
+            int qDigit = curr / k;
+            rem = curr % k;
+            if(!S.empty() || qDigit != 0)
+                S.pb(qDigit + '0');
+        }
+        s.pb(rem + '0');
+        n = S.empty() ? "0" : S;
+    }
+    rev(s);
+    return s;
+}
 
 string get_base_negk_to_string(ll n, ll k) {
     if(n == 0) return "0";
