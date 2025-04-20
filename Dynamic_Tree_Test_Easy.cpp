@@ -239,352 +239,239 @@ string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), 
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
-bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-template<typename T = int>
-class GRAPH {
-public:
-    int n, m;
-    vvi dp;
-    vi depth, parent, subtree;
-    vi tin, tout, low, ord;
-    int timer = 0;
-    vt<unsigned> in_label, ascendant;
-    vi par_head;
-    unsigned cur_lab = 1;
-    vt<vt<T>> adj;
 
-    GRAPH() {}
-
-    GRAPH(const vt<vt<T>>& graph, int root = 0) {
-        adj = graph;
-        n = graph.size();
-        m = log2(n) + 1;
-        dp.rsz(n, vi(m));
-        depth.rsz(n);
-        parent.rsz(n, -1);
-        subtree.rsz(n, 1);
-        tin.rsz(n);
-        tout.rsz(n);
-        ord.rsz(n);
-        dfs(root);
-        init();
-        in_label.rsz(n);
-        ascendant.rsz(n);
-        par_head.rsz(n + 1);
-        sv_dfs1(root);
-        ascendant[root] = in_label[root];
-        sv_dfs2(root);
-    }
-
-    void dfs(int node, int par = -1) {
-        tin[node] = timer++;
-        ord[tin[node]] = node;
-        for (auto& nei : adj[node]) {
-            if (nei == par) continue;
-            depth[nei] = depth[node] + 1;
-            dp[nei][0] = node;
-            parent[nei] = node;
-            dfs(nei, node);
-            subtree[node] += subtree[nei];
-        }
-        tout[node] = timer - 1;
-    }
-
-    bool is_ancestor(int par, int child) { return tin[par] <= tin[child] && tin[child] <= tout[par]; }
-
-    void init() {
-        for (int j = 1; j < m; j++)
-            for (int i = 0; i < n; i++)
-                dp[i][j] = dp[dp[i][j - 1]][j - 1];
-    }
-
-    void sv_dfs1(int u, int p = -1) {
-        in_label[u] = cur_lab++;
-        for (auto& v : adj[u]) if (v != p) {
-            sv_dfs1(v, u);
-            if (std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
-                in_label[u] = in_label[v];
-        }
-    }
-
-    void sv_dfs2(int u, int p = -1) {
-        for (auto& v : adj[u]) if (v != p) {
-            ascendant[v] = ascendant[u];
-            if (in_label[v] != in_label[u]) {
-                par_head[in_label[v]] = u;
-                ascendant[v] += in_label[v] & -in_label[v];
+struct LCT {
+    struct Node {
+        int p = 0;
+        int sz = 1;
+        int c[2] = {0, 0};
+        ll val = 0, sm = 0, mn = INF, mx = -INF, lazy_set = INF, lazy_add = 0;
+        bool flip = false;
+        Node() {}
+        Node(ll v)
+            : p(0), sz(1), val(v), sm(v), mn(v), mx(v),
+            lazy_set(INF), lazy_add(0), flip(false) {
+                c[0] = c[1] = 0;
             }
-            sv_dfs2(v, u);
-        }
-    }
-
-    int lift(int u, unsigned j) const {
-        unsigned k = std::__bit_floor(ascendant[u] ^ j);
-        return k == 0 ? u : par_head[(in_label[u] & -k) | k];
-    }
-
-    int lca(int a, int b) {
-        auto [x, y] = std::minmax(in_label[a], in_label[b]);
-        unsigned j = ascendant[a] & ascendant[b] & -std::__bit_floor((x - 1) ^ y);
-        a = lift(a, j);
-        b = lift(b, j);
-        return depth[a] < depth[b] ? a : b;
-    }
-
-    int path_queries(int u, int v) { // lca in logn
-        if(depth[u] < depth[v]) swap(u, v);
-        int diff = depth[u] - depth[v];
-        for (int i = 0; i < m; i++)
-            if (diff & (1 << i)) u = dp[u][i];
-        if (u == v) return u;
-        for (int i = m - 1; i >= 0; --i) {
-            if (dp[u][i] != dp[v][i]) {
-                u = dp[u][i];
-                v = dp[v][i];
-            }
-        }
-        return parent[u];
-    }
-
-    int dist(int u, int v) {
-        int a = lca(u, v);
-        return depth[u] + depth[v] - 2 * depth[a];
-    }
-
-    int kth_ancestor(int a, ll k) {
-        if (k > depth[a]) return -1;          
-        for (int i = m - 1; i >= 0 && a != -1; --i)
-            if ((k >> i) & 1) a = dp[a][i];
-        return a;
-    }
-
-    int kth_ancestor_on_path(int u, int v, ll k) {
-        int d = dist(u, v);
-        if (k >= d) return v;
-        int w  = lca(u, v);
-        int du = depth[u] - depth[w];
-        if (k <= du) return kth_ancestor(u, k);
-        int rem = k - du;
-        int dv  = depth[v] - depth[w];
-        return kth_ancestor(v, dv - rem);
-    }
-
-    int max_intersection(int a, int b, int c) { // # of common intersection between path(a, c) OR path(b, c)
-        auto cal = [&](int u, int v, int goal){
-            return (dist(u, goal) + dist(v, goal) - dist(u, v)) / 2 + 1;
-        };
-        int res = 0;
-        res = max(res, cal(a, b, c));
-        res = max(res, cal(a, c, b));
-        res = max(res, cal(b, c, a));
-        return res;
-    }
-
-    int rooted_lca(int a, int b, int c) { return lca(a, c) ^ lca(a, b) ^ lca(b, c); } 
-
-    int next_on_path(int u, int v) { // closest_next_node from u to v
-        if(u == v) return -1;
-        if(is_ancestor(u, v)) return kth_ancestor(v, depth[v] - depth[u] - 1);
-        return parent[u];
-    }
-
-    void reroot(int root) {
-        fill(all(parent), -1);
-        timer = 0;
-        dfs(root);
-        init();
-        cur_lab = 1;
-        sv_dfs1(root);
-        ascendant[root] = in_label[root];
-        sv_dfs2(root);
-    }
-
-    int comp_size(int c,int v){
-        if(parent[v] == c) return subtree[v];
-        return n - subtree[c];
-    }
-
-    int rooted_lca_potential_node(int a, int b, int c) { // # of nodes where rooted at will make lca(a, b) = c
-        if(rooted_lca(a, b, c) != c) return 0;
-        int v1 = next_on_path(c, a);
-        int v2 = next_on_path(c, b);
-        return n - (v1 == -1 ? 0 : comp_size(c, v1)) - (v2 == -1 ? 0 : comp_size(c, v2));
-
-    }
-};
-
-// PERSISTENT SEGTREE
-int t[MX * MK], ptr, root[MX * 100]; // log2 = MX * 200; careful to match root with the type of template below
-pii child[MX * 100]; // maybe * 120
-template<class T>
-struct PSGT {
-    int n;
-    T DEFAULT;
-    void assign(int n, T DEFAULT) {
-        this->DEFAULT = DEFAULT;
-        this->n = n;
-    }
-
-	void update(int &curr, int prev, int id, T delta, int left, int right) {  
-//        if(!curr) curr = ++ptr; // 2d seg to save space
-        root[curr] = root[prev];    
-        child[curr] = child[prev];
-        if(left == right) { 
-			root[curr] = delta;
-            return;
-        }
-        int middle = midPoint;
-        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
-        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-//        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // 2d seg
-//        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
-    }
-
-	T queries_at(int curr, int start, int end, int left, int right) { 
-        if(!curr || left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[curr];
-        int middle = midPoint;  
-		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
     };
-
-        
-    T get(int curr, int prev, int k, int left, int right) {    
-        if(root[curr] - root[prev] < k) return DEFAULT;
-        if(left == right) return left;
-        int leftCount = root[child[curr].ff] - root[child[prev].ff];
-        int middle = midPoint;
-        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
-        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
-    }
-
-    T get(int l, int r, int k) {
-        return get(t[r], t[l - 1], k, 0, n - 1);
-    }
-	
-	int find_k(int i, int k) {
-        return find_k(t[i], k, 0, n - 1);
-    }
-
-    int find_k(int curr, int k, int left, int right) {
-        if(root[curr] < k) return inf;
-        if(left == right) return left;
-        int middle = midPoint;
-        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
-        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
-    }
-
-
-    void reset() {  
-        for(int i = 0; i <= ptr; i++) { 
-            root[i] = 0;
-            child[i] = {0, 0};
+    vt<Node> T;
+    LCT(int N) : T(N + 1) {}
+    LCT(int N, const vll& A)
+      : T(N + 1) {
+        for (int i = 1; i <= N; ++i) {
+            T[i] = Node(A[i]);
         }
-		for(int i = 0; i < (int)(sizeof(t)/sizeof(t[0])); i++){
-            t[i] = 0;
+    }
+
+    bool notRoot(int x) {
+        int p = T[x].p;
+        return p && (T[p].c[0] == x || T[p].c[1] == x);
+    }
+
+    void push(int x) {
+        if (!x) return;
+        int l = T[x].c[0], r = T[x].c[1];
+
+        if (T[x].flip) {
+            swap(T[x].c[0], T[x].c[1]);
+            if (l) apply_flip(l);
+            if (r) apply_flip(r);
+            T[x].flip = false;
         }
-        ptr = 0;
+
+        if (T[x].lazy_set != INF) {
+            if (l) apply_set(l, T[x].lazy_set);
+            if (r) apply_set(r, T[x].lazy_set);
+            T[x].lazy_set = INF;
+        }
+
+        if (T[x].lazy_add) {
+            if (l) apply_add(l, T[x].lazy_add);
+            if (r) apply_add(r, T[x].lazy_add);
+            T[x].lazy_add = 0;
+        }
     }
 
-    int add(int i, int prev, int id, T delta) { 
-        t[i] = ++ptr;
-        update(t[i], prev, id, delta, 0, n - 1); 
-        return t[i];
-//        while(i < n) { 
-//            update(t[i], t[i], id, delta, 0, n - 1);
-//            i |= (i + 1);
-//        }
+    void pull(int x) {
+        push(T[x].c[0]);
+        push(T[x].c[1]);
+        int l = T[x].c[0], r = T[x].c[1];
+        T[x].sz = 1 + (l ? T[l].sz : 0) + (r ? T[r].sz : 0);
+        T[x].sm = T[x].val + (l ? T[l].sm : 0) + (r ? T[r].sm : 0);
+        T[x].mn = min({T[x].val, l ? T[l].mn : INF, r ? T[r].mn : INF});
+        T[x].mx = max({T[x].val, l ? T[l].mx : -INF, r ? T[r].mx : -INF});
     }
 
-    T queries_at(int i, int start, int end) {
-        return queries_at(t[i], start, end, 0, n - 1);
-//        while(i >= 0) {
-//            res += queries(t[i], start, end, 0, n - 1);
-//            i = (i & (i + 1)) - 1;
-//        }
+    void apply_add(int x, ll v) {
+        if (!x) return;
+        T[x].lazy_add += v;
+        T[x].val += v;
+        T[x].sm += v * T[x].sz;
+        T[x].mn += v;
+        T[x].mx += v;
     }
 
-	T queries_range(int l, int r, int low, int high) {
-        if(l > r || low > high) return DEFAULT;
-        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
-        auto R = queries_at(r, low, high);
-        return R - L;
+    void apply_set(int x, ll v) {
+        if (!x) return;
+        T[x].lazy_set = v;
+        T[x].lazy_add = 0;
+        T[x].val = v;
+        T[x].sm = v * T[x].sz;
+        T[x].mn = T[x].mx = v;
     }
 
-    T merge(T left, T right) {
-        return min(left, right);
+    void apply_flip(int x) {
+        if(x) T[x].flip = !T[x].flip;
+    }
+
+    void rotate(int x) {
+        int p = T[x].p;
+        int g = T[p].p;
+        int d = (T[p].c[1] == x);
+        if(notRoot(p)) T[g].c[T[g].c[1] == p] = x;
+        T[x].p = g;
+        T[p].c[d] = T[x].c[d ^ 1];
+        if (T[p].c[d]) T[T[p].c[d]].p = p;
+        T[x].c[d ^ 1] = p;
+        T[p].p = x;
+        pull(p);
+        pull(x);
+    }
+
+    void splay(int x) {
+        static vi stk;
+        int y = x;
+        stk.pb(y);
+        while (notRoot(y)) {
+            y = T[y].p;
+            stk.pb(y);
+        }
+        while(!stk.empty()) {
+            push(stk.back());
+            stk.pop_back();
+        }
+        while (notRoot(x)) {
+            int p = T[x].p;
+            int g = T[p].p;
+            if (notRoot(p)) {
+                bool dx = (T[p].c[0] == x);
+                bool dy = (T[g].c[0] == p);
+                if (dx ^ dy) rotate(x);
+                else rotate(p);
+            }
+            rotate(x);
+        }
+    }
+
+    int access(int x) {
+        int last = 0;
+        for (int y = x; y; y = T[y].p) {
+            splay(y);
+            T[y].c[1] = last;
+            pull(y);
+            last = y;
+        }
+        splay(x);
+        return last;
+    }
+
+    void makeRoot(int x) {
+        access(x);
+        apply_flip(x);
+        push(x);
+    }
+
+    void link(int u, int v) {
+        makeRoot(u);
+        T[u].p = v;
+    }
+
+    void cut(int u, int v) {
+        makeRoot(u);
+        access(v);
+        if (T[v].c[0]) {
+            T[T[v].c[0]].p = 0;
+            T[v].c[0] = 0;
+            pull(v);
+        }
+    }
+
+    int get_path(int u, int v) {
+        makeRoot(u);
+        access(v);
+        return v;
+    }
+
+    void update_path(int u, int v, ll k, int type) {
+        int x = get_path(u, v);
+        if(type == 1) apply_set(x, k);
+        else apply_add(x, k);
+        pull(x);
+    }
+
+    Node path_queries(int u, int v) {
+        int x = get_path(u, v);
+        return T[x];
+    }
+
+    int rt = 1;
+    void assign_root(int r) {
+        rt = r;
+    }
+
+    void change_parent(int x, int y) {
+        if (x == lca(x, y)) return;
+        cut(rt, x);
+        link(x, y);
+    }
+
+    int lca(int x, int y) {
+        makeRoot(rt);
+        access(x);
+        return access(y);
     }
 };
 
-struct mex_tree {
-    PSGT<int> seg;
-    int n;
-
-    mex_tree(const vector<int>& a) {
-        int m = a.size();
-        n = m;
-        seg.reset();
-        seg.assign(n + 1, inf);
-        int prev = 0;
-        for(int i = 0; i <= n; i++) {
-            prev = seg.add(prev, prev, i, -1);
-        }
-        for (int i = 0; i < m; ++i) {
-            int v = min(a[i], n);
-            prev = seg.add(i + 1, prev, v, i);
-        }
-    }
-
-    int mex(int l, int r) const {
-        int root_id = t[r + 1];
-        return find_mex(root_id, 0, n, l) + 1;
-    }
-
-private:
-    int find_mex(int curr, int L, int R, int bound) const {
-        if (L == R) 
-            return L;
-        int M = (L + R) >> 1;
-        if (root[child[curr].ff] < bound) {
-            return find_mex(child[curr].ff, L, M, bound);
-        } else {
-            return find_mex(child[curr].ss, M + 1, R, bound);
-        }
-    }
-};
-
-
-class Solution {
-public:
-    vector<int> smallestMissingValueSubtree(vector<int>& parent, vector<int>& a) {
-        const int n = a.size();
-        vvi graph(n);
-        int rt = -1;
-        for(int i = 0; i < n; i++) {
-            if(parent[i] == -1) rt = i;
-            else graph[parent[i]].pb(i);
-        }
-        GRAPH<int> g(graph, rt);
-        vi b(n);
-        for(int i = 0; i < n; i++) {
-            b[g.tin[i]] = a[i];
-        }
-        mex_tree tree(b);
-        vi res(n);
-        for(int i = 0; i < n; i++) {
-            res[i] = tree.mex(g.tin[i] + 1, g.tout[i + 1]);
-        }
-        return res;
-    }
-};
-
-#ifdef LOCAL
 void solve() {
-    int n; cin >> n;
-    vi parent(n), a(n); cin >> parent >> a;
-    Solution sol;
-    cout << sol.smallestMissingValueSubtree(parent, a) << '\n';
+    int n, q; cin >> n >> q;
+    vll a(n + 1);
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    LCT root(n, a);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        root.link(u, v);
+    }
+    int r; cin >> r;
+    root.assign_root(r);
+    while(q--) {
+        int op; cin >> op;
+        if(op == 0) {
+            int x; cin >> x;
+            root.assign_root(x);
+        } else if(op == 1) { // changing all to z
+            int x, y, z; cin >> x >> y >> z;
+            root.update_path(x, y, z, 1);
+        } else if(op == 2) { // add z to all
+            int x, y, z; cin >> x >> y >> z;
+            root.update_path(x, y, z, 2);
+        } else if(op == 3) { // min_weight
+            int x, y; cin >> x >> y;
+            cout << root.path_queries(x, y).mn << '\n';
+        } else if(op == 4) { // max_weight
+            int x, y; cin >> x >> y;
+            cout << root.path_queries(x, y).mx << '\n';
+        } else if(op == 5) { // path_sum
+            int x, y; cin >> x >> y;
+            cout << root.path_queries(x, y).sm << '\n';
+        } else if(op == 6) {
+            int x, y; cin >> x >> y;
+            root.change_parent(x, y);
+        } else {
+            int x, y; cin >> x >> y;
+            cout << root.lca(x, y) << '\n';
+        }
+    }
 }
 
 signed main() {
@@ -608,7 +495,6 @@ signed main() {
 
     return 0;
 }
-#endif
 
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█

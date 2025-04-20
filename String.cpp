@@ -435,6 +435,7 @@ string validate_substring(int n, const string& t, vi a) {
 const int HASH_COUNT = 2;
 vll globalBase;
 vll globalMod;
+ll mod[2], base[2], p[2][MX];
 void initGlobalHashParams() {
     if (!globalBase.empty() && !globalMod.empty()) return;
     vll candidateBases = {29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
@@ -451,7 +452,18 @@ void initGlobalHashParams() {
         globalBase[i] = candidateBases[i];
         globalMod[i]  = candidateMods[i];
     }
+    for(int i = 0; i < 2; i++) {
+        mod[i] = globalMod[i];
+        base[i] = globalBase[i];
+    }
+    p[0][0] = p[1][0] = 1;
+    for(int i = 1; i < MX; i++) {
+        for(int j = 0; j < HASH_COUNT; j++) {
+            p[j][i] = (p[j][i - 1] * base[j]) % mod[j];
+        }
+    }
 }
+
 template<class T = string>
 struct RabinKarp {
     vvll prefix, pow;

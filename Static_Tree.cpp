@@ -414,177 +414,49 @@ public:
     }
 };
 
-// PERSISTENT SEGTREE
-int t[MX * MK], ptr, root[MX * 100]; // log2 = MX * 200; careful to match root with the type of template below
-pii child[MX * 100]; // maybe * 120
-template<class T>
-struct PSGT {
-    int n;
-    T DEFAULT;
-    void assign(int n, T DEFAULT) {
-        this->DEFAULT = DEFAULT;
-        this->n = n;
-    }
-
-	void update(int &curr, int prev, int id, T delta, int left, int right) {  
-//        if(!curr) curr = ++ptr; // 2d seg to save space
-        root[curr] = root[prev];    
-        child[curr] = child[prev];
-        if(left == right) { 
-			root[curr] = delta;
-            return;
-        }
-        int middle = midPoint;
-        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
-        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-//        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // 2d seg
-//        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
-    }
-
-	T queries_at(int curr, int start, int end, int left, int right) { 
-        if(!curr || left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[curr];
-        int middle = midPoint;  
-		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
-    };
-
-        
-    T get(int curr, int prev, int k, int left, int right) {    
-        if(root[curr] - root[prev] < k) return DEFAULT;
-        if(left == right) return left;
-        int leftCount = root[child[curr].ff] - root[child[prev].ff];
-        int middle = midPoint;
-        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
-        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
-    }
-
-    T get(int l, int r, int k) {
-        return get(t[r], t[l - 1], k, 0, n - 1);
-    }
-	
-	int find_k(int i, int k) {
-        return find_k(t[i], k, 0, n - 1);
-    }
-
-    int find_k(int curr, int k, int left, int right) {
-        if(root[curr] < k) return inf;
-        if(left == right) return left;
-        int middle = midPoint;
-        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
-        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
-    }
-
-
-    void reset() {  
-        for(int i = 0; i <= ptr; i++) { 
-            root[i] = 0;
-            child[i] = {0, 0};
-        }
-		for(int i = 0; i < (int)(sizeof(t)/sizeof(t[0])); i++){
-            t[i] = 0;
-        }
-        ptr = 0;
-    }
-
-    int add(int i, int prev, int id, T delta) { 
-        t[i] = ++ptr;
-        update(t[i], prev, id, delta, 0, n - 1); 
-        return t[i];
-//        while(i < n) { 
-//            update(t[i], t[i], id, delta, 0, n - 1);
-//            i |= (i + 1);
-//        }
-    }
-
-    T queries_at(int i, int start, int end) {
-        return queries_at(t[i], start, end, 0, n - 1);
-//        while(i >= 0) {
-//            res += queries(t[i], start, end, 0, n - 1);
-//            i = (i & (i + 1)) - 1;
-//        }
-    }
-
-	T queries_range(int l, int r, int low, int high) {
-        if(l > r || low > high) return DEFAULT;
-        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
-        auto R = queries_at(r, low, high);
-        return R - L;
-    }
-
-    T merge(T left, T right) {
-        return min(left, right);
-    }
-};
-
-struct mex_tree {
-    PSGT<int> seg;
-    int n;
-
-    mex_tree(const vector<int>& a) {
-        int m = a.size();
-        n = m;
-        seg.reset();
-        seg.assign(n + 1, inf);
-        int prev = 0;
-        for(int i = 0; i <= n; i++) {
-            prev = seg.add(prev, prev, i, -1);
-        }
-        for (int i = 0; i < m; ++i) {
-            int v = min(a[i], n);
-            prev = seg.add(i + 1, prev, v, i);
-        }
-    }
-
-    int mex(int l, int r) const {
-        int root_id = t[r + 1];
-        return find_mex(root_id, 0, n, l) + 1;
-    }
-
-private:
-    int find_mex(int curr, int L, int R, int bound) const {
-        if (L == R) 
-            return L;
-        int M = (L + R) >> 1;
-        if (root[child[curr].ff] < bound) {
-            return find_mex(child[curr].ff, L, M, bound);
-        } else {
-            return find_mex(child[curr].ss, M + 1, R, bound);
-        }
-    }
-};
-
-
-class Solution {
-public:
-    vector<int> smallestMissingValueSubtree(vector<int>& parent, vector<int>& a) {
-        const int n = a.size();
-        vvi graph(n);
-        int rt = -1;
-        for(int i = 0; i < n; i++) {
-            if(parent[i] == -1) rt = i;
-            else graph[parent[i]].pb(i);
-        }
-        GRAPH<int> g(graph, rt);
-        vi b(n);
-        for(int i = 0; i < n; i++) {
-            b[g.tin[i]] = a[i];
-        }
-        mex_tree tree(b);
-        vi res(n);
-        for(int i = 0; i < n; i++) {
-            res[i] = tree.mex(g.tin[i] + 1, g.tout[i + 1]);
-        }
-        return res;
-    }
-};
-
-#ifdef LOCAL
 void solve() {
-    int n; cin >> n;
-    vi parent(n), a(n); cin >> parent >> a;
-    Solution sol;
-    cout << sol.smallestMissingValueSubtree(parent, a) << '\n';
+    int n, q; cin >> n >> q;
+    string a; cin >> a;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vvi next(n, vi(26, -1));
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+        next[node][a[node] - 'a'] = node;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            next[nei] = next[node];
+            dfs(dfs, nei, node);
+        }
+    }; dfs(dfs);
+    GRAPH<int> g(graph);
+    while(q--) {
+        int u, v; cin >> u >> v;
+        string s; cin >> s;
+        u--, v--;
+        int c = g.lca(u, v);
+        const int N = s.size();
+        int l = 0, r = N - 1;
+        int node = u;
+        while(l < N && node != -1) {
+            int nxt = next[node][s[l] - 'a'];
+            if(nxt == -1 || (c != nxt && g.is_ancestor(nxt, c))) break;
+            node = g.parent[nxt];
+            l++;
+        }
+        node = v;
+        while(r >= 0 && node != -1) {
+            int nxt = next[node][s[r] - 'a'];
+            if(nxt == -1 || g.is_ancestor(nxt, c) || nxt == c) break;
+            node = g.parent[nxt];
+            r--;
+        }
+        cout << (l > r ? "Yes" : "No") << '\n';
+    }
 }
 
 signed main() {
@@ -608,7 +480,6 @@ signed main() {
 
     return 0;
 }
-#endif
 
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█

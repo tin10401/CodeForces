@@ -109,7 +109,11 @@ bool circleLineIntersect(const Circle &c, const Point &p1, const Point &p2) { //
 }
 
 pll getMidpointKey(const pll& p1, const pll& p2) { // return the key to determine if two line are parallel
-    return { p1.first + p2.first, p1.second + p2.second };
+    return {p1.ff + p2.ff, p1.ss + p2.ss};
+}
+
+bool areParallelByMidpoint(const pll& p1, const pll& p2, const pll& q1, const pll& q2) {
+    return getMidpointKey(p1,p2) == getMidpointKey(q1,q2);
 }
 
 vvi rotate90(const vvi matrix) {

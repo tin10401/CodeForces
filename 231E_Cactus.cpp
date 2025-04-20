@@ -239,352 +239,311 @@ string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), 
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
-bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-template<typename T = int>
-class GRAPH {
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(long long v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((long long)value * other.value % MOD); return *this; }
+    mod_int pow(long long p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((long long)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((long long)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((long long)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((long long)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((long long)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend std::ostream& operator<<(std::ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend std::istream& operator>>(std::istream &is, mod_int &a) { long long v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+template<typename T, typename F = function<T(const T&, const T&)>>
+class SparseTable {
 public:
     int n, m;
+    vt<vt<T>> st;
+    vi log_table;
+    F func;
+    
+    SparseTable() {}
+
+    SparseTable(const vt<T>& a, F func) : n(a.size()), func(func) {
+        m = floor(log2(n)) + 1;
+        st.rsz(m);
+        for (int j = 0; j < m; j++) st[j].rsz(n - (1 << j) + 1);
+        log_table.rsz(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) st[0][i] = a[i];
+        for (int j = 1; j < m; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++)
+                st[j][i] = func(st[j - 1][i], st[j - 1][i + (1 << (j - 1))]);
+        }
+    }
+    
+    T query(int L, int R) {
+        int j = log_table[R - L + 1];
+        return func(st[j][L], st[j][R - (1 << j) + 1]);
+    }
+};
+
+template<typename T = int>
+struct LCA_O1 {
+    vi enter;
+    vpii euler;
+    SparseTable<pii> st;
+    int timer;
+    LCA_O1() {}
+    LCA_O1(const vt<vt<T>> &graph, int root = 0) : timer(0) {
+        int n = graph.size();
+        enter.resize(n, -1);
+        dfs(root, -1, 0, graph);
+        st = SparseTable<pii>(euler, [](const pii &a, const pii &b) {
+            return (a.first < b.first) ? a : b;
+        });
+        vpii().swap(euler);
+    }
+    void dfs(int node, int par, int d, const vt<vt<T>> &graph) {
+        enter[node] = timer++;
+        euler.pb({d, node});
+        for(auto& [nxt, _] : graph[node]) {
+            if(nxt == par) continue;
+            dfs(nxt, node, d + 1, graph);
+            euler.pb({d, node});
+            timer++;
+        }
+    }
+    int lca(int u, int v) {
+        int L = min(enter[u], enter[v]);
+        int R = max(enter[u], enter[v]);
+        return st.query(L, R).second;
+    }
+};
+
+template<typename T = int>
+class GRAPH { 
+    public: 
+    int n, m; 
     vvi dp;
-    vi depth, parent, subtree;
+    vi depth, parent, subtree, weight;
     vi tin, tout, low, ord;
     int timer = 0;
-    vt<unsigned> in_label, ascendant;
-    vi par_head;
-    unsigned cur_lab = 1;
-    vt<vt<T>> adj;
-
+    LCA_O1<T> lca_01;
     GRAPH() {}
 
-    GRAPH(const vt<vt<T>>& graph, int root = 0) {
-        adj = graph;
+    GRAPH(const vt<vt<T>>& graph, const vi& weight) : lca_01(graph), depth(weight), weight(weight) {   
         n = graph.size();
         m = log2(n) + 1;
         dp.rsz(n, vi(m));
-        depth.rsz(n);
         parent.rsz(n, -1);
-        subtree.rsz(n, 1);
+		subtree.rsz(n, 1);
         tin.rsz(n);
         tout.rsz(n);
-        ord.rsz(n);
-        dfs(root);
+		ord.rsz(n);
+        dfs(graph);
         init();
-        in_label.rsz(n);
-        ascendant.rsz(n);
-        par_head.rsz(n + 1);
-        sv_dfs1(root);
-        ascendant[root] = in_label[root];
-        sv_dfs2(root);
     }
-
-    void dfs(int node, int par = -1) {
-        tin[node] = timer++;
-        ord[tin[node]] = node;
-        for (auto& nei : adj[node]) {
-            if (nei == par) continue;
-            depth[nei] = depth[node] + 1;
+    
+    void dfs(const vt<vt<T>>& graph, int node = 0, int par = -1) {   
+		tin[node] = timer++;
+		ord[tin[node]] = node;
+        for(auto& [nei, _] : graph[node]) {  
+            if(nei == par) continue;    
+            depth[nei] += depth[node];
             dp[nei][0] = node;
             parent[nei] = node;
-            dfs(nei, node);
-            subtree[node] += subtree[nei];
+			dfs(graph, nei, node);
+			subtree[node] += subtree[nei];
         }
-        tout[node] = timer - 1;
+		tout[node] = timer - 1;
     }
 
-    bool is_ancestor(int par, int child) { return tin[par] <= tin[child] && tin[child] <= tout[par]; }
-
-    void init() {
-        for (int j = 1; j < m; j++)
-            for (int i = 0; i < n; i++)
+    bool isAncestor(int u, int v) { 
+        return tin[u] <= tin[v] && tin[v] <= tout[u]; 
+    }
+    
+    void init() {  
+        for(int j = 1; j < m; j++) {   
+            for(int i = 0; i < n; i++) {    
                 dp[i][j] = dp[dp[i][j - 1]][j - 1];
-    }
-
-    void sv_dfs1(int u, int p = -1) {
-        in_label[u] = cur_lab++;
-        for (auto& v : adj[u]) if (v != p) {
-            sv_dfs1(v, u);
-            if (std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
-                in_label[u] = in_label[v];
-        }
-    }
-
-    void sv_dfs2(int u, int p = -1) {
-        for (auto& v : adj[u]) if (v != p) {
-            ascendant[v] = ascendant[u];
-            if (in_label[v] != in_label[u]) {
-                par_head[in_label[v]] = u;
-                ascendant[v] += in_label[v] & -in_label[v];
-            }
-            sv_dfs2(v, u);
-        }
-    }
-
-    int lift(int u, unsigned j) const {
-        unsigned k = std::__bit_floor(ascendant[u] ^ j);
-        return k == 0 ? u : par_head[(in_label[u] & -k) | k];
-    }
-
-    int lca(int a, int b) {
-        auto [x, y] = std::minmax(in_label[a], in_label[b]);
-        unsigned j = ascendant[a] & ascendant[b] & -std::__bit_floor((x - 1) ^ y);
-        a = lift(a, j);
-        b = lift(b, j);
-        return depth[a] < depth[b] ? a : b;
-    }
-
-    int path_queries(int u, int v) { // lca in logn
-        if(depth[u] < depth[v]) swap(u, v);
-        int diff = depth[u] - depth[v];
-        for (int i = 0; i < m; i++)
-            if (diff & (1 << i)) u = dp[u][i];
-        if (u == v) return u;
-        for (int i = m - 1; i >= 0; --i) {
-            if (dp[u][i] != dp[v][i]) {
-                u = dp[u][i];
-                v = dp[v][i];
             }
         }
-        return parent[u];
+    }
+	
+    int lca(int a, int b) { 
+        return lca_01.lca(a, b);
+    }
+	
+	int dist(int u, int v) {    
+        int a = lca_01.lca(u, v);  
+        return depth[u] + depth[v] - 2 * depth[a] + weight[a];
     }
 
-    int dist(int u, int v) {
-        int a = lca(u, v);
-        return depth[u] + depth[v] - 2 * depth[a];
-    }
-
-    int kth_ancestor(int a, ll k) {
-        if (k > depth[a]) return -1;          
-        for (int i = m - 1; i >= 0 && a != -1; --i)
-            if ((k >> i) & 1) a = dp[a][i];
+	int k_ancestor(int a, int k) {
+        for(int i = m - 1; i >= 0; i--) {   
+            if((k >> i) & 1) a = dp[a][i];
+        }
         return a;
     }
 
-    int kth_ancestor_on_path(int u, int v, ll k) {
-        int d = dist(u, v);
-        if (k >= d) return v;
-        int w  = lca(u, v);
-        int du = depth[u] - depth[w];
-        if (k <= du) return kth_ancestor(u, k);
-        int rem = k - du;
-        int dv  = depth[v] - depth[w];
-        return kth_ancestor(v, dv - rem);
+    int rooted_lca(int a, int b, int c) { // determine if 3 points are in the same path
+        return lca(a, c) ^ lca(a, b) ^ lca(b, c);
     }
 
-    int max_intersection(int a, int b, int c) { // # of common intersection between path(a, c) OR path(b, c)
-        auto cal = [&](int u, int v, int goal){
-            return (dist(u, goal) + dist(v, goal) - dist(u, v)) / 2 + 1;
-        };
-        int res = 0;
-        res = max(res, cal(a, b, c));
-        res = max(res, cal(a, c, b));
-        res = max(res, cal(b, c, a));
-        return res;
-    }
-
-    int rooted_lca(int a, int b, int c) { return lca(a, c) ^ lca(a, b) ^ lca(b, c); } 
-
-    int next_on_path(int u, int v) { // closest_next_node from u to v
-        if(u == v) return -1;
-        if(is_ancestor(u, v)) return kth_ancestor(v, depth[v] - depth[u] - 1);
-        return parent[u];
+    int rooted_parent(int u, int v) { // move one level down from u closer to v
+        return k_ancestor(v, depth[v] - depth[u] - 1);
     }
 
     void reroot(int root) {
         fill(all(parent), -1);
-        timer = 0;
         dfs(root);
         init();
-        cur_lab = 1;
-        sv_dfs1(root);
-        ascendant[root] = in_label[root];
-        sv_dfs2(root);
-    }
-
-    int comp_size(int c,int v){
-        if(parent[v] == c) return subtree[v];
-        return n - subtree[c];
-    }
-
-    int rooted_lca_potential_node(int a, int b, int c) { // # of nodes where rooted at will make lca(a, b) = c
-        if(rooted_lca(a, b, c) != c) return 0;
-        int v1 = next_on_path(c, a);
-        int v2 = next_on_path(c, b);
-        return n - (v1 == -1 ? 0 : comp_size(c, v1)) - (v2 == -1 ? 0 : comp_size(c, v2));
-
     }
 };
 
-// PERSISTENT SEGTREE
-int t[MX * MK], ptr, root[MX * 100]; // log2 = MX * 200; careful to match root with the type of template below
-pii child[MX * 100]; // maybe * 120
-template<class T>
-struct PSGT {
-    int n;
-    T DEFAULT;
-    void assign(int n, T DEFAULT) {
-        this->DEFAULT = DEFAULT;
-        this->n = n;
-    }
-
-	void update(int &curr, int prev, int id, T delta, int left, int right) {  
-//        if(!curr) curr = ++ptr; // 2d seg to save space
-        root[curr] = root[prev];    
-        child[curr] = child[prev];
-        if(left == right) { 
-			root[curr] = delta;
-            return;
+struct Tarjan {
+    int n, m;
+    vi tin, low, belong, bridges, size;
+    vvpii graph;
+    stack<int> s;
+    int timer, comp;
+    Tarjan(const vvpii& graph, int edges_size) : m(edges_size), graph(graph), timer(0), n(graph.size()), comp(0) {
+        tin.rsz(n);
+        low.rsz(n);
+        bridges.rsz(edges_size);
+        belong.rsz(n);
+        for(int i = 0; i < n; i++) {
+            if(!tin[i]) {
+                dfs(i);
+            }
         }
-        int middle = midPoint;
-        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
-        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-//        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // 2d seg
-//        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
     }
 
-	T queries_at(int curr, int start, int end, int left, int right) { 
-        if(!curr || left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[curr];
-        int middle = midPoint;  
-		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
+    void dfs(int node = 0, int par = -1) {
+        s.push(node);
+        low[node] = tin[node] = ++timer;
+        for(auto& [nei, id] : graph[node]) {  
+            if(id == par) continue;
+            if(!tin[nei]) {   
+                dfs(nei, id);
+                low[node] = min(low[node], low[nei]);   
+                if(low[nei] > tin[node]) {  
+                    bridges[id] = true;
+                }
+            }
+            else {  
+                low[node] = min(low[node], tin[nei]);
+            }
+        }
+        if(low[node] == tin[node]) {
+            int now = comp++;
+            int cnt = 0;
+            while(true) {
+                int u = s.top(); s.pop();
+                belong[u] = now;
+                cnt++;
+                if(u == node) break;
+            }
+            size.pb(cnt);
+        }
     };
 
-        
-    T get(int curr, int prev, int k, int left, int right) {    
-        if(root[curr] - root[prev] < k) return DEFAULT;
-        if(left == right) return left;
-        int leftCount = root[child[curr].ff] - root[child[prev].ff];
-        int middle = midPoint;
-        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
-        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
-    }
-
-    T get(int l, int r, int k) {
-        return get(t[r], t[l - 1], k, 0, n - 1);
-    }
-	
-	int find_k(int i, int k) {
-        return find_k(t[i], k, 0, n - 1);
-    }
-
-    int find_k(int curr, int k, int left, int right) {
-        if(root[curr] < k) return inf;
-        if(left == right) return left;
-        int middle = midPoint;
-        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
-        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
-    }
-
-
-    void reset() {  
-        for(int i = 0; i <= ptr; i++) { 
-            root[i] = 0;
-            child[i] = {0, 0};
+    pair<int, vvpii> compress_graph(vpii& edges) { // return a root of 1 degree and a bridge graph
+        assert(m == edges.size());
+        vi degree(comp);
+        vvpii G(comp);
+        for(int i = 0; i < m; i++) {
+            if(!bridges[i]) continue;
+            auto& [u, v] = edges[i];
+            u = belong[u], v = belong[v];
+            assert(u != v);
+            G[u].pb({v, i});
+            G[v].pb({u, i});
+            degree[u]++;
+            degree[v]++;
         }
-		for(int i = 0; i < (int)(sizeof(t)/sizeof(t[0])); i++){
-            t[i] = 0;
+        int root = -1;
+        for(int i = 0; i < comp; i++) {
+            if(degree[i] == 1) {
+                root = i;
+                break;
+            }
         }
-        ptr = 0;
-    }
-
-    int add(int i, int prev, int id, T delta) { 
-        t[i] = ++ptr;
-        update(t[i], prev, id, delta, 0, n - 1); 
-        return t[i];
-//        while(i < n) { 
-//            update(t[i], t[i], id, delta, 0, n - 1);
-//            i |= (i + 1);
-//        }
-    }
-
-    T queries_at(int i, int start, int end) {
-        return queries_at(t[i], start, end, 0, n - 1);
-//        while(i >= 0) {
-//            res += queries(t[i], start, end, 0, n - 1);
-//            i = (i & (i + 1)) - 1;
-//        }
-    }
-
-	T queries_range(int l, int r, int low, int high) {
-        if(l > r || low > high) return DEFAULT;
-        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
-        auto R = queries_at(r, low, high);
-        return R - L;
-    }
-
-    T merge(T left, T right) {
-        return min(left, right);
+        return {root, G};
     }
 };
 
-struct mex_tree {
-    PSGT<int> seg;
-    int n;
-
-    mex_tree(const vector<int>& a) {
-        int m = a.size();
-        n = m;
-        seg.reset();
-        seg.assign(n + 1, inf);
-        int prev = 0;
-        for(int i = 0; i <= n; i++) {
-            prev = seg.add(prev, prev, i, -1);
-        }
-        for (int i = 0; i < m; ++i) {
-            int v = min(a[i], n);
-            prev = seg.add(i + 1, prev, v, i);
-        }
-    }
-
-    int mex(int l, int r) const {
-        int root_id = t[r + 1];
-        return find_mex(root_id, 0, n, l) + 1;
-    }
-
-private:
-    int find_mex(int curr, int L, int R, int bound) const {
-        if (L == R) 
-            return L;
-        int M = (L + R) >> 1;
-        if (root[child[curr].ff] < bound) {
-            return find_mex(child[curr].ff, L, M, bound);
-        } else {
-            return find_mex(child[curr].ss, M + 1, R, bound);
-        }
-    }
-};
-
-
-class Solution {
-public:
-    vector<int> smallestMissingValueSubtree(vector<int>& parent, vector<int>& a) {
-        const int n = a.size();
-        vvi graph(n);
-        int rt = -1;
-        for(int i = 0; i < n; i++) {
-            if(parent[i] == -1) rt = i;
-            else graph[parent[i]].pb(i);
-        }
-        GRAPH<int> g(graph, rt);
-        vi b(n);
-        for(int i = 0; i < n; i++) {
-            b[g.tin[i]] = a[i];
-        }
-        mex_tree tree(b);
-        vi res(n);
-        for(int i = 0; i < n; i++) {
-            res[i] = tree.mex(g.tin[i] + 1, g.tout[i + 1]);
-        }
-        return res;
-    }
-};
-
-#ifdef LOCAL
 void solve() {
-    int n; cin >> n;
-    vi parent(n), a(n); cin >> parent >> a;
-    Solution sol;
-    cout << sol.smallestMissingValueSubtree(parent, a) << '\n';
+    int n, m; cin >> n >> m;
+    vvpii graph(n);
+    vpii edges;
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        edges.pb({u, v});
+        graph[u].pb({v, i});
+        graph[v].pb({u, i});
+    }
+    vmint p(n + 1);
+    p[0] = 1;
+    for(int i = 1; i <= n; i++) {
+        p[i] = p[i - 1] << 1;
+    }
+    Tarjan t(graph, m);
+    const int N = t.comp;
+    vi weight(N);
+    for(int i = 0; i < N; i++) {
+        weight[i] = int(t.size[i] > 1);
+    }
+    auto [root, G] = t.compress_graph(edges);
+    GRAPH<pii> g(G, weight);
+    int q; cin >> q;
+    while(q--) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        u = t.belong[u], v = t.belong[v];
+        cout << p[g.dist(u, v)] << '\n';
+    }
 }
 
 signed main() {
@@ -608,7 +567,6 @@ signed main() {
 
     return 0;
 }
-#endif
 
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█

@@ -2,37 +2,57 @@ template<typename T>
 class Treap {
 private:
     struct TreapNode {
-        int pri, size, f;
-        T key;
+        int pri, size, reverse;
+        T key, ans, lazy;
+        ll pref[2], suff[2];
         TreapNode* left;
         TreapNode* right;
         
-        TreapNode(T key) : f(0), key(key), pri(rand()), size(1), left(nullptr), right(nullptr) {}
+        TreapNode(T key) : reverse(0), key(key), ans(-1), pri(rand()), size(1), left(nullptr), right(nullptr) {}
     };
 
     TreapNode* root;
 
     int size(TreapNode* treap) {
-        if (!treap) return 0;
-        return treap->size;
+        return !treap ? 0 : treap->size;
+    }
+    
+    T get_ans(TreapNode* treap) {
+        return !treap ? -1 : treap->ans;
+    }
+    
+    ll get_pref(TreapNode* treap, int i) {
+        return !treap ? 0 : (treap->reverse ? treap->suff[i] : treap->pref[i]);
+    }
+
+    ll get_suff(TreapNode* treap, int i) {
+        return !treap ? 0 : (treap->reverse ? treap->pref[i] : treap->suff[i]);
     }
     
     void unite(TreapNode* treap) {  
-        treap->size = size(treap->left) + size(treap->right) + 1;
-    }
-
-    T flip(T bit) { 
-        return !bit;
-    }
-
-    void apply(TreapNode* treap) {  
         if(!treap) return;
-        if(treap->f) {  
-            swap(treap->left, treap->right);
-            if(treap->left) treap->left->f ^= 1;    
-            if(treap->right) treap->right->f ^= 1;
-            treap->f = 0;
-        }
+        treap->size = size(treap->left) + size(treap->right) + 1;
+//        for(int i = 0; i < HASH_COUNT; i++) {
+//            treap->pref[i] = (get_pref(treap->left, i) + (p[i][size(treap->left)] * treap->key) % mod[i] + (get_pref(treap->right, i) * p[i][size(treap->left) + 1]) % mod[i]) % mod[i];
+//            treap->suff[i] = (get_suff(treap->right, i) + (p[i][size(treap->right)] * treap->key) % mod[i] + (get_suff(treap->left, i) * p[i][size(treap->right) + 1]) % mod[i]) % mod[i];
+//        }
+    }
+
+	void apply(TreapNode*treap, int flag, T val = 0) {
+        if(!treap) return;
+        treap->key += val;
+        treap->lazy += val;
+        treap->reverse ^= flag;
+    }
+
+    void push(TreapNode* treap) {  
+        if(!treap) return;
+        if(treap->reverse) swap(treap->left, treap->right);
+        apply(treap->left, treap->reverse, treap->lazy);
+        apply(treap->right, treap->reverse, treap->lazy);
+        treap->lazy = 0;
+        treap->reverse = 0;
+        unite(treap);
     }
 
     void split(TreapNode* treap, TreapNode*& left, TreapNode*& right, int k) {
@@ -40,12 +60,12 @@ private:
             left = right = nullptr;
             return;
         }
-        apply(treap);
-        if (size(treap->left) >= k) { // treap->key > k
+        push(treap);
+        if ((by_value ? (treap->key > k) : (size(treap->left) >= k))) { 
             split(treap->left, left, treap->left, k);
             right = treap;
         } else {
-            split(treap->right, treap->right, right, k - size(treap->left) - 1); // careful when split by value
+            split(treap->right, treap->right, right, k - (by_value ? 0 : (size(treap->left) + 1)));
             left = treap;
         }
         unite(treap);
@@ -57,11 +77,11 @@ private:
             return;
         }
         if(left->pri < right->pri) {
-            apply(left);
+            push(left);
             merge(left->right, left->right, right);
             treap = left;
         } else {
-            apply(right);
+            push(right);
             merge(right->left, left, right->left);
             treap = right;
         }
@@ -76,29 +96,25 @@ private:
     }
 
 public:
-    Treap() : root(nullptr) {}
+    bool by_value;
+    Treap(bool by_value = false) : root(nullptr), by_value(by_value) {} // all one base indexing
     
     ~Treap() {
         destroy(root);
     }
 
     void insert(T key) { 
+        if(!by_value) {
+            merge(root, root, new TreapNode(key));
+            return;
+        }
+        TreapNode* A;
+        split(root, root, A, key - 1);
         merge(root, root, new TreapNode(key));
+        merge(root, root, A);
     }
     
-	void split_and_reverse(int l, int r) { // off_set by 1
-        TreapNode* A, *B;
-        split(root, root, A, l - 1); 
-        split(A, A, B, r - l + 1);
-        if(A) { 
-            A->f ^= 1;  
-            apply(A);
-        }
-        merge(root, root, A);   
-        merge(root, root, B);
-    }
-	
-	void insert_at(int k, T x) { // one base index
+	void insert_at(int k, T x) {
         if(size(root) < k) {
             insert(x);
             return;
@@ -109,29 +125,71 @@ public:
         merge(root, root, A);
     }
 
-    void erase_at(int k) { // one base index
+    void split_and_insert_at(int l, int r, int k) {
+        // split s[l, r], concatnate t = s[1, l - 1] + s[r + 1, n], then insert s[i, j] at kth position of the t string
+        TreapNode *A, *B;
+        split(root, root, A, l - 1);
+        split(A, A, B, r - l + 1);
+        merge(root, root, B);
         if(size(root) < k) {
-            cout << "Can't erase" << endl;
+            merge(root, root, A);
             return;
         }
-        TreapNode*A, *B;
-        split(root, root, A, k - 1);
-        split(A, A, B, 1);
-        merge(root, root, B);
-    }
-	
-	void update_at(int k, T x) {
-        if(size(root) < k) return;
-        TreapNode*A, *B;
-        split(root, root, A, k - 1);
-        split(A, A, B, 1);
-        A = new TreapNode(x);
+        split(root, root, B, k);
         merge(root, root, A);
         merge(root, root, B);
     }
 
-	
-	void split_and_swap(int k) { // off_set by 1
+    bool is_palindrome(int l, int r) { // https://csacademy.com/contest/archive/task/strings/statement/
+        TreapNode *leftTree = nullptr, *midTree = nullptr, *rightTree = nullptr;
+        split(root, leftTree, rightTree, l - 1);
+        split(rightTree, midTree, rightTree, r - l + 1);
+        int sz = size(midTree);
+        int half = sz / 2;
+        TreapNode *leftHalf = nullptr, *rightHalf = nullptr, *middleChar = nullptr;
+        if (sz % 2 == 0) {
+            split(midTree, leftHalf, rightHalf, half);
+        } else {
+            split(midTree, leftHalf, rightHalf, half);
+            split(rightHalf, middleChar, rightHalf, 1);
+        }
+        bool ok = true;
+        for (int i = 0; i < 2; i++) {
+            ok &= (get_pref(leftHalf, i) == get_suff(rightHalf, i));
+        }
+        if (middleChar != nullptr) {
+            merge(rightHalf, middleChar, rightHalf);
+            merge(midTree, leftHalf, rightHalf);
+        } else {
+            merge(midTree, leftHalf, rightHalf);
+        }
+        merge(rightTree, midTree, rightTree);
+        merge(root, leftTree, rightTree);
+
+        return ok;
+    }
+
+	// update_range, remember to do careful with the split to optimize because the mergetreap operations depends on the size of the two treap
+    // example : split root to root and A, update_range from pos to inf, first lazy tag it, then split again from A to A and B with pos - 1
+    // then now only the size of A will get merge, which is more efficient, if you don't do split then the size of B will get merged as well
+	void split_and_apply(int l, int r, T k = 0) { 
+        TreapNode* A, *B;
+        split(root, root, A, l - 1); 
+        split(A, A, B, by_value ? r : r - l + 1);
+        if(A) { 
+            apply(A, 1, k);
+            push(A);
+        }
+        if(by_value) {
+            root = merge_treap(root, A);
+            root = merge_treap(root, B);
+        } else {
+            merge(root, root, A);
+            merge(root, root, B);
+        }
+    }
+
+	void split_and_swap(int k) {
         if(k == 0 || k == size(root)) return; 
         TreapNode* A, *B, *C;
         split(root, root, A, k);
@@ -150,7 +208,25 @@ public:
         merge(root, root, B);
     }
 
-    T get(int k) {  
+    void erase_at(int k) { 
+        assert(size(root) >= k);
+        TreapNode*A, *B;
+        split(root, root, A, k - 1);
+        split(A, A, B, 1);
+        merge(root, root, B);
+    }
+	
+	void update_at(int k, T x) {
+        if(size(root) < k) return;
+        TreapNode*A, *B;
+        split(root, root, A, k - 1);
+        split(A, A, B, 1);
+        A = new TreapNode(x);
+        merge(root, root, A);
+        merge(root, root, B);
+    }
+
+    T queries_at(int k) {  
         TreapNode* A, *B, *C;   
         split(root, A, B, k - 1);
         split(B, B, C, 1);  
@@ -163,15 +239,14 @@ public:
 	T queries_range(int l, int r) {
         TreapNode*A, *B;
         split(root, root, A, l - 1);
-        split(A, A, B, r - l + 1);
-        T res = A->inf.ans;
+        split(A, A, B, (!by_value ? r - l + 1 : r));
+        T res = get_ans(A);
         merge(root, root, A);
         merge(root, root, B);
-        return res;
+        return res == INF ? -1 : res;
     }
 
-	
-	TreapNode* erase(int l, int r) {
+	TreapNode* erase_range(int l, int r) {
         TreapNode* A, *B;
         split(root, root, A, l - 1);
         split(A, A, B, r);
@@ -179,30 +254,17 @@ public:
         return A;
     }
 
-	void split2(TreapNode* treap, TreapNode*& left, TreapNode*& right, int k) {
-        if (!treap) {
-            left = right = nullptr;
-            return;
-        }
-        apply(treap);
-        if (treap->key > k) { // treap->key > k
-            split2(treap->left, left, treap->left, k);
-            right = treap;
-        } else {
-            split2(treap->right, treap->right, right, k); // careful when split by value
-            left = treap;
-        }
-        unite(treap);
-    }
-
-    TreapNode* merge_treap(TreapNode* A, TreapNode* B) {
-        if(!A) return B;
-        if(!B) return A;
-        if(A->pri < B->pri) swap(A, B);
-        TreapNode*L, *R;
-        split2(B, L, R, A->key);
-        A->left = merge_treap(L, A->left);
-        A->right = merge_treap(A->right, R);
+	TreapNode* merge_treap(TreapNode* A, TreapNode* B) {
+        if (!B) return A;
+        if (!A) return B;
+        push(B);
+        A = merge_treap(A, B->left);
+        A = merge_treap(A, B->right);
+        B->left = B->right = nullptr;
+        TreapNode *L = nullptr, *R = nullptr;
+        split(A, L, R, B->key);
+        merge(L, L, B);
+        merge(A, L, R);
         unite(A);
         return A;
     }
@@ -211,7 +273,6 @@ public:
     void merge_treap(TreapNode* other) {
         root = merge_treap(root, other);
     }
-
     
     void print() {  
         print(root);
@@ -219,10 +280,10 @@ public:
     }
 	
     void print(TreapNode* treap) {  
-        apply(treap);
+        push(treap);
         if(!treap) return;
         print(treap->left); 
-        cout << treap->key;
+        cout << char(treap->key + 'a');
         print(treap->right);
     }
 	
@@ -235,9 +296,119 @@ public:
         merge(root, root, A);
         merge(root, root, B);
     }
-
 };
+
+int L[MX], R[MX], ans[MX], lazy1[MX], lazy2[MX], id[MX], ptr, key[MX], res[MX];
+ull pri[MX];
+int new_node(int K, int Id) {
+    int node = ++ptr;
+    L[ptr] = R[ptr] = ans[ptr] = lazy1[ptr] = lazy2[ptr] = 0;
+    pri[ptr] = rng();
+    key[ptr] = K;
+    id[ptr] = Id;
+    return node;
+}
+template<typename T>
+class Treap {
+private:
+    int root = 0;
  
+	inline void apply(int treap, int c, T val = 0) {
+        if(!treap) return;
+        key[treap] += val;
+        ans[treap] += c;
+        lazy2[treap] += c;
+        lazy1[treap] += val;
+    }
+ 
+    inline void push(int treap) {  
+        if(!treap || lazy2[treap] == 0) return;
+        apply(L[treap], lazy2[treap], lazy1[treap]);
+        apply(R[treap], lazy2[treap], lazy1[treap]);
+        lazy2[treap] = lazy1[treap] = 0;
+    }
+ 
+    inline void split(int treap, int& left, int& right, int k) {
+        if (!treap) {
+            left = right = 0;
+            return;
+        }
+        push(treap);
+        if ((key[treap] > k)) { 
+            split(L[treap], left, L[treap], k);
+            right = treap;
+        } else {
+            split(R[treap], R[treap], right, k);
+            left = treap;
+        }
+    }
+ 
+	inline void merge(int& treap, int left, int right) {
+        if (!left || !right) {
+            treap = left ? left : right;
+            return;
+        }
+        if(pri[left] < pri[right]) {
+            push(left);
+            merge(R[left], R[left], right);
+            treap = left;
+        } else {
+            push(right);
+            merge(L[right], left, L[right]);
+            treap = right;
+        }
+    }
+ 
+public:
+    bool by_value;
+    Treap(bool by_value = false) : root(0), by_value(by_value) {} // all one base indexing
+ 
+    inline void insert(T key, int id) { 
+        int A = 0;
+        split(root, root, A, key - 1);
+        merge(root, root, new_node(key, id));
+        merge(root, root, A);
+    }
+ 
+	inline void split_and_apply(int l, T k = 0) { 
+        int A = 0, B = 0;
+        split(root, root, A, l - 1); 
+        if(A) { 
+            apply(A, 1, k);
+            push(A);
+        }
+        split(A, A, B, l - 1);
+        root = merge_treap(root, A);
+        merge(root, root, B);
+    }
+ 
+ 
+    int merge_treap(int A, int B) {
+        if (!B) return A;
+        push(B);
+        A = merge_treap(A, L[B]);
+        A = merge_treap(A, R[B]);
+        L[B] = R[B] = 0;
+        int tx = 0, ty = 0;
+        split(A, tx, ty, key[B]);
+        merge(tx, tx, B);
+        merge(A, tx, ty);
+        return A;
+    }
+    
+    inline void print() {  
+        print(root);
+    }
+	
+    inline void print(int treap) {  
+        push(treap);
+        if(!treap) return;
+        print(L[treap]); 
+        res[id[treap]] = ans[treap];
+        print(R[treap]);
+    }
+};
+
 template<class T, typename F = function<T(const T&, const T&)>>
 class FW {  
     public: 
@@ -246,14 +417,14 @@ class FW {
     T DEFAULT;
     F func;
     FW() {}
-    FW(int n, T DEFAULT, F func) : func(func) { 
+    FW(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : func(func) { 
         this->n = n;    
         this->DEFAULT = DEFAULT;
         N = log2(n);
         root.rsz(n, DEFAULT);
     }
     
-    void update_at(int id, T val) {  
+    inline void update_at(int id, T val) {  
         assert(id >= 0);
         while(id < n) {    
             root[id] = func(root[id], val);
@@ -261,7 +432,7 @@ class FW {
         }
     }
     
-    T get(int id) {   
+    inline T get(int id) {   
         assert(id < n);
         T res = DEFAULT;
         while(id >= 0) { 
@@ -271,19 +442,19 @@ class FW {
         return res;
     }
 
-    T queries_range(int left, int right) {  
+    inline T queries_range(int left, int right) {  
         return get(right) - get(left - 1);
     }
 
-    T queries_at(int i) {
+    inline T queries_at(int i) {
         return queries_range(i, i);
     }
 
-    void update_range(int l, int r, T val) {
+    inline void update_range(int l, int r, T val) {
         update_at(l, val), update_at(r + 1, -val);
     }
 	
-	void reset() {
+	inline void reset() {
 		root.assign(n, DEFAULT);
 	}
 
@@ -297,6 +468,30 @@ class FW {
             }
         }
         return curr + 1;
+    }
+};
+
+template<typename T>
+struct range_fenwick {
+    int n; 
+    FW<T> B1, B2;
+    range_fenwick(int n): n(n), B1(n, 0), B2(n, 0) {}
+
+    inline void update_range(int l, int r, T v){
+        B1.update_at(l, v);        B1.update_at(r + 1, -v);
+        B2.update_at(l, v * (l - 1));  B2.update_at(r + 1, -v * r);
+    }
+
+    inline T prefix(int i){
+        return i * B1.get(i) - B2.get(i);
+    }
+
+    inline T queries_range(int l,int r){
+        return prefix(r) - prefix(l - 1);
+    }
+
+    inline T queries_at(int p) {
+        return prefix(p) - prefix(p - 1);
     }
 };
 
@@ -733,6 +928,48 @@ class SGT {
 	T get() {
 		return root[0];
 	}
+	
+	template<typename Pred> // seg.min_left(ending, [](const int& a) {return a > 0;});
+        int min_left(int ending, Pred f) { // min index where f[l, ending] is true
+            return find_left(entireTree, ending, f);
+        }
+
+    template<typename Pred>
+        int max_right(int starting, Pred f) {
+            return find_right(entireTree, starting, f);
+        }
+
+    template<typename Pred>
+        int find_left(iter, int end, Pred f) {
+            pushDown;
+            if (left > end) return -2;
+            if (f(root[i])) return left;
+            if (left == right) return -1;
+            int middle = midPoint;
+            int r = find_left(rp, end, f);
+            if (r == -2) return find_left(lp, end, f);
+            if (r == middle + 1) {
+                int l = find_left(lp, end, f);
+                if (l != -1) return l;
+            }
+            return r;
+        }
+
+    template<typename Pred>
+        int find_right(iter, int start, Pred f) {
+            pushDown;
+            if (right < start) return -2;
+            if (f(root[i])) return right;
+            if (left == right) return -1;
+            int middle = midPoint;
+            int l = find_right(lp, start, f);
+            if (l == -2) return find_right(rp, start, f);
+            if (l == middle) {
+                int r = find_right(rp, start, f);
+                if (r != -1) return r;
+            }
+            return l;
+        }
 };
 
 //    T merge(const T &left, const T &right) {
@@ -816,6 +1053,7 @@ public:
     int n, size, h;
     vt<T> seg;
     vt<I> lazy;
+    vi L, R;
     F f;
     T default_val;
     
@@ -826,14 +1064,24 @@ public:
         while(size < n) size <<= 1;
         seg.assign(size << 1, default_val);
         lazy.assign(size << 1, 0);
+        L.assign(size << 1, 0);
+        R.assign(size << 1, 0);
         h = 0;
         for(int i = size; i > 0; i >>= 1)
             h++;
+        for (int i = 0; i < size; i++) {
+            L[size + i] = i;
+            R[size + i] = i;
+        }
+        for (int i = size - 1; i > 0; i--) {
+            L[i] = L[i << 1];
+            R[i] = R[i << 1 | 1];
+        }
     }
-	
-	T get() {
-		return seg[1];
-	}
+    
+    T get() {
+        return seg[1];
+    }
     
     inline void update_at(int idx, T val) {
         if(idx < 0 || idx >= n) return;
@@ -845,14 +1093,14 @@ public:
     
     inline void update_range(int l, int r, I val) {
         if(l < 0 || r >= n || l > r) return;
-        int L = l + size, R = r + size;
-        int l0 = L, r0 = R;
-        push_to(L);
-        push_to(R);
-        while(L <= R) {
-            if(L & 1) { apply(L, val); L++; }
-            if(!(R & 1)) { apply(R, val); R--; }
-            L >>= 1; R >>= 1;
+        int Lq = l + size, Rq = r + size;
+        push_to(Lq);
+        push_to(Rq);
+        int l0 = Lq, r0 = Rq;
+        while(Lq <= Rq) {
+            if(Lq & 1) { apply(Lq, val); Lq++; }
+            if(!(Rq & 1)) { apply(Rq, val); Rq--; }
+            Lq >>= 1; Rq >>= 1;
         }
         rebuild_from(l0);
         rebuild_from(r0);
@@ -860,14 +1108,14 @@ public:
     
     inline T queries_range(int l, int r) {
         if(l < 0 || r >= n || l > r) return default_val;
-        int L = l + size, R = r + size;
-        push_to(L);
-        push_to(R);
+        int Lq = l + size, Rq = r + size;
+        push_to(Lq);
+        push_to(Rq);
         T res_left = default_val, res_right = default_val;
-        while(L <= R) {
-            if(L & 1) res_left = f(res_left, seg[L++]);
-            if(!(R & 1)) res_right = f(seg[R--], res_right);
-            L >>= 1; R >>= 1;
+        while(Lq <= Rq) {
+            if(Lq & 1) res_left = f(res_left, seg[Lq++]);
+            if(!(Rq & 1)) res_right = f(seg[Rq--], res_right);
+            Lq >>= 1; Rq >>= 1;
         }
         return f(res_left, res_right);
     }
@@ -881,9 +1129,8 @@ public:
     
 private:
     inline void apply(int i, I val) {
-        seg[i] += val;
-        if(i < size)
-            lazy[i] += val;
+        seg[i] += (ll) val * (R[i] - L[i] + 1);
+        lazy[i] += val;
     }
     
     inline void push(int i) {
@@ -903,7 +1150,9 @@ private:
     
     inline void rebuild_from(int i) {
         for(i /= 2; i > 0; i /= 2) {
-            seg[i] = f(seg[i << 1], seg[i << 1 | 1]) + lazy[i];
+            seg[i] = f(seg[i << 1], seg[i << 1 | 1]);
+            if(lazy[i] != 0)
+                seg[i] += (ll) lazy[i] * (R[i] - L[i] + 1);
         }
     }
 };
@@ -1186,6 +1435,39 @@ struct PSGT {
     }
 };
 
+struct mex_tree {
+    // change merge to min(left, right)
+    // change the update to be root[curr] = delta;
+    PSGT<int> seg;
+    int n;
+
+    mex_tree(const vector<int>& a, int starting_mex = 0) : n(a.size()) {
+        seg.reset();
+        seg.assign(n + 2, -1);
+        int prev = 0;
+        seg.add(0, prev, 0, starting_mex == 0 ? -1 : inf);
+        for(int i = 1; i <= n + 1; i++) {
+            seg.add(0, prev, i, -1);
+        }
+        for (int i = 0; i < n; ++i) {
+            int v = min(a[i], n + 1);
+            seg.add(i + 1, prev, v, i);
+        }
+    }
+
+    int mex(int l, int r) const {
+        return find_mex(t[r + 1], 0, n + 1, l);
+    }
+
+private:
+    int find_mex(int curr, int L, int R, int bound) const {
+        if (L == R) return L;
+        int M = (L + R) >> 1;
+        if (root[child[curr].ff] < bound) return find_mex(child[curr].ff, L, M, bound);
+        return find_mex(child[curr].ss, M + 1, R, bound);
+    }
+};
+
 // you have to set up by assigning size and updating from 0 to n - 1 first
 const int MM = MX * 150;
 int t[MX], ptr;
@@ -1460,6 +1742,35 @@ class MO {
 };
 
 template<typename T, typename F = function<T(const T&, const T&)>>
+class SparseTable {
+public:
+    int n, m;
+    vt<vt<T>> st;
+    vi log_table;
+    F func;
+    
+    SparseTable() {}
+
+    SparseTable(const vt<T>& a, F func) : n(a.size()), func(func) {
+        m = floor(log2(n)) + 1;
+        st.resize(m);
+        for (int j = 0; j < m; j++) st[j].resize(n - (1 << j) + 1);
+        log_table.resize(n + 1);
+        for (int i = 2; i <= n; i++) log_table[i] = log_table[i / 2] + 1;
+        for (int i = 0; i < n; i++) st[0][i] = a[i];
+        for (int j = 1; j < m; j++) {
+            for (int i = 0; i + (1 << j) <= n; i++)
+                st[j][i] = func(st[j - 1][i], st[j - 1][i + (1 << (j - 1))]);
+        }
+    }
+    
+    T query(int L, int R) {
+        int j = log_table[R - L + 1];
+        return func(st[j][L], st[j][R - (1 << j) + 1]);
+    }
+};
+
+template<typename T, typename F = function<T(const T&, const T&)>>
 class SparseTable2D {
 public:
     int n, m, LOGN, LOGM;
@@ -1512,6 +1823,57 @@ public:
           a3 = st[k][l][r1][c2 - (1 << l) + 1],
           a4 = st[k][l][r2 - (1 << k) + 1][c2 - (1 << l) + 1];
         return f(f(a1, a2), f(a3, a4));
+    }
+};
+
+template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
+struct linear_rmq {
+    const vt<T>& values;
+    F compare;
+    vi head;
+    vt<array<unsigned,2>> masks;
+
+    linear_rmq(const vt<T>& arr, F cmp = F{})
+      : values(arr), compare(cmp),
+        head(arr.size()+1),
+        masks(arr.size())
+    {
+        vi monoStack{-1};
+        int n = arr.size();
+        for (int i = 0; i <= n; i++) {
+            int last = -1;
+            while (monoStack.back() != -1 &&
+                   (i == n || !compare(values[monoStack.back()], values[i])))
+            {
+                if (last != -1) head[last] = monoStack.back();
+                unsigned diffBit = __bit_floor(unsigned(monoStack.end()[-2] + 1) ^ i);
+                masks[monoStack.back()][0] = last = (i & -diffBit);
+                monoStack.pop_back();
+                masks[monoStack.back() + 1][1] |= diffBit;
+            }
+            if (last != -1) head[last] = i;
+            monoStack.pb(i);
+        }
+        for (int i = 1; i < n; i++) {
+            masks[i][1] = (masks[i][1] | masks[i-1][1])
+                        & -(masks[i][0] & -masks[i][0]);
+        }
+    }
+
+    T query(int L, int R) const {
+        unsigned common = masks[L][1] & masks[R][1]
+                        & -__bit_floor((masks[L][0] ^ masks[R][0]) | 1);
+        unsigned k = masks[L][1] ^ common;
+        if (k) {
+            k = __bit_floor(k);
+            L = head[(masks[L][0] & -k) | k];
+        }
+        k = masks[R][1] ^ common;
+        if (k) {
+            k = __bit_floor(k);
+            R = head[(masks[R][0] & -k) | k];
+        }
+        return compare(values[L], values[R]) ? values[L] : values[R];
     }
 };
 
@@ -2169,87 +2531,428 @@ public:
     }
 };
 
-struct Node {
-    int ch[2] = {0, 0};
-    int fa = 0;       
-    int size = 0;     
+struct LCT {
+    struct Node {
+        int p = 0;
+        int sz = 1;
+        int c[2] = {0, 0};
+        ll val = 0, sm = 0, mn = INF, mx = -INF, lazy_set = INF, lazy_add = 0;
+        bool flip = false;
+        Node() {}
+        Node(ll v)
+            : p(0), sz(1), val(v), sm(v), mn(v), mx(v),
+            lazy_set(INF), lazy_add(0), flip(false) {
+                c[0] = c[1] = 0;
+            }
+    };
+    vt<Node> T;
+    LCT() {}
+    LCT(int N) : T(N + 1) {}
+    LCT(int N, const vll& A)
+      : T(N + 1) {
+        for (int i = 1; i <= N; ++i) {
+            T[i] = Node(A[i]);
+        }
+    }
+
+    bool notRoot(int x) {
+        int p = T[x].p;
+        return p && (T[p].c[0] == x || T[p].c[1] == x);
+    }
+
+    void push(int x) {
+        if (!x) return;
+        int l = T[x].c[0], r = T[x].c[1];
+
+        if (T[x].flip) {
+            swap(T[x].c[0], T[x].c[1]);
+            if (l) apply_flip(l);
+            if (r) apply_flip(r);
+            T[x].flip = false;
+        }
+
+        if (T[x].lazy_set != INF) {
+            if (l) apply_set(l, T[x].lazy_set);
+            if (r) apply_set(r, T[x].lazy_set);
+            T[x].lazy_set = INF;
+        }
+
+        if (T[x].lazy_add) {
+            if (l) apply_add(l, T[x].lazy_add);
+            if (r) apply_add(r, T[x].lazy_add);
+            T[x].lazy_add = 0;
+        }
+    }
+
+    void pull(int x) {
+        push(T[x].c[0]);
+        push(T[x].c[1]);
+        int l = T[x].c[0], r = T[x].c[1];
+        T[x].sz = 1 + (l ? T[l].sz : 0) + (r ? T[r].sz : 0);
+        T[x].sm = T[x].val + (l ? T[l].sm : 0) + (r ? T[r].sm : 0);
+        T[x].mn = min({T[x].val, l ? T[l].mn : INF, r ? T[r].mn : INF});
+        T[x].mx = max({T[x].val, l ? T[l].mx : -INF, r ? T[r].mx : -INF});
+    }
+
+    void apply_add(int x, ll v) {
+        if (!x) return;
+        T[x].lazy_add += v;
+        T[x].val += v;
+        T[x].sm += v * T[x].sz;
+        T[x].mn += v;
+        T[x].mx += v;
+    }
+
+    void apply_set(int x, ll v) {
+        if (!x) return;
+        T[x].lazy_set = v;
+        T[x].lazy_add = 0;
+        T[x].val = v;
+        T[x].sm = v * T[x].sz;
+        T[x].mn = T[x].mx = v;
+    }
+
+    void apply_flip(int x) {
+        if(x) T[x].flip = !T[x].flip;
+    }
+
+    void rotate(int x) {
+        int p = T[x].p;
+        int g = T[p].p;
+        int d = (T[p].c[1] == x);
+        if(notRoot(p)) T[g].c[T[g].c[1] == p] = x;
+        T[x].p = g;
+        T[p].c[d] = T[x].c[d ^ 1];
+        if (T[p].c[d]) T[T[p].c[d]].p = p;
+        T[x].c[d ^ 1] = p;
+        T[p].p = x;
+        pull(p);
+        pull(x);
+    }
+
+    void splay(int x) {
+        static vi stk;
+        int y = x;
+        stk.pb(y);
+        while (notRoot(y)) {
+            y = T[y].p;
+            stk.pb(y);
+        }
+        while(!stk.empty()) {
+            push(stk.back());
+            stk.pop_back();
+        }
+        while (notRoot(x)) {
+            int p = T[x].p;
+            int g = T[p].p;
+            if (notRoot(p)) {
+                bool dx = (T[p].c[0] == x);
+                bool dy = (T[g].c[0] == p);
+                if (dx ^ dy) rotate(x);
+                else rotate(p);
+            }
+            rotate(x);
+        }
+    }
+
+    int access(int x) {
+        int last = 0;
+        for (int y = x; y; y = T[y].p) {
+            splay(y);
+            T[y].c[1] = last;
+            pull(y);
+            last = y;
+        }
+        splay(x);
+        return last;
+    }
+
+    void makeRoot(int x) {
+        access(x);
+        apply_flip(x);
+        push(x);
+    }
+
+	int find_root(int u) {
+        access(u);
+        while(true) {
+            push(u);
+            int c = T[u].c[0];
+            if(!c) break;
+            u = c;
+        }
+        splay(u);
+        return u;
+    }
+
+    bool is_connected(int u, int v) {
+        return find_root(u) == find_root(v);
+    }
+
+    bool link(int u, int v) {
+        if(find_root(u) == find_root(v)) return false;
+        makeRoot(u);
+        T[u].p = v;
+        return true;
+    }
+
+    bool cut(int u, int v) {
+        makeRoot(u);
+        access(v);
+        if (T[v].c[0] == u) {
+            T[T[v].c[0]].p = 0;
+            T[v].c[0] = 0;
+            pull(v);
+            return true;
+        }
+        return false;
+    }
+
+    int get_path(int u, int v) {
+        makeRoot(u);
+        access(v);
+        return v;
+    }
+
+    void update_path(int u, int v, ll k, int type) {
+        int x = get_path(u, v);
+        if(type == 1) apply_set(x, k);
+        else apply_add(x, k);
+        pull(x);
+    }
+
+    Node path_queries(int u, int v) {
+        int x = get_path(u, v);
+        return T[x];
+    }
+
+    int rt = 1;
+    void assign_root(int r) {
+        rt = r;
+    }
+
+    void change_parent(int x, int y) {
+        if (x == lca(x, y)) return;
+        cut(rt, x);
+        link(x, y);
+    }
+
+    int lca(int x, int y) {
+        makeRoot(rt);
+        access(x);
+        return access(y);
+    }
+	
+	bool is_ancestor(int par, int child) {
+        return lca(par, child) == par;
+    }
+};
+
+struct node {
+    int p = 0, c[2] = {0, 0}, pp = 0;
+    bool flip = 0;
+    int sz = 0, ssz = 0, vsz = 0;
+    ll val = 0, sum = 0, lazy = 0, subsum = 0, vsum = 0;
+    node() {}
+    node(int x) {
+        val = x; sum = x;
+        sz = 1; lazy = 0;
+        ssz = 1; vsz = 0;
+        subsum = x; vsum = 0;
+    }
 };
 
 struct LCT {
-    int n;             
-    vector<Node> tree;  
+    vector<node> t;
+    LCT() {}
+    LCT(int n) : t(n + 1) {}
 
-    LCT(int n_) : n(n_) {
-        tree.resize(n + 5);
-        for (int i = 1; i < (int)tree.size(); ++i) // 1 base_index
-            tree[i].size = 1;
+    int dir(int x, int y) { return t[x].c[1] == y; }
+
+    void set(int x, int d, int y) {
+        if (x) t[x].c[d] = y, pull(x);
+        if (y) t[y].p = x;
     }
 
-    inline void update(int x) {
-        if (x == 0)
-            return;
-        tree[x].size = tree[ tree[x].ch[0] ].size + tree[ tree[x].ch[1] ].size + 1;
+    void pull(int x) {
+        if (!x) return;
+        int &l = t[x].c[0], &r = t[x].c[1];
+        push(l); push(r);
+        t[x].sum    = t[l].sum    + t[r].sum    + t[x].val;
+        t[x].sz     = t[l].sz     + t[r].sz     + 1;
+        t[x].ssz    = t[l].ssz    + t[r].ssz    + t[x].vsz + 1;
+        t[x].subsum = t[l].subsum + t[r].subsum + t[x].vsum + t[x].val;
     }
 
-    inline bool be_root(int x) {
-        int f = tree[x].fa;
-        return (tree[f].ch[0] != x && tree[f].ch[1] != x);
-    }
-
-    inline void rotate(int x) {
-        int y = tree[x].fa;
-        int flag = (tree[y].ch[0] == x);
-        int tmp = tree[x].ch[flag];     
-        if (!be_root(y))
-            tree[ tree[y].fa ].ch[ tree[ tree[y].fa ].ch[1] == y ] = x;
-        tree[x].fa = tree[y].fa;       
-        tree[y].fa = x;
-        tree[tmp].fa = tree[x].ch[flag] = y;
-        tree[y].ch[flag ^ 1] = tmp;
-        update(y);
-    }
-
-    inline void splay(int x) {
-        while (!be_root(x)) {
-            int y = tree[x].fa, z = tree[y].fa;
-            if (be_root(y))
-                rotate(x);
-            else {
-                if ((tree[z].ch[0] == y) ^ (tree[y].ch[0] == x)) rotate(x);
-                else rotate(y);
-                rotate(x);
-            }
+    void push(int x) {
+        if (!x) return;
+        int &l = t[x].c[0], &r = t[x].c[1];
+        if (t[x].flip) {
+            swap(l, r);
+            if (l) t[l].flip ^= 1;
+            if (r) t[r].flip ^= 1;
+            t[x].flip = 0;
         }
-        update(x);
-    }
-
-    inline void access(int x) {
-        for (int y = 0; x; x = tree[x].fa) {
-            splay(x);
-            tree[x].ch[1] = y;
-            update(x);
-            y = x;
+        if (t[x].lazy) {
+            t[x].val    += t[x].lazy;
+            t[x].sum    += t[x].lazy * t[x].sz;
+            t[x].subsum += t[x].lazy * t[x].ssz;
+            t[x].vsum   += t[x].lazy * t[x].vsz;
+            if (l) t[l].lazy += t[x].lazy;
+            if (r) t[r].lazy += t[x].lazy;
+            t[x].lazy = 0;
         }
     }
 
-    inline pii query(int x) {
-        access(x);
-        splay(n + 1);
-        int tmp = 0;
-        for (tmp = tree[n + 1].ch[1]; tree[tmp].ch[0]; tmp = tree[tmp].ch[0]) {}
-        return {tmp, tree[n + 1].size - 1};
+    void rotate(int x, int d) {
+        int y = t[x].p, z = t[y].p, w = t[x].c[d];
+        swap(t[x].pp, t[y].pp);
+        set(y, !d, w);
+        set(x, d, y);
+        set(z, dir(z, y), x);
     }
 
-    inline void cut(int x, int y) {
-        access(x);
-        splay(y);
-        tree[y].ch[1] = 0;
-        tree[x].fa = 0;
-        update(y);
+    void splay(int x) {
+        for (push(x); t[x].p;) {
+            int y = t[x].p, z = t[y].p;
+            push(z); push(y); push(x);
+            int dx = dir(y, x), dy = dir(z, y);
+            if (!z)           rotate(x, !dx);
+            else if (dx == dy) rotate(y, !dx), rotate(x, !dx);
+            else               rotate(x, dy), rotate(x, dx);
+        }
     }
 
-    inline void link(int x, int y) {
-        tree[x].fa = y;
+    void make_root(int u) {
+        access(u);
+        int l = t[u].c[0];
+        t[l].flip ^= 1;
+        swap(t[l].p, t[l].pp);
+        t[u].vsz  += t[l].ssz;
+        t[u].vsum += t[l].subsum;
+        set(u, 0, 0);
+    }
+
+    int access(int _u) {
+        int last = _u;
+        for (int v = 0, u = _u; u; u = t[v = u].pp) {
+            splay(u); splay(v);
+            t[u].vsz  -= t[v].ssz;
+            t[u].vsum -= t[v].subsum;
+            int r = t[u].c[1];
+            t[u].vsz  += t[r].ssz;
+            t[u].vsum += t[r].subsum;
+            t[v].pp = 0;
+            swap(t[r].p, t[r].pp);
+            set(u, 1, v);
+            last = u;
+        }
+        splay(_u);
+        return last;
+    }
+
+    void link(int u, int v) {
+        make_root(v);
+        access(u); splay(u);
+        t[v].pp  = u;
+        t[u].vsz += t[v].ssz;
+        t[u].vsum += t[v].subsum;
+    }
+
+    void cut(int u) {
+        access(u);
+        assert(t[u].c[0] != 0);
+        t[t[u].c[0]].p = 0;
+        t[u].c[0] = 0;
+        pull(u);
+    }
+
+    int get_parent(int u) {
+        access(u); splay(u); push(u);
+        u = t[u].c[0]; push(u);
+        while (t[u].c[1]) {
+            u = t[u].c[1]; push(u);
+        }
+        splay(u);
+        return u;
+    }
+
+    int find_root(int u) {
+        access(u); splay(u); push(u);
+        while (t[u].c[0]) {
+            u = t[u].c[0]; push(u);
+        }
+        splay(u);
+        return u;
+    }
+
+    bool connected(int u, int v) { return find_root(u) == find_root(v); }
+
+    int depth(int u) { access(u); splay(u); return t[u].sz; }
+
+    int lca(int u, int v) {
+        if (u == v) return u;
+        if (depth(u) > depth(v)) swap(u, v);
+        access(v);
+        return access(u);
+    }
+
+    int is_root(int u) { return get_parent(u) == 0; }
+
+    int component_size(int u) { return t[find_root(u)].ssz; }
+
+    int subtree_size(int u) {
+        int p = get_parent(u);
+        if (p == 0) return component_size(u);
+        cut(u);
+        int ans = component_size(u);
+        link(p, u);
+        return ans;
+    }
+
+    ll component_sum(int u) { return t[find_root(u)].subsum; }
+
+    ll subtree_sum(int u) {
+        int p = get_parent(u);
+        if (p == 0) return component_sum(u);
+        cut(u);
+        ll ans = component_sum(u);
+        link(p, u);
+        return ans;
+    }
+
+    ll subtree_query(int u, int root) {
+        int cur = find_root(u);
+        make_root(root);
+        ll ans = subtree_sum(u);
+        make_root(cur);
+        return ans;
+    }
+
+    ll query(int u, int v) {
+        int cur = find_root(u);
+        make_root(u); access(v);
+        ll ans = t[v].sum;
+        make_root(cur);
+        return ans;
+    }
+
+    void cut(int u, int v) {
+        make_root(u);
+        cut(v);
+    }
+
+    int comp_size(int u) {
+        int z = find_root(u);
+        int c = t[z].c[1];
+        return t[c].ssz;
+    }
+
+    void update_at(int u, ll v) {
+        access(u);          
+        t[u].val += v;     
+        pull(u);          
+        access(u);       
     }
 };
 
@@ -2600,6 +3303,76 @@ private:
     max_heap<int> left, left_removed;
     min_heap<int> right, right_removed;
     ll left_sum = 0, right_sum = 0;
+};
+
+struct wavelet_tree {
+    int lo, hi;
+    wavelet_tree *l, *r;
+    vector<int> b, c;
+
+    wavelet_tree() : lo(1), hi(0), l(nullptr), r(nullptr) {}
+
+    // Existing pointer-based init function.
+    void init(int *from, int *to, int x, int y) {
+        lo = x, hi = y;
+        if(from >= to) return;
+        int mid = (lo + hi) >> 1;
+        auto f = [mid](int x) { return x <= mid; };
+        int n = to - from;
+        b.resize(n + 2);
+        c.resize(n + 2);
+        b[0] = 0; c[0] = 0;
+        for (int i = 0; i < n; i++) {
+            b[i + 1] = b[i] + f(from[i]);
+            c[i + 1] = c[i] + from[i];
+        }
+        if (hi == lo) return;
+        auto pivot = stable_partition(from, to, f);
+        l = new wavelet_tree();
+        l->init(from, pivot, lo, mid);
+        r = new wavelet_tree();
+        r->init(pivot, to, mid + 1, hi);
+    }
+
+    void init(vector<int> &v, int L, int R) { // init ranging of values
+        init(v.data(), v.data() + v.size(), L, R);
+    }
+
+    int get_kth(int l_idx, int r_idx, int k) {
+        if(l_idx > r_idx) return 0;
+        if(lo == hi) return lo;
+        int inLeft = b[r_idx] - b[l_idx - 1], lb = b[l_idx - 1], rb = b[r_idx];
+        if(k <= inLeft) return this->l->get_kth(lb + 1, rb, k);
+        return this->r->get_kth(l_idx - lb, r_idx - rb, k - inLeft);
+    }
+
+    int count_less_than(int l_idx, int r_idx, int k) {
+        if(l_idx > r_idx || k < lo) return 0;
+        if(hi <= k) return r_idx - l_idx + 1;
+        int lb = b[l_idx - 1], rb = b[r_idx];
+        return this->l->count_less_than(lb + 1, rb, k) + this->r->count_less_than(l_idx - lb, r_idx - rb, k);
+    }
+
+    int count_equal_to(int l_idx, int r_idx, int k) {
+        if(l_idx > r_idx || k < lo || k > hi) return 0;
+        if(lo == hi) return r_idx - l_idx + 1;
+        int lb = b[l_idx - 1], rb = b[r_idx];
+        int mid = (lo + hi) >> 1;
+        if(k <= mid) return this->l->count_equal_to(lb + 1, rb, k);
+        return this->r->count_equal_to(l_idx - lb, r_idx - rb, k);
+    }
+
+    int sum_less_or_equal_to(int l_idx, int r_idx, int k) {
+        if(l_idx > r_idx || k < lo) return 0;
+        if(hi <= k) return c[r_idx] - c[l_idx - 1];
+        int lb = b[l_idx - 1], rb = b[r_idx];
+        return this->l->sum_less_or_equal_to(lb + 1, rb, k) + this->r->sum_less_or_equal_to(l_idx - lb, r_idx - rb, k);
+    }
+
+    ~wavelet_tree() {
+        delete l;
+        delete r;
+    }
 };
 
 struct square_root_decomp {
