@@ -241,198 +241,321 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-namespace IO {
-    const int BUFFER_SIZE = 1 << 15;
- 
-    char input_buffer[BUFFER_SIZE];
-    int input_pos = 0, input_len = 0;
- 
-    void _update_input_buffer() {
-        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
-        input_pos = 0;
- 
-        if (input_len == 0)
-            input_buffer[0] = EOF;
-    }
- 
-    inline char next_char(bool advance = true) {
-        if (input_pos >= input_len)
-            _update_input_buffer();
- 
-        return input_buffer[advance ? input_pos++ : input_pos];
-    }
- 
-    template<typename T>
-    inline void read_int(T &number) {
-        bool negative = false;
-        number = 0;
- 
-        while (!isdigit(next_char(false)))
-            if (next_char() == '-')
-                negative = true;
- 
-        do {
-            number = 10 * number + (next_char() - '0');
-        } while (isdigit(next_char(false)));
- 
-        if (negative)
-            number = -number;
-    }
- 
-    template<typename T, typename... Args>
-    inline void read_int(T &number, Args &... args) {
-        read_int(number);
-        read_int(args...);
-    }
+template<typename T = int>
+class GRAPH {
+public:
+	int n, m;
+    vvi dp;
+    vi parent, subtree;
+    vi tin, tout, low, ord, depth;
+    vll depth_by_weight;
+    vvi weight;
+    int timer = 0;
+    vt<unsigned> in_label, ascendant;
+    vi par_head;
+    unsigned cur_lab = 1;
+    bool need;
+    vt<vt<T>> adj;
 
-    inline ll nxt() {
-        ll x;
-        read_int(x);
-        return x;
-    }
-}
+    GRAPH() {}
 
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
+    GRAPH(const vt<vt<T>>& graph, bool need = true, int root = 0) : need(need) {
+        adj = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+//        depth_by_weight.rsz(n);
+//        weight.rsz(n, vi(m));
+        if(need) {
+            dp.rsz(n, vi(m));
+        }
+        depth.rsz(n);
         parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
+        subtree.rsz(n, 1);
+        tin.rsz(n);
+        tout.rsz(n);
+        ord.rsz(n);
+        dfs(root);
+        if(need) {
+            init();
         }
-    }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
-        }
-        return node;
+        in_label.rsz(n);
+        ascendant.rsz(n);
+        par_head.rsz(n + 1);
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
     }
 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
-    }
-
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
-    }
-
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
-        }
-    }
-
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
-        }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
-        }
-    }
- 
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
-        }
-    }
-
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
+	void dfs(int node, int par = -1) {
+        tin[node] = timer++;
+        ord[tin[node]] = node;
+        for (auto& nei : adj[node]) {
+            if (nei == par) continue;
+            depth[nei] = depth[node] + 1;
+//            depth_by_weight[nei] = depth_by_weight[node] + w;
+//            weight[nei][0] = w;
+            if(need) {
+                dp[nei][0] = node;
             }
+            parent[nei] = node;
+            dfs(nei, node);
+            subtree[node] += subtree[nei];
+        }
+        tout[node] = timer - 1;
+    }
+
+    bool is_ancestor(int par, int child) { return tin[par] <= tin[child] && tin[child] <= tout[par]; }
+
+    void init() {
+        for (int j = 1; j < m; j++)
+            for (int i = 0; i < n; i++) {
+                int p = dp[i][j - 1];
+                //weight[i][j] = max(weight[i][j - 1], weight[p][j - 1]);
+                dp[i][j] = dp[p][j - 1];
+            }
+    }
+
+    void sv_dfs1(int u, int p = -1) {
+        in_label[u] = cur_lab++;
+        for (auto& v : adj[u]) if (v != p) {
+            sv_dfs1(v, u);
+            if (std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
+                in_label[u] = in_label[v];
+        }
+    }
+
+    void sv_dfs2(int u, int p = -1) {
+        for (auto& v : adj[u]) if (v != p) {
+            ascendant[v] = ascendant[u];
+            if (in_label[v] != in_label[u]) {
+                par_head[in_label[v]] = u;
+                ascendant[v] += in_label[v] & -in_label[v];
+            }
+            sv_dfs2(v, u);
+        }
+    }
+
+    int lift(int u, unsigned j) const {
+        unsigned k = std::__bit_floor(ascendant[u] ^ j);
+        return k == 0 ? u : par_head[(in_label[u] & -k) | k];
+    }
+
+    int lca(int a, int b) {
+        if(is_ancestor(a, b)) return a;
+        if(is_ancestor(b, a)) return b;
+        auto [x, y] = std::minmax(in_label[a], in_label[b]);
+        unsigned j = ascendant[a] & ascendant[b] & -std::__bit_floor((x - 1) ^ y);
+        a = lift(a, j);
+        b = lift(b, j);
+        return depth[a] < depth[b] ? a : b;
+    }
+
+    int path_queries(int u, int v) { // lca in logn
+        if(depth[u] < depth[v]) swap(u, v);
+        int res = 0;
+        int diff = depth[u] - depth[v];
+        for (int i = 0; i < m; i++) {
+            if (diff & (1 << i)) { 
+                res = max(res, weight[u][i]);
+                u = dp[u][i]; 
+            }
+        }
+        if (u == v) return res;
+        for (int i = m - 1; i >= 0; --i) {
+            if (dp[u][i] != dp[v][i]) {
+                res = max({res, weight[u][i], weight[v][i]});
+                u = dp[u][i];
+                v = dp[v][i];
+            }
+        }
+        return max({res, weight[u][0], weight[v][0]});
+    }
+
+    int dist(int u, int v) {
+        int a = lca(u, v);
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	ll dist_by_weight(int u, int v) {
+        int a = lca(u, v);
+        return depth_by_weight[u] + depth_by_weight[v] - 2 * depth_by_weight[a];
+    }
+
+    int kth_ancestor(int a, ll k) {
+        if (k > depth[a]) return -1;          
+        for (int i = m - 1; i >= 0 && a != -1; --i)
+            if ((k >> i) & 1) a = dp[a][i];
+        return a;
+    }
+
+    int kth_ancestor_on_path(int u, int v, ll k) {
+        int d = dist(u, v);
+        if (k >= d) return v;
+        int w  = lca(u, v);
+        int du = depth[u] - depth[w];
+        if (k <= du) return kth_ancestor(u, k);
+        int rem = k - du;
+        int dv  = depth[v] - depth[w];
+        return kth_ancestor(v, dv - rem);
+    }
+
+    int max_intersection(int a, int b, int c) { // # of common intersection between path(a, c) OR path(b, c)
+        auto cal = [&](int u, int v, int goal){
+            return (dist(u, goal) + dist(v, goal) - dist(u, v)) / 2 + 1;
         };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-            }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
-        }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-        }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
-        }
+        int res = 0;
+        res = max(res, cal(a, b, c));
+        res = max(res, cal(a, c, b));
+        res = max(res, cal(b, c, a));
+        return res;
+    }
+	
+	int intersection(int a, int b, int c, int d) { // common edges between path[a, b] OR path[c, d]
+        int r1 = lca(a, b), r2 = lca(c, d);
+        int q = depth[r1] > depth[r2] ? r1 : r2;
+        int p = lca(a, c), t = lca(a, d);
+        if (depth[t] > depth[p]) p = t;
+        t = lca(b,c); if (depth[t] > depth[p]) p = t;
+        t = lca(b,d); if (depth[t] > depth[p]) p = t;
+        if (depth[p] < depth[q]) return 0;
+        return depth[p] - depth[q];
     }
 
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
+    bool is_continuous_chain(int a, int b, int c, int d) { // determine if path[a, b][b, c][c, d] don't have any intersection
+        return dist(a, b) <= dist(a, c) && dist(d, c) <= dist(d, b) && intersection(a, b, c, d) == 0;
+    }
+
+    int rooted_lca(int a, int b, int c) { return lca(a, c) ^ lca(a, b) ^ lca(b, c); } 
+
+    int next_on_path(int u, int v) { // closest_next_node from u to v
+        if(u == v) return -1;
+        if(is_ancestor(u, v)) return kth_ancestor(v, depth[v] - depth[u] - 1);
+        return parent[u];
+    }
+
+    void reroot(int root) {
+        fill(all(parent), -1);
+        timer = 0;
+        dfs(root);
+        init();
+        cur_lab = 1;
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
+    }
+
+    int comp_size(int c,int v){
+        if(parent[v] == c) return subtree[v];
+        return n - subtree[c];
+    }
+
+    int rooted_lca_potential_node(int a, int b, int c) { // # of nodes where rooted at will make lca(a, b) = c
+        if(rooted_lca(a, b, c) != c) return 0;
+        int v1 = next_on_path(c, a);
+        int v2 = next_on_path(c, b);
+        return n - (v1 == -1 ? 0 : comp_size(c, v1)) - (v2 == -1 ? 0 : comp_size(c, v2));
+
+    }
+};
+
+template<typename T = int>
+struct virtual_tree {
+    GRAPH<T> g;
+    using info = pair<int, ll>;
+    vt<vt<info>> graph; // [node, dist]
+    bool dist_by_weight;
+    vi subtree, importance;
+    int total;
+    virtual_tree(const vt<vt<T>>& _graph, bool _dist_by_weight) : g(_graph, false), graph(_graph.size()), dist_by_weight(_dist_by_weight), subtree(_graph.size()), importance(_graph.size()) {}
+
+    int build(vi& vertices) {
+        int n = vertices.size();
+        auto cmp = [&](const int& a, const int& b) -> bool {
+            return g.tin[a] < g.tin[b];
+        };
+        for(auto& u : vertices) {
+            importance[u] = true;
         }
-        return root;
+        for(auto& u : vertices) {
+            if(g.parent[u] != -1 && importance[g.parent[u]]) {
+                for(auto& v : vertices) {
+                    importance[v] = false;
+                }
+                return -1;
+            }
+        }
+        sort(all(vertices), cmp);
+        auto a(vertices);
+        for(int i = 0; i < n - 1; i++) {
+            int u = vertices[i], v = vertices[i + 1];
+            a.pb(g.lca(u, v));
+        }
+        sort(all(a), cmp);
+        a.erase(unique(all(a)), end(a));
+        total = vertices.size();
+        for(auto& u : a) {
+            vt<info>().swap(graph[u]);
+            subtree[u] = 0; 
+        }
+        vi s;
+        ans = 0;
+        s.pb(a[0]);
+        for(int i = 1; i < (int)a.size(); i++) {
+            int u = a[i];
+            while(!s.empty() && !g.is_ancestor(s.back(), u)) s.pop_back();
+            assert(!s.empty());
+            int p = s.back();
+            ll d = dist_by_weight ? g.dist_by_weight(p, u) : g.dist(p, u);
+            graph[p].pb({u, d});
+            graph[u].pb({p, d});
+            s.pb(u);
+        }
+        return s[0];
+    }
+    
+    int ans = 0;
+    int dfs(int node, int par) { // return all pair shortest dist total sum
+        int cnt = 0;
+        for(auto& [nei, w] : graph[node]) {
+            if(nei == par) continue;
+            int t =  dfs(nei, node);
+            cnt += int(t > 0);
+        }
+        if(importance[node]) {
+            ans += cnt;
+            return 1;
+        }
+        if(cnt > 1) {
+            ans++;
+            return 0;
+        }
+        return cnt;
     }
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
+    int n; cin >> n;
+    vvi graph(n);
     for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
-    }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
+    virtual_tree<int> g(graph, false);
+    int q; cin >> q;
+    while(q--) {
+        int k; cin >> k;
+        vi a(k); cin >> a;
+        for(auto& x : a) x--;
+        int rt = g.build(a);
+        if(rt == -1) {
+            cout << -1 << '\n';
+            continue;
+        }
+        g.dfs(rt, -1);
+        cout << g.ans << '\n';
+        for(auto& x : a) g.importance[x] = 0;
     }
 }
 
@@ -471,4 +594,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

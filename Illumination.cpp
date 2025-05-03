@@ -241,199 +241,146 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-namespace IO {
-    const int BUFFER_SIZE = 1 << 15;
- 
-    char input_buffer[BUFFER_SIZE];
-    int input_pos = 0, input_len = 0;
- 
-    void _update_input_buffer() {
-        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
-        input_pos = 0;
- 
-        if (input_len == 0)
-            input_buffer[0] = EOF;
-    }
- 
-    inline char next_char(bool advance = true) {
-        if (input_pos >= input_len)
-            _update_input_buffer();
- 
-        return input_buffer[advance ? input_pos++ : input_pos];
-    }
- 
-    template<typename T>
-    inline void read_int(T &number) {
-        bool negative = false;
-        number = 0;
- 
-        while (!isdigit(next_char(false)))
-            if (next_char() == '-')
-                negative = true;
- 
-        do {
-            number = 10 * number + (next_char() - '0');
-        } while (isdigit(next_char(false)));
- 
-        if (negative)
-            number = -number;
-    }
- 
-    template<typename T, typename... Args>
-    inline void read_int(T &number, Args &... args) {
-        read_int(number);
-        read_int(args...);
+struct two_sat {
+    int N = 0;
+    vpii edges;
+
+    two_sat() {}
+
+    two_sat(int n) : N(n) {}
+
+    int addVar() {
+        return N++;
     }
 
-    inline ll nxt() {
-        ll x;
-        read_int(x);
-        return x;
-    }
-}
-
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
-        }
-    }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
-        }
-        return node;
+    void either(int x, int y) {
+        edges.emplace_back(x, y);
     }
 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
+    void implies(int x, int y) {
+        either(x ^ 1, y);
     }
 
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
+    void must(int x) {
+        either(x, x);
     }
 
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
+    void add_clause(int a, bool sA, int b, bool sB) {
+        int A = 2 * a + (sA ? 1 : 0);
+        int B = 2 * b + (sB ? 1 : 0);
+        either(A, B);
+    }
+
+    void add_or(int a, int b, bool v) {
+        if (v) {
+            add_clause(a, true, b, true);
+        } else {
+            add_clause(a, false, a, false);
+            add_clause(b, false, b, false);
         }
     }
 
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
-        }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
-        }
-    }
- 
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
+    void add_xor(int a, int b, bool v) {
+        if (!v) {
+            add_clause(a, false, b, true);
+            add_clause(a, true,  b, false);
+        } else {
+            add_clause(a, false, b, false);
+            add_clause(a, true,  b, true);
         }
     }
 
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
-            }
+    void add_and(int a, int b, bool v) {
+        if (v) {
+            add_clause(a, true,  a, true);
+            add_clause(b, true,  b, true);
+        } else {
+            add_clause(a, false, b, false);
+        }
+    }
+
+    void at_most_one(const vi& l) {
+        if (l.size() <= 1) return;
+        int cur = l[0] ^ 1;
+        for (int i = 2; i < (int)l.size(); ++i) {
+            int aux = addVar();
+            int at  = 2 * aux + 1;
+            either(cur, l[i] ^ 1);
+            either(cur, at);
+            either(l[i] ^ 1, at);
+            cur = at ^ 1;
+        }
+        either(cur, l[1] ^ 1);
+    }
+
+    vb satisfy() {
+        int V = 2 * N;
+        vvi adj(V), radj(V);
+        for (auto& e : edges) {
+            int u = e.first, v = e.second;
+            adj[u ^ 1].pb(v);
+            adj[v ^ 1].pb(u);
+            radj[v].pb(u ^ 1);
+            radj[u].pb(v ^ 1);
+        }
+        vi order; order.reserve(V);
+        vc used(V, 0);
+        auto dfs1 = [&](auto& dfs1, int u) -> void {
+            used[u] = 1;
+            for(int w : adj[u]) if(!used[w]) dfs1(dfs1, w);
+            order.pb(u);
         };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
+        for(int i = 0; i < V; ++i) if(!used[i]) dfs1(dfs1, i);
+        vi comp(V, -1);
+        int cid = 0;
+        auto dfs2 = [&](auto& dfs2, int u) -> void {
+            comp[u] = cid;
+            for(int w : radj[u]) if(comp[w] == -1) dfs2(dfs2, w);
+        };
+        for(int i = V - 1; i >= 0; --i) {
+            int u = order[i];
+            if(comp[u] == -1) {
+                dfs2(dfs2, u);
+                cid++;
             }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
         }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
+        vb res(N);
+        for(int i = 0; i < N; ++i) {
+            if(comp[2 * i] == comp[2 * i + 1]) return {};
+            res[i] = comp[2 * i] > comp[2 * i + 1];
         }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
-        }
-    }
-
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
-        }
-        return root;
+        return res;
     }
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
-    for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
-    }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
-    }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
-    }
+    int n, k, m; cin >> n >> k >> m;
+    vpii a(m); cin >> a;
+    debug(a);
+    for(auto& [x, y] : a) x--, y--;
+    two_sat t(m);
+    auto add = [&](int x) -> void {
+        map<int, vpii> mp;
+        for(int i = 0; i < m; i++) {
+            auto& [u, v] = a[i];
+            mp[u].pb({v, i});
+        } 
+        for(auto& [_, curr] : mp) {
+            srtU(curr);
+            const int N = curr.size();
+            for(int i = 0, j = 0; i < N; i++) {
+                while(j < i && curr[i].ff - curr[j].ff > 2 * k) j++; 
+                for(int ii = j; ii < i; ii++) {
+                    int u = curr[ii].ss, v = curr[i].ss;
+                    t.add_clause(u, x, v, x); // one of them has to be false
+                } 
+            }
+        }
+    };
+    add(1);
+    for(auto& [x, y] : a) swap(x, y);
+    add(0);
+    cout << (!t.satisfy().empty() ? 1 : 0) << '\n';
 }
 
 signed main() {
@@ -471,4 +418,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

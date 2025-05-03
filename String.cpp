@@ -306,155 +306,287 @@ public:
     }
 };
 
-vi KMP(const string& s) {   
-    int n = s.size();
-    vi prefix(n);
-    for(int i = 1, j = 0; i < n; i++) { 
-        while(j && s[i] != s[j]) j = prefix[j - 1]; 
-        if(s[i] == s[j]) prefix[i] = ++j;
+struct KMP {
+    int n;
+    string t;
+    vi prefix;
+    vvi dp; // quick linking
+    char c;
+    KMP() {}
+    KMP(const string& t, char c) : t(t), c(c) {
+        n = t.size();
+        dp.rsz(n, vi(26));
+        prefix.rsz(n);
+        build();
+        // property of finding period by kmp : if(len % (len - kmp[i]) == 0) period = len - kmp[i], otherwise period = len
+        // to check if substring s[l, r] is k period, we just check the if s[l + k, r] == s[l, r - k]
     }
-    return prefix;
-	// property of finding period by kmp : if(len % (len - kmp[i]) == 0) period = len - kmp[i], otherwise period = len
-	
-//    int n = s.size(); // for jumping with large size of s
-//    s = ' ' + s;
-//    vi prefix(n + 1);   
-//    vvi dp(n + 1, vi(26));  
-//    if(n >= 2) dp[1][s[2] - 'a'] = 1;
-//    for(int i = 2, j = 0; i <= n; i++) {   
-//        while(j && s[i] != s[j + 1]) j = prefix[j]; 
-//        if(s[i] == s[j + 1]) j++;   
-//        prefix[i] = j;  
-//        dp[i] = dp[j];
-//        if(i < n) dp[i][s[i + 1] - 'a'] = i;
-//    }
-//    int q; cin >> q;
-//    while(q--) {    
-//        string t; cin >> t; 
-//        int m = t.size();   
-//        s += t; 
-//        for(int i = n + 1, j = prefix[n]; i <= n + m; i++) {   
-//            while(j > n && s[i] != s[j + 1]) j = prefix[j];
-//            if(j && s[j + 1] != s[i]) j = dp[j][s[i] - 'a'];
-//            if(s[j + 1] == s[i]) j++;   
-//            prefix.pb(j);   
-//            cout << j << ' '; 
-//        }
-//        cout << endl;   
-//        for(int i = 0; i < m; i++) {    
-//            prefix.pop_back();  
-//            s.pop_back();
-//        }
-//    }
 
-
-}
-// to check if substring s[l, r] is k period, we just check the if s[l + k, r] == s[l, r - k]
-vvi kmp_dp_vector(const string& s) {
-    int n = s.size();
-    vvi dp(n, vi(26));
-    vi prefix = KMP(s);
-    for(int i = 0; i < n; i++) {
+    void build() {
+        for(int i = 1, j = 0; i < n; i++) { 
+            while(j && t[i] != t[j]) j = prefix[j - 1]; 
+            if(t[i] == t[j]) prefix[i] = ++j;
+        }
+        int n = t.size();
         for(int j = 0; j < 26; j++) {
-            int k = i;
-            while(k && s[k] - 'a' != j) k = prefix[k - 1];
-            if(s[k] - 'a' == j) k++;
-            dp[i][j] = k;
+            dp[0][j] = (t[0] == char(c + j) ? 1 : 0);
         }
-    }
-    return dp;
-}
-
-int count_substring(const string& s, const string& t) { // s is main string, t is pattern
-    auto kmp = KMP(t);
-    int N = s.size(), M = t.size();
-    int cnt = 0;
-//    vi occur;
-    for(int i = 0, j = 0; i < N;) {
-        if(s[i] == t[j]) i++, j++;
-        else if(j) j = kmp[j - 1];
-        else i++;
-        if(j == M) {
-//            occur.pb(i - M);
-//            j = kmp[j - 1];
-            cnt++;
-            j = 0;
-        }
-    }
-    return cnt;
-}
-
-vi Z_Function(const string& s) {    
-    int n = s.size();   
-    vi prefix(n);   
-    for(int i = 1, left = 0, right = 0; i < n; i++) {   
-        if(i > right) { 
-            left = right = i;   
-            while(right < n && s[right] == s[right - left]) right++;    
-            prefix[i] = right-- - left;
-        }
-        else {  
-            if(prefix[i - left] + i < right + 1) {  
-                prefix[i] = prefix[i - left];
-            }
-            else {  
-                left = i;   
-                while(right < n && s[right] == s[right - left]) right++;    
-                prefix[i] = right-- - left;
+        for(int i = 1; i < n; i++) {
+            for(int j = 0; j < 26; j++) {
+                if(t[i] == char(c + j)) {
+                    dp[i][j] = i + 1;
+                } else {
+                    dp[i][j] = dp[prefix[i - 1]][j];
+                }
             }
         }
     }
-    return prefix;
-}
 
-string validate_substring(int n, const string& t, vi a) { 
-    // given a string s of len n full of '?'
-    // and a vector a indicates where t is a substring of s
-    // determine if it's a valid sequence of not
-    string s = string(n, '?');
-    srtU(a); rev(a);
-    auto z = Z_Function(t);
-    int m = t.size();
-    for(auto& i : a) {
-        i--;    
-        int r = i + m;
-        if(i + m > n) return "";
-        for(int j = i; j < r; j++) {
-            int id = j - i;
-            if(s[j] == '?') {
-                s[j] = t[id];
-                continue;
+    int count_substring(const string& s) { // s is main string, t is pattern
+        int N = s.size();
+        int cnt = 0;
+        //        vi occur;
+        for(int i = 0, j = 0; i < N;) {
+            if(s[i] == t[j]) i++, j++;
+            else if(j) j = prefix[j - 1];
+            else i++;
+            if(j == n) {
+                //                occur.pb(i - n);
+                //                j = prefix[j - 1];
+                cnt++;
+                j = 0;
             }
-            if(z[id] < r - j) return "";
-            break;
         }
+        return cnt;
     }
-    return s;
-}
 
+    ll count_substring(const vt<pair<char, int>>& a, const vt<pair<char, int>>& b) { // https://codeforces.com/contest/631/problem/D
+        // compress form of [char, occurences] of s and t, count occurences of t in s
+        vt<pair<char, ll>> s, t;
+        for (auto &p : a) {
+            if (!s.empty() && s.back().ff == p.ff) s.back().ss += p.ss;
+            else s.emplace_back(p.ff, p.ss);
+        }
+        for (auto &p : b) {
+            if (!t.empty() && t.back().ff == p.ff) t.back().ss += p.ss;
+            else t.emplace_back(p.ff, p.ss);
+        }
+        int n = s.size(), m = t.size();
+        if (n < m) return 0;
+        ll ans = 0;
+        if (m == 1) {
+            for (int i = 0; i < n; i++)
+                if (s[i].ff == t[0].ff && s[i].ss >= t[0].ss)
+                    ans += s[i].ss - t[0].ss + 1;
+            return ans;
+        }
+        if (m == 2) {
+            for (int i = 0; i + 1 < n; i++)
+                if (s[i].ff == t[0].ff && s[i].ss >= t[0].ss
+                        && s[i + 1].ff == t[1].ff && s[i + 1].ss >= t[1].ss)
+                    ans++;
+            return ans;
+        }
+        int k = m - 2;
+        vt<pair<char, ll>> mid;
+        for (int i = 1; i <= k; i++) mid.pb(t[i]); // the len can be >= between first and last so we must match exactly the middle and deal with them later
+        vi lps(k);
+        for (int i = 1, len = 0; i < k; i++) {
+            while (len && mid[i] != mid[len]) len = lps[len - 1];
+            if (mid[i] == mid[len]) len++;
+            lps[i] = len;
+        }
+        for (int i = 0, j = 0; i < n; i++) {
+            while (j > 0 && (j >= k || s[i] != mid[j])) j = lps[j - 1];
+            if (s[i] == mid[j]) j++;
+            if (j == k) {
+                int st = i - k, en = i + 1;
+                if (st >= 0 && en < n
+                        && s[st].ff == t[0].ff && s[st].ss >= t[0].ss
+                        && s[en].ff == t[m - 1].ff && s[en].ss >= t[m - 1].ss)
+                    ans++;
+                j = lps[j - 1];
+            }
+        }
+        return ans;
+    }
+};
+
+struct Z {
+    static vi get_z_vector(const string &s) {
+        int n = s.size(), l = 0, r = 0;
+        vi z(n);
+        for(int i = 1; i < n; i++) {
+            if(i <= r) {
+                z[i] = min(r - i + 1, z[i - l]);
+            }
+            while(i + z[i] < n && s[z[i]] == s[i + z[i]]) {
+                z[i]++;
+            }
+            if(i + z[i] - 1 > r) {
+                l = i;
+                r = i + z[i] - 1;
+            }
+        }
+        return z;
+    }
+
+    static string concatnate(const string& s, const string& t) { // minimum len containing both s and t as substring
+        if(s.find(t) != string::npos) return s;
+        if(t.find(s) != string::npos) return t;
+        int n = s.size(), m = t.size(), N = n + m;
+        auto z = get_z_vector(t + s);
+        for(int i = m; i < N; i++) {
+            if(i + z[i] >= N) {
+                return s + t.substr(N - i);
+            }
+        }
+        return s + t;
+    }
+
+    static int overlap(const string &a, const string &b) {
+        if(a.find(b) != string::npos) return b.size();
+        if(b.find(a) != string::npos) return a.size();
+        int na = a.size(), nb = b.size();
+        int k = min(na, nb);
+        string t = b + "#" + a.substr(na - k);
+        vi z = get_z_vector(t);
+        int best = 0;
+        int L = b.size(), N = t.size();
+        for(int i = L + 1; i < N; i++) {
+            if(i + z[i] == N) {
+                best = max(best, z[i]);
+            }
+        }
+        return best;
+    }
+
+    static string super_str(const vs &S) { // return shortest string consist all of string in S as substring
+                                           // only works for n < 20
+        int N0 = S.size();
+        vb remove(N0, false);
+        for(int i = 0; i < N0; i++) {
+            if(!remove[i]) {
+                for(int j = 0; j < N0; j++) {
+                    if(i != j && !remove[j]) {
+                        if(S[i].find(S[j]) != string::npos) remove[j] = true;
+                    }
+                }
+            }
+        }
+        vs A;
+        for(int i = 0; i < N0; i++) if(!remove[i]) A.pb(S[i]);
+        int N = A.size();
+        if(N == 0) return "";
+
+        vvi ov(N, vi(N));
+        for(int i = 0; i < N; i++) {
+            for(int j = 0; j < N; j++) {
+                if(i != j) ov[i][j] = overlap(A[i], A[j]);
+            }
+        }
+
+        int ALL = 1 << N;
+        vvi dp(ALL, vi(N)), par(ALL, vi(N));
+        const int INF = 1e9;
+        for(int m = 0; m < ALL; m++) {
+            for(int i = 0; i < N; i++) {
+                dp[m][i] = INF, par[m][i] = -1;
+            }
+        }
+
+        for(int i = 0; i < N; i++) dp[1 << i][i] = A[i].size();
+
+        for(int mask = 1; mask < ALL; mask++) {
+            for(int last = 0; last < N; last++) {
+                if(have_bit(mask, last)) {
+                    int cur = dp[mask][last];
+                    if(cur == INF) continue;
+                    for(int nxt = 0; nxt < N; nxt++) {
+                        if(!have_bit(mask, nxt)) {
+                            int nm = mask | (1 << nxt);
+                            int cand = cur + int(A[nxt].size()) - ov[last][nxt];
+                            if(cand < dp[nm][nxt]) {
+                                dp[nm][nxt] = cand;
+                                par[nm][nxt] = last;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        int full = ALL - 1, last = 0;
+        for(int i = 1; i < N; i++)
+            if(dp[full][i] < dp[full][last]) last = i;
+
+        vi seq;
+        for(int mask = full; mask;) {
+            seq.pb(last);
+            int p = par[mask][last];
+            mask ^= 1 << last;
+            last = p;
+        }
+        rev(seq);
+
+        string res = A[seq[0]];
+        for(int t = 1; t < (int)seq.size(); t++) {
+            int i = seq[t - 1], j = seq[t];
+            res += A[j].substr(ov[i][j]);
+        }
+        return res;
+    }
+};
+
+https://toph.co/p/unique-substrings-query
 const int HASH_COUNT = 2;
-vll globalBase;
-vll globalMod;
-ll mod[2], base[2], p[2][MX];
+vll base, mod;
+ll p[HASH_COUNT][MX];
 void initGlobalHashParams() {
-    if (!globalBase.empty() && !globalMod.empty()) return;
-    vll candidateBases = {29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
-    vll candidateMods  = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL,
-                                 1000000087LL, 1000000093LL, 1000000097LL, 1000000103LL};
+    if (!base.empty() && !mod.empty()) return;
+    vll candidateBases = {
+        10007ULL,10009ULL,10037ULL,10039ULL,10061ULL,10067ULL,10069ULL,10079ULL,10091ULL,10093ULL,
+        10099ULL,10103ULL,10111ULL,10133ULL,10139ULL,10141ULL,10151ULL,10159ULL,10163ULL,10169ULL,
+        10177ULL,10181ULL,10193ULL,10211ULL,10223ULL,10243ULL,10247ULL,10253ULL,10259ULL,10267ULL,
+        10271ULL,10273ULL,10289ULL,10301ULL,10303ULL,10313ULL,10321ULL,10331ULL,10333ULL,10337ULL,
+        10343ULL,10357ULL,10369ULL,10391ULL,10399ULL,10427ULL,10429ULL,10433ULL,10453ULL,10457ULL,
+        10459ULL,10463ULL,10477ULL,10487ULL,10499ULL,10501ULL,10513ULL,10529ULL,10531ULL,10559ULL,
+        10567ULL,10589ULL,10597ULL,10601ULL,10607ULL,10613ULL,10627ULL,10631ULL,10639ULL,10651ULL,
+        10657ULL,10663ULL,10667ULL,10687ULL,10691ULL,10709ULL,10711ULL,10723ULL,10729ULL,10733ULL,
+        10739ULL,10753ULL,10771ULL,10781ULL,10789ULL,10799ULL,10831ULL,10837ULL,10847ULL,10853ULL,
+        10859ULL,10861ULL,10867ULL,10883ULL,10889ULL,10891ULL,10903ULL,10909ULL
+    };
+    vll candidateMods = {
+        1000000007ULL,1000000009ULL,1000000033ULL,1000000087ULL,1000000093ULL,
+        1000000097ULL,1000000103ULL,1000000123ULL,1000000181ULL,1000000207ULL,
+        1000000223ULL,1000000241ULL,1000000271ULL,1000000289ULL,1000000297ULL,
+        1000000321ULL,1000000349ULL,1000000363ULL,1000000403ULL,1000000409ULL,
+        1000000411ULL,1000000427ULL,1000000433ULL,1000000439ULL,1000000447ULL,
+        1000000453ULL,1000000459ULL,1000000483ULL,1000000513ULL,1000000531ULL,
+        1000000579ULL,1000000607ULL,1000000613ULL,1000000637ULL,1000000663ULL,
+        1000000711ULL,1000000753ULL,1000000787ULL,1000000801ULL,1000000829ULL,
+        1000000861ULL,1000000871ULL,1000000891ULL,1000000901ULL,1000000919ULL,
+        1000000931ULL,1000000933ULL,1000000993ULL,1000001011ULL,1000001021ULL,
+        1000001053ULL,1000001087ULL,1000001089ULL,1000001107ULL,1000001163ULL,
+        1000001171ULL,1000001193ULL,1000001201ULL,1000001231ULL,1000001269ULL,
+        1000001283ULL,1000001311ULL,1000001327ULL,1000001363ULL,1000001371ULL,
+        1000001381ULL,1000001413ULL,1000001431ULL,1000001471ULL,1000001501ULL,
+        1000001531ULL,1000001581ULL,1000001613ULL,1000001637ULL,1000001663ULL,
+        1000001671ULL,1000001693ULL,1000001703ULL,1000001733ULL,1000001741ULL,
+        1000001781ULL,1000001801ULL,1000001863ULL,1000001891ULL,1000001903ULL,
+        1000001911ULL,1000001931ULL,1000001933ULL,1000001971ULL,1000001981ULL,
+        1000002021ULL,1000002071ULL,1000002083ULL,1000002101ULL,1000002133ULL
+    };
 								 
 	unsigned seed = chrono::steady_clock::now().time_since_epoch().count();
-    shuffle(candidateBases.begin(), candidateBases.end(), default_random_engine(seed));
-    shuffle(candidateMods.begin(), candidateMods.end(), default_random_engine(seed + 1));
+    shuffle(all(candidateBases), default_random_engine(seed));
+    shuffle(all(candidateMods), default_random_engine(seed + 1));
 
-    globalBase.rsz(HASH_COUNT);
-    globalMod.rsz(HASH_COUNT);
-    for (int i = 0; i < HASH_COUNT; i++) {
-        globalBase[i] = candidateBases[i];
-        globalMod[i]  = candidateMods[i];
-    }
-    for(int i = 0; i < 2; i++) {
-        mod[i] = globalMod[i];
-        base[i] = globalBase[i];
+    base.rsz(HASH_COUNT);
+    mod.rsz(HASH_COUNT);
+    for(int i = 0; i < HASH_COUNT; i++) {
+        mod[i] = candidateMods[i];
+        base[i] = candidateBases[i];
     }
     p[0][0] = p[1][0] = 1;
     for(int i = 1; i < MX; i++) {
@@ -463,41 +595,82 @@ void initGlobalHashParams() {
         }
     }
 }
+static const bool _hashParamsInitialized = [](){
+    initGlobalHashParams();
+    return true;
+}();
 
 template<class T = string>
 struct RabinKarp {
-    vvll prefix, pow;
+    vll prefix[HASH_COUNT], suffix[HASH_COUNT];
     int n;
     
+    RabinKarp() : n(0) {
+        for(int i = 0; i < HASH_COUNT; i++) {
+            prefix[i].pb(0);
+            suffix[i].pb(0);
+        }
+    }
     RabinKarp(const T &s) {
-        initGlobalHashParams();
         n = s.size();
-        prefix.rsz(HASH_COUNT);
-        pow.rsz(HASH_COUNT);
         for (int i = 0; i < HASH_COUNT; i++) {
             prefix[i].rsz(n + 1, 0);
-            pow[i].rsz(n + 1, 1);
+            suffix[i].rsz(n + 1, 0);
         }
-        buildHash(s);
-    }
-    
-    void buildHash(const T &s) {
         for (int j = 1; j <= n; j++) {
-            int x = s[j - 1] - 'a' + 1;
+            int x = s[j - 1] - 'a';
+            int y = s[n - j] - 'a';
             for (int i = 0; i < HASH_COUNT; i++) {
-                prefix[i][j] = (prefix[i][j - 1] * globalBase[i] + x) % globalMod[i];
-                pow[i][j] = (pow[i][j - 1] * globalBase[i]) % globalMod[i];
+                prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];
+                suffix[i][j] = (suffix[i][j - 1] * base[i] + y) % mod[i];
             }
         }
     }
+
+    void insert(int x) {
+        for (int i = 0; i < HASH_COUNT; i++) {
+            ll v = (prefix[i].back() * base[i] + x) % mod[i];
+            prefix[i].pb(v);
+        }
+        n++;
+    }
+
+    void pop_back() {
+        for (int i = 0; i < HASH_COUNT; i++) {
+            prefix[i].pop_back();
+        }
+        n--;
+    }
+
+    int size() {
+        return n;
+    }
     
-    ll get_hash(int l, int r) {
+    ll get() {
+        return get_hash(0, n);
+    }
+
+    ll get_hash(int l, int r) const {
         if (l < 0 || r > n || l > r) return 0;
-        ll hash0 = prefix[0][r] - (prefix[0][l] * pow[0][r - l] % globalMod[0]);
-        hash0 = (hash0 % globalMod[0] + globalMod[0]) % globalMod[0];
-        ll hash1 = prefix[1][r] - (prefix[1][l] * pow[1][r - l] % globalMod[1]);
-        hash1 = (hash1 % globalMod[1] + globalMod[1]) % globalMod[1];
+        ll hash0 = prefix[0][r] - (prefix[0][l] * p[0][r - l] % mod[0]);
+        hash0 = (hash0 % mod[0] + mod[0]) % mod[0];
+        ll hash1 = prefix[1][r] - (prefix[1][l] * p[1][r - l] % mod[1]);
+        hash1 = (hash1 % mod[1] + mod[1]) % mod[1];
         return (hash0 << 32) | hash1;
+    }
+
+    ll get_rev_hash(int l, int r) const {
+        if(l < 0 || r > n || l >= r) return 0;
+        ll h0 = suffix[0][r] - (suffix[0][l] * p[0][r - l] % mod[0]);
+        ll h1 = suffix[1][r] - (suffix[1][l] * p[1][r - l] % mod[1]);
+        if(h0 < 0) h0 += mod[0];
+        if(h1 < 0) h1 += mod[1];
+        return (h0 << 32) | h1;
+    }
+
+    bool is_palindrome(int l, int r) const {
+        if(l > r) return true;
+        return get_hash(l, r + 1) == get_rev_hash(n - 1 - r, n - l);
     }
     
     bool diff_by_one_char(RabinKarp &a, int offSet = 0) {
@@ -513,10 +686,10 @@ struct RabinKarp {
         }
         return a.get_hash(rightMost + 1 + offSet, offSet + n) == get_hash(rightMost + 1, n);
     }
-	
-	ll combine_hash(pll a, pll b, int len) {
-        a.ff = ((a.ff * pow[0][len]) + b.ff) % globalMod[0];
-        a.ss = ((a.ss * pow[1][len]) + b.ss) % globalMod[1];
+    
+    ll combine_hash(pll a, pll b, int len) {
+        a.ff = ((a.ff * p[0][len]) + b.ff) % mod[0];
+        a.ss = ((a.ss * p[1][len]) + b.ss) % mod[1];
         return (a.ff << 32) | a.ss;
     }
 };
@@ -548,9 +721,9 @@ class MANACHER {
         prefix.assign(n, 1);
         suffix.assign(n, 1);
         int T = man.size(); 
-        for (int c = 0; c < T; c++) {
-            if (man[c] <= 1) continue;
-            if (c % 2 == 1) { 
+        for(int c = 0; c < T; c++) {
+            if(man[c] <= 1) continue;
+            if(c % 2 == 1) { 
                 int i = (c - 1) / 2;
                 int len = man[c] - 1;
                 int half = len / 2;
@@ -583,24 +756,24 @@ class MANACHER {
     
     void build_manacher() {
         string t;
-        for (char c : s) {
-            t.push_back('#');
-            t.push_back(c);
+        for(char c : s) {
+            t.pb('#');
+            t.pb(c);
         }
-        t.push_back('#');
+        t.pb('#');
         int T = t.size();
         man.assign(T, 0);
         int L = 0, R = 0;
-        for (int i = 0; i < T; i++) {
-            if (i < R) {
+        for(int i = 0; i < T; i++) {
+            if(i < R) {
                 man[i] = min(R - i, man[L + R - i]);
             } else {
                 man[i] = 0;
             }
-            while (i - man[i] >= 0 && i + man[i] < T && t[i - man[i]] == t[i + man[i]]) {
+            while(i - man[i] >= 0 && i + man[i] < T && t[i - man[i]] == t[i + man[i]]) {
                 man[i]++;
             }
-            if (i + man[i] > R) {
+            if(i + man[i] > R) {
                 L = i - man[i] + 1;
                 R = i + man[i] - 1;
             }
@@ -613,7 +786,7 @@ class MANACHER {
 
     vi get_manacher(string s, int start) { // odd size palindrome start with 1, even start with 0
         string tmp;
-        for (auto& it : s) {
+        for(auto& it : s) {
             tmp += "#";
             tmp += it;
         }
@@ -622,23 +795,23 @@ class MANACHER {
         int n = s.size();
         vector<int> p(n); 
         int l = 0, r = 0;  
-        for (int i = 0; i < n; i++) {
-            if (i < r) {
+        for(int i = 0; i < n; i++) {
+            if(i < r) {
                 p[i] = min(r - i, p[l + r - i]);
             } else {
                 p[i] = 0;
             }
-            while (i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
+            while(i - p[i] >= 0 && i + p[i] < n && s[i - p[i]] == s[i + p[i]]) {
                 p[i]++;
             }
-            if (i + p[i] > r) {
+            if(i + p[i] > r) {
                 l = i - p[i] + 1;
                 r = i + p[i] - 1;
             }
         }
         vi result;
-        for (int i = start; i < n; i += 2) {
-            result.push_back(p[i] / 2);
+        for(int i = start; i < n; i += 2) {
+            result.pb(p[i] / 2);
         }
         if(start == 0) { // for even size, shift by one index to the right
             for(int i = 1; i < (int)result.size(); i++) {    
@@ -678,45 +851,6 @@ class MANACHER {
         int center = 2 * i + 2;
         if (center >= (int)man.size()) return 0;
         return man[center] - 1; 
-    }
-};
-
-struct LCS { // longest common subsequence
-    string lcs;
-    string shortest_supersequence; // find the shortest string where covers both s and t as subsequence
-    LCS(const string& s, const string& t) {
-        int n = s.size(), m = t.size();
-        vvi dp(n + 1, vi(m + 1));
-        for(int i = 1; i <= n; i++) {
-            for(int j = 1; j <= m; j++) {
-                if(s[i - 1] == t[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
-                else dp[i][j] = max({dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]});
-            }
-        }
-        int curr = dp[n][m];
-        for(int i = n; i >= 1; i--) {
-            for(int j = m; j >= 1; j--) {
-                if(dp[i][j] == curr && s[i - 1] == t[j - 1]) {
-                    lcs += s[i - 1];
-                    curr--;
-                    break;
-                }
-            }
-        }
-        rev(lcs);
-        int i = 0, j = 0;
-        for(auto& ch : lcs) {
-            while(i < n && s[i] != ch) {
-                shortest_supersequence += s[i++];
-            }
-            while(j < m && t[j] != ch) {
-                shortest_supersequence += t[j++];
-            }
-            shortest_supersequence += ch;
-            i++, j++;
-        }
-        while(i < n) shortest_supersequence += s[i++];
-        while(j < m) shortest_supersequence += t[j++];
     }
 };
 

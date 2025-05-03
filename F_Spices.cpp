@@ -241,199 +241,156 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-namespace IO {
-    const int BUFFER_SIZE = 1 << 15;
- 
-    char input_buffer[BUFFER_SIZE];
-    int input_pos = 0, input_len = 0;
- 
-    void _update_input_buffer() {
-        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
-        input_pos = 0;
- 
-        if (input_len == 0)
-            input_buffer[0] = EOF;
-    }
- 
-    inline char next_char(bool advance = true) {
-        if (input_pos >= input_len)
-            _update_input_buffer();
- 
-        return input_buffer[advance ? input_pos++ : input_pos];
-    }
- 
-    template<typename T>
-    inline void read_int(T &number) {
-        bool negative = false;
-        number = 0;
- 
-        while (!isdigit(next_char(false)))
-            if (next_char() == '-')
-                negative = true;
- 
-        do {
-            number = 10 * number + (next_char() - '0');
-        } while (isdigit(next_char(false)));
- 
-        if (negative)
-            number = -number;
-    }
- 
-    template<typename T, typename... Args>
-    inline void read_int(T &number, Args &... args) {
-        read_int(number);
-        read_int(args...);
+static const int BITS = 17;
+template<typename T>
+struct xor_basis {
+    T basis[BITS];
+
+    xor_basis() {
+        for (int b = 0; b < BITS; b++)
+            basis[b] = 0;
     }
 
-    inline ll nxt() {
-        ll x;
-        read_int(x);
+    bool insert(T x) {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) {
+                basis[b] = x;
+                // TODO: elimination bit, remove if WA
+                for(int d = 0; d < BITS; ++d) {
+                    if(d != b && ((basis[d] >> b) & 1)) {
+                        basis[d] ^= x;
+                    }
+                }
+                return true;
+            }
+            x ^= basis[b];
+        }
+        return false;
+    }
+
+    bool contains(T x) const {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) return false;
+            x ^= basis[b];
+        }
+        return true;
+    }
+
+    T min_value(T x) const {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(basis[b] && (x ^ basis[b]) < x)
+                x ^= basis[b];
+        }
         return x;
     }
-}
 
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
+    T max_value(T x = 0) const {
+        for (int b = BITS - 1; b >= 0; --b) {
+            if (basis[b] && (x ^ basis[b]) > x)
+                x ^= basis[b];
         }
-    }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
-        }
-        return node;
+        return x;
     }
 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
+    int rank() const {
+        int r = 0;
+        for (int b = 0; b < BITS; ++b) if (basis[b]) ++r;
+        return r;
     }
 
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
+    uint64_t size() const {
+        int r = rank();
+        return (r >= 64 ? 0ULL : (1ULL << r));
     }
 
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
+    vt<T> get_compact_basis() const {
+        vt<T> vec;
+        for (int b = 0; b < BITS; ++b) {
+            if (basis[b]) vec.pb(basis[b]);
         }
+        return vec;
     }
 
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
+    T get_kth_smallest(uint64_t k) const {
+        auto vec = get_compact_basis();
+        int m = (int)vec.size();
+        if (m >= 64 || k >= (1ULL << m)) return T(0);
+        T ans = 0;
+        for (int i = 0; i < m; ++i) {
+            if ((k >> i) & 1ULL) ans ^= vec[i];
         }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
-        }
-    }
- 
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
-        }
+        return ans;
     }
 
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
+    T get_kth_largest(uint64_t k) const {
+        int m = rank();
+        uint64_t total = size();
+        if (total == 0 || k >= total) return T(0);
+        uint64_t idx = total - 1 - k;
+        return get_kth_smallest(idx);
+    }
+
+    bool insert_base_on(T x, T c) {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(have_bit(c, b)) continue;
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) {
+                basis[b] = x;
+                for(int c = 0; c < BITS; ++c)
+                    if(c != b && (basis[c] >> b & 1))
+                        basis[c] ^= x;
+                return true;
             }
-        };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-            }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
+            x ^= basis[b];
         }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-        }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
-        }
+        return false;
     }
 
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
+    T max_value_base_on(T x) const { // find max query(x) + (x ^ query(x));
+        T res = 0;
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(have_bit(x, b)) continue;
+            if(!have_bit(res, b)) res ^= basis[b];
         }
-        return root;
+        return res;
+    }
+
+    void merge(const xor_basis &o) {
+        for(int b = 0; b < BITS; b++)
+            if(o.basis[b])
+                add(o.basis[b]);
+    }
+
+    bool operator==(const xor_basis &o) const {
+        for(int b = 0; b < BITS; b++)
+            if(basis[b] != o.basis[b])
+                return false;
+        return true;
     }
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
-    for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
+    int n; cin >> n;
+    vpii a;
+    for(int i = 1; i < 1 << n; i++) {
+        int x; cin >> x;
+        a.pb({x, i});
     }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
+    srt(a);
+    ll res = 0;
+    xor_basis<int> t;
+    for(auto& [cost, v] : a) {
+        if(t.insert(v)) {
+            res += cost;
+            if(t.rank() == n) {
+                cout << res << '\n';
+                return;
+            }
+        }
     }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
-    }
+    cout << -1 << '\n';
 }
 
 signed main() {
@@ -471,4 +428,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

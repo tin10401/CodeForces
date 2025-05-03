@@ -68,6 +68,12 @@ struct Undo_DSU {
     bool same(int u, int v) {
         return find(u) == find(v);
     }
+	
+	int get_rank(int u) {
+        int ru = find(u);
+        return rank[ru];
+    }
+
 };
 
 template<typename T>

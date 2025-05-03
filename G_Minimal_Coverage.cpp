@@ -241,199 +241,326 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-namespace IO {
-    const int BUFFER_SIZE = 1 << 15;
- 
-    char input_buffer[BUFFER_SIZE];
-    int input_pos = 0, input_len = 0;
- 
-    void _update_input_buffer() {
-        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
-        input_pos = 0;
- 
-        if (input_len == 0)
-            input_buffer[0] = EOF;
+class BITSET {
+public:
+    using ubig = unsigned long long;
+    int sz;
+    vt<ubig> blocks;
+    BITSET(int n) : sz(n) {
+        int len = (n + 8 * (int)sizeof(ubig) - 1) / (8 * (int)sizeof(ubig));
+        blocks.assign(len, 0ULL);
     }
- 
-    inline char next_char(bool advance = true) {
-        if (input_pos >= input_len)
-            _update_input_buffer();
- 
-        return input_buffer[advance ? input_pos++ : input_pos];
+    void set(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] |= (1ULL << offset);
     }
- 
-    template<typename T>
-    inline void read_int(T &number) {
-        bool negative = false;
-        number = 0;
- 
-        while (!isdigit(next_char(false)))
-            if (next_char() == '-')
-                negative = true;
- 
-        do {
-            number = 10 * number + (next_char() - '0');
-        } while (isdigit(next_char(false)));
- 
-        if (negative)
-            number = -number;
-    }
- 
-    template<typename T, typename... Args>
-    inline void read_int(T &number, Args &... args) {
-        read_int(number);
-        read_int(args...);
-    }
-
-    inline ll nxt() {
-        ll x;
-        read_int(x);
-        return x;
-    }
-}
-
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
+    BITSET& set() {
+        for (auto &blk : blocks)
+            blk = ~0ULL;
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
         }
+        return *this;
     }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
-        }
-        return node;
-    }
+    BITSET& set(int l, int r) {
+        if (l < 0) l = 0;
+        if (r >= sz) r = sz - 1;
+        if (l > r) return *this;
+        const int B = 8 * sizeof(ubig);
+        int startBlock = l / B;
+        int endBlock   = r / B;
+        int startOff   = l % B;
+        int endOff     = r % B;
 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
-    }
-
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
-    }
-
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
+        if (startBlock == endBlock) {
+            ubig mask = ((~0ULL >> (B - (r - l + 1))) << startOff);
+            blocks[startBlock] |= mask;
+        } else {
+            ubig firstMask = (~0ULL << startOff);
+            blocks[startBlock] |= firstMask;
+            for (int b = startBlock + 1; b < endBlock; ++b)
+                blocks[b] = ~0ULL;
+            ubig lastMask = (~0ULL >> (B - 1 - endOff));
+            blocks[endBlock] |= lastMask;
         }
-    }
-
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig tailMask = ~0ULL >> extra;
+            blocks.back() &= tailMask;
         }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
-        }
+        return *this;
     }
- 
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
-        }
+    bool test(int i) const {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        return (blocks[block] >> offset) & 1ULL;
     }
-
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
+    BITSET& reset() {
+        fill(blocks.begin(), blocks.end(), 0ULL);
+        return *this;
+    }
+    void reset(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] &= ~(1ULL << offset);
+    }
+    BITSET& reset(int l, int r) {
+        if (l < 0)       l = 0;
+        if (r >= sz)     r = sz - 1;
+        if (l > r)       return *this;
+        const int B = 8 * sizeof(ubig);
+        int startBlock = l / B;
+        int endBlock   = r / B;
+        int startOff   = l % B;
+        int endOff     = r % B;
+        if (startBlock == endBlock) {
+            ubig mask = ((~0ULL >> (B - (r - l + 1))) << startOff);
+            blocks[startBlock] &= ~mask;
+        } else {
+            ubig firstMask = (~0ULL << startOff);
+            blocks[startBlock] &= ~firstMask;
+            for (int b = startBlock + 1; b < endBlock; ++b)
+                blocks[b] = 0ULL;
+            ubig lastMask = (~0ULL >> (B - 1 - endOff));
+            blocks[endBlock] &= ~lastMask;
+        }
+        return *this;
+    }
+    BITSET& flip() {
+        for (auto &blk : blocks)
+            blk = ~blk;
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    void flip(int i) {
+        int block = i / (8 * (int)sizeof(ubig));
+        int offset = i % (8 * (int)sizeof(ubig));
+        blocks[block] ^= (1ULL << offset);
+    }
+    int count() const {
+        int cnt = 0;
+        for (auto blk : blocks)
+            cnt += __builtin_popcountll(blk);
+        return cnt;
+    }
+    bool any() const {
+        for (auto blk : blocks)
+            if (blk != 0) return true;
+        return false;
+    }
+    bool none() const {
+        return !any();
+    }
+    bool all() const {
+        int fullBlocks = sz / (8 * (int)sizeof(ubig));
+        for (int i = 0; i < fullBlocks; i++)
+            if (blocks[i] != ~0ULL) return false;
+        int remaining = sz % (8 * (int)sizeof(ubig));
+        if (remaining > 0) {
+            ubig mask = (1ULL << remaining) - 1;
+            if (blocks[fullBlocks] != mask) return false;
+        }
+        return true;
+    }
+    string to_string() const {
+        string s;
+        s.resize(sz);
+        for (int i = 0; i < sz; i++)
+            s[sz - 1 - i] = test(i) ? '1' : '0';
+        return s;
+    }
+    BITSET& operator|=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] |= other.blocks[i];
+        return *this;
+    }
+    BITSET& operator&=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] &= other.blocks[i];
+        return *this;
+    }
+    BITSET& operator^=(const BITSET& other) {
+        assert(blocks.size() == other.blocks.size());
+        for (size_t i = 0; i < blocks.size(); i++)
+            blocks[i] ^= other.blocks[i];
+        int extra = (int)blocks.size() * 8 * (int)sizeof(ubig) - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator|(const BITSET& other) const {
+        BITSET res(*this);
+        res |= other;
+        return res;
+    }
+    BITSET operator&(const BITSET& other) const {
+        BITSET res(*this);
+        res &= other;
+        return res;
+    }
+    BITSET operator^(const BITSET& other) const {
+        BITSET res(*this);
+        res ^= other;
+        return res;
+    }
+    BITSET operator~() const {
+        BITSET res(*this);
+        res.flip();
+        return res;
+    }
+    BITSET& operator<<=(int shift) {
+        if(shift >= sz) {
+            fill(blocks.begin(), blocks.end(), 0ULL);
+            return *this;
+        }
+        const int B = 8 * (int)sizeof(ubig);
+        int blockShift = shift / B;
+        int bitShift = shift % B;
+        int nblocks = blocks.size();
+        vector<ubig> newBlocks(nblocks, 0ULL);
+        for (int i = nblocks - 1; i >= 0; i--) {
+            int srcIndex = i - blockShift;
+            if (srcIndex < 0) continue;
+            newBlocks[i] |= blocks[srcIndex] << bitShift;
+            if (bitShift > 0 && srcIndex - 1 >= 0)
+                newBlocks[i] |= blocks[srcIndex - 1] >> (B - bitShift);
+        }
+        blocks.swap(newBlocks);
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator<<(int shift) const {
+        BITSET res(*this);
+        res <<= shift;
+        return res;
+    }
+    
+    BITSET& operator>>=(int shift) {
+        if (shift >= sz) {
+            fill(blocks.begin(), blocks.end(), 0ULL);
+            return *this;
+        }
+        const int B = 8 * (int)sizeof(ubig);
+        int blockShift = shift / B;
+        int bitShift = shift % B;
+        int nblocks = blocks.size();
+        vector<ubig> newBlocks(nblocks, 0ULL);
+        for (int i = 0; i < nblocks; i++) {
+            int srcIndex = i + blockShift;
+            if (srcIndex >= nblocks) continue;
+            newBlocks[i] |= blocks[srcIndex] >> bitShift;
+            if (bitShift > 0 && srcIndex + 1 < nblocks)
+                newBlocks[i] |= blocks[srcIndex + 1] << (B - bitShift);
+        }
+        blocks.swap(newBlocks);
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig mask = ~0ULL >> extra;
+            blocks.back() &= mask;
+        }
+        return *this;
+    }
+    BITSET operator>>(int shift) const {
+        BITSET res(*this);
+        res >>= shift;
+        return res;
+    }
+    
+    int find_first() const {
+        const int B = 8 * (int)sizeof(ubig);
+        for (size_t b = 0; b < blocks.size(); b++) {
+            if (blocks[b] != 0ULL) {
+                int tz = __builtin_ctzll(blocks[b]);
+                int pos = b * B + tz;
+                if (pos < sz)
+                    return pos;
+                else
+                    return -1;
             }
-        };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
+        }
+        return -1;
+    }
+    int find_prev_set_bit(int pos) const {
+        if(pos < 0) return -1;
+        if(pos >= sz) pos = sz - 1;
+        if(test(pos)) return pos;
+        const int B = 8 * (int)sizeof(ubig);
+        int block = pos / B, offset = pos % B;
+        for (int b = block; b >= 0; b--) {
+            ubig mask = (b == block) ? ((1ULL << offset) - 1ULL) : ~0ULL;
+            ubig curr = blocks[b] & mask;
+            if (curr != 0ULL) {
+                int lz = __builtin_clzll(curr);
+                return b * B + (B - 1 - lz);
             }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
         }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-        }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
-        }
+        return -1;
     }
 
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
+    int find_next_set_bit(int pos) const {
+        if(pos < 0) pos = 0;
+        if(pos < sz && test(pos)) return pos;
+        const int B = 8 * (int)sizeof(ubig);
+        int block = pos / B, offset = pos % B;
+        ubig mask = ~((1ULL << (offset + 1)) - 1ULL);
+        ubig curr = blocks[block] & mask;
+        if(curr != 0ULL) {
+            int tz = __builtin_ctzll(curr);
+            int res = block * B + tz;
+            return (res < sz ? res : -1);
         }
-        return root;
+        for(size_t b = block + 1; b < blocks.size(); b++) {
+            if(blocks[b] != 0ULL) {
+                int tz = __builtin_ctzll(blocks[b]);
+                int res = b * B + tz;
+                return (res < sz ? res : -1);
+            }
+        }
+        return -1;
+    }
+    
+    bool operator==(const BITSET& other) const {
+        return blocks == other.blocks;
+    }
+    bool operator!=(const BITSET& other) const {
+        return !(*this == other);
     }
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
-    for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    auto f = [&](int k) -> int {
+        BITSET bit(min(3000, k + 1)), cut(min(3000, k + 1));
+        bit.set(); // there can be offset as well so setting all bits meaning off set by that bit
+        cut.set();
+        for(auto& x : a) {
+            bit = ((bit << x) | (bit >> x)) & cut; // shifting left or right
+        }
+        return bit.any();
+    };
+    int left = MAX(a), right = min((ll)3000, sum(a)), res = -1;
+    while(left <= right) {
+        int middle = midPoint;
+        if(f(middle)) res = middle, right = middle - 1;
+        else left = middle + 1;
     }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
-    }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
-    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -444,7 +571,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -471,4 +598,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

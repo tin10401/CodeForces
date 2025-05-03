@@ -241,199 +241,87 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-namespace IO {
-    const int BUFFER_SIZE = 1 << 15;
- 
-    char input_buffer[BUFFER_SIZE];
-    int input_pos = 0, input_len = 0;
- 
-    void _update_input_buffer() {
-        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
-        input_pos = 0;
- 
-        if (input_len == 0)
-            input_buffer[0] = EOF;
-    }
- 
-    inline char next_char(bool advance = true) {
-        if (input_pos >= input_len)
-            _update_input_buffer();
- 
-        return input_buffer[advance ? input_pos++ : input_pos];
-    }
- 
-    template<typename T>
-    inline void read_int(T &number) {
-        bool negative = false;
-        number = 0;
- 
-        while (!isdigit(next_char(false)))
-            if (next_char() == '-')
-                negative = true;
- 
-        do {
-            number = 10 * number + (next_char() - '0');
-        } while (isdigit(next_char(false)));
- 
-        if (negative)
-            number = -number;
-    }
- 
-    template<typename T, typename... Args>
-    inline void read_int(T &number, Args &... args) {
-        read_int(number);
-        read_int(args...);
+struct KMP {
+    int n;
+    string t;
+    vi prefix;
+    vvi dp; // quick linking
+    KMP(const string& t) : t(t) {
+        n = t.size();
+        dp.rsz(n, vi(26));
+        prefix.rsz(n);
+        build();
+        // property of finding period by kmp : if(len % (len - kmp[i]) == 0) period = len - kmp[i], otherwise period = len
+        // to check if substring s[l, r] is k period, we just check the if s[l + k, r] == s[l, r - k]
     }
 
-    inline ll nxt() {
-        ll x;
-        read_int(x);
-        return x;
-    }
-}
-
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
+    void build() {
+        for(int i = 1, j = 0; i < n; i++) { 
+            while(j && t[i] != t[j]) j = prefix[j - 1]; 
+            if(t[i] == t[j]) prefix[i] = ++j;
         }
-    }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
+        int n = t.size();
+        for(int j = 0; j < 26; j++) {
+            dp[0][j] = (t[0] == char('a' + j) ? 1 : 0);
         }
-        return node;
-    }
-
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
-    }
-
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
-    }
-
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
-        }
-    }
-
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
-        }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
-        }
-    }
- 
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
-        }
-    }
-
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
+        for(int i = 1; i < n; i++) {
+            for(int j = 0; j < 26; j++) {
+                if(t[i] == char('a' + j)) {
+                    dp[i][j] = i + 1;
+                } else {
+                    dp[i][j] = dp[prefix[i - 1]][j];
+                }
             }
-        };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-            }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
-        }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-        }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
         }
     }
 
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
+    int count_substring(const string& s) { // s is main string, t is pattern
+        int N = s.size();
+        int cnt = 0;
+        for(int i = 0, j = 0; i < N;) {
+            if(s[i] == t[j]) i++, j++;
+            else if(j) j = prefix[j - 1];
+            else i++;
+            if(j == n) {
+                cnt++;
+                j = 0;
+            }
         }
-        return root;
+        return cnt;
     }
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
-    for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
+    string s, t; cin >> s >> t;
+    int n = s.size(), m = t.size();
+    auto prefix = KMP(t).prefix;
+    vi ok(n);
+    for(int i = 0; i + m <= n; i++) {
+        bool now = true;
+        for(int j = 0; j < m; j++) {
+            now &= int(s[i + j] == t[j] || s[i + j] == '?');
+        }
+        ok[i + m - 1] = now;
     }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
+    debug(ok);
+    vi dp(n), best(n);
+    debug(prefix);
+    for(int i = 0; i < n; i++) {
+        if(i) {
+            best[i] = best[i - 1];
+        }
+        if(!ok[i]) continue;
+        int now = (i >= m ? best[i - m] : 0) + 1;
+        int j = prefix.back();
+        while(j > 0) {
+            int prev_end = i - (m - j);
+            now = max(now, dp[prev_end] + 1);
+            j = prefix[j - 1];
+        }
+        dp[i] = now;
+        best[i] = max(best[i], dp[i]);
     }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
-    }
+    cout << best.back() << '\n';
 }
 
 signed main() {
@@ -471,4 +359,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

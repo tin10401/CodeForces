@@ -292,147 +292,111 @@ namespace IO {
     }
 }
 
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
-    }
- 
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
-        }
-    }
- 
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
-        }
-        return node;
-    }
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree() {}
 
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
+    basic_segtree(int n, T DEFAULT, F func) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
     }
-
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
+    
+    void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size, root[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
     }
-
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
+    
+    T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while (l <= r) {
+            if ((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if ((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
         }
+        return func(res_left, res_right);
     }
+	
+	T queries_at(int idx) {
+        if(idx <= 0 || idx >= n) return DEFAULT;
+        return root[idx + size];
+    }
+	
+	void update_range(int l, int r, ll v) {}
 
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
-        }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
-        }
+    T get() {
+        return root[1];
     }
- 
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
+};
+
+const int K = 30;
+
+int v;
+struct info {
+    int prefix[K], suffix[K], ans, mx;
+    info(int b = -1, int a = -1) {
+        if(b == -1) {
+            ans = inf + 1;
+            return;
+        }    
+        ans = b >= v ? a : inf;
+        mx = a;
+        for(int i = 0; i < K; i++) {
+            prefix[i] = suffix[i] = have_bit(b, i) ? a : inf;
         }
     }
 
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
-            }
-        };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-            }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
+    friend info operator+(const info& a, const info& b) {
+        if(a.ans == inf + 1) return b;
+        if(b.ans == inf + 1) return a;
+        info res;
+        res.mx = max(a.mx, b.mx);
+        res.ans = min(a.ans, b.ans);
+        int curr = 0;
+        for(int i = K - 1; i >= 0; i--) {
+            int cost = min(a.suffix[i], b.prefix[i]);
+            if(have_bit(v, i)) curr = max(curr, cost);
+            else res.ans = min(res.ans, max(curr, cost)); // this is just extending [l, r] and messing around using suffix and prefix of a and b
+            res.prefix[i] = min(a.prefix[i], max(a.mx, b.prefix[i])); // first and last occurence of it
+            res.suffix[i] = min(b.suffix[i], max(b.mx, a.suffix[i]));
         }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
-        }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
-        }
-    }
-
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
-        }
-        return root;
+        res.ans = min(res.ans, curr);
+        return res;
     }
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
-    for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
+    int n; IO::read_int(n, v);
+    vi a(n), b(n); 
+    for(int i = 0; i < n; i++) IO::read_int(a[i]);
+    for(int i = 0; i < n; i++) IO::read_int(b[i]);
+    basic_segtree<info> root(n, info(), [](const info& a, const info& b) {return a + b;});
+    for(int i = 0; i < n; i++) {
+        root.update_at(i, info(b[i], a[i]));
     }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
-    }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
+    int q; IO::read_int(q);
+    while(q--) {
+        int op; IO::read_int(op);
+        if(op == 1) {
+            int i, x; IO::read_int(i, x);
+            i--;
+            root.update_at(i, info(x, a[i]));
+        } else {
+            int l, r; IO::read_int(l, r);
+            l--, r--;
+            int res = root.queries_range(l, r).ans;
+            cout << (res >= inf ? -1 : res) << (q == 0 ? '\n' : ' ');
+        }
     }
 }
 
@@ -443,8 +407,7 @@ signed main() {
     startClock
     //generatePrime();
 
-    int t = 1;
-    //cin >> t;
+    int t = 1; IO::read_int(t);
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -471,4 +434,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

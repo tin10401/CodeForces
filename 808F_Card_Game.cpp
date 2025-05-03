@@ -219,7 +219,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 int pct(ll x) { return __builtin_popcountll(x); }
@@ -241,199 +241,292 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-namespace IO {
-    const int BUFFER_SIZE = 1 << 15;
- 
-    char input_buffer[BUFFER_SIZE];
-    int input_pos = 0, input_len = 0;
- 
-    void _update_input_buffer() {
-        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
-        input_pos = 0;
- 
-        if (input_len == 0)
-            input_buffer[0] = EOF;
-    }
- 
-    inline char next_char(bool advance = true) {
-        if (input_pos >= input_len)
-            _update_input_buffer();
- 
-        return input_buffer[advance ? input_pos++ : input_pos];
-    }
- 
-    template<typename T>
-    inline void read_int(T &number) {
-        bool negative = false;
-        number = 0;
- 
-        while (!isdigit(next_char(false)))
-            if (next_char() == '-')
-                negative = true;
- 
-        do {
-            number = 10 * number + (next_char() - '0');
-        } while (isdigit(next_char(false)));
- 
-        if (negative)
-            number = -number;
-    }
- 
-    template<typename T, typename... Args>
-    inline void read_int(T &number, Args &... args) {
-        read_int(number);
-        read_int(args...);
-    }
+vi primes, first_divisor(MX), DIV[MX];
+bitset<MX> primeBits;
+vll mu(MX);
 
-    inline ll nxt() {
-        ll x;
-        read_int(x);
-        return x;
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 2; i < MX; i++) {    
+        if(primeBits[i]) {  
+            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
+        }
+    }
+    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
+
+	iota(all(mu), 0); // for placeholder value
+    // mu[1] = 1; // for count of occurences
+    for(int i = 1; i < MX; i++) {   
+        if(!primeBits[i]) continue;
+        for(int j = i; j < MX; j += i) {   
+            if(j >= i * 2) mu[j] -= mu[i];
+			DIV[j].pb(i);
+        }
     }
 }
 
-vpii Q[MX * 10];
-vll ans(MX * 10);
-using info = pair<ll, int>;
-info PREFIX[MX * 10], prefix[MX * 10];
-vi coord;
-int mx = 0;
-template<typename T>
-struct CD { // centroid_decomposition
-    int n, root;
-    vt<vt<T>> graph;
-    vi size, parent, vis;
-    CD(const vt<vt<T>>& graph) : graph(graph), n(graph.size()) {
-        size.rsz(n);
-        parent.rsz(n, -1);
-        vis.rsz(n);
-        root = init();
+// Warning: when choosing flow_t, make sure it can handle the sum of flows, not just individual flows.
+template<typename flow_t>
+struct dinic {
+    struct edge {
+        int node, _rev;
+        flow_t capacity;
+ 
+        edge() {}
+ 
+        edge(int _node, int _rev, flow_t _capacity) : node(_node), _rev(_rev), capacity(_capacity) {}
+    };
+ 
+    int V = -1;
+    vt<vt<edge>> adj;
+    vi dist, edge_index;
+    bool flow_called;
+ 
+    dinic(int vertices = -1) {
+        if (vertices >= 0)
+            init(vertices);
     }
  
-    void get_size(int node, int par) { 
-        size[node] = 1;
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_size(nei, node);
-            size[node] += size[nei];
-        }
+    void init(int vertices) {
+        V = vertices;
+        adj.assign(V, {});
+        dist.resize(V);
+        edge_index.resize(V);
+        flow_called = false;
     }
  
-    int get_center(int node, int par, int size_of_tree) { 
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            if(size[nei] * 2 > size_of_tree) return get_center(nei, node, size_of_tree);
-        }
-        return node;
+    int _add_edge(int u, int v, flow_t capacity1, flow_t capacity2) {
+        assert(0 <= u && u < V && 0 <= v && v < V);
+        assert(capacity1 >= 0 && capacity2 >= 0);
+        edge uv_edge(v, int(adj[v].size()) + (u == v ? 1 : 0), capacity1);
+        edge vu_edge(u, int(adj[u].size()), capacity2);
+        adj[u].push_back(uv_edge);
+        adj[v].push_back(vu_edge);
+        return adj[u].size() - 1;
     }
-
-    int get_centroid(int src) { 
-        get_size(src, -1);
-        int centroid = get_center(src, -1, size[src]);
-        vis[centroid] = true;
-        return centroid;
+ 
+    int add_directional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, 0);
     }
-
-    int get_id(int x) {
-        return int(lb(all(coord), x) - begin(coord));
+ 
+    int add_bidirectional_edge(int u, int v, flow_t capacity) {
+        return _add_edge(u, v, capacity, capacity);
     }
-
-    void modify(int node, int par, int depth, int delta) {
-        if(depth > mx) return;
-        int j = get_id(depth);
-        prefix[j].ff += depth * delta;
-        prefix[j].ss += delta;
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, node, depth + w, delta);
-        }
+ 
+    edge &reverse_edge(const edge &e) {
+        return adj[e.node][e._rev];
     }
-
-    void cal(int node, int par, int depth) {
-        if(depth > mx) return;
-        for(auto& [k, id] : Q[node]) {
-            ll nk = k - depth;
-            int j = get_id(nk + 1) - 1;
-            ans[id] += nk * PREFIX[j].ss - PREFIX[j].ff;
-        }
-        for(auto& [nei, w] : graph[node]) {
-            if(vis[nei] || nei == par) continue;
-            cal(nei, node, depth + w);
+ 
+    void bfs_check(queue<int> &q, int node, int new_dist) {
+        if (new_dist < dist[node]) {
+            dist[node] = new_dist;
+            q.push(node);
         }
     }
  
-    void get_max_depth(int node, int par = -1, int depth = 0) {
-        if(depth > mx) return;
-        coord.pb(depth);
-        for(auto& [nei, w] : graph[node]) {
-            if(nei == par || vis[nei]) continue;
-            get_max_depth(nei, node, depth + w);
+    bool bfs(int source, int sink) {
+        dist.assign(V, inf);
+        queue<int> q;
+        bfs_check(q, source, 0);
+        while (!q.empty()) {
+            int top = q.front(); q.pop();
+            for (edge &e : adj[top])
+                if (e.capacity > 0)
+                    bfs_check(q, e.node, dist[top] + 1);
         }
+ 
+        return dist[sink] < inf;
     }
+ 
+    flow_t dfs(int node, flow_t path_cap, int sink) {
+        if (node == sink)
+            return path_cap;
+ 
+        if (dist[node] >= dist[sink])
+            return 0;
+ 
+        flow_t total_flow = 0;
+ 
+        // Because we are only performing DFS in increasing order of dist, we don't have to revisit fully searched edges
+        // again later.
+        while (edge_index[node] < int(adj[node].size())) {
+            edge &e = adj[node][edge_index[node]];
+ 
+            if (e.capacity > 0 && dist[node] + 1 == dist[e.node]) {
+                flow_t path = dfs(e.node, min(path_cap, e.capacity), sink);
+                path_cap -= path;
+                e.capacity -= path;
+                reverse_edge(e).capacity += path;
+                total_flow += path;
+            }
+ 
+            // If path_cap is 0, we don't want to increment edge_index[node] as this edge may not be fully searched yet.
+            if (path_cap == 0)
+                break;
+ 
+            edge_index[node]++;
+        }
+ 
+        return total_flow;
+    }
+ 
+    flow_t flow(int source, int sink) {
+        assert(V >= 0);
+        flow_t total_flow = 0;
+ 
+        while (bfs(source, sink)) {
+            edge_index.assign(V, 0);
+            total_flow += dfs(source, inf, sink);
+        }
+ 
+        flow_called = true;
+        return total_flow;
+    }
+ 
+    vector<bool> reachable;
+ 
+    void reachable_dfs(int node) {
+        reachable[node] = true;
+ 
+        for (edge &e : adj[node])
+            if (e.capacity > 0 && !reachable[e.node])
+                reachable_dfs(e.node);
+    }
+ 
+    // Returns a list of {capacity, {from_node, to_node}} representing edges in the min cut.
+    // TODO: for bidirectional edges, divide the resulting capacities by two.
+    vector<pair<flow_t, pii>> min_cut(int source) {
+        assert(flow_called);
+        reachable.assign(V, false);
+        reachable_dfs(source);
+        vector<pair<flow_t, pii>> cut;
+        for (int node = 0; node < V; node++)
+            if (reachable[node])
+                for (edge &e : adj[node])
+                    if (!reachable[e.node])
+                        cut.emplace_back(reverse_edge(e).capacity, make_pair(node, e.node));
+ 
+        return cut;
+    }
+	
+	vt<vt<flow_t>> assign_flow(int n) {
+        vt<vt<flow_t>> assign(n, vt<flow_t>(n));   
+        for(int i = 0; i < n; i++) {
+            for(auto& it : adj[i]) {
+                int j = it.node - n;
+                auto e = reverse_edge(it);
+                if(j >= 0 && j < n) {
+                    assign[i][j] = e.capacity;
+                }
+            }
+        }
+        return assign;
+    }
+	
+	vvi construct_path(int n, vi& a) {
+        vi vis(n), A;
+        vvi ans, G(n);
 
-    void run(int root, int par) {
-        vi().swap(coord);
-        get_max_depth(root, par);
-        coord.pb(-inf);
-        srtU(coord);
-        const int N = coord.size();
-        auto reset = [&](info* a) -> void {
-            for(int i = 0; i < N; i++) {
-                a[i] = {0, 0};
+        auto dfs = [&](auto& dfs, int node) -> void {
+            vis[node] = true;
+            A.pb(node + 1); 
+            for(auto& nei : G[node]) {
+                if(!vis[nei]) {
+                    dfs(dfs, nei);
+                    return;
+                }
             }
         };
-        reset(prefix);
-        modify(root, par, 0, 1);
-        for(auto& [nei, w] : graph[root]) {
-            if(vis[nei] || nei == par) continue;
-            modify(nei, root, w, -1);
-            for(int i = 1; i < N; i++) {
-                PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
+        for(int i = 0; i < n; i++) {
+            if(a[i] % 2 == 0) continue; // should only add node where going from source to this
+            for(auto& it : adj[i]) {
+                int j = it.node;
+                if(j < n && it.capacity == 0) {
+                    G[i].pb(j);
+                    G[j].pb(i);
+                }
             }
-            cal(nei, root, w);
-            modify(nei, root, w, 1);
         }
-        for(int i = 1; i < N; i++) {
-            PREFIX[i] = {PREFIX[i - 1].ff + prefix[i].ff, PREFIX[i - 1].ss + prefix[i].ss};
+        for(int i = 0; i < n; i++) {
+            if(vis[i]) continue;
+            A.clear();
+            dfs(dfs, i);
+            ans.pb(A);
         }
-        for(auto& [k, id] : Q[root]) {
-            int j = get_id(k + 1) - 1;
-            ans[id] += PREFIX[j].ss * (ll)k - PREFIX[j].ff;
+        return ans;
+    }
+	
+	vpii construct_flow(int n, int m) { // max matching
+        vpii matching;
+        for (int u = 0; u < n; ++u) {
+            for (auto &e : adj[u]) {
+                int v = e.node;
+                if (v >= n && v < n + m && e.capacity == 0) {
+                    matching.emplace_back(u, v - n);
+                }
+            }
         }
+        return matching;
     }
 
-    int init(int root = 0, int par = -1) {
-        root = get_centroid(root);
-        parent[root] = par;
-        run(root, par);
-        for(auto& [nei, w] : graph[root]) {
-            if(nei == par || vis[nei]) continue;
-            init(nei, root);
+    vpii construct_min_vertex_cover(int n_left, int n_right, int src) {
+        reachable.assign(V, false);
+        reachable_dfs(src);
+        vpii cover; // type 1 is picking left, type 2 is picking right
+        for (int u = 0; u < n_left; ++u) {
+            if (!reachable[u]) 
+                cover.emplace_back(1, u);
         }
-        return root;
+        for (int j = 0; j < n_right; ++j) {
+            if (reachable[n_left + j])
+                cover.emplace_back(2, j);
+        }
+        return cover;
     }
+
 };
 
 void solve() {
-    int n, m; IO::read_int(n, m);
-    vvpii graph(n);
-    for(int i = 1; i < n; i++) {
-        int w; IO::read_int(w);
-        int j = (i + 1) / 2 - 1;
-        graph[i].pb({j, w});
-        graph[j].pb({i, w});
- 
+    int n, k; cin >> n >> k;
+    var(3) a(n); cin >> a;
+    sort(all(a), [](const ar(3)& a, const ar(3)& b) {
+                if(a[1] != b[1]) return a[1] > b[1];
+                return a[0] > b[0];
+            });
+    while(a.size() >= 2 && a.back()[1] == 1 && a[a.size() - 2][1] == 1) a.pop_back();
+    n = a.size();
+    auto f = [&](int lim) -> bool {
+        int src = n, sink = n + 1;
+        dinic<ll> graph(n + 2);
+        ll res = 0;
+        for(int i = 0; i < n; i++) {
+            auto& [p, c, l] = a[i];
+            if(l > lim) continue;
+            if(c & 1) graph.add_directional_edge(src, i, p);
+            else graph.add_directional_edge(i, sink, p);
+            res += p;
+            for(int j = 0; j < n; j++) {
+                auto& [p2, c2, l2] = a[j];
+                if(l2 > lim || i == j) continue;
+                if((c & 1) && (c2 % 2 == 0) && primeBits[c + c2]) {
+                    graph.add_directional_edge(i, j, inf);
+                }
+            }
+        }  
+        return res - graph.flow(src, sink) >= k;
+    };
+    int left = 0, right = inf, res = -1;
+    while(left <= right) {
+        int middle = midPoint;
+        if(f(middle)) res = middle, right = middle - 1;
+        else left = middle + 1;
     }
-    for(int i = 0; i < m; i++) {
-        int u, h; IO::read_int(u, h);
-        u--;
-        Q[u].pb({h, i});
-        mx = max(mx, h);
-    }
-    CD<pii> g(graph);
-    for(int i = 0; i < m; i++) {
-        cout << ans[i] << '\n';
-    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -441,7 +534,7 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;
@@ -471,4 +564,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

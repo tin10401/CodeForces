@@ -57,23 +57,23 @@ using vvvmint = vt<vvmint>;
 using pmm = pair<mint, mint>;
 using vpmm = vt<pmm>;
 
-typedef complex<double> cd;
+typedef complex<db> cd;
 template<class T>
-struct Convolution { // given 2 array a and b, compute the number of pair that make up sum == x for every x from 1 to MX
+struct FFT { // given 2 array a and b, compute the number of pair that make up (a[i] * b[j] for all j) in nlogn
     static void fft(vt<cd>& a, bool invert) {
         int n = a.size();
-        for (int i = 1, j = 0; i < n; i++) {
+        for(int i = 1, j = 0; i < n; i++) {
             int bit = n >> 1;
-            for (; j & bit; bit >>= 1) j ^= bit;
+            for(; j & bit; bit >>= 1) j ^= bit;
             j ^= bit;
             if (i < j) swap(a[i], a[j]);
         }
-        for (int len = 2; len <= n; len <<= 1) {
-            double angle = 2 * M_PI / len * (invert ? -1 : 1);
+        for(int len = 2; len <= n; len <<= 1) {
+            db angle = 2 * M_PI / len * (invert ? -1 : 1);
             cd wlen(cos(angle), sin(angle));
-            for (int i = 0; i < n; i += len) {
+            for(int i = 0; i < n; i += len) {
                 cd w(1);
-                for (int j = 0; j < len / 2; j++) {
+                for(int j = 0; j < len / 2; j++) {
                     cd u = a[i + j], v = a[i + j + len / 2] * w;
                     a[i + j] = u + v;
                     a[i + j + len / 2] = u - v;
@@ -81,7 +81,7 @@ struct Convolution { // given 2 array a and b, compute the number of pair that m
                 }
             }
         }
-        if (invert) {
+        if(invert) {
             for (cd & x : a) x /= n;
         }
     }
@@ -89,20 +89,37 @@ struct Convolution { // given 2 array a and b, compute the number of pair that m
     static vt<T> convolve(const vt<T>& a, const vt<T>& b) {
         vt<cd> fa(all(a)), fb(all(b));
         int n = 1;
-        while (n < (int)a.size() + (int)b.size() - 1) n <<= 1;
+        while(n < (int)a.size() + (int)b.size() - 1) n <<= 1;
         fa.rsz(n);
         fb.rsz(n);
         fft(fa, false);
         fft(fb, false);
-        for (int i = 0; i < n; i++) fa[i] *= fb[i];
+        for(int i = 0; i < n; i++) fa[i] *= fb[i];
         fft(fa, true);
         vt<T> res(n);
-        for (int i = 0; i < n; i++)
+        for(int i = 0; i < n; i++)
             res[i] = (T)round(fa[i].real());
+        return res;
+    }
+
+    static vt<T> power(vt<T> poly, int exp) {
+        vt<T> res(1, 1);
+        while(exp > 0) {
+            if (exp & 1) {
+                res = convolve(res, poly);
+                for(auto &c : res) c = c ? 1 : 0;
+            }
+            exp >>= 1;
+            if(exp) {
+                poly = convolve(poly, poly);
+                for(auto &c : poly) c = c ? 1 : 0;
+            }
+        }
         return res;
     }
 };
 
+// https://www.spoj.com/status/ns=34520575
 template<int mod = MOD>
 struct Polynomial {
     vmint a;
