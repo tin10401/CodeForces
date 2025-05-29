@@ -9,9 +9,9 @@ private:
         TreapNode* right;
         
 		TreapNode(T key) : reverse(0), key(key), ans(key), pri(rand()), size(1), left(nullptr), right(nullptr) {
-            for(int i = 0; i < HASH_COUNT; i++) {
-                pref[i] = suff[i] = key;
-            }
+//            for(int i = 0; i < HASH_COUNT; i++) {
+//                pref[i] = suff[i] = key;
+//            }
         }
 
     };
@@ -181,7 +181,6 @@ public:
         merge(root, root, B);
     }
 
-
 	void split_and_swap(int k) {
         if(k == 0 || k == size(root)) return; 
         TreapNode* A, *B, *C;
@@ -261,7 +260,6 @@ public:
         unite(A);
         return A;
     }
-
 
     void merge_treap(TreapNode* other) {
         root = merge_treap(root, other);
@@ -514,6 +512,13 @@ class FW_2D {
             else go_down(i);
         }
     }
+
+    void update_coord_query_range(int l, int r, int low, int high) {
+        add_coord(l - 1, low - 1, false);
+        add_coord(l - 1, high, false);
+        add_coord(r, low - 1, false);
+        add_coord(r, high, false);
+    }
  
     void update_coord(int i, int l, int r, bool is_up = true) {
         add_coord(i, l - 1, is_up);
@@ -587,6 +592,7 @@ class FW_2D {
     }
 
     T merge(T left, T right) {
+        return left + right;
     }
 };
 
@@ -1099,13 +1105,13 @@ class MO {
     }
 
     vll queries() {    
+		// don't forget the sorting, you might accidentally remove it
         auto cmp = [&](const ar(3)& a, const ar(3)& b) -> bool {    
             if(a[0] / block != b[0] / block) return a[0] / block < b[0] / block;
             int d = a[0] / block;   
             if(d & 1) return a[1] > b[1];
             return a[1] < b[1];
-        };
-        sort(all(Q), cmp);
+        }; sort(all(Q), cmp);
         vi pos(a);  
         srtU(pos); 
         const int N = pos.size();
@@ -1130,10 +1136,10 @@ class MO {
         vll res(q);
         int l = 0, r = -1;    // modify to 0 as needed "left = 0"
         for(auto& [ql, qr, id] : Q) { // 1 base index
-			while (r < qr) modify(a[++r], 1);
-			while (l > ql) modify(a[--l], 1);
-			while (r > qr) modify(a[r--], -1);
-			while (l < ql) modify(a[l++], -1);
+			while(r < qr) modify(a[++r], 1);
+			while(l > ql) modify(a[--l], 1);
+			while(r > qr) modify(a[r--], -1);
+			while(l < ql) modify(a[l++], -1);
             res[id] = ans;
         }
         return res;
@@ -1227,10 +1233,12 @@ public:
 
 template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
 struct linear_rmq {
-    const vt<T>& values;
+    vt<T> values;
     F compare;
     vi head;
     vt<array<unsigned,2>> masks;
+
+    linear_rmq() {}
 
     linear_rmq(const vt<T>& arr, F cmp = F{})
       : values(arr), compare(cmp),
@@ -1300,6 +1308,70 @@ class TWO_DIMENSIONAL_RANGE_QUERY {
         T topRight = prefix[r1 - 1][c2];  
         T bottomLeft = prefix[r2][c1 - 1];
         return bottomRight - topRight - bottomLeft + topLeft;
+    }
+};
+
+struct nd_prefix_sum { // prefix sum on multidimensional
+    // example usage
+    // int n, m, k; cin >> n >> m >> k;
+    // int D = n * m * k;
+    // vll a(D);
+    // for(int i = 0, p = 0; i < n; i++) for(int j = 0; j < m; j++) for(int kk = 0; kk < k; kk++, p++) cin >> a[p];
+    // nd_prefix_sum t(a, {n, m, k});
+    // while(q--) {
+    //      vi low, high; cin >> low >> high;
+    // }
+    int D;
+    vi dims, stride;
+    vll pref;
+
+    nd_prefix_sum(const vll& data, const vi& dims_) {
+        dims = dims_;
+        D = dims.size();
+        int N = 1;
+        for (int x : dims) N *= x;
+        stride.assign(D, 1);
+        for (int i = D - 2; i >= 0; i--) {
+            stride[i] = stride[i + 1] * dims[i + 1];
+        }
+        pref = data;
+        for (int d = 0; d < D; d++) {
+            for (int i = 0; i < N; i++) {
+                int idx = (i / stride[d]) % dims[d];
+                if (idx > 0) {
+                    pref[i] += pref[i - stride[d]];
+                }
+            }
+        }
+    }
+
+    ll get_flat(const vi& idx) const {
+        int pos = 0;
+        for (int i = 0; i < D; i++) {
+            pos += idx[i] * stride[i];
+        }
+        return pref[pos];
+    }
+
+    ll query(const vi& lo, const vi& hi) const {
+        ll res = 0;
+        int maskN = 1 << D;
+        vi idx(D);
+        for (int mask = 0; mask < maskN; mask++) {
+            int bits = pct(mask);
+            ll sign = (bits % 2 ? -1 : 1);
+            bool ok = true;
+            for (int d = 0; d < D; d++) {
+                idx[d] = (mask & (1 << d)) ? lo[d] - 1 : hi[d];
+                if (idx[d] < 0) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (!ok) continue;
+            res += sign * get_flat(idx);
+        }
+        return res;
     }
 };
 
@@ -2053,6 +2125,34 @@ public:
         }
         return true;
     }
+    BITSET extract(int l, int r) const { // turn off every bit not in range [l, r]
+        BITSET res(sz);
+        if (l < 0) l = 0;
+        if (r >= sz) r = sz - 1;
+        if (l > r) return res;
+        const int B = 8 * sizeof(ubig);
+
+        int startBlock = l / B, endBlock = r / B;
+        int startOff = l % B, endOff = r % B;
+
+        if (startBlock == endBlock) {
+            ubig mask = ((~0ULL >> (B - (r - l + 1))) << startOff);
+            res.blocks[startBlock] = blocks[startBlock] & mask;
+        } else {
+            ubig firstMask = ~0ULL << startOff;
+            res.blocks[startBlock] = blocks[startBlock] & firstMask;
+            for (int b = startBlock + 1; b < endBlock; ++b)
+                res.blocks[b] = blocks[b];
+            ubig lastMask = (~0ULL >> (B - 1 - endOff));
+            res.blocks[endBlock] = blocks[endBlock] & lastMask;
+        }
+        int extra = (int)blocks.size() * B - sz;
+        if (extra > 0) {
+            ubig tailMask = ~0ULL >> extra;
+            res.blocks.back() &= tailMask;
+        }
+        return res;
+    }
     string to_string() const {
         string s;
         s.resize(sz);
@@ -2133,7 +2233,6 @@ public:
         res <<= shift;
         return res;
     }
-    
     BITSET& operator>>=(int shift) {
         if (shift >= sz) {
             fill(blocks.begin(), blocks.end(), 0ULL);
@@ -2195,7 +2294,6 @@ public:
         }
         return -1;
     }
-
     int find_next_set_bit(int pos) const {
         if(pos < 0) pos = 0;
         if(pos < sz && test(pos)) return pos;
@@ -2217,7 +2315,6 @@ public:
         }
         return -1;
     }
-    
     bool operator==(const BITSET& other) const {
         return blocks == other.blocks;
     }
@@ -2247,6 +2344,62 @@ BITSET possible_subsets_knapsack(int n, const vi &sizes) {
             knapsack |= knapsack << s;
     }
     return knapsack;
+}
+
+vi min_knapsack(int n, const vi& a) { // return a vector which a[i] is min_element to reach sum_i, sum is bounded by n, giving n * sqrt(n) * log(n) sometime faster
+    // https://codeforces.com/contest/95/problem/E
+    vi count(n + 1, 0);
+    for(int sz : a) {
+        if(sz > 0 && sz <= n) count[sz]++;
+    }
+
+    vi dp(n + 1, inf), next_dp;
+    dp[0] = 0;
+
+    for(int s = 1; s <= n; ++s) {
+        int cnt = count[s];
+        if(cnt <= 0) continue;
+
+        for(int r = 0; r < s; ++r) {
+            deque<pii> dq; // (q, value)
+            for(int j = r, q = 0; j <= n; j += s, ++q) {
+                int val = dp[j] - q;
+                while(!dq.empty() && dq.front().ff < q - cnt) dq.pop_front();
+                while(!dq.empty() && dq.back().ss >= val) dq.pop_back();
+                dq.emplace_back(q, val);
+                dp[j] = min(dp[j], dq.front().ss + q);
+            }
+        }
+    }
+    return dp;
+}
+
+vi min_knapsack(int n, const vi& a) { // return a vector which a[i] is min_element to reach sum_i, sum is bounded by n, giving n * sqrt(n)
+    // https://codeforces.com/contest/95/problem/E
+    vi count(n + 1, 0);
+    for(int sz : a) {
+        if(sz > 0 && sz <= n) count[sz]++;
+    }
+
+    vi dp(n + 1, inf), next_dp;
+    dp[0] = 0;
+
+    for(int s = 1; s <= n; ++s) {
+        int cnt = count[s];
+        if(cnt <= 0) continue;
+
+        for(int r = 0; r < s; ++r) {
+            deque<pii> dq; // (q, value)
+            for(int j = r, q = 0; j <= n; j += s, ++q) {
+                int val = dp[j] - q;
+                while(!dq.empty() && dq.front().ff < q - cnt) dq.pop_front();
+                while(!dq.empty() && dq.back().ss >= val) dq.pop_back();
+                dq.emplace_back(q, val);
+                dp[j] = min(dp[j], dq.front().ss + q);
+            }
+        }
+    }
+    return dp;
 }
 
 class median_tree {
@@ -2377,10 +2530,132 @@ struct Mat {
 };
 
 template<typename T>
+struct range_unique { // determine if a[l, r] contain all unique value
+    vi safe;
+    int n;
+    range_unique(const vt<T>& a) : n(a.size()), safe(a.size()) {
+        map<int, int> last;
+        for(int i = 0, l = -1; i < n; i++) {
+            if(last.count(a[i])) l = max(l, last[a[i]] + 1);
+            safe[i] = l;
+            last[a[i]] = i;
+        }
+    }
+
+    bool all_unique(int l, int r) {
+        return safe[r] <= l;
+    }
+};
+
+struct bracket {
+    vi prefix;
+    int n;
+    linear_rmq<int> rq;
+    vi right_most; // longest balance bracket sequence starting at this index
+    bracket() {}
+
+    bracket(const string& s) {
+        n = s.size();
+        prefix.rsz(n + 1);
+        right_most.rsz(n, -1);
+        for(int i = 0; i < n; i++) {
+            prefix[i + 1] = prefix[i] + (s[i] == '(' ? 1 : -1);
+        }
+        rq = linear_rmq<int>(prefix, [](const int& a, const int& b) {return a < b;});
+        stack<int> st;
+        for(int i = 0; i < n; i++) {
+            if(s[i] == '(') {
+                st.push(i);
+                continue;
+            }
+            if(!st.empty() && s[st.top()] == '(') {
+                right_most[st.top()] = i;
+                st.pop();
+            }
+            else st.push(i);
+        }
+        for(int i = n - 1; i >= 0; i--) {
+            int r = right_most[i];
+            if(r == -1) continue;
+            if(r + 1 < n && right_most[r + 1] != -1) right_most[i] = right_most[r + 1];
+        }
+    }
+
+    bool is_balanced(int l, int r) {
+        return rq.query(l + 1, r + 1) - prefix[l] >= 0 && prefix[r + 1] - prefix[l] == 0;
+    }
+
+    int longest_balance_bracket_starting_at(int i) {
+        if(right_most[i] == -1) return -inf;
+        return right_most[i] - i + 1;
+    }
+
+    int max_balanced_substring_len(vector<string>& A) { // given an array of bracket string, find the max subarray over all permutation
+                                                        // TC : A.size() * sum(str)
+        // https://open.kattis.com/problems/piecesofparentheses
+        struct Piece { int diff, mn, len; };
+        int n = A.size();
+        vt<Piece> pieces;
+        int sumPos = 0;
+        for(auto& s : A) {
+            int bal = 0, m = 0;
+            for(char c : s) {
+                bal += (c == '(' ? 1 : -1);
+                m = min(m, bal);
+            }
+            pieces.pb({bal, m, (int)s.size()});
+            if(bal > 0) sumPos += bal;
+        }
+        sort(all(pieces), [&](auto &a, auto &b){
+                if(a.mn != b.mn) return a.mn > b.mn;
+                if(a.diff != b.diff) return a.diff > b.diff;
+                return a.len < b.len;
+                });
+        int M = sumPos;
+        vi dp(M + 1, -1), highest(M + 1, -1);
+        dp[0] = 0;
+        highest[0] = 0;
+        for(auto &p : pieces) {
+            int d = p.diff, m = p.mn, t = p.len;
+            if(d >= 0) {
+                for(int j = M; j >= d; j--) {
+                    int prev = j - d;
+                    if(dp[prev] < 0) continue;
+                    if(highest[prev] + m < 0) continue;
+                    int candLen = dp[prev] + t;
+                    int candHigh = highest[prev] + d;
+                    if(candLen > dp[j]) {
+                        dp[j] = candLen;
+                        highest[j] = candHigh;
+                    } else if(candLen == dp[j] && candHigh > highest[j]) {
+                        highest[j] = candHigh;
+                    }
+                }
+            } else {
+                for(int j = 0; j <= M + d; j++) {
+                    int prev = j - d;
+                    if(dp[prev] < 0) continue;
+                    if(highest[prev] + m < 0) continue;
+                    int candLen = dp[prev] + t;
+                    int candHigh = highest[prev];
+                    if(candLen > dp[j]) {
+                        dp[j] = candLen;
+                        highest[j] = candHigh;
+                    } else if(candLen == dp[j] && candHigh > highest[j]) {
+                        highest[j] = candHigh;
+                    }
+                }
+            }
+        }
+        return max(0, dp[0]);
+    }
+};
+
+template<typename T>
 struct wavelet_tree { // one base index
     int lo, hi;
     wavelet_tree *l, *r;
-    int *b, *c;
+    vi b, c;
 
     wavelet_tree() : lo(1), hi(0), l(nullptr), r(nullptr) {}
 
@@ -2590,3 +2865,704 @@ struct square_root_decomp {
         return a[i] + lazy[id(i)];
     }
 };
+
+template <typename T, bool smallest_tie = false>
+struct Static_Range_Mode_Query {
+    using u32 = uint32_t;
+    vt<T> V;
+    vvpii mode;
+    vi A, occur, start, pos;
+    int bk;
+
+    Static_Range_Mode_Query() = default;
+    Static_Range_Mode_Query(const vt<T>& Vec) { init(Vec); }
+
+    void init(const vt<T>& Vec) {
+        int n = Vec.size();
+        V = Vec;
+        srtU(V);
+        bk = sqrt(n);
+        A.rsz(n);
+        for(int i = 0; i < n; i++) A[i] = int(lb(all(V), Vec[i]) - V.begin());
+        occur.rsz(n);
+        pos.rsz(n);
+        start.rsz(V.size() + 1);
+        for (int i = 0; i < n; i++) occur[i] = start[A[i]]++;
+        inclusive_scan(all(start), start.begin());
+        for (int i = n; i--; ) pos[--start[A[i]]] = i;
+        int blocks = (n + bk - 1) / bk;
+        mode.assign(blocks, vt<pii>(blocks));
+        vi cnt(V.size());
+        for(int i = 0; i + bk <= n; i += bk) {
+            int l = i / bk;
+            fill(cnt.begin(), cnt.end(), 0);
+            pii now_mode = {0, 0};
+            for(int j = i; j + bk <= n; j += bk) {
+                int r = j / bk;
+                for(int k = j; k < j + bk; k++) {
+                    int v = A[k];
+                    int c = ++cnt[v];
+                    if(c > now_mode.first || (c == now_mode.first && (smallest_tie ? v < now_mode.second : v > now_mode.second))) {
+                        now_mode = {c, v};
+                    }
+                }
+                mode[l][r] = now_mode;
+            }
+        }
+    }
+
+    pair<T,int> query(int l, int r) const {
+        if(l > r) return {T(), 0};
+        int r_excl = r + 1;
+        int lb = (l == 0 ? 0 : (l - 1) / bk + 1);
+        int rb = r_excl / bk;
+        if(lb >= rb) {
+            int freq = 0;
+            int value = 0;
+            for(int i = l; i < r_excl; i++) {
+                int j = occur[i] + start[A[i]];
+                while(j + freq < start[A[i] + 1] && pos[j + freq] < r_excl) {
+                    freq++;
+                    value = A[i];
+                }
+            }
+            return {V[value], freq};
+        }
+        auto [freq, value] = mode[lb][rb - 1];
+        for(int i = l; i < lb * bk; i++) {
+            int j = occur[i] + start[A[i]];
+            while(j + freq < start[A[i] + 1] && pos[j + freq] < r_excl) {
+                freq++;
+                value = A[i];
+            }
+        }
+        for(int i = rb * bk; i < r_excl; i++) {
+            int j = occur[i] + start[A[i]];
+            while(j - freq >= start[A[i]] && pos[j - freq] >= l) {
+                freq++;
+                value = A[i];
+            }
+        }
+        return {V[value], freq};
+    }
+};
+
+template<typename T, typename F = function<T(const T&, const T&)>>
+struct MonoQueue {
+    // can handle anything that's associative
+    // sum, xor, min, max, and, or, product, gcd
+    // careful with the default
+    F op;
+    T e;
+    stack<pair<T,T>> in, out;
+
+    MonoQueue(T DEFAULT, F _op) : op(_op), e(DEFAULT) {}
+
+    void push(T x) {
+        T agg = in.empty() ? x : op(in.top().ss, x);
+        in.emplace(x, agg);
+    }
+
+    void pop() {
+        if(out.empty()) {
+            while(!in.empty()) {
+                T v = in.top().ff;
+                in.pop();
+                T agg = out.empty() ? v : op(v, out.top().ss);
+                out.emplace(v, agg);
+            }
+        }
+        if(!out.empty()) out.pop();
+    }
+
+    T query() const {
+        if(in.empty() && out.empty()) return e;
+        if(in.empty()) return out.top().ss;
+        if(out.empty()) return in.top().ss;
+        return op(in.top().ss, out.top().ss);
+    }
+
+    bool empty() const {
+        return in.empty() && out.empty();
+    }
+};
+
+template<int K>
+struct ODT {
+    // https://atcoder.jp/contests/abc237/tasks/abc237_g
+    struct Node {
+        int l, r, v;
+        bool operator<(Node const &o) const { return l < o.l; }
+    };
+
+    set<Node> s;
+
+    ODT(int n, const vector<int> &a) {
+        for (int i = 1; i <= n; i++) s.insert({i, i, a[i]});
+    }
+
+    auto split(int pos) {
+        auto it = s.lower_bound({pos, 0, 0});
+        if (it != s.end() && it->l == pos) return it;
+        --it;
+        Node cur = *it;
+        s.erase(it);
+        s.insert({cur.l, pos - 1, cur.v});
+        return s.insert({pos, cur.r, cur.v}).first;
+    }
+
+    void sort_increasing(int l, int r) {
+        auto itr = split(r + 1), itl = split(l);
+        array<int, K> cnt{};
+        for (auto it = itl; it != itr; ++it) cnt[it->v] += it->r - it->l + 1;
+        s.erase(itl, itr);
+        int cur = l;
+        for (int v = 0; v < K; v++) {
+            int c = cnt[v];
+            if (!c) continue;
+            s.insert({cur, cur + c - 1, v});
+            cur += c;
+        }
+    }
+
+    void sort_descending(int l, int r) {
+        auto itr = split(r + 1), itl = split(l);
+        array<int, K> cnt{};
+        for (auto it = itl; it != itr; ++it) cnt[it->v] += it->r - it->l + 1;
+        s.erase(itl, itr);
+        int cur = l;
+        for (int v = K - 1; v >= 0; v--) {
+            int c = cnt[v];
+            if (!c) continue;
+            s.insert({cur, cur + c - 1, v});
+            cur += c;
+        }
+    }
+
+    int get(int pos) const {
+        auto it = s.upper_bound({pos, 0, 0});
+        --it;
+        return it->v;
+    }
+};
+
+template<typename T>
+struct arithmetic_prefix { // 0 index
+    vt<T> a;
+    vll PREFIX, prefix;
+    int n;
+    arithmetic_prefix(const vt<T>& a) : a(a), n(a.size()) {
+        prefix.rsz(n + 1);
+        PREFIX.rsz(n + 1);
+        for(int i = 1; i <= n; i++) {
+            prefix[i] = prefix[i - 1] + a[i - 1];
+            PREFIX[i] = PREFIX[i - 1] + ((ll)a[i - 1] * i);
+        }
+    }
+
+    ll query_prefix(int l, int r, bool inclusive = true) {
+        l++, r++;
+        ll big = PREFIX[r] - PREFIX[l - 1];
+        ll small = prefix[r] - prefix[l - 1];
+        return big - (inclusive ? small * (l - 1) : small * l);
+    }
+    
+    ll query_suffix(int l, int r, bool inclusive = true) {
+        l++, r++;
+        ll big = PREFIX[r] - PREFIX[l - 1];
+        ll small = prefix[r] - prefix[l - 1];
+        ll base = inclusive ? r + 1 : r;
+        return small * base - big;
+    }
+
+    ll median_split_inward(int l, int r, bool inclusive = true) { // find best point to split between [l, r]
+                                                                  // the cost bring inward
+        int left = l - 1, right = r;
+        ll res = INF;
+        while(left <= right) {
+            int middle = midPoint;
+            ll A = middle < l ? 0 : query_prefix(l, middle, inclusive);
+            ll B = middle == r ? 0 : query_suffix(middle + 1, r, inclusive);
+            res = min(res, A + B);
+            if(A < B) left = middle + 1;
+            else right = middle - 1;
+        }
+        return res;
+    }
+
+    ll get_prefix(int l, int r) {
+        return prefix[r + 1] - prefix[l];
+    }
+    
+    ll median_split_outward(int l, int r) { // find the best point to split between [l, r]
+                                            // then cost is query_suffix(l, p, false) + query_prefix(p + 1, r)
+        ll tot  = get_prefix(l, r);
+        ll half = (tot + 1) / 2;
+        int left = l, right = r;
+        while(left < right) {
+            int middle = midPoint;
+            if(get_prefix(l, middle) < half) left = middle + 1;
+            else right = middle;
+        }
+        int m = left;;
+        ll leftCost = (m >= l) ? query_suffix(l, m, false) : 0;
+        ll rightCost = (m + 1 <= r) ? query_prefix(m + 1, r, true) : 0;
+        return leftCost + rightCost;
+    }
+};
+
+struct Alien_trick {
+    struct state {
+        ll seg;
+        ll val;
+        state(ll val = -INF, ll seg = 0) : val(val), seg(seg) {}
+    };
+
+    Alien_trick() {}
+
+    state cmp(const state& a, const state& b) {
+        if(a.val != b.val) return a.val > b.val ? a : b;
+        return a.seg < b.seg ? a : b;
+    }
+    
+    ll run(const vi& a, ll k) {
+        int n = a.size();
+        auto f = [&](ll cost) -> state {
+            state out(0, 0), in; // either continue a segment, infer no cost, or starting a new segment, costing cost extra
+            for(int i = 0; i < n; i++) {
+                state next_out = cmp(out, in), next_in;
+                state op1(out.val + a[i] - cost, out.seg + 1);
+                state op2(in.val + a[i], in.seg);
+                next_in = cmp(op1, op2);
+                swap(out, next_out);
+                swap(in, next_in);
+            }
+            return cmp(in, out);
+        };
+        ll left = -1, right = INF;
+        while(left + 1 < right) {
+            ll middle = midPoint;
+            auto now = f(middle);
+            if(now.seg > k) left = middle;
+            else right = middle;
+        }
+        auto st = f(right);
+        auto res =  st.val + right * k;
+        return res;
+    }
+
+    ll run(const vi& a, ll k, ll len) {
+        int n = a.size();
+        vll prefix(n + 1);
+        for(int i = 1; i <= n; i++) {
+            prefix[i] = prefix[i - 1] + a[i - 1];
+        }
+        auto f = [&](ll cost) -> state {
+            vt<state> dp(n + 1);
+            dp[0] = state(0, 0);
+            for(int i = 1; i <= n; i++) {
+                dp[i] = cmp(dp[i], dp[i - 1]);
+                if(i >= len) {
+                    int j = i - len;
+                    ll cover = prefix[i] - prefix[j];
+                    state now(dp[j].val + cover - cost, dp[j].seg + 1);
+                    dp[i] = cmp(dp[i], now);
+                }
+                if(i == n) {
+                    for(int j = n - len; j < n; j++) {
+                        if(j < 0) continue;
+                        ll cover = prefix[i] - prefix[j];
+                        state now(dp[j].val + cover - cost, dp[j].seg + 1);
+                        dp[i] = cmp(dp[i], now);
+                    }
+                }
+            }
+            return dp[n];
+        };
+        ll left = -1, right = INF;
+        while(left + 1 < right) {
+            ll middle = midPoint;
+            auto now = f(middle);
+            if(now.seg > k) left = middle;
+            else right = middle;
+        }
+        auto st = f(right);
+        auto res =  st.val + right * k;
+        return res;
+    }
+};
+
+struct DNC {
+	// iterative impl : https://cses.fi/problemset/result/13062862/
+    int n;
+    vll &dp;
+    vll next;
+    DNC(vll &_dp) : dp(_dp), n((int)_dp.size() - 1), next(_dp.size()) { }
+
+    template<typename Eval>
+    void run(Eval eval) {
+        fill(all(next), INF);
+        dfs(1, n, 1, n, eval);
+        swap(dp, next);
+        
+    }
+    
+    template<typename Eval>
+    void dfs(int l, int r, int idl, int idr, Eval eval) {
+        if(l > r) return;
+        int mid = (l + r) >> 1;
+        ll best = INF;
+        int best_k = idl;
+        for(int p = idl; p <= min(mid, idr); p++) {
+            ll v = eval(p, mid);
+            if(v < best) {
+                best = v;
+                best_k = p;
+            }
+        }
+        next[mid] = best;
+        dfs(l, mid - 1, idl, best_k, eval);
+        dfs(mid + 1, r, best_k, idr, eval);
+    }
+};
+
+struct range_lis_query_impl { // only works for permutation
+    struct wavelet_matrix_impl {
+        using uint = unsigned int;
+        static constexpr int w = CHAR_BIT * sizeof(uint);
+
+        static int popcount(uint x) {
+#ifdef __GNUC__
+            return __builtin_popcount(x);
+#else
+            static_assert(w == 32, "");
+            x -= (x >> 1) & 0x55555555;
+            x  = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+            x  = (x + (x >> 4)) & 0x0F0F0F0F;
+            return (x * 0x01010101 >> 24) & 0x3F;
+#endif
+        }
+
+        class bit_vector {
+            struct node_type { uint bit = 0; int sum = 0; };
+            vector<node_type> v;
+        public:
+            explicit bit_vector(uint n) : v(n / w + 1) {}
+            void set(uint i) { v[i / w].bit |= uint(1) << (i % w); ++v[i / w].sum; }
+            void build() { for (size_t i = 1; i < v.size(); ++i) v[i].sum += v[i - 1].sum; }
+            int rank(uint i) const { return v[i / w].sum - popcount(v[i / w].bit & (~uint(0) << (i % w))); }
+            int one()  const { return v.back().sum; }
+        };
+
+        class wavelet_matrix {
+            template <class I> static bool test(I x, int k) { return (x & (I(1) << k)) != 0; }
+            vector<bit_vector> mat;
+        public:
+            template <class I>
+            wavelet_matrix(int bit_len, vector<I> a) : mat(bit_len, bit_vector(a.size())) {
+                int n = a.size();
+                vector<I> tmp; tmp.reserve(n);
+                for (int p = bit_len - 1; p >= 0; --p) {
+                    bit_vector &bv = mat[p];
+                    auto it = a.begin();
+                    for (int i = 0; i < n; ++i) {
+                        if (test(a[i], p)) { bv.set(i); *it++ = a[i]; }
+                        else               { tmp.push_back(a[i]); }
+                    }
+                    bv.build();
+                    copy(tmp.begin(), tmp.end(), it);
+                    tmp.clear();
+                }
+            }
+
+            int count_less_than(int l, int r, ll key) const {
+                int ret = r - l;
+                for (int p = int(mat.size()) - 1; p >= 0; --p) {
+                    const bit_vector &bv = mat[p];
+                    int rl = bv.rank(l), rr = bv.rank(r);
+                    if (test(key, p)) { l = rl; r = rr; }
+                    else {
+                        ret -= rr - rl;
+                        int o = bv.one();
+                        l += o - rl;
+                        r += o - rr;
+                    }
+                }
+                return ret - (r - l);
+            }
+        };
+    };
+
+    using wavelet_matrix = wavelet_matrix_impl::wavelet_matrix;
+    using ptr  = vi::iterator;
+    static constexpr int none = -1;
+
+    static vi inverse(const vi &p) {
+        int n = p.size();
+        vi q(n, none);
+        for (int i = 0; i < n; ++i) if (p[i] != none) q[p[i]] = i;
+        return q;
+    }
+
+    static void unit_monge_dmul(int n, ptr st, ptr a, ptr b) {
+        if (n == 1) { st[0] = 0; return; }
+
+        ptr c_row = st; st += n;
+        ptr c_col = st; st += n;
+
+        auto map_fn = [&](int len, auto f, auto g) {
+            ptr a_h = st + 0 * len;
+            ptr a_m = st + 1 * len;
+            ptr b_h = st + 2 * len;
+            ptr b_m = st + 3 * len;
+
+            auto split = [&](ptr v, ptr vh, ptr vm) {
+                for (int i = 0; i < n; ++i)
+                    if (f(v[i])) { *vh++ = g(v[i]); *vm++ = i; }
+            };
+
+            split(a, a_h, a_m);
+            split(b, b_h, b_m);
+
+            ptr c = st + 4 * len;
+            unit_monge_dmul(len, c, a_h, b_h);
+
+            for (int i = 0; i < len; ++i) {
+                int row = a_m[i];
+                int col = b_m[c[i]];
+                c_row[row] = col;
+                c_col[col] = row;
+            }
+        };
+
+        int mid = n / 2;
+        map_fn(mid,     [mid](int x){ return x <  mid; }, [](int x){ return x;       });
+        map_fn(n - mid, [mid](int x){ return x >= mid; }, [mid](int x){ return x - mid; });
+
+        struct d_itr { int delta = 0; int col = 0; } neg, pos;
+        int row = n;
+
+        auto move_right = [&](d_itr &it) {
+            if (b[it.col] < mid ? c_col[it.col] >= row : c_col[it.col] < row) ++it.delta;
+            ++it.col;
+        };
+
+        auto up = [&](d_itr &it) {
+            if (a[row] < mid ? c_row[row] >= it.col : c_row[row] < it.col) --it.delta;
+        };
+
+        while (row) {
+            while (pos.col != n) {
+                d_itr t = pos;
+                move_right(t);
+                if (!t.delta) pos = t; else break;
+            }
+            --row;
+            up(neg);
+            up(pos);
+            while (neg.delta) move_right(neg);
+            if (neg.col > pos.col) c_row[row] = pos.col;
+        }
+    }
+
+    static vi subunit_monge_dmul(vi a, vi b) {
+        int n = a.size();
+        vi a_inv = inverse(a), b_inv = inverse(b);
+        swap(b, b_inv);
+
+        vi a_map, b_map;
+        for (int i = n - 1; i >= 0; --i) if (a[i] != none) { a_map.push_back(i); a[n - a_map.size()] = a[i]; }
+        reverse(a_map.begin(), a_map.end());
+
+        int cnt = 0;
+        for (int i = 0; i < n; ++i) if (a_inv[i] == none) a[cnt++] = i;
+
+        for (int i = 0; i < n; ++i) if (b[i] != none) { b[b_map.size()] = b[i]; b_map.push_back(i); }
+        cnt = b_map.size();
+        for (int i = 0; i < n; ++i) if (b_inv[i] == none) b[cnt++] = i;
+
+        int stack_size = [](int m){ int ret = 0; while (m > 1) { ret += 2 * m; m = (m + 1) / 2; ret += 4 * m; } return ret + 1; }(n);
+
+        vi c(stack_size);
+        unit_monge_dmul(n, c.begin(), a.begin(), b.begin());
+
+        vi c_pad(n, none);
+        for (int i = 0; i < (int)a_map.size(); ++i) {
+            int t = c[n - a_map.size() + i];
+            if (t < (int)b_map.size()) c_pad[a_map[i]] = b_map[t];
+        }
+        return c_pad;
+    }
+
+    static vi seaweed_doubling(const vi &p) {
+        int n = p.size();
+        if (n == 1) return vi{none};
+        int mid = n / 2;
+
+        vi lo, hi, lo_map, hi_map;
+        for (int i = 0; i < n; ++i) {
+            int e = p[i];
+            if (e < mid) { lo.push_back(e); lo_map.push_back(i); }
+            else         { hi.push_back(e - mid); hi_map.push_back(i); }
+        }
+
+        lo = seaweed_doubling(lo);
+        hi = seaweed_doubling(hi);
+
+        vi lo_pad(n), hi_pad(n);
+        iota(lo_pad.begin(), lo_pad.end(), 0);
+        iota(hi_pad.begin(), hi_pad.end(), 0);
+
+        for (int i = 0; i < mid; ++i)          lo_pad[lo_map[i]] = (lo[i] == none) ? none : lo_map[lo[i]];
+        for (int i = 0; mid + i < n; ++i)     hi_pad[hi_map[i]] = (hi[i] == none) ? none : hi_map[hi[i]];
+
+        return subunit_monge_dmul(move(lo_pad), move(hi_pad));
+    }
+
+    static bool is_permutation(const vi &p) {
+        int n = p.size();
+        vector<bool> used(n, false);
+        for (int e : p) {
+            if (e < 0 || e >= n || used[e]) return false;
+            used[e] = true;
+        }
+        return true;
+    }
+
+    static wavelet_matrix convert(const vi &p) {
+        assert(is_permutation(p));
+        int n = p.size();
+        vi row = n ? seaweed_doubling(vi(p.begin(), p.end())) : vi();
+        for (int &e : row) if (e == none) e = n;
+        int bit_len = 0; for (int t = n; t; t >>= 1) ++bit_len;
+        return wavelet_matrix(bit_len, move(row));
+    }
+
+    class range_lis_query {
+        int n;
+        wavelet_matrix wm;
+    public:
+        range_lis_query() = default;
+        explicit range_lis_query(const vector<int> &p) : n(p.size()), wm(convert(p)) {}
+        int query(int l, int r) const {
+            assert(0 <= l && l <= r && r < n);
+            return (r - l + 1) - wm.count_less_than(l, n, r + 1);
+        }
+    };
+}; using range_lis = range_lis_query_impl::range_lis_query;
+
+struct static_range_palindrome {
+    int n;
+    vi a, b, c, d, d1, d2;
+    wavelet_psgt oddl, oddr, evenl, evenr;
+
+    static_range_palindrome(const string &s) {
+        n = (int)s.size();
+        d1.assign(n, 0);
+        d2.assign(n, 0);
+        build_manachers(s);
+
+        a.rsz(n);
+        b.rsz(n);
+        c.rsz(n);
+        d.rsz(n);
+        for (int i = 0; i < n; i++) {
+            a[i] = d1[i] - (i + 1);
+            b[i] = d1[i] + (i + 1);
+            c[i] = d2[i] - (i + 1);
+            d[i] = d2[i] + (i + 1);
+        }
+
+        oddl = wavelet_psgt(a);
+        oddr = wavelet_psgt(b);
+        evenl = wavelet_psgt(c);
+        evenr = wavelet_psgt(d);
+    }
+
+    // number of odd-length palindromes fully inside [l..r]
+    ll query_odd(int l, int r) {
+        return compute_odd(l, r);
+    }
+    // number of even-length palindromes fully inside [l..r]
+    ll query_even(int l, int r) {
+        return compute_even(l, r);
+    }
+
+    ll query_all(int l, int r) {
+        return query_odd(l, r) + query_even(l, r);
+    }
+
+private:
+    void build_manachers(const string &s) {
+        for(int i = 0, L = 0, R = -1; i < n; i++) {
+            int k = (i > R ? 1 : min(d1[L + R - i], R - i + 1));
+            while(i - k >= 0 && i + k < n && s[i - k] == s[i + k]) k++;
+            d1[i] = k--;
+            if(i + k > R) { L = i - k; R = i + k; }
+        }
+        for(int i = 0, L = 0, R = -1; i < n; i++) {
+            int k = (i > R ? 0 : min(d2[L + R - i + 1], R - i + 1));
+            while(i - k - 1 >= 0 && i + k < n && s[i - k - 1] == s[i + k]) k++;
+            d2[i] = k--;
+            if(i + k > R) { L = i - k - 1; R = i + k; }
+        }
+    }
+
+    inline ll get(int L, int R) {
+        return (ll)R * (R + 1) / 2 - (ll)(L - 1) * L / 2;
+    }
+
+    ll compute_odd(int l, int r) {
+        int m = (l + r) >> 1;
+        int c1 = -l;
+        auto n1 = oddl.query_leq(l, m, c1);
+        ll less1 = n1.cnt, sum1 = n1.sm;
+        ll left  = get(l + 1, m + 1) + sum1 + (ll)(m - l + 1 - less1) * c1;
+
+        int c2 = r + 2;
+        auto n2 = oddr.query_leq(m + 1, r, c2);
+        ll less2 = n2.cnt, sum2 = n2.sm;
+        ll right = -get((m + 1) + 1, (r) + 1) + sum2 + (ll)(r - m - less2) * c2;
+        return left + right;
+    }
+
+    ll compute_even(int l, int r) {
+        int m = (l + r) >> 1;
+        int c1 = -(l + 1);
+        auto n1  = evenl.query_leq(l, m, c1);
+        ll less1 = n1.cnt, sum1 = n1.sm;
+        ll left  = get(l + 1, m + 1) + sum1 + (ll)(m - l + 1 - less1) * c1;
+
+        int c2 = r + 2;
+        auto n2  = evenr.query_leq(m + 1, r, c2);
+        ll less2 = n2.cnt, sum2 = n2.sm;
+        ll right = -get((m + 1) + 1, (r) + 1) + sum2 + (ll)(r - m - less2) * c2;
+        return left + right;
+    }
+};
+
+struct PASCAL {
+    vvll prefix;
+    vpii coord;
+    vvi pascal;
+    int limit;
+    PASCAL(int _N) : limit(_N), coord(_N) {
+        int cnt = 1;
+        for(int r = 0; cnt < limit; r++) {
+            pascal.pb(vi(r + 1));
+            auto& curr = pascal.back();
+            for(int i = 0; i < (int)curr.size(); i++) {
+                curr[i] = cnt++;
+                coord[curr[i]] = MP(r, i);
+                if(cnt == limit) break;
+            }
+            const int N = curr.size();
+            prefix.pb(vll(N + 1));
+            auto& p = prefix.back();
+            for(int i = 1; i <= N; i++) {
+                p[i] = p[i - 1] + (ll)curr[i - 1] * curr[i - 1];
+            }
+        }
+    }
+};
+

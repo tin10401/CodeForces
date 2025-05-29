@@ -340,6 +340,12 @@ class SGT {
         int middle = midPoint;  
         return func(queries_range(lp, start, end), queries_range(rp, start, end));
     }
+
+	void update_window(int L, int R, int len, T x) { // update [l, l + k - 1], [l + 1, l + k], ... [r, r + k] each with x
+        update_range(L, L + len - 1, x);
+        update_range(R + 1, R + len, -x);
+    }
+
 	
 	T get() {
 		return root[0];
@@ -396,181 +402,24 @@ class SGT {
         }
 };
 
-template<typename T, typename F = function<T(const T, const T)>>
-class arithmetic_segtree { // add a + d * (i - left) to [left, right] 
-    public: 
-    int n;  
-    vt<T> root;
-    vpll lazy;
-    T DEFAULT;
-    F func;
-    bool is_prefix, inclusive;
-	arithmetic_segtree(int n, T DEFAULT, F func = [](const T a, const T b) {return a + b;}, bool is_prefix = true, bool inclusive = true) : n(n), DEFAULT(DEFAULT), is_prefix(is_prefix), inclusive(inclusive), func(func) {    
-		int k = 1;
-        while(k < n) k <<= 1; 
-        root.rsz(k << 1);    
-        lazy.rsz(k << 1); 
-    }
-    
-    void update_at(int id, T val) {  
-        update_at(entireTree, id, val);
-    }
-    
-    void update_at(iter, int id, T val) {  
-        pushDown;
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update_at(lp, id, val);   
-        else update_at(rp, id, val);   
-        root[i] = func(root[lc], root[rc]);
-    }
-
-    void update_range(int start, int end, pll val) { 
-        update_range(entireTree, start, end, val);
-    }
-    
-    void update_range(iter, int start, int end, pll val) {    
-        pushDown;
-        if(left > end || start > right) return; 
-        if(left >= start && right <= end) { 
-			apply(i, left, right, MP(val.ss * (ll)(is_prefix ? left - start : end - right) + val.ff, val.ss));
-			// apply(curr, left, right, {val.ss * (is_prefix ? (left - start) : (end - left)) + val.ff, is_prefix ? val.ss : -val.ss});
-            pushDown;
-            return;
-        }
-        int middle = midPoint;  
-        update_range(lp, start, end, val);    
-        update_range(rp, start, end, val);    
-        root[i] = func(root[lc], root[rc]);
-    }
-
-	T queries_at(int id) {
-		return queries_at(entireTree, id);
-	}
-	
-	T queries_at(iter, int id) {
-        pushDown;
-		if(left == right) {
-			return root[i];
-		}
-		int middle = midPoint;
-		if(id <= middle) return queries_at(lp, id);
-		return queries_at(rp, id);
-	}
-
-    T queries_range(int start, int end) { 
-        return queries_range(entireTree, start, end);
-    }
-    
-    T queries_range(iter, int start, int end) {   
-        pushDown;
-        if(left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[i];   
-        int middle = midPoint;  
-        return func(queries_range(lp, start, end), queries_range(rp, start, end));
-    }
-	
-	T get() {
-		return root[0];
-	}
-	
-	void print() {  
-        print(entireTree);
-        cout << endl;
-    }
-
-    void apply(iter, pll v) {
-        ll len = right - left + 1;
-        root[i] += len * v.ff + (inclusive ? len * (len + 1) / 2 : len * (len - 1) / 2) * v.ss;
-        lazy[i].ff += v.ff;
-        lazy[i].ss += v.ss;
-    }
-
-    void push(iter) {
-        pll zero = MP(0, 0);
-        if(lazy[i] != zero && left != right) {
-            int middle = midPoint;
-            if(is_prefix) {
-                apply(lp, lazy[i]);
-                pll right_lazy = lazy[i];
-                right_lazy.ff += lazy[i].ss * (ll)(middle - left + 1);
-                apply(rp, right_lazy);
-            } else {
-                int middle = midPoint;
-                apply(rp, lazy[i]);
-                pll left_lazy = lazy[i];
-                left_lazy.ff += lazy[i].ss * (ll)(right - middle);
-                apply(lp, left_lazy);
-            }
-            lazy[i] = zero;
-        }
-    }
-};
-
-// 3-11
-// 3 4 5 6 7 8
-//   4 5 6 7 8 9
-//     5 6 7 8 9 10
-//       6 7 8 9 10 11
-//
-//         7 8 9 10 11 12
-
 void solve() {
-    int n; cin >> n;
-    vi a(n); cin >> a;
-    auto left = closest_left(a, greater_equal<int>());
-    auto right = closest_right(a, greater<int>());
-    SGT<ll> root(n + 1, 0, [](const ll& a, const ll& b) {return a + b;});
-    arithmetic_segtree<ll> prefix(n + 1, 0, [](const ll& a, const ll& b) {return a + b;}, true, false);
-    arithmetic_segtree<ll> suffix(n + 1, 0, [](const ll& a, const ll& b) {return a + b;}, false, false);
+    int n, m; cin >> n >> m;
+    vvpii a(n + 1);
+    while(m--) {
+        int l, r, v; cin >> l >> r >> v;
+        a[r].pb({l, v});
+    }
+    SGT<ll> root(n + 1, 0, [](const ll& a, const ll& b) {return max(a, b);});
     for(int i = 0; i <= n; i++) {
         root.update_at(i, 0);
-        prefix.update_at(i, 0);
-        suffix.update_at(i, 0);
     }
-    // 3 4
-    //   4 5
-    //     5 6
-    //       6 7 
-    //         7 8
-    debug(a);
-    for(int i = 0; i < n; i++) {
-        root.update_range(1, i - left[i] + 1, a[i]);
-        root.update_range(2, right[i] - i + 1, a[i]);
-        for(int j = i - 1; j >= left[i]; j--) {
-            root.update_range(i - j + 2, right[i] - j + 1, a[i]);
-            debug(i - j + 2, right[i] - j + 1, a[i], right[i] - left[i] + 1);
+    for(int r = 1; r <= n; r++) {
+        root.update_at(r, root.get());
+        for(auto& [l, x] : a[r]) {
+            root.update_range(l, r, x); 
         }
-//        int l = 3, r = right[i] - left[i] + 1;
-//        if(l > r || i == left[i]) continue;
-//        int mid = (r + l) >> 1;
-//        prefix.update_range(l, mid, {a[i], a[i]});
-//        suffix.update_range(mid + 1, r, {a[i], a[i]});
-////        int L = l + (i - left[i]);
-////        int R = r - (i - left[i]);
-//        int L = l + (right[i] - i);
-//        int R = r - (right[i] - i);
-//        debug(l, r, mid, L, R, a[i], i - left[i], i, left[i]);
-//
-//        prefix.update_range(L, mid, {-a[i], -a[i]});
-//        suffix.update_range(mid + 1, R, {-a[i], -a[i]});
-////        cout << i << ' ' << a[i] << ' ' << l << ' ' << r << ' ' << mid << ' ' << L << ' ' << R << '\n';
-////        for(int i = 1; i <= n; i++) {
-////            cout << prefix.queries_at(i) << ' ';
-////        }
-////        cout << '\n';
-////        for(int i = 1; i <= n; i++) {
-////            cout << suffix.queries_at(i) << ' ';
-////        }
-////        cout << '\n';
     }
-    vi ans(n + 1);
-    for(int i = 1; i <= n; i++) {
-        cout << root.queries_at(i) + prefix.queries_at(i) + suffix.queries_at(i) << '\n';
-    }
+    cout << root.get() << '\n';
 }
 
 signed main() {
@@ -608,4 +457,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

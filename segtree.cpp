@@ -51,8 +51,8 @@ class SGT {
     }
 
 	void apply(iter, I val) {
-        root[i] = (ll)val * (right - left + 1);
-        lazy[i] = val;
+        root[i] += val * (right - left + 1);
+        lazy[i] += val;
     }
 
     void push(iter) {   
@@ -62,7 +62,6 @@ class SGT {
             lazy[i] = 0;
         }
     }
-
 
 	T queries_at(int id) {
 		return queries_at(entireTree, id);
@@ -89,6 +88,12 @@ class SGT {
         int middle = midPoint;  
         return func(queries_range(lp, start, end), queries_range(rp, start, end));
     }
+
+	void update_window(int L, int R, int len, T x) { // update [l, l + k - 1], [l + 1, l + k], ... [r, r + k] each with x
+        update_range(L, L + len - 1, x);
+        update_range(R + 1, R + len, -x);
+    }
+
 	
 	T get() {
 		return root[0];
@@ -96,42 +101,50 @@ class SGT {
 	
 	template<typename Pred> // seg.min_left(ending, [](const int& a) {return a > 0;});
         int min_left(int ending, Pred f) { // min index where f[l, ending] is true
-            return find_left(entireTree, ending, f);
+            T a = DEFAULT;
+            return find_left(entireTree, ending, f, a);
         }
 
     template<typename Pred>
         int max_right(int starting, Pred f) {
-            return find_right(entireTree, starting, f);
+            T a = DEFAULT;
+            return find_right(entireTree, starting, f, a);
         }
 
     template<typename Pred>
-        int find_left(iter, int end, Pred f) {
+        int find_left(iter, int end, Pred f, T& now) {
             pushDown;
-            if (left > end) return -2;
-            if (f(root[i])) return left;
-            if (left == right) return -1;
+            if(left > end) return -2;
+            if(right <= end && f(func(root[i], now))) {
+                now = func(root[i], now);
+                return left;
+            }
+            if(left == right) return -1;
             int middle = midPoint;
-            int r = find_left(rp, end, f);
-            if (r == -2) return find_left(lp, end, f);
-            if (r == middle + 1) {
-                int l = find_left(lp, end, f);
-                if (l != -1) return l;
+            int r = find_left(rp, end, f, now);
+            if(r == -2) return find_left(lp, end, f, now);
+            if(r == middle + 1) {
+                int l = find_left(lp, end, f, now);
+                if(l != -1) return l;
             }
             return r;
         }
 
     template<typename Pred>
-        int find_right(iter, int start, Pred f) {
+        int find_right(iter, int start, Pred f, T &now) {
             pushDown;
-            if (right < start) return -2;
-            if (f(root[i])) return right;
-            if (left == right) return -1;
+            if(right < start) return -2;
+            if(left >= start && f(func(now, root[i]))) {
+                now = func(now, root[i]);
+                return right;
+            }
+            if(left == right) return -1;
             int middle = midPoint;
-            int l = find_right(lp, start, f);
-            if (l == -2) return find_right(rp, start, f);
-            if (l == middle) {
-                int r = find_right(rp, start, f);
-                if (r != -1) return r;
+            int l = find_right(lp, start, f, now);
+            if(l == -2) return find_right(rp, start, f, now);
+            if(l == middle) {
+                int r = find_right(rp, start, f, now);
+                if(r != -1) return r;
             }
             return l;
         }
@@ -157,30 +170,89 @@ public:
     void update_at(int idx, T val) {
         if(idx < 0 || idx >= n) return;
         idx += size, root[idx] = val;
-        for (idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
     }
     
     T queries_range(int l, int r) {
         l = max(0, l), r = min(r, n - 1);
         T res_left = DEFAULT, res_right = DEFAULT;
         l += size, r += size;
-        while (l <= r) {
-            if ((l & 1) == 1) res_left = func(res_left, root[l++]);
-            if ((r & 1) == 0) res_right = func(root[r--], res_right);
+        while(l <= r) {
+            if((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if((r & 1) == 0) res_right = func(root[r--], res_right);
             l >>= 1; r >>= 1;
         }
         return func(res_left, res_right);
     }
 	
 	T queries_at(int idx) {
-        if(idx <= 0 || idx >= n) return DEFAULT;
+        if(idx < 0 || idx >= n) return DEFAULT;
         return root[idx + size];
     }
+
 	
 	void update_range(int l, int r, ll v) {}
 
     T get() {
         return root[1];
+    }
+
+    template<typename Pred>
+    int max_right(int start, Pred P) {
+        if(start < 0) start = 0;
+        if(start >= n) return n - 1;
+        T sm = DEFAULT;
+        int idx = start + size;
+        while((idx & 1) == 0) idx >>= 1;
+
+        do {
+            T cand = func(sm, root[idx]);
+            if(P(cand)) {
+                sm = cand;
+                ++idx;
+                while((idx & 1) == 0) idx >>= 1;
+            } else {
+                while(idx < size) {
+                    idx <<= 1;
+                    cand = func(sm, root[idx]);
+                    if(P(cand)) {
+                        sm = cand;
+                        ++idx;
+                    }
+                }
+                int leaf = idx - size;
+                return leaf - 1;
+            }
+        } while((idx & -idx) != idx);
+        return n - 1;
+    }
+
+    template<typename Pred>
+    int min_left(int ending, Pred P) {
+        if(ending < 0) return 0;
+        if(ending >= n) ending = n;
+        T sm = DEFAULT;
+        int idx = ending + size;
+        while((idx & 1) == 1) idx >>= 1;
+        do {
+            T cand = func(root[idx], sm);
+            if(P(cand)) {
+                sm = cand;
+                --idx;
+                while((idx & 1) == 1) idx >>= 1;
+            } else {
+                while(idx < size) {
+                    idx = idx * 2 + 1;
+                    cand = func(root[idx], sm);
+                    if (P(cand)) {
+                        sm = cand;
+                        --idx;       
+                    }
+                }
+                return (idx + 1) - size;
+            }
+        } while(idx > 1);
+        return 0;
     }
 };
 
@@ -470,6 +542,62 @@ struct merge_sort_tree {
     }
 };
 
+class bad_subarray_segtree { 
+    // nlog^2n run time
+    // for each r, how many l is bad
+    // https://codeforces.com/contest/1736/problem/C2
+    struct info {
+        ll bad;
+        int mn, mx;
+        info(int x = 0) : bad(x), mn(x), mx(x) {}
+    };
+    public: 
+    int n;  
+    vt<info> root;
+	bad_subarray_segtree(int n) {    
+        this->n = n;
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1, info());    
+    }
+    
+    void update_at(int id, int val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, int val) {  
+        if(left == right) { 
+            root[i] = info(val);
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = merge(i, left, right);
+    }
+
+    ll query_right(iter, int threshold) {
+        if(root[i].mn >= threshold) return root[i].bad;
+        if(root[i].mx <= threshold) return ((ll)right - left + 1) * threshold;
+        int middle = midPoint;
+        if(root[lc].mx > threshold) return query_right(lp, threshold) + root[i].bad - root[lc].bad; // the right part got global update by the root[lc].mx already so no need to call it
+        return query_right(lp, threshold) + query_right(rp, threshold);
+    }
+
+    info merge(iter) {
+        int middle = midPoint;
+        info res;
+        res.mn = min(root[lc].mn, root[rc].mn);
+        res.mx = max(root[lc].mx, root[rc].mx);
+        res.bad = root[lc].bad + query_right(rp, root[lc].mx);
+        return res;
+    }
+
+    ll bad_subarray() {
+        return root[0].bad; // answer for good subarray is n * (n + 1) / 2 - root[0].bad;
+    }
+};
+
 // PERSISTENT SEGTREE
 int t[MX * MK], ptr, root[MX * 100]; // log2 = MX * 200; careful to match root with the type of template below
 pii child[MX * 100]; // maybe * 120
@@ -531,7 +659,6 @@ struct PSGT {
         return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
     }
 
-
     void reset() {  
         for(int i = 0; i <= ptr; i++) { 
             root[i] = 0;
@@ -572,6 +699,105 @@ struct PSGT {
     }
 };
 
+struct wavelet_psgt {
+    private:
+    struct Node {
+        int cnt;
+        ll sm;
+        Node(int cnt = 0, ll sm = 0) : cnt(cnt), sm(sm) {}
+    };
+    Node merge(const Node& a, const Node& b) {
+        return {a.cnt + b.cnt, a.sm + b.sm};
+    }
+    Node subtract(const Node& a, const Node& b) {
+        return {a.cnt - b.cnt, a.sm - b.sm};
+    }
+    int n;
+    vt<Node> root;
+    vi t;
+    vpii child;
+    vi a;
+    int new_node() { root.pb(Node(0, 0)); child.pb({0, 0}); return root.size() - 1; }
+    int get_id(ll x) { return int(ub(all(a), x) - begin(a)) - 1; }
+    public:
+    wavelet_psgt() {}
+
+    wavelet_psgt(const vi& arr) : a(arr) {
+        t.rsz(arr.size());
+        new_node(); 
+        srtU(a);
+        n = a.size();
+        for(int i = 0, prev = 0; i < (int)arr.size(); i++) {
+            t[i] = new_node();
+            update(t[i], prev, get_id(arr[i]), Node(1, arr[i]), 0, n - 1);
+            prev = t[i];
+        }
+    }
+
+    void update(int curr, int prev, int id, Node delta, int left, int right) {  
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
+        if(left == right) { 
+            root[curr] = merge(root[curr], delta);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) child[curr].ff = new_node(), update(child[curr].ff, child[prev].ff, id, delta, left, middle); 
+        else child[curr].ss = new_node(), update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+    int kth(int l, int r, int k) {
+        return kth((l == 0 ? 0 : t[l - 1]), t[r], k, 0, n - 1);
+    }
+
+    ll sum_kth(int l, int r, int k) {
+        return sum_kth((l == 0 ? 0 : t[l - 1]), t[r], k, 0, n - 1);
+    }
+
+    int kth(int l, int r, int k, int left, int right) {
+        if(root[r].cnt - root[l].cnt < k) return -inf;
+        if(left == right) return a[left];
+        int middle = midPoint;
+        int left_cnt = root[child[r].ff].cnt - root[child[l].ff].cnt;
+        if(left_cnt >= k) return kth(child[l].ff, child[r].ff, k, left, middle);
+        return kth(child[l].ss, child[r].ss, k - left_cnt, middle + 1, right);
+    }
+
+    ll sum_kth(int l, int r, int k, int left, int right) {
+        if(root[r].cnt - root[l].cnt < k) return -inf;
+        if(k <= 0) return 0;
+        if(left == right) return (ll)k * a[left];
+        int middle = midPoint;
+        int left_cnt = root[child[r].ff].cnt - root[child[l].ff].cnt;
+        if(left_cnt >= k) return sum_kth(child[l].ff, child[r].ff, k, left, middle); 
+        return root[child[r].ff].sm - root[child[l].ff].sm + sum_kth(child[l].ss, child[r].ss, k - left_cnt, middle + 1, right);
+    }
+
+    int median(int l, int r) {
+        return kth(l, r, (r - l + 2) / 2);
+    }
+
+    Node query_leq(int l, int r, int x) {
+        return query((l == 0 ? 0 : t[l - 1]), t[r], 0, get_id(x), 0, n - 1);
+    }
+
+    Node query_eq(int l, int r, int x) {
+        return subtract(query_leq(l, r, x), query_leq(l, r, x - 1));
+    }
+
+    Node queries_range(int l, int r, int low, int high) {
+        return query((l == 0 ? 0 : t[l - 1]), t[r], get_id(low - 1) + 1, get_id(high), 0, n - 1);
+    }
+
+    Node query(int l, int r, int start, int end, int left, int right) {
+        if(left > end || right < start || left > right) return Node();
+        if(start <= left && right <= end) return subtract(root[r], root[l]);
+        int middle = midPoint;
+        return merge(query(child[l].ff, child[r].ff, start, end, left, middle), query(child[l].ss, child[r].ss, start, end, middle + 1, right));
+    }
+};
+
 struct mex_tree {
     // change merge to min(left, right)
     // change the update to be root[curr] = delta;
@@ -592,16 +818,96 @@ struct mex_tree {
         }
     }
 
-    int mex(int l, int r) const {
-        return find_mex(t[r + 1], 0, n + 1, l);
+    int mex(int l, int r, int k = 1) { // find_kth_mex
+        return find_mex(t[r + 1], 0, n + 1, l, k);
     }
 
 private:
-    int find_mex(int curr, int L, int R, int bound) const {
-        if (L == R) return L;
+    int find_mex(int curr, int L, int R, int bound, int& k) {
+        if (L == R) {
+            if(--k == 0) return L;
+            return -1;
+        }
         int M = (L + R) >> 1;
-        if (root[child[curr].ff] < bound) return find_mex(child[curr].ff, L, M, bound);
-        return find_mex(child[curr].ss, M + 1, R, bound);
+        if (root[child[curr].ff] < bound) {
+            int t = find_mex(child[curr].ff, L, M, bound, k);
+            if(t != -1) return t;
+        }
+        if(root[child[curr].ss] < bound) {
+            int t = find_mex(child[curr].ss, M + 1, R, bound, k);
+            if(t != -1) return t;
+        }
+        return -1;
+    }
+};
+
+struct distinct_tree { // range distinct element online
+    // modify merging to left + right;
+    PSGT<int> root;
+    distinct_tree(const vi& a) {
+        root.reset();
+        int n = a.size();
+        root.assign(n, 0);
+        map<int, int> last;
+        for(int i = 0, prev = 0; i < n; i++) {
+            int x = a[i];
+            if(last.count(x)) {
+                root.add(i, prev, last[x], -1);
+            } 
+            root.add(i, prev, i, 1);
+            last[x] = i;
+        }
+    }  
+
+    int query(int l, int r) {
+        return root.queries_at(r, l, r);
+    }
+};
+
+struct LCM_tree {
+    // do merge as left * right
+    // careful with the memory, memory should be MX * 240
+    // MX initializer should be meeting the constraint
+    // have an init variable in the psgt to init everything with 1
+    // do the DIV as vpii for [prime, cnt]
+    // https://codeforces.com/contest/1422/problem/F
+    PSGT<mint> Tree;
+    LCM_tree(const vi& a) {
+        Tree.reset();
+        int n = a.size();
+        Tree.assign(n, 1);
+        int prev = 0;
+        for(int i = 0; i < n; i++) {
+            Tree.add(0, prev, i, 1);
+        }
+        Tree.init = false;
+        const int N = MAX(a);
+        stack<pii> s[N + 1];
+        for(int i = 1; i <= n; i++) {
+            t[i] = prev;
+            int X = a[i - 1];
+            for(auto& [x, cnt] : DIV[X]) {
+                auto& curr = s[x];
+                int last = 0;
+                while(!curr.empty() && curr.top().ss <= cnt) {
+                    auto [j, c] = curr.top(); curr.pop();
+                    assert(c >= last);
+                    Tree.add(i, prev, j, mint(1) / mint(x).pow(c - last));
+                    last = c;
+                }
+                auto now = mint(x).pow(cnt);
+                if(!curr.empty() && cnt > last) {
+                    auto [j, oldCnt] = curr.top();
+                    Tree.add(i, prev, j, mint(1) / mint(x).pow(cnt - last));
+                }
+                Tree.add(i, prev, i - 1, now);
+                curr.push({i - 1, cnt});
+            } 
+        }
+    } 
+
+    mint query(int l, int r) {
+        return Tree.queries_at(r + 1, l, r);
     }
 };
 
@@ -935,35 +1241,13 @@ class implit_segtree {
 
 template<class T>
 class SGT_BEAT {
-    public:
+    private:
     struct Node {
         T mx1, mx2, mn1, mn2, mx_cnt, mn_cnt, sm, ladd, lval;
         Node(T x = INF) : mx1(x), mx2(-INF), mn1(x), mn2(INF), mx_cnt(1), mn_cnt(1), sm(x), lval(INF), ladd(0) {}
     };
-    int n;
-    vt<Node> root;
-    SGT_BEAT(int n) {
-        this->n = n;
-        root.rsz(n * 4);
-    }
 
-    void update_at(int id, T x) {
-        update_at(entireTree, id, x);
-    }
-
-    void update_at(iter, int id, T x) {
-        pushDown;
-        if(left == right) {
-            root[i] = Node(x);
-            return;
-        }
-        int middle = midPoint;
-        if(id <= middle) update_at(lp, id, x);
-        else update_at(rp, id, x);
-        root[i] = merge(root[lc], root[rc]);
-    }
-
-    Node merge(const Node left, const Node right) {
+    Node merge(const Node& left, const Node& right) {
         if(left.mx1 == INF) return right;
         if(right.mx1 == INF) return left;
         Node res;
@@ -998,8 +1282,16 @@ class SGT_BEAT {
         return res;
     }
 
-    void update_min(int start, int end, T x) {
-        update_min(entireTree, start, end, x);
+    void update_at(iter, int id, T x) {
+        pushDown;
+        if(left == right) {
+            root[i] = Node(x);
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update_at(lp, id, x);
+        else update_at(rp, id, x);
+        root[i] = merge(root[lc], root[rc]);
     }
 
     void update_min(iter, int start, int end, T x) {
@@ -1014,21 +1306,6 @@ class SGT_BEAT {
         update_min(lp, start, end, x);
         update_min(rp, start, end, x);
         root[i] = merge(root[lc], root[rc]);
-    }
-
-    void update_node_max(iter, T x) {
-        root[i].sm += (x - root[i].mx1) * root[i].mx_cnt;
-        if(root[i].mx1 == root[i].mn1) {
-            root[i].mx1 = root[i].mn1 = x;
-        } else if(root[i].mx1 == root[i].mn2) {
-            root[i].mx1 = root[i].mn2 = x;
-        } else {
-            root[i].mx1 = x;
-        }
-    }
-
-    void update_max(int start, int end, T x) {
-        update_max(entireTree, start, end, x);
     }
 
     void update_max(iter, int start, int end, T x) {
@@ -1057,8 +1334,15 @@ class SGT_BEAT {
         }
     }
 
-    void update_val(int start, int end, T x) {
-        update_val(entireTree, start, end, x);
+    void update_node_max(iter, T x) {
+        root[i].sm += (x - root[i].mx1) * root[i].mx_cnt;
+        if(root[i].mx1 == root[i].mn1) {
+            root[i].mx1 = root[i].mn1 = x;
+        } else if(root[i].mx1 == root[i].mn2) {
+            root[i].mx1 = root[i].mn2 = x;
+        } else {
+            root[i].mx1 = x;
+        }
     }
 
     void update_val(iter, int start, int end, T x) {
@@ -1081,11 +1365,6 @@ class SGT_BEAT {
         root[i].sm = len * x;
         root[i].mx_cnt = root[i].mn_cnt = len;
         root[i].lval = x;
-
-    }
-
-    void update_add(int start, int end, T x) {
-        update_add(entireTree, start, end, x);
     }
 
     void update_add(iter, int start, int end, T x) {
@@ -1132,10 +1411,6 @@ class SGT_BEAT {
         if(root[i].mn1 > root[rc].mn1) update_node_min(rp, root[i].mn1);
     }
 
-    Node queries_range(int start, int end) {
-        return queries_range(entireTree, start, end);
-    }
-
     Node queries_range(iter, int start, int end) {
         pushDown;
         if(left > end || start > right) return Node();
@@ -1143,10 +1418,6 @@ class SGT_BEAT {
         int middle = midPoint;
         return merge(queries_range(lp, start, end), queries_range(rp, start, end));
     }
-	
-	Node queries_at(int id) {
-		return queries_at(entireTree, id);
-	}
 	
 	Node queries_at(iter, int id) {
 		pushDown;
@@ -1158,6 +1429,229 @@ class SGT_BEAT {
 		return queries_at(rp, id);
 	}
 
+    public:
+    int n;
+    vt<Node> root;
+    SGT_BEAT(int n) {
+        this->n = n;
+        int k = 1;
+        while(k < n) k <<= 1;
+        root.rsz(k << 1);
+    }
+
+    void update_at(int id, T x) { update_at(entireTree, id, x); }
+    void update_min(int start, int end, T x) { update_min(entireTree, start, end, x); }
+    void update_max(int start, int end, T x) { update_max(entireTree, start, end, x); }
+    void update_val(int start, int end, T x) { update_val(entireTree, start, end, x); }
+    void update_add(int start, int end, T x) { update_add(entireTree, start, end, x); }
+    Node queries_range(int start, int end) { return queries_range(entireTree, start, end); }
+	Node queries_at(int id) { return queries_at(entireTree, id); }
+	
+    template<typename OP>
+    // call by update_unary(l, r, x, [](const int& a, const int& b) {return a % b;});
+    void update_unary(int start, int end, T x, OP c) { // update range and, range or, range divide, range mod, ... anything that's unary
+        update_unary(entireTree, start, end, x, c);
+    }
+    
+    template<typename OP>
+    void update_unary(iter, int start, int end, T x, OP op) {
+        pushDown;
+        if (start > right || left > end) return; // for range mod do a return if root[i].mx1 < x
+        if (start <= left && right <= end && root[i].mx1 == root[i].mn1) {
+            T nv = op(root[i].mx1, x);
+            update_all(i, left, right, nv);
+            pushDown;
+            return;
+        }
+        int middle = midPoint;
+        update_unary(lp, start, end, x, op);
+        update_unary(rp, start, end, x, op);
+        root[i] = merge(root[lc], root[rc]);
+    }
+};
+
+struct HISTORICAL_SGT_BEAT {
+    // having two same array a and b at the start
+    // store historical mn and historical mx 
+    // meaning it's the lowest a[i] gets to at any point, same for mx in b[i]
+    // https://uoj.ac/problem/169
+    struct node {
+        int mn, hmn, se;
+        int mx, hmx, le, hle;
+        int tag1, htag1, tag2, htag2, tag3, htag3, tag4, htag4;
+        node(ll val = inf)
+            : mn(val), hmn(val), se(inf),
+              mx(val), hmx(val), le(val), hle(val),
+              tag1(0), htag1(0), tag2(0), htag2(0), tag3(0), htag3(0), tag4(0), htag4(0) {}
+    };
+    vt<node> tree;
+    int n;
+
+    HISTORICAL_SGT_BEAT(int _n = 0) : n(_n) {
+        int k = 1;
+        while(k < n) k <<= 1;
+        tree.rsz(k << 1);
+    }
+
+    node merge(const node &L, const node &R) {
+        if(L.mn == inf) return R;
+        if(R.mn == inf) return L;
+        node res;
+        res.mn = min(L.mn, R.mn);
+        res.hmn = min(L.hmn, R.hmn);
+        if(L.mn == R.mn) res.se = min(L.se, R.se);
+        else if(L.mn < R.mn) res.se = min(L.se, R.mn);
+        else res.se = min(L.mn, R.se);
+        res.mx = max(L.mx, R.mx);
+        res.hmx = max(L.hmx, R.hmx);
+        if(L.mx == R.mx) res.le = max(L.le, R.le);
+        else if(L.mx > R.mx) res.le = max(L.le, R.mx);
+        else res.le = max(L.mx, R.le);
+        res.hle = max(L.hle, R.hle);
+        res.tag1 = res.htag1 = res.tag2 = res.htag2 = 0;
+        res.tag3 = res.htag3 = res.tag4 = res.htag4 = 0;
+        return res;
+    }
+
+    void push_up(int i) {
+        tree[i].mn = min(tree[lc].mn,  tree[rc].mn);
+        tree[i].hmn = min(tree[lc].hmn, tree[rc].hmn);
+        if(tree[lc].mn == tree[rc].mn) tree[i].se = min(tree[lc].se, tree[rc].se);
+        else if(tree[lc].mn < tree[rc].mn) tree[i].se = min(tree[lc].se, tree[rc].mn);
+        else tree[i].se = min(tree[lc].mn, tree[rc].se);
+        tree[i].mx = max(tree[lc].mx,  tree[rc].mx);
+        tree[i].hmx = max(tree[lc].hmx, tree[rc].hmx);
+        if(tree[lc].mx == tree[rc].mx) tree[i].le = max(tree[lc].le, tree[rc].le);
+        else if (tree[lc].mx > tree[rc].mx) tree[i].le = max(tree[lc].le, tree[rc].mx);
+        else tree[i].le = max(tree[lc].mx, tree[rc].le);
+        tree[i].hle = max(tree[lc].hle, tree[rc].hle);
+    }
+
+    void push_tag1(int i, int tag, int htag) {
+        tree[i].hmn = min(tree[i].hmn, tree[i].mn + htag);
+        tree[i].mn += tag;
+        tree[i].htag1 = min(tree[i].htag1, tree[i].tag1 + htag);
+        tree[i].tag1 += tag;
+    }
+
+    void push_tag2(int i, int tag, int htag) {
+        if(tree[i].se != inf) tree[i].se += tag;
+        tree[i].htag2 = min(tree[i].htag2, tree[i].tag2 + htag);
+        tree[i].tag2 += tag;
+    }
+
+    void push_tag3(int i, int tag, int htag) {
+        tree[i].hmx = max(tree[i].hmx, tree[i].mx + htag);
+        tree[i].mx += tag;
+        tree[i].htag3 = max(tree[i].htag3, tree[i].tag3 + htag);
+        tree[i].tag3 += tag;
+    }
+
+    void push_tag4(int i, int tag, int htag) {
+        tree[i].hle = max(tree[i].hle, tree[i].le + htag);
+        tree[i].le += tag;
+        tree[i].htag4 = max(tree[i].htag4, tree[i].tag4 + htag);
+        tree[i].tag4 += tag;
+    }
+
+    void push(iter) {
+        if(left == right) return;
+        int middle = midPoint;
+        int mv = min(tree[lc].mn, tree[rc].mn);
+        if(tree[lc].mn <= mv) push_tag1(lc, tree[i].tag1, tree[i].htag1);
+        else push_tag1(lc, tree[i].tag2, tree[i].htag2);
+        push_tag2(lc, tree[i].tag2, tree[i].htag2);
+        push_tag3(lc, tree[i].tag3, tree[i].htag3);
+        push_tag4(lc, tree[i].tag4, tree[i].htag4);
+        if(tree[rc].mn <= mv) push_tag1(rc, tree[i].tag1, tree[i].htag1);
+        else push_tag1(rc, tree[i].tag2, tree[i].htag2);
+        push_tag2(rc, tree[i].tag2, tree[i].htag2);
+        push_tag3(rc, tree[i].tag3, tree[i].htag3);
+        push_tag4(rc, tree[i].tag4, tree[i].htag4);
+        tree[i].tag1 = tree[i].htag1 = tree[i].tag2 = tree[i].htag2 = 0;
+        tree[i].tag3 = tree[i].htag3 = tree[i].tag4 = tree[i].htag4 = 0;
+    }
+
+    void update_add(iter, int l, int r, int k) {
+        if(l <= left && right <= r) {
+            push_tag1(i, k, k);
+            push_tag2(i, k, k);
+            push_tag3(i, k, k);
+            push_tag4(i, k, k);
+            return;
+        }
+        pushDown;
+        int middle = midPoint;
+        if(l <= middle) update_add(lp, l, r, k);
+        if(r > middle)  update_add(rp, l, r, k);
+        push_up(i);
+    }
+
+    void update_max(iter, int l, int r, int k) {
+        if(tree[i].mn >= k) return;
+        if(l <= left && right <= r && tree[i].se > k) {
+            int delta = k - tree[i].mn;
+            push_tag1(i, delta, delta);
+            return;
+        }
+        pushDown;
+        int middle = midPoint;
+        if(l <= middle) update_max(lp, l, r, k);
+        if(r > middle) update_max(rp, l, r, k);
+        push_up(i);
+    }
+
+    void update_at(iter, int pos, int val) {
+        if(left == right) {
+            tree[i] = node(val);
+            return;
+        }
+        pushDown;
+        int middle = midPoint;
+        if(pos <= middle) update_at(lp, pos, val);
+        else update_at(rp, pos, val);
+        push_up(i);
+    }
+
+    void update_min(iter, int l, int r, int x) {
+        if(tree[i].mx <= x) return;
+        if(l <= left && right <= r && tree[i].le < x) {
+            int delta = x - tree[i].mx;
+            push_tag3(i, delta, delta);
+            return;
+        }
+        pushDown;
+        int middle = midPoint;
+        if(l <= middle) update_min(lp, l, r, x);
+        if(r > middle) update_min(rp, l, r, x);
+        push_up(i);
+    }
+
+    node queries_at(iter, int pos) {
+        if(left == right) return tree[i];
+        pushDown;
+        int middle = midPoint;
+        return pos <= middle ? queries_at(lp, pos)
+                              : queries_at(rp, pos);
+    }
+
+    node queries_range(iter, int l, int r) {
+        if (l <= left && right <= r) return tree[i];
+        pushDown;
+        int middle = midPoint;
+        if (r <= middle) return queries_range(lc, left, middle, l, r);
+        if (l > middle)  return queries_range(rc, middle + 1, right, l, r);
+        node L = queries_range(lc, left, middle, l, r);
+        node R = queries_range(rc, middle + 1, right, l, r);
+        return merge(L, R);
+    }
+
+    void update_add(int l, int r, int x) { update_add(entireTree, l, r, x); }
+    void update_max(int l, int r, int x) { update_max(entireTree, l, r, x); }
+    void update_min(int l, int r, int x) { update_min(entireTree, l, r, x);};
+    void update_at(int pos, int x) { update_at(entireTree, pos, x); }
+    node queries_at(int pos) { return queries_at(entireTree, pos); }
+    node queries_range(int l, int r) { return queries_range(entireTree, l, r); }
 };
 
 struct hash_info {
@@ -1351,6 +1845,72 @@ struct dp_info { // knapsack pick not pick
                                     a.dp[i][1] + b.dp[0][j], 
                                     a.dp[i][0] + b.dp[1][j]});
             }
+        }
+        return res;
+    }
+};
+
+struct bracket_info { // balance bracket sequence
+    int sm, min_prefix;
+    bracket_info(int x = 0) : sm(x), min_prefix(min(x, 0)) {}
+
+    bool is_balance() {
+        return sm == 0 && min_prefix >= 0;
+    }
+
+    friend bracket_info operator+(const bracket_info& a, const bracket_info& b) {
+        bracket_info res;
+        res.sm = a.sm + b.sm;
+        res.min_prefix = min(a.min_prefix, a.sm + b.min_prefix);
+        return res;
+    }
+};
+
+struct bracket_subsequence_info { // maximum balance bracket [l, r]
+    // https://codeforces.com/contest/380/problem/C
+    int open, close, ans;
+    bracket_subsequence_info(int x = 0) : ans(0), open(x == 1), close(x == -1) {}
+
+    friend bracket_subsequence_info operator+(const bracket_subsequence_info& a, const bracket_subsequence_info& b) {
+        bracket_subsequence_info res;
+        int mn = min(a.open, b.close);
+        res.ans = a.ans + b.ans + mn * 2;
+        res.open = a.open + b.open - mn;
+        res.close = a.close + b.close - mn;
+        return res;
+    }
+};
+
+struct good_index_info { // determine the minimum and maximum index where a good index is 
+                         // a[0, i] all <= i and i <= a[i, n - 1]
+                         // basically it's a index that left half is less than i and right half all greater than i
+                         // for(int i = 0; i < n; i++) {
+                         //     if(min(0, i) <= i && i <= max(i, n - 1)) {
+                         //         return true
+                         //     }
+                         // }
+    // https://www.codechef.com/problems/DOUBLEFLIPQ?tab=statement
+    // update i with info(i + 1, a[i] == i ? i : -1)
+    // then lazy segtree update(max(a[x], pos[a[x]])) to n - 1 with -1, the one that holds the mn == 0 is the good index we're looking for
+    // careful cause [2, 1] doesn't have good index but it's the edge case of mn == 0 as well
+    // update min_id and max_id each time the index changes
+
+    int mn, min_id, max_id;
+    good_index_info(int x = -1, int id = -1) : mn(x), max_id(id == -1 ? -inf : id), min_id(id == -1 ? inf : id) {} // id is -1 if a[i] != i and i if a[i] == i
+
+    bool good() { // determine if this good_index_info is good enough
+        return mn == 0 && min_id < inf && max_id >= 0;
+    }
+
+    friend good_index_info operator+(const good_index_info& a, const good_index_info& b) {
+        if(a.mn == -1) return b;
+        if(b.mn == -1) return a;
+        good_index_info res;
+        res.mn = min(a.min_id != inf ? a.mn : inf, b.min_id != inf ? b.mn : inf);
+        if(a.mn == res.mn) res = a;
+        if(b.mn == res.mn) {
+            res.min_id = min(res.min_id, b.min_id);
+            res.max_id = max(res.max_id, b.max_id);
         }
         return res;
     }

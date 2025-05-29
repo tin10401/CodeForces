@@ -1,40 +1,63 @@
-int T[MX * MK][2], cnt[MX * MK], ptr;
 class Binary_Trie { 
+    struct Node {
+        int c[2];
+        int cnt;
+        Node() {
+            mset(c, 0);
+            cnt = 0;
+        }
+    };
     public:
+    vt<Node> T;
+    int m;
+    Binary_Trie(int m) : m(m) { // max number of bit
+        T.pb(Node());
+    }
+
+    int new_node() {
+        T.pb(Node());
+        return T.size() - 1;
+    }
+    
     void insert(ll num, int v = 1) {  
         int curr = 0;   
-        for(int i = MK - 1; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
-            if(!T[curr][bits]) T[curr][bits] = ++ptr, cnt[ptr] = 0;   
-            curr = T[curr][bits];
-			cnt[curr] += v;
+            if(!T[curr].c[bits]) {
+                T[curr].c[bits] = new_node();
+            }
+            curr = T[curr].c[bits];
+            T[curr].cnt += v;
         }
 		// dfs_insert(0, num, m - 1);
     }
 	
 	void dfs_insert(int curr, ll num, int bit) {
 		if(bit == -1) {
-			cnt[curr ] = 1;
+            T[curr].cnt = 1;
 			return;
 		}
         int b = (num >> bit) & 1;
-        if(!T[curr][b]) T[curr][b] = ++ptr;
-        int nxt = T[curr][b];
+        if(!T[curr].c[b]) {
+            T[curr].c[b] = new_node();
+        }
+        int nxt = T[curr].c[b];
         dfs_insert(nxt, num, bit - 1);
-        cnt[curr] = cnt[nxt] + (T[curr][!b] ? cnt[T[curr][!b]] : 0);
+        T[curr].cnt = T[nxt].cnt + (T[curr].c[!b] ? T[T[curr].c[!b]].cnt : 0);
     }
 
         
     ll max_xor(ll num) {  
         ll res = 0, curr = 0;
-        for(int i = MK - 1; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
-            if(T[curr][!bits] && cnt[T[curr][!bits]]) {    
-                curr = T[curr][!bits];
+            int other = T[curr].c[!bits];
+            if(other && T[other].cnt) {
+                curr = T[curr].c[!bits];
                 res |= (1LL << i);
             }
             else {  
-                curr = T[curr][bits];
+                curr = T[curr].c[bits];
             }
             if(!curr) break;
         }
@@ -43,14 +66,15 @@ class Binary_Trie {
         
     ll min_xor(ll num) {  
         ll res = num, curr = 0;
-        for(int i = MK - 1; i >= 0; i--) {  
+        for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
-            if(T[curr][bits] && cnt[T[curr][bits]]) {    
-                curr = T[curr][bits];
+            int same = T[curr].c[bits];
+            if(same && T[same].cnt) {
+                curr = T[curr].c[bits];
                 if(bits) res ^= (1LL << i);
             }
             else {  
-                curr = T[curr][!bits];
+                curr = T[curr].c[!bits];
                 if(!bits) res ^= (1LL << i);
             }
             if(!curr) break;
@@ -61,52 +85,52 @@ class Binary_Trie {
 	ll count_less_than(ll a, ll b) {
         int curr = 0;
         ll res = 0;
-        for(int i = MK - 1; i >= 0; i--) {
+        for(int i = m - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
             if(b_bits) {
-				if(T[curr][bits]) {
-					res += cnt[T[curr][bits]];
+				if(T[curr].c[bits]) {
+					res += T[T[curr].c[bits]].cnt;
 				}
-                curr = T[curr][!bits];
+                curr = T[curr].c[!bits];
             }
             else {
-                curr = T[curr][bits];
+                curr = T[curr].c[bits];
             }
             if(!curr) break;
         }
-		// res += cnt[curr]; // remove comments if count equal to as well
+        // res += T[curr].cnt; // remove if count equal to as well
         return res;
     }
 	
 	ll count_greater_than(ll a, ll b) {
         int curr = 0;
         ll res = 0;
-        for(int i = MK - 1; i >= 0; i--) {
+        for(int i = m - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
             int b_bits = (b >> i) & 1;
-            if(b_bits == 0 && T[curr][!bits]) {
-                res += cnt[T[curr][!bits]];
+            if(b_bits == 0 && T[curr].c[!bits]) {
+                res += T[T[curr].c[!bits]].cnt;
             }
-            curr = T[curr][b_bits ^ bits];
+            curr = T[curr].c[b_bits ^ bits];
             if(!curr) break;
         }
-		// res += cnt[curr]; // remove comments if count equal to as well
+        // res += T[curr].cnt; // remove if count equal to as well
         return res;
     }
 
 	
 	ll find_mex(ll x) { // find a first missing number
         ll mex = 0, curr = 0;
-        for(int i = MK - 1; i >= 0; i--) {
+        for(int i = m - 1; i >= 0; i--) {
             int bit = (x >> i) & 1;
-            int c = T[curr][bit] ? cnt[T[curr][bit]] : 0;
+            int c = T[curr].c[bit] ? T[T[curr].c[bit]].cnt : 0;
             if(c < (1LL << i)) {
-                curr = T[curr][bit];
+                curr = T[curr].c[bit];
             }
             else {
                 mex |= (1LL << i);
-                curr = T[curr][!bit];
+                curr = T[curr].c[!bit];
             }
             if(!curr) break;
         }
@@ -114,43 +138,54 @@ class Binary_Trie {
     }
 };
 
-void reset() {  
-    for(int i = 0; i <= ptr; i++) { 
-        T[i][0] = T[i][1] = 0;
-        cnt[i] = 0;
-    }
-    ptr = 0;
-}
-
-const int MM = MX * MK * 3;
-int root[MX], T[MM][2], ptr, cnt[MM], level[MM];
 struct PERSISTENT_TRIE {
+    struct Node {
+        int level, cnt, c[2]; 
+        Node() : level(0), cnt(0) {
+            mset(c, 0); 
+        }
+    };
+    int new_node() {
+        T.pb(Node());
+        return T.size() - 1;
+    }
+    vt<Node> T;
+    vi root;
+    int m;
+    PERSISTENT_TRIE(int n, int bit) : m(bit) {
+        new_node();
+        root.rsz(n);
+    }
+
+    void add(int rt, int prev, int num, int v = 1, int lev = 0) {
+        root[rt] = insert(prev, num, v, lev);
+    }
+    
     int insert(int prev, int num, int v = 1, int lev = 0) {   
-        int newRoot = ++ptr;    
+        int newRoot = new_node();
         int curr = newRoot;
-        for(int i = MK - 1; i >= 0; i--)    {   
+        for(int i = m - 1; i >= 0; i--) {   
             int bits = (num >> i) & 1;  
-            T[curr][!bits] = T[prev][!bits];
-            T[curr][bits] = ++ptr;  
-            prev = T[prev][bits];   
-            curr = T[curr][bits];   
-            level[curr] = lev;
-            cnt[curr] = cnt[prev];
-            cnt[curr] += v;
+            T[curr].c[!bits] = T[prev].c[!bits];
+            T[curr].c[bits] = new_node();
+            prev = T[prev].c[bits];   
+            curr = T[curr].c[bits];   
+            T[curr].level = lev;
+            T[curr].cnt = T[prev].cnt + v;
         }
         return newRoot;
     }
 
     int max_xor(int curr, int num, int lev = 0) {
         int res = 0;
-        for(int i = MK - 1; i >= 0; i--) {
+        for(int i = m - 1; i >= 0; i--) {
             int bits = (num >> i) & 1;
-            int nxt = T[curr][!bits];
-            if(nxt && cnt[nxt] && level[nxt] >= lev) {
+            int nxt = T[curr].c[!bits];
+            if(nxt && T[nxt].cnt && T[nxt].level >= lev) {
                 res |= 1LL << i;
                 curr = nxt;
             } else {
-                curr = T[curr][bits];
+                curr = T[curr].c[bits];
             }
             if(!curr) break;
         }
@@ -159,15 +194,15 @@ struct PERSISTENT_TRIE {
 
     int min_xor(int curr, int num, int lev = 0) {
         int res = num;
-        for(int i = MK - 1; i >= 0; i--) {
+        for(int i = m - 1; i >= 0; i--) {
             int bits = (num >> i) & 1;
-            int nxt = T[curr][bits];
-            if(nxt && cnt[nxt] && level[nxt] >= lev) {
+            int nxt = T[curr].c[bits];
+            if(nxt && T[nxt].cnt && T[nxt].level >= lev) {
                 curr = nxt;
                 if(bits) res ^= 1LL << i;
             }
             else {
-                curr = T[curr][!bits];
+                curr = T[curr].c[!bits];
                 if(!bits) res ^= 1LL << i;
             }
             if(!curr) break;
@@ -181,23 +216,23 @@ struct PERSISTENT_TRIE {
             r = root[r];
         }
         int res = 0;
-        for(int i = MK - 1; i >= 0; i--) {
+        for(int i = m - 1; i >= 0; i--) {
             int bits = (x >> i) & 1;
             int same_count = 0;
             for(auto& [l, r] : curr) {
-                same_count += (cnt[T[r][bits]] - cnt[T[l][bits]]);
+                same_count += (T[T[r].c[bits]].cnt - T[T[l].c[bits]].cnt);
             }
             if(same_count >= k) {
                 for(auto& [l, r] : curr) {
-                    l = T[l][bits];
-                    r = T[r][bits];
+                    l = T[l].c[bits];
+                    r = T[r].c[bits];
                 }
                 continue;
             }
             k -= same_count;
             for(auto& [l, r] : curr) {
-                l = T[l][!bits];
-                r = T[r][!bits];
+                l = T[l].c[!bits];
+                r = T[r].c[!bits];
             }
             res |= 1LL << i;
         } 
@@ -205,106 +240,259 @@ struct PERSISTENT_TRIE {
     }
 };
 
-void reset() {  
-    for(int i = 0; i <= ptr; i++) { 
-        T[i][0] = T[i][1] = 0;
-        cnt[i] = 0;
-        level[i] = 0;
-        if(i < MX) root[i] = 0;
-    }
-    ptr = 0;
-}
-
-const int MM = MX * 26;
-int T[MM][26], ptr, cnt[MM], ending[MM];
 struct Trie {
-    bool is_character;
-    Trie(bool is_character = true) : is_character(is_character) {}
+    struct Node {
+        int c[26];
+        Node() {
+            mset(c, 0);
+        }
+    };
+    vt<Node> T;
+    char off;
+    Trie(char _off) : off(_off) {
+        T.pb(Node());
+    }
+
+    int new_node() {
+        T.pb(Node());
+        return T.size() - 1;
+    }
 
     int get(char c) {
-        return c - (is_character ? 'a' : '0');
+        return c - off;
     }
 
-    void insert(const string& s, int v = 1) {
+    void insert(const string& S, int v = 1) {
         int curr = 0;
-        for(auto& ch : s) {
+        for(auto& ch : S) {
             int j = get(ch);
-            if(!T[curr][j]) T[curr][j] = ++ptr;
-            curr = T[curr][j];
-            cnt[curr] += v;
+            if(!T[curr].c[j]) {
+                T[curr].c[j] = new_node();
+            }
+            curr = T[curr].c[j];
         }
-        ending[curr] = true;
-    }
-
-    int count_word_prefix(const string& s) { // how many word is s a prefix of
-        int curr = 0;
-        for(auto& ch : s) {
-            curr = T[curr][get(ch)];
-            if(!curr || !cnt[curr]) break;
-        }
-        return curr ? cnt[curr] : 0;
-    }
-
-    int get_max_length_prefix(const string& s) { // get max lcp s[i], s[j] where i != j
-        int curr = 0, res = 0;
-        for(auto& ch : s) {
-            curr = T[curr][get(ch)];
-            if(!curr || !cnt[curr]) break;
-            res++;
-        }
-        return res;
     }
 };
 
-void reset() {
-    for(int i = 0; i <= ptr; i++) {
-        mset(T[i], 0);
-        cnt[i] = 0;
-        ending[i] = 0;
+struct aho_corasick {
+    static const int SIGMA = 26;
+    struct Node {
+        int c[SIGMA], link[SIGMA], sfx, dict, is_end, cnt;
+        Node() {
+            mset(c, 0);
+            mset(link, 0);
+            sfx = dict = is_end = 0;
+            is_end = 0;
+            cnt = 0;
+        }
+    };
+    vt<Node> T;
+ 
+    char off;
+    aho_corasick(char _off) : off(_off) { init(); }
+ 
+    int get(char ch) {
+        return ch - off;
     }
-    ptr = 0;
-}
+ 
+    int new_node(int x = -1) {
+        T.pb(Node());
+        return T.size() - 1;
+    }
+ 
+    void init() {
+        T.pb(Node());
+    }
+ 
+    void insert(const string &s) {
+        int u = 0;
+        for(char ch: s) {
+            int x = get(ch);
+            if(!T[u].c[x]) {
+                T[u].c[x] = new_node();
+            }
+            u = T[u].c[x];
+        }
+        T[u].is_end = true;
+        T[u].cnt++;
+    }
 
-class AHO {
-public:
-    Trie* trie;
-    AHO(Trie* t) { trie = t; }
+	bool built = false;
     void build() {
-        queue<TrieNode*> q;
-        trie->root->sfx = trie->root;
-        trie->root->dict = trie->root;
-        q.push(trie->root);
-        while(!q.empty()){
-            TrieNode* par = q.front();
-            q.pop();
-            for(int i = 0; i < 26; i++){
-                TrieNode* child = par->children[i];
-                if(!child) continue;
-                TrieNode* suff = par->sfx;
-                while(suff != trie->root && !suff->children[i])
-                    suff = suff->sfx;
-                if(par != trie->root && suff->children[i])
-                    child->sfx = suff->children[i];
-                else
-                    child->sfx = trie->root;
-                child->dict = (child->sfx->id == -1 ? child->sfx->dict : child->sfx);
-                q.push(child);
+		built = true;
+        queue<int> q;
+        q.push(0);
+        while(!q.empty()) {
+            int par = q.front(); q.pop();
+            for(int x = 0; x < SIGMA; x++) {
+                int child = T[par].c[x];
+                if(child) {
+					int suff = T[T[par].sfx].link[x];
+                    T[par].link[x] = par;
+                    if(par != 0 && T[suff].c[x]) T[child].sfx = T[suff].c[x];
+                    else T[child].sfx = 0;
+                    T[child].dict = T[T[child].sfx].is_end ? T[child].sfx : T[T[child].sfx].dict;
+                    T[child].cnt += T[T[child].sfx].cnt;
+                    q.push(child);
+                } else {
+                    T[par].link[x] = T[T[par].sfx].link[x];
+                }
             }
         }
     }
-    void query(TrieNode*& prev, int i, char ch) {
-        while(prev != trie->root && !prev->children[ch - 'a'])
-            prev = prev->sfx;
-        if(prev->children[ch - 'a']){
-            prev = prev->children[ch - 'a'];
-            TrieNode* curr = (prev->id == -1 ? prev->dict : prev);
-            while(curr->id != -1){
-                int j = curr->id;
-                curr = curr->dict;
-            }
+
+    int process(int &prev, char ch) { // return the number of nodes ending if moving to ch from prev
+        if(!built) {
+            built = true;
+            build();
         }
+        prev = advance(prev, ch);
+        int curr = prev;
+        int now = 0;
+        return T[curr].cnt;
+    }
+
+    int advance(int u, char ch) {
+        if(!built) {
+            built = true;
+            build();
+        }
+        return T[T[u].link[get(ch)]].c[get(ch)];
+    }
+ 
+    vi query(const string& s) {
+        if(!built) {
+            built = true;
+            build();
+        }
+        int prev = 0;
+        int n = s.size();
+        vi ans(n);
+        for(int i = 0; i < n; i++) {
+            ans[i] = process(prev, s[i]);
+        }
+        return ans;
     }
 };
+
+const int N = 1e5 + 9;
+struct aho_corasick_static {
+  int cnt[N], link[N], psz;
+  map<char, int> to[N];
+
+  void clear() {
+    for(int i = 0; i < psz; i++)
+      cnt[i] = 0, link[i] = -1, to[i].clear();
+
+    psz = 1;
+    link[0] = -1;
+    cnt[0] = 0;
+  }
+
+  aho_corasick_static() {
+    psz = N - 2;
+    clear();
+  }
+
+  void add_word(string s) {
+    int u = 0;
+    for(char c : s) {
+      if(!to[u].count(c)) to[u][c] = psz++;
+      u = to[u][c];
+    }
+
+    cnt[u]++;
+  }
+
+  void push_links() {
+    queue<int> Q;
+    int u, v, j;
+    char c;
+
+    Q.push(0);
+    link[0] = -1;
+
+    while(!Q.empty()) {
+      u = Q.front();
+      Q.pop();
+
+      for(auto it : to[u]) {
+        v = it.second;
+        c = it.first;
+        j = link[u];
+
+        while(j != -1 && !to[j].count(c)) j = link[j];
+        if(j != -1) link[v] = to[j][c];
+        else link[v] = 0;
+
+        cnt[v] += cnt[link[v]];
+        Q.push(v);
+      }
+    }
+  }
+
+  int get_count(string p) {
+    int u = 0, ans = 0;
+    for(char c : p) {
+      while(u != -1 && !to[u].count(c)) u = link[u];
+      if(u == -1) u = 0;
+      else u = to[u][c];
+      ans += cnt[u];
+    }
+
+    return ans;
+  }
+};
+
+struct aho_corasick {
+  vector<string> li[20];
+  aho_corasick_static ac[20];
+
+  void clear() {
+    for(int i = 0; i < 20; i++) {
+      li[i].clear();
+      ac[i].clear();
+    }
+  }
+
+  aho_corasick() {
+    clear();
+  }
+
+  void add_word(string s) {
+    int pos = 0;
+    for(int l = 0; l < 20; l++)
+      if(li[l].empty()) {
+        pos = l;
+        break;
+      }
+
+    li[pos].push_back(s);
+    ac[pos].add_word(s);
+
+    for(int bef = 0; bef < pos; bef++) {
+      ac[bef].clear();
+      for(string s2 : li[bef]) {
+        li[pos].push_back(s2);
+        ac[pos].add_word(s2);
+      }
+
+      li[bef].clear();
+    }
+
+    ac[pos].push_links();
+  }
+  //sum of occurrences of all patterns in this string
+  int get_count(string s) {
+    int ans = 0;
+    for(int l = 0; l < 20; l++)
+      ans += ac[l].get_count(s);
+
+    return ans;
+  }
+};
+string s[N];
+aho_corasick aho;
 
 struct KMP {
     int n;
@@ -545,36 +733,9 @@ ll p[HASH_COUNT][MX];
 void initGlobalHashParams() {
     if (!base.empty() && !mod.empty()) return;
     vll candidateBases = {
-        10007ULL,10009ULL,10037ULL,10039ULL,10061ULL,10067ULL,10069ULL,10079ULL,10091ULL,10093ULL,
-        10099ULL,10103ULL,10111ULL,10133ULL,10139ULL,10141ULL,10151ULL,10159ULL,10163ULL,10169ULL,
-        10177ULL,10181ULL,10193ULL,10211ULL,10223ULL,10243ULL,10247ULL,10253ULL,10259ULL,10267ULL,
-        10271ULL,10273ULL,10289ULL,10301ULL,10303ULL,10313ULL,10321ULL,10331ULL,10333ULL,10337ULL,
-        10343ULL,10357ULL,10369ULL,10391ULL,10399ULL,10427ULL,10429ULL,10433ULL,10453ULL,10457ULL,
-        10459ULL,10463ULL,10477ULL,10487ULL,10499ULL,10501ULL,10513ULL,10529ULL,10531ULL,10559ULL,
-        10567ULL,10589ULL,10597ULL,10601ULL,10607ULL,10613ULL,10627ULL,10631ULL,10639ULL,10651ULL,
-        10657ULL,10663ULL,10667ULL,10687ULL,10691ULL,10709ULL,10711ULL,10723ULL,10729ULL,10733ULL,
-        10739ULL,10753ULL,10771ULL,10781ULL,10789ULL,10799ULL,10831ULL,10837ULL,10847ULL,10853ULL,
         10859ULL,10861ULL,10867ULL,10883ULL,10889ULL,10891ULL,10903ULL,10909ULL
     };
     vll candidateMods = {
-        1000000007ULL,1000000009ULL,1000000033ULL,1000000087ULL,1000000093ULL,
-        1000000097ULL,1000000103ULL,1000000123ULL,1000000181ULL,1000000207ULL,
-        1000000223ULL,1000000241ULL,1000000271ULL,1000000289ULL,1000000297ULL,
-        1000000321ULL,1000000349ULL,1000000363ULL,1000000403ULL,1000000409ULL,
-        1000000411ULL,1000000427ULL,1000000433ULL,1000000439ULL,1000000447ULL,
-        1000000453ULL,1000000459ULL,1000000483ULL,1000000513ULL,1000000531ULL,
-        1000000579ULL,1000000607ULL,1000000613ULL,1000000637ULL,1000000663ULL,
-        1000000711ULL,1000000753ULL,1000000787ULL,1000000801ULL,1000000829ULL,
-        1000000861ULL,1000000871ULL,1000000891ULL,1000000901ULL,1000000919ULL,
-        1000000931ULL,1000000933ULL,1000000993ULL,1000001011ULL,1000001021ULL,
-        1000001053ULL,1000001087ULL,1000001089ULL,1000001107ULL,1000001163ULL,
-        1000001171ULL,1000001193ULL,1000001201ULL,1000001231ULL,1000001269ULL,
-        1000001283ULL,1000001311ULL,1000001327ULL,1000001363ULL,1000001371ULL,
-        1000001381ULL,1000001413ULL,1000001431ULL,1000001471ULL,1000001501ULL,
-        1000001531ULL,1000001581ULL,1000001613ULL,1000001637ULL,1000001663ULL,
-        1000001671ULL,1000001693ULL,1000001703ULL,1000001733ULL,1000001741ULL,
-        1000001781ULL,1000001801ULL,1000001863ULL,1000001891ULL,1000001903ULL,
-        1000001911ULL,1000001931ULL,1000001933ULL,1000001971ULL,1000001981ULL,
         1000002021ULL,1000002071ULL,1000002083ULL,1000002101ULL,1000002133ULL
     };
 								 
@@ -604,14 +765,16 @@ template<class T = string>
 struct RabinKarp {
     vll prefix[HASH_COUNT], suffix[HASH_COUNT];
     int n;
-    
+    string s;
+
     RabinKarp() : n(0) {
         for(int i = 0; i < HASH_COUNT; i++) {
             prefix[i].pb(0);
             suffix[i].pb(0);
         }
     }
-    RabinKarp(const T &s) {
+
+    RabinKarp(const T &s) : s(s) {
         n = s.size();
         for (int i = 0; i < HASH_COUNT; i++) {
             prefix[i].rsz(n + 1, 0);
@@ -692,6 +855,20 @@ struct RabinKarp {
         a.ss = ((a.ss * p[1][len]) + b.ss) % mod[1];
         return (a.ff << 32) | a.ss;
     }
+
+    int cmp(const RabinKarp& other) { // -1 : less, 0 = equal, 1 = greater
+        if(n == 0 && other.n == 0) return 0;
+        int left = 0, right = min(n, other.n) - 1, res = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            if(get_hash(0, middle + 1) != other.get_hash(0, middle + 1)) res = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        if(res == -1) {
+            return n == other.n ? 0 : (n < other.n ? -1 : 1);
+        }
+        return s[res] < other.s[res] ? -1 : 1;
+    }
 };
 
 class MANACHER {    
@@ -713,38 +890,40 @@ class MANACHER {
         string odd = get_max_palindrome(s, 1);  
         string even = get_max_palindrome(s, 0);
         ans = odd.size() > even.size() ? odd : even;
-        for (int i = 0; i < n; i++) {
-            int evenLen = longest_even_palindrome_at(i);
-            int oddLen = longest_odd_palindrome_at(i);
+        for(int i = 0; i < n; i++) {
+            int evenLen = longest_even_palindrome_center_at(i);
+            int oddLen = longest_odd_palindrome_center_at(i);
             total_palindrome += (evenLen + 1) / 2 + (oddLen + 1) / 2;
         }
         prefix.assign(n, 1);
         suffix.assign(n, 1);
-        int T = man.size(); 
-        for(int c = 0; c < T; c++) {
-            if(man[c] <= 1) continue;
-            if(c % 2 == 1) { 
-                int i = (c - 1) / 2;
-                int len = man[c] - 1;
-                int half = len / 2;
+        int T = man.size();
+        for(int i = 0; i < n; ++i) {
+            int oddLen = longest_odd_palindrome_center_at(i);  
+            if(oddLen > 0) {
+                int half = oddLen / 2;
                 int L = i - half;
                 int R = i + half;
-                if (L >= 0 && R < n) {
-                    prefix[L] = max(prefix[L], len);
-                    suffix[R] = max(suffix[R], len);
-                }
-            } else { 
-                if (c == 0 || c == T - 1) continue;
-                int i = (c - 2) / 2;
-                int len = man[c] - 1; 
-                int half = (len - 1) / 2;
-                int L = i - half;
-                int R = i + 1 + half;
-                if (L >= 0 && R < n) {
-                    prefix[L] = max(prefix[L], len);
-                    suffix[R] = max(suffix[R], len);
+                prefix[L] = max(prefix[L], oddLen);
+                suffix[R] = max(suffix[R], oddLen);
+            }
+
+            int evenLen = longest_even_palindrome_center_at(i);
+            if(evenLen > 0) {
+                int half = evenLen / 2;
+                int L = i - half + 1;
+                int R = i + half;
+                if(L >= 0 && R < n) {
+                    prefix[L] = max(prefix[L], evenLen);
+                    suffix[R] = max(suffix[R], evenLen);
                 }
             }
+        }
+        for(int i = n - 2; i >= 0; --i) {
+            suffix[i] = max(suffix[i], suffix[i + 1] - 2);
+        }
+        for(int i = 1; i < n; ++i) {
+            prefix[i] = max(prefix[i], prefix[i - 1] - 2);
         }
         max_prefix = s.substr(0, prefix[0]);
         max_suffix = s.substr(n - suffix.back());
@@ -841,16 +1020,56 @@ class MANACHER {
         return man[center] >= (right - left + 1);
     }
 
-    int longest_odd_palindrome_at(int i) {
+    int longest_odd_palindrome_center_at(int i) {
         int center = 2 * i + 1;
-        if (center >= (int)man.size()) return 0;
+        if(center >= (int)man.size()) return 0;
         return man[center] - 1;
     }
     
-    int longest_even_palindrome_at(int i) {
+    int longest_even_palindrome_center_at(int i) {
         int center = 2 * i + 2;
-        if (center >= (int)man.size()) return 0;
+        if(center >= (int)man.size()) return 0;
         return man[center] - 1; 
+    }
+};
+
+template<typename T = string>
+struct LCS { // longest common subsequence
+    T lcs;
+    T shortest_supersequence; // find the shortest string where covers both s and t as subsequence
+    LCS(const T& s, const T& t) {
+        int n = s.size(), m = t.size();
+        vvi dp(n + 1, vi(m + 1));
+        for(int i = 1; i <= n; i++) {
+            for(int j = 1; j <= m; j++) {
+                if(s[i - 1] == t[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+                else dp[i][j] = max({dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]});
+            }
+        }
+        int curr = dp[n][m];
+        for(int i = n; i >= 1; i--) {
+            for(int j = m; j >= 1; j--) {
+                if(dp[i][j] == curr && s[i - 1] == t[j - 1]) {
+                    lcs.pb(s[i - 1]);
+                    curr--;
+                    break;
+                }
+            }
+        }
+        rev(lcs);
+        int i = 0, j = 0;
+        for(auto& ch : lcs) {
+            while(i < n && s[i] != ch) {
+                shortest_supersequence.pb(s[i++]);
+            }
+            while(j < m && t[j] != ch) {
+                shortest_supersequence.pb(t[j++]);
+            }
+            shortest_supersequence.pb(ch);
+            i++, j++;
+        }
+        while(i < n) shortest_supersequence.pb(s[i++]);
+        while(j < m) shortest_supersequence.pb(t[j++]);
     }
 };
 
@@ -956,5 +1175,3 @@ class suffix_array {
         return combined.substr(start_pos, max_lcp);
     }
 };
-
-

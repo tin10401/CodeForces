@@ -116,14 +116,17 @@ bool areParallelByMidpoint(const pll& p1, const pll& p2, const pll& q1, const pl
     return getMidpointKey(p1,p2) == getMidpointKey(q1,q2);
 }
 
-vvi rotate90(const vvi matrix) {
-    int n = matrix.size(), m = matrix[0].size();
-    vvi res(m, vi(n));
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
-            res[j][n - 1 - i] = matrix[i][j];
-    return res;
-}
+struct manhattan {
+    ll mx1 = -INF, mn1 = INF, mx2 = -INF, mn2 = INF;
+    void update(ll x, ll y) {
+        mx1 = max(mx1, x + y);
+        mn1 = min(mn1, x + y);
+        mx2 = max(mx2, x - y);
+        mn2 = min(mn2, x - y);
+    }
+
+    ll query() { return max(mx1 - mn1, mx2 - mn2); }
+};
 
 struct Line {
     mutable ll m, c, p;
@@ -173,16 +176,39 @@ public:
 
     CHT_segtree(int n) : n(n) {
         base = 1;
-        while (base < n) base <<= 1;
+        while(base < n) base <<= 1;
         tree.rsz(base << 1);
     }
     
     void update_at(int id, pll val) {  
         if(id >= n) return;
         int pos = id + base;
-        while (pos > 0) {
+        while(pos > 0) {
             tree[pos].add(val.ff, val.ss);
             pos >>= 1;
+        }
+    }
+
+    ll queries_at(int id, ll x) {
+        if(id < 0 || id >= n) return -INF;
+        ll ans = -INF;
+        int pos = id + base;
+        while(pos > 0) {
+            ans = max(ans, tree[pos].query(x));
+            pos >>= 1;
+        }
+        return ans;
+    }
+
+    void update_range(int l, int r, pll val) { // be careful it doesn't add downward, so only use this when you queries_at
+        if(l < 0) l = 0;
+        if(r >= n) r = n - 1;
+        if(l > r) return;
+        int L = l + base, R = r + base;
+        while(L <= R) {
+            if(L & 1) tree[L++].add(val.ff, val.ss);
+            if(!(R & 1)) tree[R--].add(val.ff, val.ss);
+            L >>= 1; R >>= 1;
         }
     }
 
@@ -190,12 +216,120 @@ public:
         if(l < 0 || r >= n) return -INF;
         ll ans = -INF;
         l += base, r += base;
-        while (l <= r) {
-            if (l & 1) ans = max(ans, tree[l++].query(x));
-            if (!(r & 1)) ans = max(ans, tree[r--].query(x)); 
+        while(l <= r) {
+            if(l & 1) ans = max(ans, tree[l++].query(x));
+            if(!(r & 1)) ans = max(ans, tree[r--].query(x)); 
 //            if (l & 1) ans = max(ans, tree[l++].linear_query(x));
 //            if (!(r & 1)) ans = max(ans, tree[r--].linear_query(x)); 
             l >>= 1, r >>= 1;
+        }
+        return ans;
+    }
+};
+
+struct Line { ll m, b; ll eval(ll x) const { return m * x + b; } };
+struct MonoCHT { // max cht for monotonic function(prefix sum with all positive, ...)
+    deque<Line> dq;
+    bool increasing_query;
+    MonoCHT(bool _inc = true) : increasing_query(_inc) {}
+
+    bool bad(const Line &L1, const Line &L2, const Line &L3) {
+        auto L = (L3.b - L1.b) * (L1.m - L2.m);
+        auto R = (L2.b - L1.b) * (L1.m - L3.m);
+        return increasing_query ? L <= R : L >= R;
+    }
+    void add(Line L) {
+        while(dq.size() >= 2 && bad(dq[dq.size() - 2], dq[dq.size() - 1], L)) dq.pop_back();
+        dq.pb(L);
+    }
+    ll query(ll x) {
+        while(dq.size() >= 2 && dq[0].eval(x) <= dq[1].eval(x)) dq.pop_front();
+        return dq[0].eval(x);
+    }
+};
+
+template<typename T>
+struct LiChao {
+    static const T INF = std::numeric_limits<T>::max() / 2 - 5;
+    int n;
+    vector<pair<T, T>> tree;
+ 
+    LiChao(int _n) : n(max(_n, 1)) {
+        int nn = (1 << __lg(n)) * 4;
+        tree.assign(nn, {0, -INF});
+    }
+    
+    void add(T k, T b) {
+        add_inner({k, b}, 0, 0, n - 1);
+    }
+ 
+    void add_inner(pair<T, T> line, int i, int l, int r) {
+        while (l <= r) {
+            T curl = tree[i].first * l + tree[i].second;
+            T curr = tree[i].first * r + tree[i].second;
+            T mel = line.first * l + line.second;
+            T mer = line.first * r + line.second;
+            if (curl >= mel && curr >= mer) {
+                break;
+            }
+            if (curl <= mel && curr <= mer) {
+                tree[i] = line;
+                break;
+            }
+            assert(line.first != tree[i].first);
+            int m = (l + r) / 2;
+            T cur = tree[i].first * m + tree[i].second;
+            T me = line.first * m + line.second;
+            if (me > cur) {
+                swap(line, tree[i]);
+            }
+            if ((me <= cur && mer > curr) || (me > cur && mer < curr)) {
+                l = m + 1;
+                i = i * 2 + 2;
+            } else {
+                r = m;
+                i = i * 2 + 1;
+            }
+        }
+    }
+ 
+    void add_segment(T k, T b, int l, int r) {
+        l = max(l, 0);
+        r = min(r, n - 1);
+        if (l > r) return;
+        show(k, b, l, r);
+        add_segment_inner({k, b}, l, r, 0, 0, n - 1);
+    }
+ 
+    void add_segment_inner(pair<T, T> line, int l, int r, int i, int vl, int vr) {
+        if (l > vr || r < vl) {
+            return;
+        }
+        if (l <= vl && vr <= r) {
+            add_inner(line, i, vl, vr);
+            return;
+        }
+        int m = (vl + vr) / 2;
+        add_segment_inner(line, l, r, i * 2 + 1, vl, m);
+        add_segment_inner(line, l, r, i * 2 + 2, m + 1, vr);
+    }
+ 
+    T ask(int x) {
+        T ans = -INF;
+        int i = 0;
+        int l = 0;
+        int r = n - 1;
+        while (true) {
+            int m = (l + r) / 2;
+            ans = max(ans, tree[i].first * x + tree[i].second);
+            if (l == r) break;
+            if (x <= m) {
+                r = m;
+                i = i * 2 + 1;
+            } else {
+                l = m + 1;
+                i = i * 2 + 2;
+            }
         }
         return ans;
     }

@@ -250,6 +250,246 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<typename T = int>
+class GRAPH {
+public:
+	int n, m;
+    vvi dp;
+    vi parent, subtree;
+    vi tin, tout, low, ord, depth;
+    vll depth_by_weight;
+    vvi weight;
+    int timer = 0;
+    vt<unsigned> in_label, ascendant;
+    vi par_head;
+    unsigned cur_lab = 1;
+    vt<vt<T>> adj;
+
+    GRAPH() {}
+
+    GRAPH(const vt<vt<T>>& graph, int root = 0) {
+        adj = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+//        depth_by_weight.rsz(n);
+//        weight.rsz(n, vi(m));
+        dp.rsz(n, vi(m, -1));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+        subtree.rsz(n, 1);
+        tin.rsz(n);
+        tout.rsz(n);
+        ord.rsz(n);
+        dfs(root);
+        init();
+        in_label.rsz(n);
+        ascendant.rsz(n);
+        par_head.rsz(n + 1);
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
+    }
+
+	void dfs(int node, int par = -1) {
+        tin[node] = timer++;
+        ord[tin[node]] = node;
+        for (auto& nei : adj[node]) {
+            if (nei == par) continue;
+            depth[nei] = depth[node] + 1;
+//            depth_by_weight[nei] = depth_by_weight[node] + w;
+//            weight[nei][0] = w;
+            dp[nei][0] = node;
+            parent[nei] = node;
+            dfs(nei, node);
+            subtree[node] += subtree[nei];
+        }
+        tout[node] = timer - 1;
+    }
+
+    bool is_ancestor(int par, int child) { return tin[par] <= tin[child] && tin[child] <= tout[par]; }
+
+	void init() {
+        for (int j = 1; j < m; ++j) {
+            for (int i = 0; i < n; ++i) {
+                int p = dp[i][j - 1];
+                if(p == -1) continue;
+                //weight[i][j] = max(weight[i][j - 1], weight[p][j - 1]);
+                dp[i][j] = dp[p][j - 1];
+            }
+        }
+    }
+
+
+    void sv_dfs1(int u, int p = -1) {
+        in_label[u] = cur_lab++;
+        for(auto& v : adj[u]) if (v != p) {
+            sv_dfs1(v, u);
+            if(std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
+                in_label[u] = in_label[v];
+        }
+    }
+
+    void sv_dfs2(int u, int p = -1) {
+        for(auto& v : adj[u]) if (v != p) {
+            ascendant[v] = ascendant[u];
+            if(in_label[v] != in_label[u]) {
+                par_head[in_label[v]] = u;
+                ascendant[v] += in_label[v] & -in_label[v];
+            }
+            sv_dfs2(v, u);
+        }
+    }
+
+    int lift(int u, unsigned j) const {
+        unsigned k = std::__bit_floor(ascendant[u] ^ j);
+        return k == 0 ? u : par_head[(in_label[u] & -k) | k];
+    }
+
+    int lca(int a, int b) {
+        if(is_ancestor(a, b)) return a;
+        if(is_ancestor(b, a)) return b;
+        auto [x, y] = std::minmax(in_label[a], in_label[b]);
+        unsigned j = ascendant[a] & ascendant[b] & -std::__bit_floor((x - 1) ^ y);
+        a = lift(a, j);
+        b = lift(b, j);
+        return depth[a] < depth[b] ? a : b;
+    }
+
+    int path_queries(int u, int v) { // lca in logn
+        if(depth[u] < depth[v]) swap(u, v);
+        int res = 0;
+        int diff = depth[u] - depth[v];
+        for(int i = 0; i < m; i++) {
+            if(diff & (1 << i)) { 
+                res = max(res, weight[u][i]);
+                u = dp[u][i]; 
+            }
+        }
+        if(u == v) return res;
+        for(int i = m - 1; i >= 0; --i) {
+            if(dp[u][i] != dp[v][i]) {
+                res = max({res, weight[u][i], weight[v][i]});
+                u = dp[u][i];
+                v = dp[v][i];
+            }
+        }
+        return max({res, weight[u][0], weight[v][0]});
+    }
+
+    int dist(int u, int v) {
+        int a = lca(u, v);
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	ll dist_by_weight(int u, int v) {
+        int a = lca(u, v);
+        return depth_by_weight[u] + depth_by_weight[v] - 2 * depth_by_weight[a];
+    }
+
+	int kth_ancestor(int u, ll k) {
+        if(u < 0 || k > depth[u]) return -1;
+        for(int i = 0; i < m && u != -1; ++i) {
+            if(k & (1LL << i)) {
+                u = (u >= 0 ? dp[u][i] : -1);
+            }
+        }
+        return u;
+    }
+
+
+    int kth_ancestor_on_path(int u, int v, ll k) {
+        int d = dist(u, v);
+        if(k >= d) return v;
+        int w  = lca(u, v);
+        int du = depth[u] - depth[w];
+        if(k <= du) return kth_ancestor(u, k);
+        int rem = k - du;
+        int dv  = depth[v] - depth[w];
+        return kth_ancestor(v, dv - rem);
+    }
+
+    int kth_downward(int v, ll k) {
+        if(k < 1 || k > depth[v] + 1) return -1;
+        ll steps_up = depth[v] - (k - 1);
+        return kth_ancestor(v, steps_up);
+    }
+
+    int max_intersection(int a, int b, int c) { // # of common intersection between path(a, c) OR path(b, c)
+        auto cal = [&](int u, int v, int goal){
+            return (dist(u, goal) + dist(v, goal) - dist(u, v)) / 2 + 1;
+        };
+        int res = 0;
+        res = max(res, cal(a, b, c));
+        res = max(res, cal(a, c, b));
+        res = max(res, cal(b, c, a));
+        return res;
+    }
+	
+	int intersection(int a, int b, int c, int d) { // common edges between path[a, b] OR path[c, d]
+        int r1 = lca(a, b), r2 = lca(c, d);
+        int q = depth[r1] > depth[r2] ? r1 : r2;
+        int p = lca(a, c), t = lca(a, d);
+        if (depth[t] > depth[p]) p = t;
+        t = lca(b,c); if (depth[t] > depth[p]) p = t;
+        t = lca(b,d); if (depth[t] > depth[p]) p = t;
+        if (depth[p] < depth[q]) return 0;
+        return depth[p] - depth[q];
+    }
+
+    bool is_continuous_chain(int a, int b, int c, int d) { // determine if path[a, b][b, c][c, d] don't have any intersection
+        return dist(a, b) <= dist(a, c) && dist(d, c) <= dist(d, b) && intersection(a, b, c, d) == 0;
+    }
+
+    int rooted_lca(int a, int b, int c) { return lca(a, c) ^ lca(a, b) ^ lca(b, c); } 
+
+    int next_on_path(int u, int v) { // closest_next_node from u to v
+        if(u == v) return -1;
+        if(is_ancestor(u, v)) return kth_ancestor(v, depth[v] - depth[u] - 1);
+        return parent[u];
+    }
+
+    void reroot(int root) {
+        fill(all(parent), -1);
+        timer = 0;
+        dfs(root);
+        init();
+        cur_lab = 1;
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
+    }
+
+    int comp_size(int c,int v){
+        if(parent[v] == c) return subtree[v];
+        return n - subtree[c];
+    }
+
+    int rooted_lca_potential_node(int a, int b, int c) { // # of nodes where rooted at will make lca(a, b) = c
+        if(rooted_lca(a, b, c) != c) return 0;
+        int v1 = next_on_path(c, a);
+        int v2 = next_on_path(c, b);
+        return n - (v1 == -1 ? 0 : comp_size(c, v1)) - (v2 == -1 ? 0 : comp_size(c, v2));
+    }
+	
+	vi get_path(int u, int v) { // get every node in path [u, v]
+        vi path1, path2;
+        int c = lca(u, v);
+        while(u != c) {
+            path1.pb(u);
+            u = parent[u];
+        }
+        while(v != c) {
+            path2.pb(v);
+            v = parent[v];
+        }
+        rev(path2);
+        path1.pb(c);
+        path1.insert(end(path1), all(path2));
+        return path1;
+    }
+};
+
+
 template<typename T, typename I = ll, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
 class SGT { 
     public: 
@@ -265,7 +505,7 @@ class SGT {
 		int k = 1;
         while(k < n) k <<= 1; 
         root.rsz(k << 1, DEFAULT);    
-        lazy.rsz(k << 1, 0);
+        lazy.rsz(k << 1, -INF);
     }
     
     void update_at(int id, T val) {  
@@ -303,15 +543,15 @@ class SGT {
     }
 
 	void apply(iter, I val) {
-        root[i] += val;
-        lazy[i] += val;
+        root[i].modify(val);
+        lazy[i] = val;
     }
 
     void push(iter) {   
-        if(lazy[i] != 0 && left != right) {
+        if(lazy[i] != -INF && left != right) {
 			int middle = midPoint;
             apply(lp, lazy[i]), apply(rp, lazy[i]);
-            lazy[i] = 0;
+            lazy[i] = -INF;
         }
     }
 
@@ -396,180 +636,113 @@ class SGT {
         }
 };
 
-template<typename T, typename F = function<T(const T, const T)>>
-class arithmetic_segtree { // add a + d * (i - left) to [left, right] 
-    public: 
-    int n;  
-    vt<T> root;
-    vpll lazy;
-    T DEFAULT;
-    F func;
-    bool is_prefix, inclusive;
-	arithmetic_segtree(int n, T DEFAULT, F func = [](const T a, const T b) {return a + b;}, bool is_prefix = true, bool inclusive = true) : n(n), DEFAULT(DEFAULT), is_prefix(is_prefix), inclusive(inclusive), func(func) {    
-		int k = 1;
-        while(k < n) k <<= 1; 
-        root.rsz(k << 1);    
-        lazy.rsz(k << 1); 
-    }
-    
-    void update_at(int id, T val) {  
-        update_at(entireTree, id, val);
-    }
-    
-    void update_at(iter, int id, T val) {  
-        pushDown;
-        if(left == right) { 
-            root[i] = val;  
-            return;
+struct info {
+    int mn, mx, real_mn, real_mx;
+    info(int x = -inf) : mn(x), mx(x), real_mn(inf), real_mx(-inf) {}
+
+    void modify(int v) {
+        if(v == 0) {
+            real_mn = inf;
+            real_mx = -inf;
+        } else {
+            real_mn = mn;
+            real_mx = mx;
         }
-        int middle = midPoint;  
-        if(id <= middle) update_at(lp, id, val);   
-        else update_at(rp, id, val);   
-        root[i] = func(root[lc], root[rc]);
     }
 
-    void update_range(int start, int end, pll val) { 
-        update_range(entireTree, start, end, val);
-    }
-    
-    void update_range(iter, int start, int end, pll val) {    
-        pushDown;
-        if(left > end || start > right) return; 
-        if(left >= start && right <= end) { 
-			apply(i, left, right, MP(val.ss * (ll)(is_prefix ? left - start : end - right) + val.ff, val.ss));
-			// apply(curr, left, right, {val.ss * (is_prefix ? (left - start) : (end - left)) + val.ff, is_prefix ? val.ss : -val.ss});
-            pushDown;
-            return;
-        }
-        int middle = midPoint;  
-        update_range(lp, start, end, val);    
-        update_range(rp, start, end, val);    
-        root[i] = func(root[lc], root[rc]);
-    }
-
-	T queries_at(int id) {
-		return queries_at(entireTree, id);
-	}
-	
-	T queries_at(iter, int id) {
-        pushDown;
-		if(left == right) {
-			return root[i];
-		}
-		int middle = midPoint;
-		if(id <= middle) return queries_at(lp, id);
-		return queries_at(rp, id);
-	}
-
-    T queries_range(int start, int end) { 
-        return queries_range(entireTree, start, end);
-    }
-    
-    T queries_range(iter, int start, int end) {   
-        pushDown;
-        if(left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[i];   
-        int middle = midPoint;  
-        return func(queries_range(lp, start, end), queries_range(rp, start, end));
-    }
-	
-	T get() {
-		return root[0];
-	}
-	
-	void print() {  
-        print(entireTree);
-        cout << endl;
-    }
-
-    void apply(iter, pll v) {
-        ll len = right - left + 1;
-        root[i] += len * v.ff + (inclusive ? len * (len + 1) / 2 : len * (len - 1) / 2) * v.ss;
-        lazy[i].ff += v.ff;
-        lazy[i].ss += v.ss;
-    }
-
-    void push(iter) {
-        pll zero = MP(0, 0);
-        if(lazy[i] != zero && left != right) {
-            int middle = midPoint;
-            if(is_prefix) {
-                apply(lp, lazy[i]);
-                pll right_lazy = lazy[i];
-                right_lazy.ff += lazy[i].ss * (ll)(middle - left + 1);
-                apply(rp, right_lazy);
-            } else {
-                int middle = midPoint;
-                apply(rp, lazy[i]);
-                pll left_lazy = lazy[i];
-                left_lazy.ff += lazy[i].ss * (ll)(right - middle);
-                apply(lp, left_lazy);
-            }
-            lazy[i] = zero;
-        }
+    friend info operator+(const info& a, const info& b) {
+        if(a.mn == -inf) return b;
+        if(b.mn == -inf) return a;
+        info res;
+        res.mx = max(a.mx, b.mx);
+        res.mn = min(a.mn, b.mn);
+        res.real_mn = min(a.real_mn, b.real_mn);
+        res.real_mx = max(a.real_mx, b.real_mx);
+        return res;
     }
 };
 
-// 3-11
-// 3 4 5 6 7 8
-//   4 5 6 7 8 9
-//     5 6 7 8 9 10
-//       6 7 8 9 10 11
-//
-//         7 8 9 10 11 12
+struct Reachability_Tree {
+    struct DSU {
+        vi p, r;
+        DSU(int n): p(n), r(n, 0) { iota(all(p), 0); }
+        int find(int x) {
+            return p[x] == x ? x : p[x] = find(p[x]);
+        }
+        bool same(int a, int b) {
+            return find(a) == find(b);
+        }
+        void merge(int a, int b) {
+            a = find(a); b = find(b);
+            if(a == b) return;
+            p[b] = a;
+            if(r[a] == r[b]) r[a]++;
+        }
+    };
+    int n;
+    vi weight;
+    GRAPH<int> g;
+    Reachability_Tree(int n, var(3)& edges) : n(n) {
+        build(edges);
+    } 
+
+    void build(var(3)& edges) {
+        vvi graph(n * 2);
+        weight.rsz(n * 2);
+        sort(all(edges), [](const ar(3)& a, const ar(3)& b) {return a[2] < b[2];});
+        DSU root(n * 2);
+        int rt = n - 1;
+        for(auto& [u, v, w] : edges) {
+            if(!root.same(u, v)) {
+                weight[++rt] = w;
+                graph[rt].pb(root.find(u));
+                graph[rt].pb(root.find(v));
+                root.merge(rt, u);
+                root.merge(rt, v);
+            }
+        }
+        g = GRAPH<int>(graph, rt);
+    }
+
+    int lca_query(int a, int b, int c) {
+        if(a < 0 || a > 2 * n)  return -1;
+        a = g.ord[a];
+        b = g.ord[b];
+        if(a == b && b == c) return -1;
+        int l = g.lca(g.lca(a, b), c);
+        return weight[l];
+    }
+
+    int get(int c) {
+        return g.tin[c];
+    }
+};
 
 void solve() {
-    int n; cin >> n;
-    vi a(n); cin >> a;
-    auto left = closest_left(a, greater_equal<int>());
-    auto right = closest_right(a, greater<int>());
-    SGT<ll> root(n + 1, 0, [](const ll& a, const ll& b) {return a + b;});
-    arithmetic_segtree<ll> prefix(n + 1, 0, [](const ll& a, const ll& b) {return a + b;}, true, false);
-    arithmetic_segtree<ll> suffix(n + 1, 0, [](const ll& a, const ll& b) {return a + b;}, false, false);
-    for(int i = 0; i <= n; i++) {
-        root.update_at(i, 0);
-        prefix.update_at(i, 0);
-        suffix.update_at(i, 0);
+    int n, q; cin >> n >> q;
+    var(3) edges;
+    for(int i = 1; i < n; i++) {
+        int u, v, w; cin >> u >> v >> w;
+        u--, v--;
+        edges.pb({u, v, w});
     }
-    // 3 4
-    //   4 5
-    //     5 6
-    //       6 7 
-    //         7 8
-    debug(a);
+    Reachability_Tree Tree(n, edges);
+    SGT<info> root(n, info(), [](const info& a, const info& b) {return a + b;});
     for(int i = 0; i < n; i++) {
-        root.update_range(1, i - left[i] + 1, a[i]);
-        root.update_range(2, right[i] - i + 1, a[i]);
-        for(int j = i - 1; j >= left[i]; j--) {
-            root.update_range(i - j + 2, right[i] - j + 1, a[i]);
-            debug(i - j + 2, right[i] - j + 1, a[i], right[i] - left[i] + 1);
-        }
-//        int l = 3, r = right[i] - left[i] + 1;
-//        if(l > r || i == left[i]) continue;
-//        int mid = (r + l) >> 1;
-//        prefix.update_range(l, mid, {a[i], a[i]});
-//        suffix.update_range(mid + 1, r, {a[i], a[i]});
-////        int L = l + (i - left[i]);
-////        int R = r - (i - left[i]);
-//        int L = l + (right[i] - i);
-//        int R = r - (right[i] - i);
-//        debug(l, r, mid, L, R, a[i], i - left[i], i, left[i]);
-//
-//        prefix.update_range(L, mid, {-a[i], -a[i]});
-//        suffix.update_range(mid + 1, R, {-a[i], -a[i]});
-////        cout << i << ' ' << a[i] << ' ' << l << ' ' << r << ' ' << mid << ' ' << L << ' ' << R << '\n';
-////        for(int i = 1; i <= n; i++) {
-////            cout << prefix.queries_at(i) << ' ';
-////        }
-////        cout << '\n';
-////        for(int i = 1; i <= n; i++) {
-////            cout << suffix.queries_at(i) << ' ';
-////        }
-////        cout << '\n';
+        root.update_at(i, info(Tree.get(i)));
     }
-    vi ans(n + 1);
-    for(int i = 1; i <= n; i++) {
-        cout << root.queries_at(i) + prefix.queries_at(i) + suffix.queries_at(i) << '\n';
+    while(q--) {
+        int op; cin >> op;
+        if(op == 3) {
+            int x; cin >> x;
+            x--;
+            auto it = root.get();
+            cout << Tree.lca_query(it.real_mn, it.real_mx, x) << '\n';
+            continue;
+        } 
+        int l, r; cin >> l >> r;
+        l--, r--;
+        root.update_range(l, r, op == 1);
     }
 }
 
@@ -608,4 +781,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

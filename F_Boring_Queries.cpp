@@ -250,326 +250,256 @@ ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; ret
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-template<typename T, typename I = ll, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
-class SGT { 
-    public: 
-    int n;  
-    vt<T> root;
-	vt<II> lazy;
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
+    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return (ll)value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return (db)value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+
+const int N = MX * 4;
+vpii DIV[N];
+bitset<N> primeBits;
+
+void generatePrime() {  primeBits.set(2);   
+    for(int i = 3; i < N; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < N; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < N; j += 2) {    primeBits.reset(i * j); }
+        }
+    }
+    for(int i = 1; i < N; i++) {   
+        if(!primeBits[i]) continue;
+        for(int j = i; j < N; j += i) {   
+            int cnt = 0;
+            int x = j;
+            while(x % i == 0) {
+                x /= i;
+                cnt++;
+            }
+			DIV[j].pb({i, cnt});
+        }
+    }
+}
+
+// PERSISTENT SEGTREE
+int t[MX * MK], ptr;
+mint root[MX * 220]; // log2 = MX * 200; careful to match root with the type of template below
+pii child[MX * 220]; // maybe * 120
+template<class T>
+struct PSGT {
+    int n;
     T DEFAULT;
-    F func;
-    G apply_func;
-	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
-        this->n = n;
+    void assign(int n, T DEFAULT) {
         this->DEFAULT = DEFAULT;
-		int k = 1;
-        while(k < n) k <<= 1; 
-        root.rsz(k << 1, DEFAULT);    
-        lazy.rsz(k << 1, 0);
+        this->n = n;
     }
-    
-    void update_at(int id, T val) {  
-        update_at(entireTree, id, val);
-    }
-    
-    void update_at(iter, int id, T val) {  
-		pushDown;
+
+    bool init = true;
+	void update(int &curr, int prev, int id, T delta, int left, int right) {  
+//        if(!curr) curr = ++ptr; // 2d seg to save space
+        root[curr] = root[prev];    
+        child[curr] = child[prev];
         if(left == right) { 
-            root[i] = val;  
+            if(init) root[curr] = delta;
+            else root[curr] = merge(root[curr], delta);
             return;
         }
+        int middle = midPoint;
+        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
+        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+//        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // 2d seg
+//        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
+        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return root[curr];
         int middle = midPoint;  
-        if(id <= middle) update_at(lp, id, val);   
-        else update_at(rp, id, val);   
-        root[i] = func(root[lc], root[rc]);
+		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
+    };
+
+        
+    T get(int curr, int prev, int k, int left, int right) {    
+        if(root[curr] - root[prev] < k) return DEFAULT;
+        if(left == right) return left;
+        int leftCount = root[child[curr].ff] - root[child[prev].ff];
+        int middle = midPoint;
+        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
+        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
     }
 
-    void update_range(int start, int end, I val) { 
-        update_range(entireTree, start, end, val);
-    }
-    
-    void update_range(iter, int start, int end, I val) {    
-        pushDown;   
-        if(left > end || start > right) return; 
-        if(left >= start && right <= end) { 
-			apply(i, left, right, val);
-            pushDown;   
-            return;
-        }
-        int middle = midPoint;  
-        update_range(lp, start, end, val);    
-        update_range(rp, start, end, val);    
-        root[i] = func(root[lc], root[rc]);
-    }
-
-	void apply(iter, I val) {
-        root[i] += val;
-        lazy[i] += val;
-    }
-
-    void push(iter) {   
-        if(lazy[i] != 0 && left != right) {
-			int middle = midPoint;
-            apply(lp, lazy[i]), apply(rp, lazy[i]);
-            lazy[i] = 0;
-        }
-    }
-
-	T queries_at(int id) {
-		return queries_at(entireTree, id);
-	}
-	
-	T queries_at(iter, int id) {
-		pushDown;
-		if(left == right) {
-			return root[i];
-		}
-		int middle = midPoint;
-		if(id <= middle) return queries_at(lp, id);
-		return queries_at(rp, id);
-	}
-
-    T queries_range(int start, int end) { 
-        return queries_range(entireTree, start, end);
-    }
-    
-    T queries_range(iter, int start, int end) {   
-        pushDown;
-        if(left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[i];   
-        int middle = midPoint;  
-        return func(queries_range(lp, start, end), queries_range(rp, start, end));
+    T get(int l, int r, int k) {
+        return get(t[r], t[l - 1], k, 0, n - 1);
     }
 	
-	T get() {
-		return root[0];
-	}
-	
-	template<typename Pred> // seg.min_left(ending, [](const int& a) {return a > 0;});
-        int min_left(int ending, Pred f) { // min index where f[l, ending] is true
-            T a = DEFAULT;
-            return find_left(entireTree, ending, f, a);
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(root[curr] < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
+        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
+    }
+
+    void reset() {  
+        for(int i = 0; i <= ptr; i++) { 
+            root[i] = 0;
+            child[i] = {0, 0};
         }
-
-    template<typename Pred>
-        int max_right(int starting, Pred f) {
-            T a = DEFAULT;
-            return find_right(entireTree, starting, f, a);
+		for(int i = 0; i < (int)(sizeof(t)/sizeof(t[0])); i++){
+            t[i] = 0;
         }
-
-    template<typename Pred>
-        int find_left(iter, int end, Pred f, T& now) {
-            pushDown;
-            if(left > end) return -2;
-            if(right <= end && f(func(root[i], now))) {
-                now = func(root[i], now);
-                return left;
-            }
-            if(left == right) return -1;
-            int middle = midPoint;
-            int r = find_left(rp, end, f, now);
-            if(r == -2) return find_left(lp, end, f, now);
-            if(r == middle + 1) {
-                int l = find_left(lp, end, f, now);
-                if(l != -1) return l;
-            }
-            return r;
-        }
-
-    template<typename Pred>
-        int find_right(iter, int start, Pred f, T &now) {
-            pushDown;
-            if(right < start) return -2;
-            if(left >= start && f(func(now, root[i]))) {
-                now = func(now, root[i]);
-                return right;
-            }
-            if(left == right) return -1;
-            int middle = midPoint;
-            int l = find_right(lp, start, f, now);
-            if(l == -2) return find_right(rp, start, f, now);
-            if(l == middle) {
-                int r = find_right(rp, start, f, now);
-                if(r != -1) return r;
-            }
-            return l;
-        }
-};
-
-template<typename T, typename F = function<T(const T, const T)>>
-class arithmetic_segtree { // add a + d * (i - left) to [left, right] 
-    public: 
-    int n;  
-    vt<T> root;
-    vpll lazy;
-    T DEFAULT;
-    F func;
-    bool is_prefix, inclusive;
-	arithmetic_segtree(int n, T DEFAULT, F func = [](const T a, const T b) {return a + b;}, bool is_prefix = true, bool inclusive = true) : n(n), DEFAULT(DEFAULT), is_prefix(is_prefix), inclusive(inclusive), func(func) {    
-		int k = 1;
-        while(k < n) k <<= 1; 
-        root.rsz(k << 1);    
-        lazy.rsz(k << 1); 
-    }
-    
-    void update_at(int id, T val) {  
-        update_at(entireTree, id, val);
-    }
-    
-    void update_at(iter, int id, T val) {  
-        pushDown;
-        if(left == right) { 
-            root[i] = val;  
-            return;
-        }
-        int middle = midPoint;  
-        if(id <= middle) update_at(lp, id, val);   
-        else update_at(rp, id, val);   
-        root[i] = func(root[lc], root[rc]);
+        ptr = 0;
     }
 
-    void update_range(int start, int end, pll val) { 
-        update_range(entireTree, start, end, val);
-    }
-    
-    void update_range(iter, int start, int end, pll val) {    
-        pushDown;
-        if(left > end || start > right) return; 
-        if(left >= start && right <= end) { 
-			apply(i, left, right, MP(val.ss * (ll)(is_prefix ? left - start : end - right) + val.ff, val.ss));
-			// apply(curr, left, right, {val.ss * (is_prefix ? (left - start) : (end - left)) + val.ff, is_prefix ? val.ss : -val.ss});
-            pushDown;
-            return;
-        }
-        int middle = midPoint;  
-        update_range(lp, start, end, val);    
-        update_range(rp, start, end, val);    
-        root[i] = func(root[lc], root[rc]);
+    void add(int i, int& prev, int id, T delta) { 
+        t[i] = ++ptr;
+        update(t[i], prev, id, delta, 0, n - 1); 
+        prev = t[i];
+//        while(i < n) { 
+//            update(t[i], t[i], id, delta, 0, n - 1);
+//            i |= (i + 1);
+//        }
     }
 
-	T queries_at(int id) {
-		return queries_at(entireTree, id);
-	}
-	
-	T queries_at(iter, int id) {
-        pushDown;
-		if(left == right) {
-			return root[i];
-		}
-		int middle = midPoint;
-		if(id <= middle) return queries_at(lp, id);
-		return queries_at(rp, id);
-	}
-
-    T queries_range(int start, int end) { 
-        return queries_range(entireTree, start, end);
-    }
-    
-    T queries_range(iter, int start, int end) {   
-        pushDown;
-        if(left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[i];   
-        int middle = midPoint;  
-        return func(queries_range(lp, start, end), queries_range(rp, start, end));
-    }
-	
-	T get() {
-		return root[0];
-	}
-	
-	void print() {  
-        print(entireTree);
-        cout << endl;
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+//        while(i >= 0) {
+//            res += queries(t[i], start, end, 0, n - 1);
+//            i = (i & (i + 1)) - 1;
+//        }
     }
 
-    void apply(iter, pll v) {
-        ll len = right - left + 1;
-        root[i] += len * v.ff + (inclusive ? len * (len + 1) / 2 : len * (len - 1) / 2) * v.ss;
-        lazy[i].ff += v.ff;
-        lazy[i].ss += v.ss;
+	T queries_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return DEFAULT;
+        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+        auto R = queries_at(r, low, high);
+        return R - L;
     }
 
-    void push(iter) {
-        pll zero = MP(0, 0);
-        if(lazy[i] != zero && left != right) {
-            int middle = midPoint;
-            if(is_prefix) {
-                apply(lp, lazy[i]);
-                pll right_lazy = lazy[i];
-                right_lazy.ff += lazy[i].ss * (ll)(middle - left + 1);
-                apply(rp, right_lazy);
-            } else {
-                int middle = midPoint;
-                apply(rp, lazy[i]);
-                pll left_lazy = lazy[i];
-                left_lazy.ff += lazy[i].ss * (ll)(right - middle);
-                apply(lp, left_lazy);
-            }
-            lazy[i] = zero;
-        }
+    T merge(T left, T right) {
+        return left * right;
     }
 };
 
-// 3-11
-// 3 4 5 6 7 8
-//   4 5 6 7 8 9
-//     5 6 7 8 9 10
-//       6 7 8 9 10 11
-//
-//         7 8 9 10 11 12
+struct LCM_tree {
+    // do merge as left * right
+    // careful with the memory, memory should be MX * 240
+    // MX initializer should be meeting the constraint
+    // have an init variable in the psgt to init everything with 1
+    // do the DIV as vpii for [prime, cnt]
+    // https://codeforces.com/contest/1422/problem/F
+    PSGT<mint> Tree;
+    LCM_tree(const vi& a) {
+        Tree.reset();
+        int n = a.size();
+        Tree.assign(n, 1);
+        int prev = 0;
+        for(int i = 0; i < n; i++) {
+            Tree.add(0, prev, i, 1);
+        }
+        Tree.init = false;
+        const int N = MAX(a);
+        stack<pii> s[N + 1];
+        for(int i = 1; i <= n; i++) {
+            t[i] = prev;
+            int X = a[i - 1];
+            for(auto& [x, cnt] : DIV[X]) {
+                auto& curr = s[x];
+                int last = 0;
+                while(!curr.empty() && curr.top().ss <= cnt) {
+                    auto [j, c] = curr.top(); curr.pop();
+                    assert(c >= last);
+                    Tree.add(i, prev, j, mint(1) / mint(x).pow(c - last));
+                    last = c;
+                }
+                auto now = mint(x).pow(cnt);
+                if(!curr.empty() && cnt > last) {
+                    auto [j, oldCnt] = curr.top();
+                    Tree.add(i, prev, j, mint(1) / mint(x).pow(cnt - last));
+                }
+                Tree.add(i, prev, i - 1, now);
+                curr.push({i - 1, cnt});
+            } 
+        }
+    } 
+
+    mint query(int l, int r) {
+        return Tree.queries_at(r + 1, l, r);
+    }
+};
 
 void solve() {
     int n; cin >> n;
     vi a(n); cin >> a;
-    auto left = closest_left(a, greater_equal<int>());
-    auto right = closest_right(a, greater<int>());
-    SGT<ll> root(n + 1, 0, [](const ll& a, const ll& b) {return a + b;});
-    arithmetic_segtree<ll> prefix(n + 1, 0, [](const ll& a, const ll& b) {return a + b;}, true, false);
-    arithmetic_segtree<ll> suffix(n + 1, 0, [](const ll& a, const ll& b) {return a + b;}, false, false);
-    for(int i = 0; i <= n; i++) {
-        root.update_at(i, 0);
-        prefix.update_at(i, 0);
-        suffix.update_at(i, 0);
-    }
-    // 3 4
-    //   4 5
-    //     5 6
-    //       6 7 
-    //         7 8
-    debug(a);
-    for(int i = 0; i < n; i++) {
-        root.update_range(1, i - left[i] + 1, a[i]);
-        root.update_range(2, right[i] - i + 1, a[i]);
-        for(int j = i - 1; j >= left[i]; j--) {
-            root.update_range(i - j + 2, right[i] - j + 1, a[i]);
-            debug(i - j + 2, right[i] - j + 1, a[i], right[i] - left[i] + 1);
-        }
-//        int l = 3, r = right[i] - left[i] + 1;
-//        if(l > r || i == left[i]) continue;
-//        int mid = (r + l) >> 1;
-//        prefix.update_range(l, mid, {a[i], a[i]});
-//        suffix.update_range(mid + 1, r, {a[i], a[i]});
-////        int L = l + (i - left[i]);
-////        int R = r - (i - left[i]);
-//        int L = l + (right[i] - i);
-//        int R = r - (right[i] - i);
-//        debug(l, r, mid, L, R, a[i], i - left[i], i, left[i]);
-//
-//        prefix.update_range(L, mid, {-a[i], -a[i]});
-//        suffix.update_range(mid + 1, R, {-a[i], -a[i]});
-////        cout << i << ' ' << a[i] << ' ' << l << ' ' << r << ' ' << mid << ' ' << L << ' ' << R << '\n';
-////        for(int i = 1; i <= n; i++) {
-////            cout << prefix.queries_at(i) << ' ';
-////        }
-////        cout << '\n';
-////        for(int i = 1; i <= n; i++) {
-////            cout << suffix.queries_at(i) << ' ';
-////        }
-////        cout << '\n';
-    }
-    vi ans(n + 1);
-    for(int i = 1; i <= n; i++) {
-        cout << root.queries_at(i) + prefix.queries_at(i) + suffix.queries_at(i) << '\n';
+    LCM_tree root(a);
+    int q; cin >> q;
+    int last = 0;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l = (last + l) % n + 1;
+        r = (last + r) % n + 1;
+        if(l > r) swap(l, r);
+        l--, r--;
+        last = (int)root.query(l, r);
+        cout << last << '\n';
     }
 }
 
@@ -578,7 +508,7 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
-    //generatePrime();
+    generatePrime();
 
     int t = 1;
     //cin >> t;
@@ -608,4 +538,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-

@@ -70,17 +70,17 @@ public:
 
     void sv_dfs1(int u, int p = -1) {
         in_label[u] = cur_lab++;
-        for (auto& v : adj[u]) if (v != p) {
+        for(auto& v : adj[u]) if (v != p) {
             sv_dfs1(v, u);
-            if (std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
+            if(std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
                 in_label[u] = in_label[v];
         }
     }
 
     void sv_dfs2(int u, int p = -1) {
-        for (auto& v : adj[u]) if (v != p) {
+        for(auto& v : adj[u]) if (v != p) {
             ascendant[v] = ascendant[u];
-            if (in_label[v] != in_label[u]) {
+            if(in_label[v] != in_label[u]) {
                 par_head[in_label[v]] = u;
                 ascendant[v] += in_label[v] & -in_label[v];
             }
@@ -107,15 +107,15 @@ public:
         if(depth[u] < depth[v]) swap(u, v);
         int res = 0;
         int diff = depth[u] - depth[v];
-        for (int i = 0; i < m; i++) {
-            if (diff & (1 << i)) { 
+        for(int i = 0; i < m; i++) {
+            if(diff & (1 << i)) { 
                 res = max(res, weight[u][i]);
                 u = dp[u][i]; 
             }
         }
-        if (u == v) return res;
-        for (int i = m - 1; i >= 0; --i) {
-            if (dp[u][i] != dp[v][i]) {
+        if(u == v) return res;
+        for(int i = m - 1; i >= 0; --i) {
+            if(dp[u][i] != dp[v][i]) {
                 res = max({res, weight[u][i], weight[v][i]});
                 u = dp[u][i];
                 v = dp[v][i];
@@ -135,9 +135,9 @@ public:
     }
 
 	int kth_ancestor(int u, ll k) {
-        if (u < 0 || k > depth[u]) return -1;
-        for (int i = 0; i < m && u != -1; ++i) {
-            if (k & (1LL << i)) {
+        if(u < 0 || k > depth[u]) return -1;
+        for(int i = 0; i < m && u != -1; ++i) {
+            if(k & (1LL << i)) {
                 u = (u >= 0 ? dp[u][i] : -1);
             }
         }
@@ -147,17 +147,17 @@ public:
 
     int kth_ancestor_on_path(int u, int v, ll k) {
         int d = dist(u, v);
-        if (k >= d) return v;
+        if(k >= d) return v;
         int w  = lca(u, v);
         int du = depth[u] - depth[w];
-        if (k <= du) return kth_ancestor(u, k);
+        if(k <= du) return kth_ancestor(u, k);
         int rem = k - du;
         int dv  = depth[v] - depth[w];
         return kth_ancestor(v, dv - rem);
     }
 
     int kth_downward(int v, ll k) {
-        if (k < 1 || k > depth[v] + 1) return -1;
+        if(k < 1 || k > depth[v] + 1) return -1;
         ll steps_up = depth[v] - (k - 1);
         return kth_ancestor(v, steps_up);
     }
@@ -217,7 +217,23 @@ public:
         int v1 = next_on_path(c, a);
         int v2 = next_on_path(c, b);
         return n - (v1 == -1 ? 0 : comp_size(c, v1)) - (v2 == -1 ? 0 : comp_size(c, v2));
-
+    }
+	
+	vi get_path(int u, int v) { // get every node in path [u, v]
+        vi path1, path2;
+        int c = lca(u, v);
+        while(u != c) {
+            path1.pb(u);
+            u = parent[u];
+        }
+        while(v != c) {
+            path2.pb(v);
+            v = parent[v];
+        }
+        rev(path2);
+        path1.pb(c);
+        path1.insert(end(path1), all(path2));
+        return path1;
     }
 };
 
@@ -336,14 +352,14 @@ class HLD {
     }
 
 	T path_queries(int u, int v) { // remember to include the info of parents
-        int c = lca(u, v);
+        int c = g.lca(u, v);
         T res = func(seg.queries_at(id[c]), func(path_queries_helper(u, c), path_queries_helper(v, c)));
         return res;
     }
 
 
     void update_path(int u, int v, T val) {
-        int c = lca(u, v);
+        int c = g.lca(u, v);
         update_path_helper(u, c, val);
         update_path_helper(v, c, val);
         seg.update_at(id[c], val);
@@ -449,13 +465,16 @@ public:
         return rank[find(x)];
     }
     
-    vvi get_group() {
+	vvi get_group() {
         vvi ans(n);
         for(int i = 0; i < n; i++) {
             ans[find(i)].pb(i);
         }
+        sort(all(ans), [](const vi& a, const vi& b) {return a.size() > b.size();});
+        while(!ans.empty() && ans.back().empty()) ans.pop_back();
         return ans;
     }
+
 };
 
 struct Persistent_DSU {
@@ -491,7 +510,6 @@ struct Persistent_DSU {
 		return it.ss;
 	}
 
- 
 	int merge(int u, int v, int ver) {
 		u = find(u, ver), v = find(v, ver);
 		int cu = getColor(u, ver), cv = getColor(v, ver);
@@ -523,19 +541,139 @@ struct Persistent_DSU {
 		auto it = ub(all(bip), MP(ver + 1, -1)) - 1;
 		return it->ss;
 	}
+
+    int earliest_time(int u, int v, int m) {
+        int left = 0, right = m, res = -1;
+        while(left <= right) {
+            int middle = midPoint;
+            if(same(u, v, middle)) res = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        return res;
+    }
+};
+
+class AUG_DSU { 
+    // maintains potentials a[x] so that we can enforce a[u] = a[v] + d
+  public: 
+    int n, comp;  
+    vi root, rank;
+    vll weight;
+
+    AUG_DSU(int n) : n(n), comp(n), root(n, -1), rank(n, 1), weight(n, 0) {}
+    
+    int find(int x) {   
+        if (root[x] == -1) return x;
+        int p = root[x];
+        int r = find(p);
+        weight[x] += weight[p]; 
+        return root[x] = r;
+    }
+    
+    // enforce  a[u] ≡ a[v] + d 
+    // returns false if that contradicts existing info
+    bool merge(int u, int v, ll d) {  
+        int ru = find(u), rv = find(v);
+        if (ru != rv) {
+            comp--;
+            weight[ru] = weight[v] + d - weight[u];
+            root[ru] = rv;
+            return true;
+        }
+        return weight[u] - weight[v] == d;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+	
+	int potential(int u) {
+        find(u);
+        return weight[u];
+    }
+
+
+    // returns (a[u] - a[v]), or -1 if unknown
+    ll diff(int u, int v) {
+        if (!same(u, v)) return -1;
+        find(u);  
+        find(v);
+        return (ll)(weight[u] - weight[v]);
+    }
+};
+
+struct Reachability_Tree { // 2 * n - 1 not 2 * n for total vertices
+    struct DSU {
+        vi p, r;
+        DSU(int n): p(n), r(n, 0) { iota(all(p), 0); }
+        int find(int x) {
+            return p[x] == x ? x : p[x] = find(p[x]);
+        }
+        bool same(int a, int b) {
+            return find(a) == find(b);
+        }
+        void merge(int a, int b) {
+            a = find(a); b = find(b);
+            if(a == b) return;
+            p[b] = a;
+            if(r[a] == r[b]) r[a]++;
+        }
+    };
+    int n;
+    vi weight;
+    GRAPH<int> g;
+    DSU root;
+    int rt;
+    vvi graph;
+    Reachability_Tree(int n) : n(n), root(n * 2), rt(n - 1), graph(n * 2), weight(n * 2) {}
+
+    void add_edge(int u, int v, int w = 0) {
+        if(root.same(u, v)) return;
+        rt++;
+        weight[rt] = w;
+        graph[rt].pb(root.find(u));
+        graph[rt].pb(root.find(v));
+        root.merge(rt, u);
+        root.merge(rt, v);
+    }
+
+    bool built = false;
+    void init(var(3)& edges) {
+        built = true;
+        sort(all(edges), [](const ar(3)& a, const ar(3)& b) {return a[2] < b[2];});
+        for(auto& [u, v, w] : edges) {
+            add_edge(u, v, w);
+        }
+        g = GRAPH<int>(graph, rt);
+    }
+ 
+    void build() {
+        built = true;
+        g = GRAPH<int>(graph, rt);
+    }
+
+    int lca_query(int u, int v) {
+        if(!built) build();
+        int c = g.lca(u, v);
+        return weight[c];
+    }
 };
 
 class SCC {
     public:
     int n, curr_comp;
     vvi graph, revGraph;
-    vi vis, comp, in_degree, out_degree;
+    vi vis, comp, comp_cnt, in_degree, out_degree;
     stack<int> s;
  
     SCC(int n) {
         this->n = n;
         curr_comp = 0;
-        graph.rsz(n), revGraph.rsz(n), vis.rsz(n), comp.rsz(n, -1);
+        graph.rsz(n), revGraph.rsz(n), vis.rsz(n), comp.rsz(n, -1), comp_cnt.rsz(n);
 		// don't forget to build after adding edges
     }
  
@@ -554,6 +692,7 @@ class SCC {
     void dfs2(int node) {
         if(comp[node] != -1) return;
         comp[node] = curr_comp;
+        comp_cnt[curr_comp]++;
         for(auto& nei : revGraph[node]) dfs2(nei);
     }
  
@@ -588,7 +727,7 @@ class SCC {
         }
         return g;
     }
-
+ 
     vpii get_augment_edges() { // minimum edges added so start from any node, you can reach every other nodes
                                // call compress_graph() first
         assert(!in_degree.empty() && !out_degree.empty());
@@ -612,6 +751,14 @@ class SCC {
             ans.pb({rep[fromC], rep[toC]});
         }
         return ans;
+    }
+ 
+    bool same(int u, int v) {
+        return comp[u] == comp[v];
+    }
+ 
+    int get_size(int u) {
+        return comp_cnt[comp[u]];
     }
 };
 
@@ -1430,7 +1577,7 @@ struct two_sat {
 };
 
 template<int M>
-struct max_clique { 
+struct max_clique { // maximum independent set is max clique on the complement graph
     static const int LIMIT = 1000;
     using mask = bitset<M>;
 
@@ -1440,9 +1587,9 @@ struct max_clique {
     bool too_many;
     int best;
     bool stop;
-    vi dp;
+    vi dp, cur, ans;
 
-    max_clique(int _n = 0)
+    max_clique(int _n)
         : n(_n), maximal_count(0), too_many(false), best(0), stop(false)
     {
         for (int i = 0; i < n; ++i)
@@ -1461,35 +1608,6 @@ struct max_clique {
         return n;
     }
 
-    void bronk(mask R, mask P, mask X) {
-        if(stop) return;
-        if(P.none() && X.none()) {
-            best = max(best, (int)R.count());
-            return;
-        }
-        mask PX = P | X;
-        int pivot = ctz(PX);
-        int maxCnt = -1;
-        for(int u = pivot; u < n; ++u) {
-            if(!PX.test(u)) continue;
-            mask inter = P & adj[u];
-            int c = inter.count();
-            if(c > maxCnt) {
-                maxCnt = c;
-                pivot = u;
-            }
-        }
-        mask can = P & (~adj[pivot]);
-        while(can.any()) {
-            int v = ctz(can);
-            mask bit; bit.reset(); bit.set(v);
-            can.reset(v);
-            bronk(R | bit, P & adj[v], X & adj[v]);
-            P.reset(v);
-            X.set(v);
-        }
-    }
-
     int solve() {
         best = 0;
         stop = false;
@@ -1498,6 +1616,45 @@ struct max_clique {
         mask X; X.reset();
         bronk(R, P, X);
         return best;
+    }
+
+    void bronk(mask R, mask P, mask X) {
+        if(stop) return;
+        if(P.none() && X.none()) {
+            int sz = (int)R.count();
+            if(sz > best) {
+                best = sz;
+                ans = cur;                // RECORD best clique
+            }
+            return;
+        }
+        mask PX = P | X;
+        int pivot = ctz(PX), maxCnt = -1;
+        for(int u = pivot; u < n; ++u) {
+            if(!PX.test(u)) continue;
+            int c = (P & adj[u]).count();
+            if(c > maxCnt) {
+                maxCnt = c;
+                pivot = u;
+            }
+        }
+        mask can = P & (~adj[pivot]);
+        while(can.any()) {
+            int v = ctz(can);
+            can.reset(v);
+
+            cur.pb(v);
+            bronk(R | mask().set(v), P & adj[v], X & adj[v]);
+            cur.pop_back();
+
+            P.reset(v);
+            X.set(v);
+        }
+    }
+
+    vector<int> get_maximum_clique() {
+        solve();
+        return ans;
     }
 
     void bronk_count(mask R, mask P, mask X) {
@@ -1626,6 +1783,81 @@ struct virtual_tree {
             subtree[node] += subtree[nei];
             ans += (ll)subtree[nei] * (total - subtree[nei]) * w;
         }
+        return ans;
+    }
+};
+
+struct EulerianPath {
+    int nodes, edges;
+    bool directed;
+    vvpii graph;
+    vi deg, indeg, outdeg;
+    vb used;
+    vi ans;
+
+    EulerianPath(int _nodes, int _edges, bool _directed = false)
+      : nodes(_nodes), edges(_edges), directed(_directed), graph(_nodes), used(_edges, false) {
+        if(directed) indeg.assign(nodes,0), outdeg.assign(nodes,0);
+        else deg.assign(nodes,0);
+    }
+
+    void add_edge(int u, int v, int id) {
+        graph[u].emplace_back(v, id);
+        if(directed) {
+            outdeg[u]++;
+            indeg[v]++;
+        } else {
+            graph[v].emplace_back(u, id);
+            deg[u]++;
+            deg[v]++;
+        }
+    }
+
+    int find_start() const {
+        int start = -1;
+        if(!directed) {
+            int odd = 0;
+            for(int i = 0; i < nodes; i++) {
+                if(deg[i] & 1) {
+                    odd++;
+                    start = i;
+                }
+                if(start < 0 && deg[i] > 0) start = i;
+            }
+            if(start < 0) return 0;
+            if(odd != 0 && odd != 2) return -1;
+        } else {
+            int plus1 = 0, minus1 = 0;
+            for(int i = 0; i < nodes; i++) {
+                int d = outdeg[i] - indeg[i];
+                if(d == 1) { plus1++; start = i; }
+                else if(d == -1) minus1++;
+                else if(d != 0) return -1;
+                if(start < 0 && outdeg[i] > 0) start = i;
+            }
+            if(start < 0) return 0;
+            if(!((plus1 == 1 && minus1 == 1) || (plus1 == 0 && minus1 == 0))) return -1;
+        }
+        return start;
+    }
+
+    void dfs(int u) {
+        while(!graph[u].empty()) {
+            auto [v, id] = graph[u].back();
+            graph[u].pop_back();
+            if(used[id]) continue;
+            used[id] = true;
+            dfs(v);
+            ans.pb(id);
+        }
+    }
+
+    vi get_path() {
+        int start = find_start();
+        if(start < 0) return {};
+        dfs(start);
+        if((int)ans.size() != edges) return {};
+        rev(ans);
         return ans;
     }
 };

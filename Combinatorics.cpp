@@ -231,6 +231,57 @@ vi computeCatalan(int limit, int mod) {
     return catalan;
 }
 
+ll kth_coprime(ll p, int k, ll x = 0) {  // find the kth coprime starting where gcd(y, p) == 1 with the base of x
+//    process this first for mobius function
+//    mu[0] = 0;
+//    mu[1] = 1;
+//    for(int i = 2; i < MX; i++) {
+//        if(primeBits[i]) {
+//            mu[i] = -1;
+//        } else {
+//            int p = first_divisor[i];
+//            int m = i / p;
+//            if(m % p == 0) {
+//                mu[i] = 0;
+//            } else {
+//                mu[i] = -mu[m];
+//            }
+//        }
+//    }
+    vi divs;
+    for(int i = 1; 1LL * i * i <= p; i++){
+        if(p % i == 0) {
+            divs.pb(i);
+            if(i * i != p) divs.pb(p / i);
+        }
+    }
+    auto cal = [&](ll y) -> ll {
+        ll cnt = 0;
+        for(int d : divs){
+            cnt += mu[d] * (y / d);
+        }
+        return cnt;
+    };
+    ll base = cal(x);
+    ll target = base + k;
+
+    ll lo = x + 1, hi = x + k;
+    while(cal(hi) < target){
+        hi = x + (hi - x) * 2;  
+    }
+    ll ans = hi;
+    while(lo <= hi){
+        ll mid = (lo + hi) >> 1;
+        if(cal(mid) >= target){
+            ans = mid;
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return ans;
+}
+
 template<class T> 
 class Combinatoric {    
     public: 
@@ -317,6 +368,66 @@ class Combinatoric {
 
 }; Combinatoric<mint> comb(MX);
 
+template<typename T>
+T sum_of_powers(long long n, int k) { // find (1 ^ k + 2 ^ k + ... + n ^ k) sum
+    // https://codeforces.com/contest/622/problem/F
+    int M = k + 1;
+    vt<T> y(M + 1);
+    y[0] = T(0);
+    for(int i = 1; i <= M; i++) {
+        y[i] = y[i - 1] + T(i).pow(k);
+    }
+    if(n <= M) return y[n];
+    vt<T> pref(M + 1), suf(M + 1);
+    pref[0] = T(1);
+    for(int i = 1; i <= M; i++) {
+        pref[i] = pref[i - 1] * T(n - (i - 1));
+    }
+    suf[M] = T(1);
+    for (int i = M-1; i >= 0; i--) {
+        suf[i] = suf[i + 1] * T(n - (i + 1));
+    }
+    T ans = T(0);
+    for(int i = 0; i <= M; i++) {
+        T num = pref[i] * suf[i];
+        T invden = comb.inv[i] * comb.inv[M - i];
+        if((M - i) & 1) invden = -invden;
+        ans += y[i] * num * invden;
+    }
+    return ans;
+}
+
+bool isPrime(uint64_t n) {
+    if(n < 2) return false;
+    for(uint64_t p : {2ULL,3ULL,5ULL,7ULL,11ULL,13ULL,17ULL,19ULL,23ULL})
+        if (n % p == 0) return n == p;
+    uint64_t d = n - 1, s = 0;
+    while((d & 1) == 0) { d >>= 1; s++; }
+    auto modpow = [&](uint64_t a, uint64_t e) {
+        __uint128_t res = 1, base = a % n;
+        while (e) {
+            if (e & 1) res = (res * base) % n;
+            base = (base * base) % n;
+            e >>= 1;
+        }
+        return (uint64_t)res;
+    };
+    auto miller_pass = [&](uint64_t a) {
+        uint64_t x = modpow(a, d);
+        if(x == 1 || x == n-1) return true;
+        for(uint64_t r = 1; r < s; r++) {
+            x = (__uint128_t)x * x % n;
+            if(x == n - 1) return true;
+        }
+        return false;
+    };
+    for(uint64_t a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL, 9780504ULL, 1795265022ULL}) {
+        if(a % n == 0) break;
+        if(!miller_pass(a)) return false;
+    }
+    return true;
+}
+
 // pascal triangle
 // dp[n][k] = dp[n - 1][k] + dp[n - 1][k - 1];
 // for nck sweep line, we go from highest k to 0
@@ -334,6 +445,16 @@ class Combinatoric {
 //                dp[i] -= dp[j] * comb.choose(nr + nc, nr);
 //            }
 //        }
+
+ll missing(const ll& target, const ll& x) { // minimum +1 operation to make x a superset of target, (target & x) = target
+    ll diff = target & ~x;
+    if(diff == 0) return 0;
+    int msb = max_bit(diff);
+    const ll N = 1LL << msb;
+    ll carry_cost = N - (x & (N - 1)); // fill in the msb bit, now everything below msb become 0 in x
+    ll restore_cost = ((diff | target) & (N - 1)); // restore the missing bit < msb
+    return carry_cost + restore_cost;
+}
 
 ll XOR(ll n) {    
 	if(n % 4 == 0) return n;
@@ -380,6 +501,22 @@ vll countBit(ll n) {
 	}
 	return cnt;
 };
+
+ll get_prime_mask(ll n) {
+    ll mask = 1;
+    for(auto& x : primes) {
+        if(x * x > n) break;
+		if(n % x) continue;
+        int p = 0;
+        while(n % x == 0) {
+            p ^= 1;
+            n /= x;
+        }
+        if(p) mask *= x;
+    }
+    if(n > 1) mask *= n;
+    return mask;
+}
 
 string get_base_k(string n, int k) {
     if(n == "0") return "0";
@@ -501,6 +638,182 @@ int find_y(int x, int p, int c) { // find y such that (x * y) % p == c
     return y0 < 0 ? y0 + p1 : y0;
 }
 
+template<typename T>
+struct sos_dp {
+    ll B, N;
+    vt<T> subset, superset, f, a;
+    sos_dp(const vt<T>& a) : a(a) {
+        B = 0;
+        ll m = MAX(a);
+        while((1LL << B) <= m) B++;
+        N = 1LL << B;
+        f.rsz(N);
+    }
+    sos_dp(const vt<T>& a, ll B) : a(a), B(B), N(1LL << B), f(1LL << B) {}
+
+    ll low;
+    sos_dp(int _B, int low) : low(low), B(_B), N(1LL << _B) { } // meet in the middle, https://www.codechef.com/problems/MONSTER?tab=statement
+
+    void load() {
+        f = a;
+    }
+    // how many element have a[i] as a super set
+    void subsetSOS() {
+        load();
+        assert(subset.empty());
+        for(ll bit = 0; bit < B; bit++){
+            for(ll mask = 0; mask < N; mask++){
+                if(have_bit(mask, bit)){
+                    f[mask] += f[mask ^ (1 << bit)];
+                }
+            }
+        }
+        subset = f;
+    }
+
+    // how many element is a[i] a subset of
+    // how many element AND together have the freq of it is
+    // freq[nxt] - freq[mask] where have_bit(mask, bit) and nxt = (mask ^ (1LL << bit))
+    // see max_prefix_sum_and function for reference
+    void supersetSOS() {
+        load();
+        assert(superset.empty());
+        for(ll bit = 0; bit < B; bit++){
+            for(ll mask = 0; mask < N; mask++){
+                if(!have_bit(mask, bit)){
+                    f[mask] += f[mask | (1 << bit)];
+                }
+            }
+        }
+        superset = f;
+    }
+
+    template<typename F>
+    F subset_equal_to(ll target) { // how many OR subset equal to target
+        // https://www.hackerrank.com/contests/w16/challenges/vim-war/problem
+        subsetSOS();
+        F res = 0;
+        for(ll mask = target; ; mask = (mask - 1) & target) {
+            if(pct(mask ^ target) & 1) res -= F(2).pow(f[mask]) - 1; // contribution of mask to target is (mask ^ target)
+            else res += F(2).pow(f[mask]) - 1;
+            if(mask == 0) break;
+        }
+        return res;
+    }
+
+    vll A;
+    void update_subset(ll mask, ll delta = 1) { // tc : 1 << (K - low)
+        if(A.empty()) A.rsz(N);
+        ll lo = ((1LL << low) - 1) & mask;
+        mask = (mask >> low) << low;
+        for(ll sub = mask; ; sub = (sub - 1) & mask) {
+            ll now = sub | lo;
+            if(now < A.size()) A[now] += delta;
+            if(sub == 0) break;
+        }
+    }
+
+    ll query_subset(ll mask) { 
+        if(A.empty()) return 0;
+        const ll LOW = (1LL << low) - 1;
+        ll res = 0;
+        ll hi = (mask >> low) << low;
+        ll orig_low = mask & LOW;
+        mask = ~mask & LOW;
+        for(ll sub = mask;; sub = (sub - 1) & mask) {
+            ll now = hi | orig_low | sub;
+            if(now < A.size()) res += A[now];
+            if(sub == 0) break;
+        }
+        return res;
+    }
+
+    void update_superset(ll mask, ll delta = 1) {
+        if(A.empty()) A.rsz(N);
+        ll lo = ((1LL << low) - 1) & mask;
+        const ll LOW = (((~mask & (N - 1)) >> low) << low);
+        for(ll sub = LOW; ; sub = (sub - 1) & LOW) {
+            ll now = sub | mask;
+            if(now < A.size()) A[now] += delta;
+            if(sub == 0) break;
+        }
+    }
+
+    ll query_superset(ll mask) {
+        if(A.empty()) return 0;
+        const ll LOW = ((1LL << low) - 1) & mask;
+        mask = (mask >> low) << low;
+        ll res = 0;
+        for(ll sub = LOW; ; sub = (sub - 1) & LOW) {
+            ll now = sub | mask;
+            if(now < A.size()) res += A[now];
+            if(sub == 0) break;
+        }
+        return res;
+    }
+
+    ll max_prefix_sum_and() { // max sum of every prefix and over all permutation
+        supersetSOS();
+        vll dp(N, -INF);
+        dp[N - 1] = (ll)count(all(a), N - 1) * (N - 1);
+        for(ll mask = N - 1; mask >= 0; mask--) {
+            if(dp[mask] == -INF) continue;
+            for(ll b = 0; b < B; b++) {
+                if(have_bit(mask, b)) {
+                    ll nxt = mask ^ (1 << b);
+                    ll cnt = f[nxt] - f[mask];
+                    dp[nxt] = max(dp[nxt], dp[mask] + cnt * nxt);
+                }
+            }
+        }
+        return dp[0];
+    }
+
+    ll calc_submask(ll one, ll zero, ll question) { // calculate how many submask that has 0 and 1 bits like one and zero mask
+                                                    // in addition to that, question_mask can be 0 and 1 as well, marking it 2 ^ (pct(question)) mask
+        // https://oj.uz/problem/view/JOI18_snake_escaping
+        // remember to reverse the string if needed
+        if(subset.empty()) subsetSOS();
+        if(superset.empty()) supersetSOS();
+        const ll lim = B / 3;
+        ll ans = 0;
+        if(pct(question) <= lim) {
+            for(ll sub = question; ; sub = (sub - 1) & question) {
+                ans += a[sub | one];
+                if(sub == 0) break;
+            }
+        } else if(pct(zero) <= lim) {
+            for(ll sub = zero; ; sub = (sub - 1) & zero) {
+                ll coeff = (pct(sub) & 1) ? -1 : 1;
+                ans += coeff * superset[sub | one];
+                if(sub == 0) break;
+            }
+        } else {
+            for(ll sub = one; ; sub = (sub - 1) & one) {
+                ll coeff = ((pct(sub) ^ pct(one)) & 1) ? -1 : 1;
+                ans += coeff * subset[sub | question];
+                if(sub == 0) break;
+            }
+        }
+        return ans;
+    }
+};
+
+vi submask_nck(int bit, int k) {
+    if(k < 0 || k > bit) return {};
+    if(k == 0) return {0};
+    vi masks;
+    int m = (1 << k) - 1;
+    int limit = 1 << bit;
+    while(m < limit) {
+        masks.pb(m);
+        int x = m & -m;
+        int y = m + x;
+        m = ((m & ~y) / x >> 1) | y;
+    }
+    return masks;
+}
+
 //for(auto& p : primes) {
 //	for(int c = m / p; c >= 1; c--) f[c] += f[c * p];
 //}
@@ -566,5 +879,3 @@ int find_y(int x, int p, int c) { // find y such that (x * y) % p == c
 //    }
 //    int res = MAX(dp) + zero;
 //    cout << res << endl;
-
-//                 for(int other = mask; other; other = (other - 1) & mask) // iterate over all submask of mask

@@ -1,26 +1,22 @@
 #include <bits/stdc++.h>
 using namespace std;
+using ll = long long;
 
 int main() {
-    mt19937 rng((unsigned)chrono::high_resolution_clock::now().time_since_epoch().count());
-    uniform_int_distribution<int> small(1, 10);
-    uniform_int_distribution<int> edgeW(1, 10);
-    uniform_int_distribution<int> H(0, 10);
+    // Constants for maximum sizes
+    const int MAXN = 100;
+    const int MAXA = 20;
 
-    int n = small(rng);
-    int m = small(rng);
+    // high‐quality RNG seeded from random_device
+    mt19937 rng(random_device{}());
+    uniform_int_distribution<int> distN(1, MAXN);
+    uniform_int_distribution<int> distA(0, MAXA);
 
-    cout << n << " " << m << "\n";
-    // n–1 edge lengths
-    for (int i = 2; i <= n; i++) {
-        cout << edgeW(rng) << "\n";
-    }
-    // m queries
-    uniform_int_distribution<int> pickNode(1, n);
-    for (int i = 0; i < m; i++) {
-        int a = pickNode(rng);
-        int h = H(rng);
-        cout << a << " " << h << "\n";
+    // pick N and generate the array
+    int N = distN(rng);
+    cout << N << "\n";
+    for (int i = 0; i < N; i++) {
+        cout << distA(rng) << (i+1 == N ? '\n' : ' ');
     }
     return 0;
 }

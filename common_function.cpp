@@ -29,33 +29,128 @@ ll maxPerimeter(const vvi& grid) { // max_rectangle in a grid
     return best;
 }
 
-//    T merge(const T &left, const T &right) {
-//        T res;
-//        for (int a = 0; a < 2; ++a) {
-//            for (int b = 0; b < (a ? 1 : 2); ++b) {
-//                auto &curr = res.dp[a + b];
-//                auto &L = left.dp[a];
-//                auto &R = right.dp[b];
-//                for(int i = 0; i < 2; i++) {
-//                    for(int j = 0; j < 2; j++) {
-//                        curr[i][j] = max({curr[i][j], 
-//                            L[i][0] + R[0][j], 
-//                            L[i][1] + R[0][j],
-//                            L[i][0] + R[1][j]
-//                        });
-//                    }
-//                }
-//            }
-//        }
-//        return res;
-//    }
-
 //    root.apply_func = [&root](iter, pmm val) -> void { -> apply ai * x + y
 //        auto& r = root.root[i];
 //        auto& l = root.lazy[i];
 //        r = r * val.ff + val.ss * (right - left + 1);
 //        l = {l.ff * val.ff, val.ff * l.ss + val.ss};
 //    };
+
+template<typename T>
+ll LIS(vt<T>a, bool strict = false) { // strictly increasing or not
+    auto b(a);
+    if(strict) {
+        for(auto& x : a) b.pb(x - 1);
+    }
+    srtU(b);
+    const int N = b.size();
+    auto get_id = [&](T x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    FW<T> root(N, 0, [](const T& a, const T& b) {return max(a, b);});
+    for(auto& x : a) {
+        root.update_at(get_id(x), root.get(get_id(x - strict)) + 1);
+    }
+    return root.get(N - 1);
+}
+
+vi square_permutation(vi a) { // return a permutation where b[b[i]] = a[i], empty vector if not possible
+    // https://codeforces.com/contest/612/problem/E
+    int n = a.size();
+    vi vis(n);
+    vvi cycles;
+    for(int i = 0; i < n; i++) {
+        if(vis[i]) continue;
+        vi cycle;
+        int j = i;
+        while(!vis[j]) {
+            cycle.pb(j);
+            vis[j] = true;
+            j = a[j];
+        }
+        cycles.pb(cycle);
+    }
+    vi last(n + 1, -1);
+    fill(all(a), -1);
+    for(int i = 0; i < (int)cycles.size(); i++) {
+        const int N = cycles[i].size();
+        if(N & 1) {
+            auto& curr = cycles[i];
+            for(int j = 0; j < N; j++) {
+                a[curr[j]] = curr[(j + (N + 1) / 2) % N];
+            }
+            continue;
+        }
+        if(last[N] == -1) last[N] = i;
+        else {
+            auto& A = cycles[i];
+            auto& B = cycles[last[N]];
+            last[N] = -1;
+            for(int j = 0; j < N; j++) {
+                a[A[j]] = B[j];
+                a[B[j]] = A[(j + 1) % N];
+            }
+        }
+    }
+    if(count(all(a), -1)) return {};
+    return a;
+}
+
+vpii spriral_matrix(const vvi& a, int x, int y) { // do a spriral_matrix surrounding x, y as a source
+    int n = a.size();
+    int m = a[0].size();
+    auto in = [&](int r, int c) -> bool {
+        return r >= 0 && c >= 0 && r < n && c < m;
+    };
+    vpii now;
+    if(in(x, y)) now.pb(MP(x, y));
+    int total = n * m;
+    int step = 1;
+    while(now.size() < total) {
+        for(int i = 0; i < step && now.size() < total; i++) {
+            y++;
+            if(in(x, y)) now.pb(MP(x, y));
+        }
+        for(int i = 0; i < step && now.size() < total; i++) {
+            x++;
+            if(in(x, y)) now.pb(MP(x, y));
+        }
+        step++;
+        for(int i = 0; i < step && now.size() < total; i++) {
+            y--;
+            if(in(x, y)) now.pb(MP(x, y));
+        }
+        for(int i = 0; i < step && now.size() < total; i++) {
+            x--;
+            if(in(x, y)) now.pb(MP(x, y));
+        }
+        step++;
+    }
+    return now;
+}
+
+template<typename T>
+T lcm_mod(vi a) { // lcm of multiple number under a mod
+    map<int, int> mp;
+    for(auto& x : a) {
+        for(auto& p : primes) {
+            if(p * p > x) break;
+            if(x % p) continue;
+            int cnt = 0;
+            while(x % p == 0) {
+                cnt++;
+                x /= p;
+            }
+            mp[p] = max(mp[p], cnt); // only max occcurences matter
+        } 
+        mp[x] = max(mp[x], 1);
+    }
+    T res = 1;
+    for(auto& [x, v] : mp) {
+        res *= T(x).pow(v);
+    }
+    return res;
+}
 
 int count_distinct_palindromic_subsequence(const string& S, int mod) { // https://leetcode.com/problems/count-different-palindromic-subsequences/description/
     int N = S.size();
@@ -201,6 +296,27 @@ int count_assignment(int n, const vpii& edges) { // count the number of way to a
     return (int)ans;
 }
 
+ll kadane_2d(vvi& a) { // max subarray in 2d matrix
+	// https://www.naukri.com/code360/problems/max-submatrix_1214973?leftPanelTabValue=SUBMISSION
+    int n = a.size();
+    int m = a[0].size();
+    ll res = -INF;
+    for(int top = 0; top < n; top++) {
+        vll t(m);
+        for(int bot = top; bot >= 0; bot--) {
+            for(int j = 0; j < m; j++) {
+                t[j] += a[bot][j];
+            } 
+            ll curr = 0;
+            for(int j = 0; j < m; j++) {
+                curr = max(t[j], curr + t[j]);
+                res = max(res, curr);
+            }
+        }
+    }
+    return res;
+}
+
 pair<vi,vi> find_longest_cycle_bidirected_graph(const vvpii& graph){ // return a cycle and edges_id which it used
     int n = graph.size();
     vb visited(n, false), inStack(n, false);
@@ -344,16 +460,16 @@ vi bidirectional_cycle_vector(int n, const vvi& graph) { // return a cycle_vecto
         for(auto& j : graph[i]) degree[j]++;
     }
     for (int i = 0; i < n; i++) {
-        if (degree[i] == 1) {
+        if(degree[i] <= 1) {
             q.push(i);
             inCycle[i] = false;
         }
     }
-    while (!q.empty()) {
+    while(!q.empty()) {
         auto u = q.front(); q.pop();
-        for (int v : graph[u]) {
-            if (inCycle[v]) {
-                if (--degree[v] == 1) {
+        for(int v : graph[u]) {
+            if(inCycle[v]) {
+                if(--degree[v] == 1) {
                     inCycle[v] = false;
                     q.push(v);
                 }
@@ -363,37 +479,85 @@ vi bidirectional_cycle_vector(int n, const vvi& graph) { // return a cycle_vecto
     return inCycle;
 }
 
+ll bellman_ford(int N, int src, const var(3)& edges) {
+    vll dist(N, -INF);
+    dist[0] = 0;
+    for(int it = 1; it <= N + 1; it++){
+        bool updated = false;
+        for(auto &[u, v, w] : edges){
+            if(dist[u] != -INF && dist[u] + w > dist[v]) {
+                dist[v] = dist[u] + w;
+                updated = true;
+                if(it == N) {
+                    return -1;
+                }
+            }
+        }
+        if(!updated) break;
+    }
+    return dist.back();
+}
+
+vvi rotate90(const vvi matrix) {
+    int n = matrix.size(), m = matrix[0].size();
+    vvi res(m, vi(n));
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            res[j][n - 1 - i] = matrix[i][j];
+    return res;
+}
+
+ll count_unique(const vi& a) { // sum of unique element over all subarray
+    ll n = a.size();
+    map<int, vi> mp;
+    for(int i = 0; i < n; i++) mp[a[i]].pb(i);
+    ll total = n * (n + 1) / 2;
+    ll res = 0;
+    for(auto& [_, it] : mp) {
+        it.pb(n); 
+        int last = -1;
+        ll now = 0;
+        for(auto& x : it) {
+            ll d = x - last - 1;
+            now += d * (d + 1) / 2;
+            last = x;
+        }
+        res += total - now;
+    }
+    return res;
+}
+
 vi directional_cycle_vector(const vvi& out_graph) {
     int n = out_graph.size();
     vvi in_graph(n);
     vi in_deg(n, 0), out_deg(n, 0), in_cycle(n, true);
-    for (int u = 0; u < n; u++) {
+    for(int u = 0; u < n; u++) {
         out_deg[u] = out_graph[u].size();
-        for (int v : out_graph[u]) {
-            in_graph[v].push_back(u);
+        for(int v : out_graph[u]) {
+            in_graph[v].pb(u);
             in_deg[v]++;
         }
     }
     queue<int> q;
-    for (int i = 0; i < n; i++) {
-        if (in_deg[i] == 0 || out_deg[i] == 0) {
+    for(int i = 0; i < n; i++) {
+        if(in_deg[i] == 0 || out_deg[i] == 0) {
             q.push(i);
             in_cycle[i] = false;
         }
     }
-    while (!q.empty()) {
+    while(!q.empty()) {
         int u = q.front();
         q.pop();
-        for (int v : out_graph[u]) {
-            if (in_cycle[v]) {
-                if (--in_deg[v] == 0) {
+        for(int v : out_graph[u]) {
+            if(in_cycle[v]) {
+                if(--in_deg[v] == 0) {
                     in_cycle[v] = false;
                     q.push(v);
                 }
             }
         }
-        for (int v : in_graph[u]) {
-            if (in_cycle[v]) {
+        for(int v : in_graph[u]) {
+            if(in_cycle[v]) {
                 if(--out_deg[v] == 0) {
                     in_cycle[v] = false;
                     q.push(v);
@@ -405,21 +569,8 @@ vi directional_cycle_vector(const vvi& out_graph) {
 }
 
 template<typename T = int>
-vi diameter_vector(const vt<vt<T>>& graph) { // return a vector that indicates the max_diameters from each vertex
+vi diameter_vector(const vt<vt<T>>& graph) { // return a vector where a[i] is the max diameter from the ith vertex
     int n = graph.size();
-    vi d(n);
-    pii now = {-1, -1};
-    auto dfs = [&](auto& dfs, int node = 0, int par = -1, int depth = 0) -> void {
-        if(depth > now.ff) now = MP(depth, node);
-        for(auto& nei : graph[node]) {
-            if(nei == par) continue;
-            dfs(dfs, nei, node, depth + 1);
-        }
-    }; dfs(dfs);
-    int a = now.ss;
-    now = {-1, -1};
-    dfs(dfs, a);
-    int b = now.ss;
     auto bfs = [&](int src) -> vi {
         vi dp(n, -1);
         queue<int> q;
@@ -438,7 +589,11 @@ vi diameter_vector(const vt<vt<T>>& graph) { // return a vector that indicates t
         }
         return dp;
     };
-    auto dp1 = bfs(a), dp2 = bfs(b);
+    auto dummy = bfs(0);
+    int a = max_element(all(dummy)) - begin(dummy);
+    auto dp1 = bfs(a);
+    int b = max_element(all(dp1)) - begin(dp1);
+    auto dp2 = bfs(b);
     vi ans(n);
     for(int i = 0; i < n; i++) {
         ans[i] = max(dp1[i], dp2[i]);
@@ -470,42 +625,3 @@ string validate_substring(int n, const string& t, vi a) {
     }
     return s;
 }
-
-struct LCS { // longest common subsequence
-    string lcs;
-    string shortest_supersequence; // find the shortest string where covers both s and t as subsequence
-    LCS(const string& s, const string& t) {
-        int n = s.size(), m = t.size();
-        vvi dp(n + 1, vi(m + 1));
-        for(int i = 1; i <= n; i++) {
-            for(int j = 1; j <= m; j++) {
-                if(s[i - 1] == t[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
-                else dp[i][j] = max({dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]});
-            }
-        }
-        int curr = dp[n][m];
-        for(int i = n; i >= 1; i--) {
-            for(int j = m; j >= 1; j--) {
-                if(dp[i][j] == curr && s[i - 1] == t[j - 1]) {
-                    lcs += s[i - 1];
-                    curr--;
-                    break;
-                }
-            }
-        }
-        rev(lcs);
-        int i = 0, j = 0;
-        for(auto& ch : lcs) {
-            while(i < n && s[i] != ch) {
-                shortest_supersequence += s[i++];
-            }
-            while(j < m && t[j] != ch) {
-                shortest_supersequence += t[j++];
-            }
-            shortest_supersequence += ch;
-            i++, j++;
-        }
-        while(i < n) shortest_supersequence += s[i++];
-        while(j < m) shortest_supersequence += t[j++];
-    }
-};
