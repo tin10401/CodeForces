@@ -50,6 +50,7 @@ public:
             parent[nei] = node;
             dfs(nei, node);
             subtree[node] += subtree[nei];
+			// timer++; // use when merging segtree nodes for different subtree, size then become 2 * n
         }
         tout[node] = timer - 1;
     }
@@ -1305,7 +1306,7 @@ struct Tarjan {
         }
     };
 
-    pair<int, vvpii> compress_graph(vpii& edges) { // return a root of 1 degree and a bridge graph
+    vvpii compress_graph(vpii edges) { // return a root of 1 degree and a bridge graph
         assert(m == edges.size());
         vi degree(comp);
         vvpii G(comp);
@@ -1319,13 +1320,7 @@ struct Tarjan {
             degree[u]++;
             degree[v]++;
         }
-        int root = -1;
-        for(int i = 0; i < comp; i++) {
-            if(degree[i] == 1) {
-                root = i;
-            }
-        }
-        return {root, G};
+        return G;
     }
 
     void orientInternalEdges(vpii &edges) { // directed edges in same component to create a complete cycle
@@ -1352,6 +1347,26 @@ struct Tarjan {
                 disc[u] = ++t2;
                 dfs2(dfs2, u);
             }
+        }
+    }
+
+    void directed_edge(vpii& edges) {
+        // https://codeforces.com/contest/2113/problem/F
+        orientInternalEdges(edges);
+        auto tree = compress_graph(edges);
+        int M = tree.size();
+        vi vis(M);
+        auto dfs = [&](auto& dfs, int node, int par) -> void {
+            vis[node] = true;
+            for(auto& [nei, id] : tree[node]) {
+                if(nei == par) continue;
+                auto& [u, v] = edges[id];
+                if(belong[u] != node) swap(u, v);
+                dfs(dfs, nei, node);
+            }
+        };
+        for(int i = 0; i < M; i++) {
+            if(!vis[i]) dfs(dfs, i, -1);
         }
     }
 

@@ -249,22 +249,36 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
+ll dp[2][2][2][11][11][11];
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    ll l, r; cin >> l >> r;
+    string s = to_string(l);
+    string t = to_string(r);
+    s = string(t.size() - s.size(), '0') + s;
+    const int N = s.size();
+    int ans = N;
+    auto dfs = [&](auto& dfs, int i = 0, int last = -1, int len = 0, int tight1 = 1, int tight2 = 1, int started = 0) -> ll {
+        if(i == N) return len == ans;
+        auto& res = dp[tight1][tight2][started][i][last + 1][len];
+        if(res != -1) return res;
+        res = 0;
+        int low = tight1 ? s[i] - '0' : 0;
+        int high = tight2 ? t[i] - '0' : 9;
+        for(int digit = low; digit <= high; digit++) {
+            res += dfs(dfs, i + 1, last, len, tight1 && digit == low, tight2 && digit == high, started || digit);    
+            if(digit > last && (started || digit)) res += dfs(dfs, i + 1, digit, len + 1, tight1 && digit == low, tight2 && digit == high, started || digit);
+        }
+        return res;
+    };
+    while(ans) {
+        mset(dp, -1);
+        auto it = dfs(dfs);
+        if(it) {
+            cout << ans << ' ' << it << '\n';
+            return;
+        }
+        ans--;
     }
 }
 
@@ -276,9 +290,9 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << i << ": ";  
+        cout << "Case " << i << ": ";  
         solve();
     }
 

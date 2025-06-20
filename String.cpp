@@ -8,10 +8,11 @@ class Binary_Trie {
         }
     };
     public:
-    vt<Node> T;
+    static vt<Node> T; // careful with static if no merging needed
     int m;
+    int root;
     Binary_Trie(int m) : m(m) { // max number of bit
-        T.pb(Node());
+        root = new_node();
     }
 
     int new_node() {
@@ -20,7 +21,7 @@ class Binary_Trie {
     }
     
     void insert(ll num, int v = 1) {  
-        int curr = 0;   
+        int curr = root;   
         for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             if(!T[curr].c[bits]) {
@@ -46,9 +47,29 @@ class Binary_Trie {
         T[curr].cnt = T[nxt].cnt + (T[curr].c[!b] ? T[T[curr].c[!b]].cnt : 0);
     }
 
+    void merge(Binary_Trie& other) {
+        root = merge_root(root, other.root);
+        other.root = 0;
+    }
+
+    int merge_root(int u, int v) {
+        if(u == 0) return v; 
+        if(v == 0) return u;
+        T[u].cnt += T[v].cnt;
+        for(int bit = 0; bit < 2; bit++) {
+            int cu = T[u].c[bit];
+            int cv = T[v].c[bit];
+            if(!cu) {
+                T[u].c[bit] = cv;
+            } else {
+                T[u].c[bit] = merge_root(cu, cv);
+            }
+        }
+        return u;
+    }
         
     ll max_xor(ll num) {  
-        ll res = 0, curr = 0;
+        ll res = 0, curr = root;
         for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             int other = T[curr].c[!bits];
@@ -65,7 +86,7 @@ class Binary_Trie {
     }
         
     ll min_xor(ll num) {  
-        ll res = num, curr = 0;
+        ll res = num, curr = root;
         for(int i = m - 1; i >= 0; i--) {  
             int bits = (num >> i) & 1;  
             int same = T[curr].c[bits];
@@ -83,7 +104,7 @@ class Binary_Trie {
     }
 	
 	ll count_less_than(ll a, ll b) {
-        int curr = 0;
+        int curr = root;
         ll res = 0;
         for(int i = m - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
@@ -104,7 +125,7 @@ class Binary_Trie {
     }
 	
 	ll count_greater_than(ll a, ll b) {
-        int curr = 0;
+        int curr = root;
         ll res = 0;
         for(int i = m - 1; i >= 0; i--) {
             int bits = (a >> i) & 1;
@@ -121,7 +142,7 @@ class Binary_Trie {
 
 	
 	ll find_mex(ll x) { // find a first missing number
-        ll mex = 0, curr = 0;
+        ll mex = 0, curr = root;
         for(int i = m - 1; i >= 0; i--) {
             int bit = (x >> i) & 1;
             int c = T[curr].c[bit] ? T[T[curr].c[bit]].cnt : 0;
@@ -136,7 +157,13 @@ class Binary_Trie {
         }
         return mex;
     }
-};
+
+    void clear() {
+        vt<Node>().swap(T);
+        root = new_node();
+    }
+
+}; vt<Binary_Trie::Node> Binary_Trie::T;
 
 struct PERSISTENT_TRIE {
     struct Node {
@@ -763,6 +790,7 @@ static const bool _hashParamsInitialized = [](){
 
 template<class T = string>
 struct RabinKarp {
+    // careful with the + 1 for the 0 hash
     vll prefix[HASH_COUNT], suffix[HASH_COUNT];
     int n;
     string s;
@@ -781,8 +809,8 @@ struct RabinKarp {
             suffix[i].rsz(n + 1, 0);
         }
         for (int j = 1; j <= n; j++) {
-            int x = s[j - 1] - 'a';
-            int y = s[n - j] - 'a';
+            int x = s[j - 1] - 'a' + 1;
+            int y = s[n - j] - 'a' + 1;
             for (int i = 0; i < HASH_COUNT; i++) {
                 prefix[i][j] = (prefix[i][j - 1] * base[i] + x) % mod[i];
                 suffix[i][j] = (suffix[i][j - 1] * base[i] + y) % mod[i];

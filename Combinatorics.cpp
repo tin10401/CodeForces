@@ -1,62 +1,83 @@
-vi primes, first_divisor(MX), DIV[MX];
+vi primes, spf(MX), phi(MX);
+vll gcd_sum(MX), lcm_sum(MX); // sum of gcd(i, k) for i from 1 to k
 bitset<MX> primeBits;
-vll mu(MX);
+vi mu(MX);
 
-void generatePrime() {  primeBits.set(2);   
+void generatePrime() {  
+	primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
         if(primeBits[i]) {  
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
         }
     }
-    for(int i = 2; i < MX; i++) {    
-        if(primeBits[i]) {  
-            for(int j = i; j < MX; j += i) {    if(first_divisor[j] == 0) first_divisor[j] = i; }
-        }
-    }
     for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
 
-	iota(all(mu), 0); // for placeholder value
+//	iota(all(mu), 0); // for placeholder value
     // mu[1] = 1; // for count of occurences
+    iota(all(phi), 0);
     for(int i = 1; i < MX; i++) {   
         if(!primeBits[i]) continue;
         for(int j = i; j < MX; j += i) {   
-            if(j >= i * 2) mu[j] -= mu[i];
-			DIV[j].pb(i);
+            // if(j >= i * 2) mu[j] -= mu[i];
+            phi[j] -= phi[j] / i;
         }
     }
-}
-
-ll extended_gcd(ll a, ll b, ll &x, ll &y) {
-    if (b == 0) { x = 1; y = 0; return a; }
-    ll d = extended_gcd(b, a % b, y, x);
-    y -= (a / b) * x;
-    return d;
-}
-
-ll modInv(ll a, ll m) {
-    ll x, y;
-    ll g = extended_gcd(a, m, x, y);
-    if (g != 1) {
-        return -1; 
+    mu[1] = 1;
+    for(int i = 2; i < MX; i++) {
+        if(spf[i] == 0) {
+            for(int j = i; j < MX; j += i) {    if(spf[j] == 0) spf[j] = i; }
+        }
+        int p = spf[i];
+        int m = i / p;
+        mu[i] = m % p == 0 ? 0 : -mu[m];
     }
-    x %= m; if (x < 0) x += m;
-    return x;
-}
-
-// calculating the number of m * n where gcd(m, n) == 1 && m * n == k
-// the answer is the number of 2 ^ (#prime divisor of k)
-
-vi factor_prime(int x) {
-    vi d;
-    for(auto& p : primes) {
-        if(p * p > x) break;
-        if(x % p) continue;
-        d.pb(p);
-        while(x % p == 0) x /= p;
+	for(int d = 1; d < MX; d++) {
+        for(int j = d; j < MX; j += d) {
+            gcd_sum[j] += phi[j / d] * (ll)d;
+        }
     }
-    if(x > 1) d.pb(x);
-    return d;
+
+    for(int d = 1; d < MX; ++d) {
+        ll term = (ll)d * phi[d];
+        for(int n = d; n < MX; n += d) {
+            lcm_sum[n] += term;
+        }
+    }
+    for(int n = 1; n < MX; ++n) {
+        lcm_sum[n] = (lcm_sum[n] + 1) * (ll)n / 2;
+    }
+} static const bool _generate_prime_init = []() { generatePrime(); return true; }();
+
+bool isPrime(uint64_t n) {
+    if(n < 2) return false;
+    for(uint64_t p : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL, 23ULL})
+        if(n % p == 0) return n == p;
+    uint64_t d = n - 1, s = 0;
+    while((d & 1) == 0) { d >>= 1; s++; }
+    auto modpow = [&](uint64_t a, uint64_t e) {
+        __uint128_t res = 1, base = a % n;
+        while(e) {
+            if(e & 1) res = (res * base) % n;
+            base = (base * base) % n;
+            e >>= 1;
+        }
+        return (uint64_t)res;
+    };
+    auto miller_pass = [&](uint64_t a) {
+        uint64_t x = modpow(a, d);
+        if(x == 1 || x == n-1) return true;
+        for(uint64_t r = 1; r < s; r++) {
+            x = (__uint128_t)x * x % n;
+            if(x == n - 1) return true;
+        }
+        return false;
+    };
+    for(uint64_t a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL, 9780504ULL, 1795265022ULL}) {
+        if(a % n == 0) break;
+        if(!miller_pass(a)) return false;
+    }
+    return true;
 }
 
 ll count_coprime(ll up, ll x) { // count number from [1 to up] where gcd(num, x) == 1
@@ -76,28 +97,211 @@ ll count_coprime(ll up, ll x) { // count number from [1 to up] where gcd(num, x)
     return ans;
 }
 
-vi factor(int x) {
-    vi a;
-    for(int i = 1; i * i <= x; i++) {
-        if(x % i == 0) {
-            a.pb(i);
-            if(i * i != x) a.pb(x / i);
+vi factorize(int n, bool factor_prime = false) {
+    vi divs;
+    if(!factor_prime) {
+        divs.pb(1);
+    }
+    while(n > 1) {
+        int x = spf[n];
+        int cnt = 0;
+        while(n % x == 0) {
+            n /= x;
+            cnt++;
+        }
+        if(factor_prime) {
+            divs.pb(x);
+        } else {
+            int d = 1;
+            int N = divs.size();
+            while(cnt--) {
+                d *= x;
+                for(int i = 0; i < N; i++) divs.pb(divs[i] * d);
+            }
         }
     }
-	srt(a);
-    return a;
+    return divs;
 }
 
-vll prime_factorize(ll mod) {
-    vll primes;
-    for(ll i = 2; i * i <= mod; i++){
-        if(mod % i == 0){
-            primes.push_back(i);
-            while(mod % i == 0) mod /= i;
+vll factorize(ll n) {
+    using u64  = uint64_t;
+    using u128 = unsigned __int128;
+    vll pf;
+
+    auto mul_mod = [](u64 a, u64 b, u64 m) -> u64 {
+        return (u64)((u128)a * b % m);
+    };
+    auto pow_mod = [&](u64 a, u64 e, u64 m) -> u64{
+        u64 r = 1;
+        while(e) { if (e & 1) r = mul_mod(r, a, m); a = mul_mod(a, a, m); e >>= 1; }
+        return r;
+    };
+    auto isPrime = [&](u64 x)-> bool {
+        if (x < 2) return false;
+        for(u64 p:{2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37})
+            if(x % p == 0) return x == p;
+        u64 d = x - 1, s = 0;
+        while((d & 1) == 0) { d >>= 1; ++s; }
+        for(u64 a:{2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL}) {
+            u64 y = pow_mod(a, d, x);
+            if(y == 1 || y == x - 1) continue;
+            bool comp = true;
+            for(u64 r = 1; r < s; ++r) {
+                y = mul_mod(y, y, x);
+                if(y == x - 1) { comp = false; break; }
+            }
+            if(comp) return false;
+        }
+        return true;
+    };
+    auto rho = [&](u64 n) -> u64{                
+        if((n & 1) == 0) return 2;
+        mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count()); 
+        uniform_int_distribution<u64> dist(2, n - 2);
+        while(true) {
+            u64 y = dist(rng), c = dist(rng), m = 128, g = 1, r = 1, q = 1, ys, x;
+            auto f = [&](u64 v){ return (mul_mod(v, v, n) + c) % n; };
+            while(g == 1) {
+                x = y;  for(u64 i=0; i < r; ++i) y = f(y);
+                u64 k = 0;
+                while(k < r && g == 1) {
+                    ys = y;
+                    u64 lim = min(m, r - k);
+                    for(u64 i = 0; i < lim; ++i){ y = f(y); q = mul_mod(q, (x > y ? x - y : y - x), n); }
+                    g = gcd(q, n);  k += m;
+                }
+                r <<= 1;
+            }
+            if(g == n) {
+                do { ys = f(ys); g = gcd((x > ys ? x - ys : ys - x), n); } while (g == 1);
+            }
+            if(g != n) return g;
+        }
+    };
+
+    auto fact = [&](auto& fact, u64 v) -> void {
+        static const int small[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43};
+        for(int p : small){ if((u64)p * (u64)p > v) break;
+            while(v % p == 0){ pf.pb(p); v /= p; }
+        }
+        if(v == 1) return;
+        if(isPrime(v)){ pf.pb(v); return; }
+        u64 d = rho(v);
+        fact(fact, d); fact(fact, v / d);
+
+    };
+
+    if(n <= 0) return {};          
+    fact(fact, (u64)n);
+    srt(pf);
+    vpll uniq;
+    for(size_t i = 0; i < pf.size();) {
+        size_t j = i; while(j < pf.size() && pf[j] == pf[i]) ++j;
+        uniq.pb({pf[i], int(j - i)});
+        i = j;
+    }
+    vll divs = {1};
+    for(auto [p, e] : uniq) {
+        size_t sz = divs.size();
+        ll pk = 1;
+        for(int k = 1; k <= e;++k){
+            pk *= p;
+            for(size_t i = 0; i < sz; ++i) divs.pb(divs[i] * pk);
         }
     }
-    if(mod > 1) primes.push_back(mod);
-    return primes;
+    srt(divs);
+    return divs;
+}
+
+ll phi(ll n) {
+    ll res = n;
+    for(auto& [x, cnt] : factorize(n)) { // return primes factorize vector instead
+        res -= res / x;
+    }
+    return res;
+}
+
+vi spf_factor(int n) {
+    vi divs;
+    divs.pb(1);
+    while(n > 1) {
+        int x = spf[n];
+        int cnt = 0;
+        while(n % x == 0) {
+            n /= x;
+            cnt++;
+        }
+        int d = 1;
+        int N = divs.size();
+        while(cnt--) {
+            d *= x;
+            for(int i = 0; i < N; i++) divs.pb(divs[i] * d);
+        }
+    }
+    return divs;
+}
+
+template<typename T>
+T totient_chain(const vpii& factors) {
+    // given a number x in the form of [prime, power]
+    // apply [int res = 0; while(x > 1) x = phi(x), res++; return res]
+    // https://toph.co/p/eulers-peculiar-dream
+    int maxp = 2;
+    for(auto& [p, e] : factors) {
+        maxp = max(maxp, p);
+    }
+
+    vt<T> cnt(maxp + 1, T(0));
+    for(auto& [p, e] : factors) {
+        cnt[p] += e;
+    }
+    // phi(p^e) where p is primes is p^e - p^(e - 1) = p^(e - 1) * (p - 1)
+    // there are p^(e - 1) number where gcd is not 1 because since p is primes
+    // there are p, 2p, 3p, 4p, (p^e)/p = p^(e - 1) number where gcd is not 1 so just take it off
+
+    bool saw2 = (cnt.size() > 2 && cnt[2] != T(0));
+    for(int i = maxp; i >= 3; --i) {
+        if(spf[i] == i && cnt[i] != T(0)) {
+            T ci = cnt[i];
+            int x = i - 1;
+            while(x > 1) {
+                int f = spf[x];
+                int c = 0;
+                while(x % f == 0) {
+                    x /= f;
+                    ++c;
+                }
+                cnt[f] += ci * T(c);
+            }
+        }
+    }
+
+    T ans = cnt[2] + T(saw2 ? 0 : 1);
+    return ans;
+}
+
+ll sum_of_divisors(ll num) {
+    ll total = 1;
+    for(ll i = 2; i * i <= num; i++) {
+        if(num % i == 0) {
+            int e = 0;
+            do {
+                e++;
+                num /= i;
+            } while (num % i == 0);
+
+            ll sum = 0, pow = 1;
+            do {
+                sum += pow;
+                pow *= i;
+            } while (e-- > 0);
+            total *= sum;
+        }
+    }
+    if(num > 1) {
+        total *= (1 + num);
+    }
+    return total;
 }
 
 struct NCkMod {
@@ -397,37 +601,6 @@ T sum_of_powers(long long n, int k) { // find (1 ^ k + 2 ^ k + ... + n ^ k) sum
     return ans;
 }
 
-bool isPrime(uint64_t n) {
-    if(n < 2) return false;
-    for(uint64_t p : {2ULL,3ULL,5ULL,7ULL,11ULL,13ULL,17ULL,19ULL,23ULL})
-        if (n % p == 0) return n == p;
-    uint64_t d = n - 1, s = 0;
-    while((d & 1) == 0) { d >>= 1; s++; }
-    auto modpow = [&](uint64_t a, uint64_t e) {
-        __uint128_t res = 1, base = a % n;
-        while (e) {
-            if (e & 1) res = (res * base) % n;
-            base = (base * base) % n;
-            e >>= 1;
-        }
-        return (uint64_t)res;
-    };
-    auto miller_pass = [&](uint64_t a) {
-        uint64_t x = modpow(a, d);
-        if(x == 1 || x == n-1) return true;
-        for(uint64_t r = 1; r < s; r++) {
-            x = (__uint128_t)x * x % n;
-            if(x == n - 1) return true;
-        }
-        return false;
-    };
-    for(uint64_t a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL, 9780504ULL, 1795265022ULL}) {
-        if(a % n == 0) break;
-        if(!miller_pass(a)) return false;
-    }
-    return true;
-}
-
 // pascal triangle
 // dp[n][k] = dp[n - 1][k] + dp[n - 1][k - 1];
 // for nck sweep line, we go from highest k to 0
@@ -581,21 +754,117 @@ void mobius_transform(int n, vt<T_in> &values) { // remember to set dp[mask] = -
     }
 }
 
-ll extended_gcd(ll a, ll b, ll &x, ll &y) {
-    if(b == 0) { x = 1; y = 0; return a; }
-    ll g = extended_gcd(b, a % b, y, x);
-    y -= (a / b) * x;
-    return g;
-}
-
-pair<ll, ll> find_solution(ll a, ll b, ll x) { // find [c, d] such that a * c - b * d = x
+pll find_any_solution(ll a, ll b, ll x) { // find [c, d] such that a * c + b * d = x
     ll X, Y;
     ll g = extended_gcd(a, b, X, Y);
-    if(x % g != 0) return {-1, -1};
+    if(x % g != 0) return {-INF, -INF};
     ll factor = x / g;
-    ll d = factor * X;
-    ll c = -factor * Y;
-    return {c, d};
+    ll c0 = X * factor;
+    ll d0 = Y * factor;
+    return {c0, d0};
+}
+
+bool find_solution(ll a, ll b, ll mna, ll mxa, ll mnb, ll mxb, ll target, ll &x_out, ll &y_out) { // find solution within range
+    ll x0, y0;
+    ll g = extended_gcd(a, b, x0, y0);
+    if(target % g) return false;
+    x0 *= target / g;
+    y0 *= target / g;
+    ll shiftX = b / g;
+    ll shiftY = a / g;
+    ll t1 = ceil(mna - x0, shiftX);
+    ll t2 = floor(mxa - x0, shiftX);
+    if(t1 > t2) return false;
+    ll t3 = ceil(y0 - mxb, shiftY);
+    ll t4 = floor(y0 - mnb, shiftY);
+    if(t3 > t4) return false;
+    ll t_low  = max(t1, t3);
+    ll t_high = min(t2, t4);
+    if(t_low > t_high) return false;
+    x_out = x0 + shiftX * t_low;
+    y_out = y0 - shiftY * t_low;
+    return true;
+}
+
+bool crt(ll r1, ll m1, ll r2, ll m2, ll&k, ll& m) { // find k < lcm(m1, m2) such that k % m1 == r1 && k % m2 == r2
+    r1 = (r1 % m1 + m1) % m1;
+    r2 = (r2 % m2 + m2) % m2;
+    auto sol = find_any_solution(m1, -m2, r2 - r1);
+    if(sol.ff == -INF && sol.ss == -INF) return false; // careful for collision
+    ll t1 = sol.ff;
+    m = lcm(m1, m2); // adjust as needed
+    k = (r1 + (m1 % m * t1 % m) % m) % m;
+    if(k < 0) k += m;
+    return true;
+}
+
+void shift_solution(ll &x, ll &y, ll a, ll b, ll cnt) {
+  x += cnt * b;
+  y -= cnt * a;
+}
+// returns the number of solutions where x is in the range[minx, maxx] and y is in the range[miny, maxy]
+ll find_all_solutions(ll a, ll b, ll c, ll minx, ll maxx, ll miny,ll maxy) {
+	// https://github.com/ShahjalalShohag/code-library/blob/main/Number%20Theory/Linear%20Diophantine%20Equation%20with%20Two%20Variables.cpp
+  ll x, y, g;
+  if (find_any_solution(a, b, c, x, y, g) == 0) return 0;
+  if (a == 0 and b == 0) {
+    assert(c == 0);
+    return 1LL * (maxx - minx + 1) * (maxy - miny + 1);
+  }
+  if (a == 0) {
+    return (maxx - minx + 1) * (miny <= c / b and c / b <= maxy);
+  }  
+  if (b == 0) {
+    return (maxy - miny + 1) * (minx <= c / a and c / a <= maxx);
+  }
+  a /= g, b /= g;
+  ll sign_a = a > 0 ? +1 : -1;
+  ll sign_b = b > 0 ? +1 : -1;
+  shift_solution(x, y, a, b, (minx - x) / b);
+  if (x < minx) shift_solution(x, y, a, b, sign_b);
+  if (x > maxx) return 0;
+  ll lx1 = x;
+  shift_solution(x, y, a, b, (maxx - x) / b);
+  if (x > maxx) shift_solution (x, y, a, b, -sign_b);
+  ll rx1 = x;
+  shift_solution(x, y, a, b, -(miny - y) / a);
+  if (y < miny) shift_solution (x, y, a, b, -sign_a);
+  if (y > maxy) return 0;
+  ll lx2 = x;
+  shift_solution(x, y, a, b, -(maxy - y) / a);
+  if (y > maxy) shift_solution(x, y, a, b, sign_a);
+  ll rx2 = x;
+  if (lx2 > rx2) swap (lx2, rx2);
+  ll lx = max(lx1, lx2);
+  ll rx = min(rx1, rx2);
+  if (lx > rx) return 0;
+  return (rx - lx) / abs(b) + 1;
+}
+
+ll solveCRT(const vpii& congruences) { // return a value x such that x % a[i].ff == a[i].ss for all i
+    ll r0 = 0, m0 = 1;
+    for (auto &[p, r] : congruences) {
+        ll s, t;
+        ll g = extended_gcd(m0, p, s, t);
+        if((r - r0) % g != 0) return -1;
+        ll mod = p / g;
+        ll k = ((r - r0) / g % mod * (s % mod)) % mod;
+        if(k < 0) k += mod;
+        r0 = r0 + m0 * k;
+        m0 = m0 / g * p;
+        r0 %= m0;
+        if(r0 < 0) r0 += m0;
+    }
+    return r0;
+}
+
+pll solve_formula(ll a, ll b, ll c, ll d) {
+    if((i128)a * d >= (i128)b * c) return {-INF, -INF};
+	ll n = a / b;
+	a -= n * b, c -= n * d;
+	if(c > d) return {n + 1, 1};
+	auto [p, q] = solve_formula(d, c, b, a);
+	return {p * n + q, p};
 }
 
 vi get_pair_gcd(vi& a) {

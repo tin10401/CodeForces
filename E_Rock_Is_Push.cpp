@@ -247,25 +247,164 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
+    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return (ll)value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return (db)value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW() {}
+    FW(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
     }
-    return edges;
-}
+    
+    inline void update_at(int id, T val) {  
+        assert(id >= 0);
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    inline T get(int id) {   
+        assert(id < n);
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    inline T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    inline T queries_at(int i) {
+        return queries_range(i, i);
+    }
+
+    inline void update_range(int l, int r, T val) {
+        if(l > r) return;
+        update_at(l, val), update_at(r + 1, -val);
+    }
+	
+	inline void reset() {
+		root.assign(n, DEFAULT);
+	}
+
+    int select(int x) { // get pos where sum >= x
+        int global = get(n), curr = 0;
+        for(int i = N; i >= 0; i--) {
+            int t = curr ^ (1LL << i);
+            if(t < n && global - root[t] >= x) {
+                swap(curr, t);
+                global -= root[curr];
+            }
+        }
+        return curr + 1;
+    }
+};
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n, m; cin >> n >> m;
+    vvc a(n, vc(m)); cin >> a;
+    if(n == 1 && m == 1) {
+        cout << (a[0][0] == 'R' ? 0 : 1) << '\n';
+        return;
     }
+    vvi row(n, vi(m + 1)), col(m, vi(n + 1));
+    for(int i = 0; i < n; i++) {
+        for(int j = m - 1; j >= 0; j--) {
+            row[i][j] = row[i][j + 1] + int(a[i][j] == 'R');
+        }
+    }
+    for(int j = 0; j < m; j++) {
+        for(int i = n - 1; i >= 0; i--) {
+            col[j][i] = col[j][i + 1] + int(a[i][j] == 'R');
+        }
+    }
+    vt<FW<mint>> ver(n, FW<mint>(m, 0, [](const mint& a, const mint & b) {return a + b;}));
+    vt<FW<mint>> hor(m, FW<mint>(n, 0, [](const mint& a, const mint & b) {return a + b;}));
+    ver[0].update_range(0, 0, 1);
+    hor[0].update_range(0, 0, 1);
+    for(int i = 0; i < n; i++) {
+        for(int j = 0; j < m; j++) {
+            int mx = m - row[i][j + 1];
+            ver[i].update_range(j + 1, mx - 1, (int)hor[j].get(i));
+            mx = n - col[j][i + 1];
+            hor[j].update_range(i + 1, mx - 1, (int)ver[i].get(j));
+        }
+    }
+    cout << ver[n - 1].get(m - 1) + hor[m - 1].get(n - 1) << '\n';
 }
 
 signed main() {

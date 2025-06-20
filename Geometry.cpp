@@ -227,6 +227,76 @@ public:
     }
 };
 
+struct Undo_CHT {
+    struct Line {
+        ll a, b;   // y = a*x + b
+    };
+    struct UndoEntry {
+        Line prev;
+        ll pos, old_sz;
+    };
+
+    vt<Line> A;
+    vt<UndoEntry> undo;
+    ll sz = 0;
+
+    Undo_CHT() {
+        A.resize(MX);
+        undo.reserve(MX);
+    }
+
+    static bool bad(const Line &l1, const Line &l2, const Line &l3) {
+        i128 lhs = i128(l2.b - l1.b) * (l2.a - l3.a);
+        i128 rhs = i128(l3.b - l2.b) * (l1.a - l2.a);
+        return lhs >= rhs;
+    }
+
+    void add(ll u, ll v) {
+        Line x = {u, v};
+        ll l = 1, r = sz - 1, ans = sz;
+        while(l <= r) {
+            ll mid = (l + r) / 2;
+            if(bad(A[mid - 1], A[mid], x)) {
+                ans = mid;
+                r = mid - 1;
+            } else {
+                l = mid + 1;
+            }
+        }
+        undo.pb({A[ans], ans, sz});
+        A[ans] = x;
+        sz = ans + 1;
+    }
+
+    void roll_back() {
+        auto e = undo.back(); undo.pop_back();
+        sz = e.old_sz;
+        A[e.pos] = e.prev;
+    }
+
+    ll cal(const Line &L, ll x) const {
+        return L.a * x + L.b;
+    }
+
+    ll query(ll x) const {
+        if(sz == 0) return -INF;
+        ll ans = cal(A[0], x);
+        ll l = 1, r = sz - 1;
+        while(l <= r) {
+            ll mid = (l + r) / 2;
+            ll y_mid = cal(A[mid], x);
+            ll y_prev = cal(A[mid - 1], x);
+            if(y_mid > y_prev) {
+                ans = max(ans, y_mid);
+                l = mid + 1;
+            } else {
+                r = mid - 1;
+            }
+        }
+        return ans;
+    }
+};
+
 struct Line { ll m, b; ll eval(ll x) const { return m * x + b; } };
 struct MonoCHT { // max cht for monotonic function(prefix sum with all positive, ...)
     deque<Line> dq;

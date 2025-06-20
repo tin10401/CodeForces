@@ -247,25 +247,30 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n; cin >> n;
+    vi a(n), b(n); cin >> a >> b;
+    set<int> s[2][2];
+    for(int i = n - 1; i >= 0; i--) {
+        int x = i & 1, y = x ^ 1;
+        if(a[i] == b[i]) {
+            cout << i + 1 << '\n';
+            return;
+        }
+        if(s[0][0].count(a[i]) || s[0][1].count(a[i]) || s[1][0].count(b[i]) || s[1][1].count(b[i])) {
+            cout << i + 1 << '\n';
+            return;
+        } 
+        s[0][0].insert(a[i]);
+        s[1][0].insert(b[i]);
+        if(i + 1 < n) s[1][1].insert(a[i + 1]);
+        if(i + 1 < n) s[0][1].insert(b[i + 1]);
     }
+    cout << 0 << '\n';
 }
 
 signed main() {
@@ -276,7 +281,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

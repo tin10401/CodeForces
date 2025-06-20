@@ -247,24 +247,183 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree() {}
+
+    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
     }
-    return edges;
-}
+    
+    void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size, root[idx] = val;
+        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+    
+    T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while(l <= r) {
+            if((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        if(idx < 0 || idx >= n) return DEFAULT;
+        return root[idx + size];
+    }
+
+	
+	void update_range(int l, int r, ll v) {}
+
+    T get() {
+        return root[1];
+    }
+
+    template<typename Pred>
+    int max_right(int start, Pred P) {
+        if(start < 0) start = 0;
+        if(start >= n) return n - 1;
+        T sm = DEFAULT;
+        int idx = start + size;
+        while((idx & 1) == 0) idx >>= 1;
+
+        do {
+            T cand = func(sm, root[idx]);
+            if(P(cand)) {
+                sm = cand;
+                ++idx;
+                while((idx & 1) == 0) idx >>= 1;
+            } else {
+                while(idx < size) {
+                    idx <<= 1;
+                    cand = func(sm, root[idx]);
+                    if(P(cand)) {
+                        sm = cand;
+                        ++idx;
+                    }
+                }
+                int leaf = idx - size;
+                return leaf - 1;
+            }
+        } while((idx & -idx) != idx);
+        return n - 1;
+    }
+
+    template<typename Pred>
+    int min_left(int ending, Pred P) {
+        if(ending < 0) return 0;
+        if(ending >= n) ending = n;
+        T sm = DEFAULT;
+        int idx = ending + size;
+        while((idx & 1) == 1) idx >>= 1;
+        do {
+            T cand = func(root[idx], sm);
+            if(P(cand)) {
+                sm = cand;
+                --idx;
+                while((idx & 1) == 1) idx >>= 1;
+            } else {
+                while(idx < size) {
+                    idx = idx * 2 + 1;
+                    cand = func(root[idx], sm);
+                    if (P(cand)) {
+                        sm = cand;
+                        --idx;       
+                    }
+                }
+                return (idx + 1) - size;
+            }
+        } while(idx > 1);
+        return 0;
+    }
+};
+
+struct info {
+    ll ans, prefix, suffix, sm;
+    info(ll x = -INF) : ans(max(0LL, x)), prefix(max(0LL, x)), suffix(max(0LL, x)), sm(x) {}
+
+    friend info operator+(const info& a, const info& b) {
+        if(a.sm == -INF) return b;
+        if(b.sm == -INF) return a;
+        info res;
+        res.ans = max({a.ans, b.ans, a.suffix + b.prefix});
+        res.sm = a.sm + b.sm;
+        res.prefix = max(a.prefix, a.sm + b.prefix);
+        res.suffix = max(b.suffix, b.sm + a.suffix);
+        return res;
+    }
+};
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    for(auto& x : a) x--;
+    vvar(3) op(n);
     for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+        op[a[i]].pb({0, i, 1});
+    }
+    vpii Q(q + 1);
+    vvpii ans(q + 1);
+    for(int i = 1; i <= q; i++) {
+        auto& [id, x] = Q[i]; cin >> id >> x;
+        id--, x--;
+        op[a[id]].pb({i, id, -1});
+        a[id] = x;
+        op[a[id]].pb({i, id, 1});
+    }
+    for(int i = 0; i < n; i++) {
+        op[a[i]].pb({q + 1, i, -1});
+    }
+    basic_segtree<info> root(n, info());
+    for(int i = 0; i < n; i++) {
+        root.update_at(i, info(-1));
+    }
+    for(int v = 0; v < n; v++) {
+        int lst = 0;
+        for(auto& [t, i, x] : op[v]) {
+            auto res = root.get().ans;
+            if(lst != t) {
+                ans[lst].pb({res / 2, 1});
+                if(t != q + 1) {
+                    ans[t].pb({res / 2, -1});
+                }
+            }
+            lst = t;
+            root.update_at(i, info(x));
+        }
+    }
+    multiset<int> s;
+    for(int i = 0; i <= q; i++) {
+        for(auto& [x, delta] : ans[i]) {
+            if(delta == 1) {
+                s.insert(x);
+            } else {
+                assert(s.count(x));
+                s.erase(s.find(x));
+            }
+        }
+        if(i) {
+            cout << *s.rbegin() << (i == q ? '\n' : ' ');
+        }
     }
 }
 
@@ -276,7 +435,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -247,25 +247,63 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
-void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+vi phi(MX);
+bitset<MX> primeBits;
+
+void generatePrime() {  
+	primeBits.set(2);   
+    for(int i = 3; i < MX; i += 2) primeBits.set(i);
+    for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
+        if(primeBits[i]) {  
+            for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
+        }
     }
+    iota(all(phi), 0);
+    for(int i = 1; i < MX; i++) {   
+        if(!primeBits[i]) continue;
+        for(int j = i; j < MX; j += i) {   
+            phi[j] -= phi[j] / i;
+        }
+    }
+} static const bool _generate_prime_init = []() { generatePrime(); return true; }();
+
+
+// lcm(c, gcd(a + b))
+// gcd(a, b) = g
+// c = n - (a + b)
+// c = n - g * (x + y)
+// let x + y = k
+// c = n - gk, k >= 2, gk < n, c > 0,
+// -> k < n / g -> k <= (n - 1) / g
+// lcm(n - gk, g)
+void solve() {
+    int n; cin >> n;
+//    ll res = 0;
+//    const int MOD = 1e9 + 7;
+//    for(int a = 1; a <= n; a++) {
+//        for(int b = 1; a + b + 1 <= n; b++) {
+//            int c = n - (a + b);
+//            assert(c > 0);
+//            res += lcm(c, gcd(a, b));
+//            res %= MOD;
+//        }
+//    }
+//    cout << res << '\n';
+    ll res = 0;
+    const int MOD = 1e9 + 7;
+    for(ll g = 1; g <= n; g++) {
+        ll lim = (n - 1) / g;
+        for(int k = 2; k <= lim; k++) {
+            res += lcm(n - g * k, g) * (ll)phi[k];
+            res %= MOD;
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {

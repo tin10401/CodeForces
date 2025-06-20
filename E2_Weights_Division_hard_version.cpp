@@ -249,23 +249,59 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    ll n, s; cin >> n >> s;
+    vvar(3) graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v, w, c; cin >> u >> v >> w >> c;
+        u--, v--, c--;
+        graph[u].pb({v, w, c});
+        graph[v].pb({u, w, c});
     }
+    vll leaf(n);
+    max_heap<al(3)> q[2];
+    ll sm[2] = {};
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+        int child = 0;
+        for(auto& [nei, w, c] : graph[node]) {
+            if(nei == par) continue;
+            child++;
+            dfs(dfs, nei, node);
+            sm[c] += w * leaf[nei];
+            q[c].push({w * leaf[nei] - (w / 2) * leaf[nei], w, leaf[nei]});
+            leaf[node] += leaf[nei];
+        }
+        if(!child) leaf[node] = 1;
+    };
+    dfs(dfs);
+    vll a[2];
+    for(int i = 0; i < 2; i++) {
+        a[i].pb(sm[i]);
+        while(sm[i] > 0) {
+            auto [x, w, cnt] = q[i].top(); q[i].pop();
+            sm[i] -= w * cnt;
+            w >>= 1;
+            sm[i] += w * cnt;
+            a[i].pb(sm[i]);
+            q[i].push({w * cnt - (w / 2) * cnt, w, cnt});
+        }
+    }
+    auto& A = a[0];
+    auto& B = a[1];
+    const int N = A.size(), M = B.size();
+    int res = inf;
+    debug(A, B);
+    for(int i = 0; i < N; i++) {
+        int left = 0, right = M - 1, extra = inf;
+        while(left <= right) {
+            int middle = midPoint;
+            if(B[middle] + A[i] <= s) extra = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        res = min(res, extra * 2 + i);
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -276,7 +312,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

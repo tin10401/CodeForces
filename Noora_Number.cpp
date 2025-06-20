@@ -249,23 +249,52 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+const int K = 20;
+ll dp[2][10][K][1 << 10];
+void preprocess() {
+    for(int lead = 0; lead < 2; lead++) {
+        for(int mx = 0; mx < 10; mx++) {
+            for(int mask = 0; mask < 1 << 10; mask++) {
+                dp[lead][mx][0][mask] = !lead && pct(mask) == mx;
+            }
+        }
     }
-    return edges;
+    for(int len = 1; len < K; len++) {
+        for(int lead = 0; lead < 2; lead++) {
+            for(int mx = 0; mx < 10; mx++) {
+                for(int mask = 0; mask < 1 << 10; mask++) {
+                    for(int digit = 0; digit < 10; digit++) {
+                        dp[lead][mx][len][mask] += dp[lead && digit == 0][max(mx, digit)][len - 1][lead && digit == 0 ? 0 : mask | 1 << digit];
+                    }
+                }
+            }
+        }
+    }
+}
+
+ll count(ll n) {
+    string s = to_string(n);
+    const int N = s.size();
+    int lead = 1, mx = 0, mask = 0;
+    ll res = 0;
+    for(int i = 0; i < N; i++) {
+        int d = s[i] - '0';
+        int rem = N - i - 1;
+        for(int digit = 0; digit < d; digit++) {
+            res += dp[lead && digit == 0][max(mx, digit)][rem][lead && digit == 0 ? 0 : mask | 1 << digit];
+        }
+        mask = lead && d == 0 ? 0 : mask | 1 << d;
+        lead = lead && d == 0;
+        mx = max(mx, d);
+    }
+    if(!lead && pct(mask) == mx) res++;
+    return res;
 }
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
-    }
+    ll n; cin >> n;
+    cout << count(n) << '\n';
 }
 
 signed main() {
@@ -273,10 +302,11 @@ signed main() {
     // when mle, look if problem require read in file, typically old problems
     IOS;
     startClock
+    preprocess();
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

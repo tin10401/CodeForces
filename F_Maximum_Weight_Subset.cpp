@@ -249,23 +249,56 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n, k; cin >> n >> k;
+    vi a(n); cin >> a;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> vll {
+        vll dp(2);
+        dp[0] = a[node];
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            auto nei_dp = dfs(dfs, nei, node);
+            nei_dp.insert(begin(nei_dp), -INF);
+            const int M = dp.size(), K = nei_dp.size();
+            const int N = max(M, K);
+            vll next(N, -INF);
+            for(int i = 0; i < N; i++) {
+                next[i] = max((i < dp.size() ? dp[i] : -INF), (i < nei_dp.size() ? nei_dp[i] : -INF));
+            }
+            {
+                vll suff(M + 1, -INF);
+                for(int i = M - 1; i >= 0; i--) {
+                    suff[i] = max(suff[i + 1], dp[i]);
+                }
+                for(int d2 = 0; d2 < K; d2++) {
+                    int d1 = min(M, max(d2, k + 1 - d2));
+                    next[d2] = max(next[d2], suff[d1] + nei_dp[d2]);
+                }
+            }
+            {
+                vll suff(K + 1, -INF);
+                for(int i = K - 1; i >= 0; i--) {
+                    suff[i] = max(suff[i + 1], nei_dp[i]);
+                }
+                for(int d1 = 0; d1 < M; d1++) {
+                    int d2 = min(K, max(d1, k + 1 - d1));
+                    next[d1] = max(next[d1], suff[d2] + dp[d1]);
+                }
+            }
+            swap(next, dp);
+        }
+        return dp;
+    };
+    auto dp = dfs(dfs);
+    cout << MAX(dp) << '\n';
 }
 
 signed main() {

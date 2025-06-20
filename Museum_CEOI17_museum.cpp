@@ -249,23 +249,37 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n, k, x; cin >> n >> k >> x;
+    x--;
+    vvpii graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v, w; cin >> u >> v >> w;
+        u--, v--;
+        graph[u].pb({v, w});
+        graph[v].pb({u, w});
     }
+    auto dfs = [&](auto& dfs, int node, int par = -1) -> pair<int, vvll> {
+        int total = 1;
+        vvll dp(2, vll(k + 1, INF));
+        dp[0][0] = dp[0][1] = dp[1][0] = dp[1][1] = 0;
+        for(auto& [nei, w] : graph[node]) {
+            if(nei == par) continue;
+            auto [t, other] = dfs(dfs, nei, node);
+            for(int i = total; i >= 1; i--) {
+                for(int j = t; j >= 1; j--) {
+                    if(i + j > k) continue;
+                    dp[0][i + j] = min(dp[0][i + j], dp[0][i] + other[0][j] + 2 * w);
+                    dp[1][i + j] = min({dp[1][i + j], dp[0][i] + other[1][j] + w, dp[1][i] + other[0][j] + 2 * w});
+                }
+            }
+            total += t;
+        }
+        return {total, dp};
+    };
+    auto [_, dp] = dfs(dfs, x);
+    cout << dp[1][k] << '\n';
 }
 
 signed main() {

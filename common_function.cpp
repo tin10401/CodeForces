@@ -36,6 +36,94 @@ ll maxPerimeter(const vvi& grid) { // max_rectangle in a grid
 //        l = {l.ff * val.ff, val.ff * l.ss + val.ss};
 //    };
 
+struct digit_dp {
+    const static int L = 20;
+    const static int LCM = 2520;
+    ll dp[L][1 << 9][LCM];
+    ll pow[10];
+    digit_dp() {
+        init();
+    }
+
+    int check(ll rem, ll mask) {
+        int cnt = 0;
+        for(int i = 0; i < 10; i++) {
+            if(have_bit(mask, i) && rem % (i + 1)) return false;
+        }
+        return true;
+    }
+
+    void init() {
+        mset(dp, 0);
+        for(int d = 1; d < 10; d++) {
+            ll curr = 1;
+            for(int j = 0; j < d; j++) {
+                curr = (curr * d) % LCM;
+            }
+            pow[d] = curr;
+        }
+        for(int len = 0; len < L; len++) {
+            for(int mask = 0; mask < 1 << 9; mask++) {
+                for(int rem = 0; rem < LCM; rem++) {
+                    auto& res = dp[len][mask][rem];
+                    if(len == 0) {
+                        res = check(rem, mask); 
+                    } else {
+                        for(int digit = 0; digit < 10; digit++) {
+                            res += dp[len - 1][digit == 0 ? mask : mask | (1 << (digit - 1))][(rem + pow[digit]) % LCM];
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    ll count(ll n) {
+        string s = to_string(n); 
+        const int N = s.size();
+        int mask = 0, rem = 0;
+        ll res = 0;
+        for(int i = 0; i < N; i++) {
+            int len = N - i - 1;
+            int d = s[i] - '0';
+            for(int digit = 0; digit < d; digit++) {
+                res += dp[len][digit == 0 ? mask : mask | (1 << (digit - 1))][(rem + pow[digit]) % LCM];
+            }
+            if(d) mask |= 1 << (d - 1);
+            rem = (rem + pow[d]) % LCM;
+        }
+        res += check(rem, mask);
+        return res;
+    }
+}; digit_dp T;
+
+ll countPal(ll n) {
+    // count palindrome <= n
+    // https://lightoj.com/problem/palindromic-numbers
+    if(n < 0) return 0;
+    string s = to_string(n);
+    int len = s.size();
+    ll ans = 0;
+    for(int L = 1; L < len; L++) {
+        int half = (L + 1) / 2;
+        ans += 9LL * (ll)pow(10, half - 1);
+    }
+    int half = (len + 1) / 2;
+    ll prefix = stoll(s.substr(0, half));
+    ll base = 1;
+    for(int i = 0; i < half - 1; i++) base *= 10;
+    ans += (prefix - base);
+    string firstHalf = s.substr(0, half);
+    string pal = firstHalf;
+    int toMirror = (len % 2 == 0 ? half - 1 : half - 2);
+    for(int i = toMirror; i >= 0; i--) {
+        pal.pb(firstHalf[i]);
+    }
+    if(pal <= s) ans++;
+    return ans + 1; // include "0"
+}
+
 template<typename T>
 ll LIS(vt<T>a, bool strict = false) { // strictly increasing or not
     auto b(a);
@@ -52,6 +140,111 @@ ll LIS(vt<T>a, bool strict = false) { // strictly increasing or not
         root.update_at(get_id(x), root.get(get_id(x - strict)) + 1);
     }
     return root.get(N - 1);
+}
+
+ll min_lcm(ll l, ll r) {// find min_lcm of x, y such that x < y and L <= x < y <= R
+    // https://toph.co/p/colded-lcm
+    ll res = INF;
+    for(ll g = 1; g * g <= r; g++) {
+        ll x =  (l - 1) / g + 1;
+        if(g * (x + 1) <= r) {
+            res = min(res, g * x * (x + 1));
+        }
+    }
+    for(ll x = 1; x * x <= r; x++) {
+        ll g = (l - 1) / x + 1;
+        if(g * (x + 1) <= r) {
+            res = min(res, g * x * (x + 1));
+        }
+    }
+    return res;
+}
+
+template<typename T> 
+T knapsack_ways(const vpll& a, ll s) { // number of way to reach s given range [l, r] for each i you can pick from
+    // https://lightoj.com/problem/cricket-ranking
+    int n = a.size();
+    vll diff;
+    ll sum_left = 0;
+    for(auto& [l, r] : a) {
+        diff.pb(r - l);
+        sum_left += l;
+    }
+    auto nCk = [&](ll n, ll r) -> T {
+        if(n < r) return 0;
+        T ans = 1;
+        for(int i = 1 ; i <= r ; i++) {
+            ans *= n - i + 1;
+            ans /= i ;   
+        }
+        return ans ;
+    };
+    ll rem = s - sum_left;
+    mint res = 0;
+    if(rem >= 0) {
+        ll total = 1LL << n;
+        for(int mask = 0; mask < total; mask++) {
+            ll sub = 0;
+            int bits = pct(mask);
+            for(int i = 0; i < n; i++) {
+                if(have_bit(mask, i)) sub += diff[i] + 1;
+            }
+            ll R = rem - sub;
+            mint ways = nCk(R + n - 1, n - 1);
+            if(bits & 1) res -= ways;
+            else res += ways;
+        }
+    }
+    return res;
+}
+
+template<typename T>
+T lcm_pairwise_sum(const vi& a) {
+    // https://atcoder.jp/contests/agc038/tasks/agc038_c
+    // calculate sum(lcm(a[i] * a[j])) for all pair i, j such that i < j
+    // lcm(x, y) = (x * y) / gcd(x, y)
+    // fix gcd(x, y) = d
+    // lcm(x, y) = (x * y) / d
+    // for each d, calculate pairwise_sum of a[i] * a[j] where gcd(a[i], a[j]) == d
+    // SUM(a[i])^2 = SUM(a[i]^2) + 2 * SUMPAIRWISE(a[i] * a[j])
+    // SUMPAIRWISE(a[i] * a[j]) = SUM(a[i])^2 - SUM(a[i]^2)
+    const int M = MAX(a);
+    vt<T> s(M + 1), s2(M + 1), f(M + 1);
+    for(auto& x : a) {
+        s[x] += x;
+        s2[x] += T(x) * x;
+    }
+    for(int i = 1; i <= M; i++) {
+        for(int j = i * 2; j <= M; j += i) {
+            s[i] += s[j];
+            s2[i] += s2[j];
+        }
+    }
+    T ans = 0;
+    for(int d = M; d >= 1; d--) {
+        T now = (s[d] * s[d] - s2[d]) / 2;
+        for(int j = d * 2; j <= M; j += d) {
+            now -= f[j];
+        }
+        f[d] = now;
+        ans += f[d] / d;
+    }
+    return ans;
+}
+
+template<typename T>
+pair<T,T> fib_pair(ll n) { // return {f(n), f(n + 1)};
+    if(n == 0) return {0, 1};
+    auto [fk, fk1] = fib_pair<T>(n >> 1);
+    T c = fk * ((fk1 << 1) - fk);
+    T d = fk * fk + fk1 * fk1;
+    if(n & 1) return {d, c + d};
+    return {c, d};
+}
+
+template<typename T>
+T fib_sum(ll n) { // return fib_sum of first nth fibonacci
+    return n <= 0 ? 0 : fib_pair<T>(n + 2).ff - 1;
 }
 
 vi square_permutation(vi a) { // return a permutation where b[b[i]] = a[i], empty vector if not possible
@@ -479,23 +672,58 @@ vi bidirectional_cycle_vector(int n, const vvi& graph) { // return a cycle_vecto
     return inCycle;
 }
 
-ll bellman_ford(int N, int src, const var(3)& edges) {
-    vll dist(N, -INF);
-    dist[0] = 0;
-    for(int it = 1; it <= N + 1; it++){
-        bool updated = false;
-        for(auto &[u, v, w] : edges){
-            if(dist[u] != -INF && dist[u] + w > dist[v]) {
-                dist[v] = dist[u] + w;
-                updated = true;
-                if(it == N) {
-                    return -1;
+template<typename T>
+void minimal_rotation(T &s) {
+    int n = int(s.size());
+    assert(n > 0);
+    int i = 0, ans = 0;
+    while(i < n) {
+        ans = i;
+        int j = i + 1, k = i;
+        while(j < 2 * n && !(s[j % n] < s[k % n])) {
+            if(s[k % n] < s[j % n]) k = i;
+            else k++;
+            ++j;
+        }
+        while(i <= k) {
+            i += j - k;
+        }
+    }
+    rotate(s.begin(), s.begin() + ans, s.end());
+}
+
+vll spfa(int V, const vvpii& g) {
+    // https://atcoder.jp/contests/abc404/tasks/abc404_g
+    // https://cses.fi/problemset/task/3294/
+    vll dist(V);
+    vi inq(V, 1), cnt(V, 0);
+    queue<int> q;  
+    vi vis(V);
+    for(int i = 0; i < V; i++) {
+        if(vis[i]) continue; 
+        q.push(i);
+        while(!q.empty()) {
+            int u = q.front(); q.pop();
+            vis[u] = true;
+            inq[u] = 0;
+            for(auto [v, w] : g[u]) {
+                if(dist[u] + w < dist[v]) { // careful to change sign if needed
+                    dist[v] = dist[u] + w;
+                    if(!inq[v]) {
+                        if(++cnt[v] > V) {
+                            return {};
+                        }
+                        q.push(v);
+                        inq[v] = 1;
+                    }
                 }
             }
         }
-        if(!updated) break;
     }
-    return dist.back();
+    for(int i = V - 1; i >= 1; i--) {
+        dist[i] -= dist[i - 1];
+    }
+    return dist;
 }
 
 vvi rotate90(const vvi matrix) {

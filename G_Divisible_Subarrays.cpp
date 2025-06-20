@@ -249,22 +249,249 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+namespace IO {
+    const int BUFFER_SIZE = 1 << 15;
+ 
+    char input_buffer[BUFFER_SIZE];
+    int input_pos = 0, input_len = 0;
+ 
+    void _update_input_buffer() {
+        input_len = fread(input_buffer, sizeof(char), BUFFER_SIZE, stdin);
+        input_pos = 0;
+ 
+        if (input_len == 0)
+            input_buffer[0] = EOF;
     }
-    return edges;
+ 
+    inline char next_char(bool advance = true) {
+        if (input_pos >= input_len)
+            _update_input_buffer();
+ 
+        return input_buffer[advance ? input_pos++ : input_pos];
+    }
+ 
+    template<typename T>
+    inline void read_int(T &number) {
+        bool negative = false;
+        number = 0;
+ 
+        while (!isdigit(next_char(false)))
+            if (next_char() == '-')
+                negative = true;
+ 
+        do {
+            number = 10 * number + (next_char() - '0');
+        } while (isdigit(next_char(false)));
+ 
+        if (negative)
+            number = -number;
+    }
+ 
+    template<typename T, typename... Args>
+    inline void read_int(T &number, Args &... args) {
+        read_int(number);
+        read_int(args...);
+    }
+
+    inline ll nxt() {
+        ll x;
+        read_int(x);
+        return x;
+    }
 }
 
+template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
+struct linear_rmq {
+    vt<T> values;
+    F compare;
+    vi head;
+    vt<array<unsigned,2>> masks;
+
+    linear_rmq() {}
+
+    linear_rmq(const vt<T>& arr, F cmp = F{})
+      : values(arr), compare(cmp),
+        head(arr.size()+1),
+        masks(arr.size())
+    {
+        vi monoStack{-1};
+        int n = arr.size();
+        for (int i = 0; i <= n; i++) {
+            int last = -1;
+            while (monoStack.back() != -1 &&
+                   (i == n || !compare(values[monoStack.back()], values[i])))
+            {
+                if (last != -1) head[last] = monoStack.back();
+                unsigned diffBit = __bit_floor(unsigned(monoStack.end()[-2] + 1) ^ i);
+                masks[monoStack.back()][0] = last = (i & -diffBit);
+                monoStack.pop_back();
+                masks[monoStack.back() + 1][1] |= diffBit;
+            }
+            if (last != -1) head[last] = i;
+            monoStack.pb(i);
+        }
+        for (int i = 1; i < n; i++) {
+            masks[i][1] = (masks[i][1] | masks[i-1][1])
+                        & -(masks[i][0] & -masks[i][0]);
+        }
+    }
+
+    T query(int L, int R) const {
+        unsigned common = masks[L][1] & masks[R][1]
+                        & -__bit_floor((masks[L][0] ^ masks[R][0]) | 1);
+        unsigned k = masks[L][1] ^ common;
+        if (k) {
+            k = __bit_floor(k);
+            L = head[(masks[L][0] & -k) | k];
+        }
+        k = masks[R][1] ^ common;
+        if (k) {
+            k = __bit_floor(k);
+            R = head[(masks[R][0] & -k) | k];
+        }
+        return compare(values[L], values[R]) ? values[L] : values[R];
+    }
+};
+
+template<class T>
+struct PSGT {
+    struct Node {
+        int l, r;
+        int key;
+        Node(int key = inf) : key(key), l(0), r(0) {}
+    };
+    int new_node(int prev) {
+        F.pb(F[prev]);
+        return F.size() - 1;
+    }
+    vt<Node> F;
+    vi t;
+    int n;
+    T DEFAULT;
+    PSGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT), t(n + 1) {
+        F.rsz(n * 50);
+        F.pb(Node());
+    }
+
+	void update(int &curr, int prev, int id, T delta, int left, int right) {  
+        curr = new_node(prev);
+        if(left == right) { 
+            F[curr].key = delta;
+            return;
+        }
+        int middle = midPoint;
+        if(id <= middle) update(F[curr].l, F[prev].l, id, delta, left, middle); // PSGT
+        else update(F[curr].r, F[prev].r, id, delta, middle + 1, right);
+        F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return F[curr].key;
+        int middle = midPoint;  
+		return merge(queries_at(F[curr].l, start, end, left, middle), queries_at(F[curr].r, start, end, middle + 1, right));
+    };
+        
+    T get(int curr, int prev, int k, int left, int right) {    
+        if(F[curr].key - F[prev].key < k) return DEFAULT;
+        if(left == right) return left;
+        int leftCount = F[F[curr].l].key - F[F[prev].r].key;
+        int middle = midPoint;
+        if(leftCount >= k) return get(F[curr].l, F[prev].l, k, left, middle);
+        return get(F[curr].r, F[prev].r, k - leftCount, middle + 1, right);
+    }
+
+    T get(int l, int r, int k) {
+        return get(t[r], t[l - 1], k, 0, n - 1);
+    }
+	
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(F[curr].key < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(F[F[curr].f].key >= k) return find_k(F[curr].f, k, left, middle);
+        return find_k(F[curr].ss, k - F[F[curr].l].key, middle + 1, right);
+    }
+
+    void update_at(int i, int& prev, int id, T delta) { 
+        update(t[i], prev, id, delta, 0, n - 1); 
+        prev = t[i];
+    }
+
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+    }
+
+	T queries_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return DEFAULT;
+        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+        auto R = queries_at(r, low, high);
+        return R - L;
+    }
+
+    T merge(T left, T right) {
+        return min(left, right);
+    }
+};
+
+struct good_split {
+    // determine if in [l, r], there's an index such that max([l, i]) < min([i + 1, r])
+    vi a;
+    int n;
+    PSGT<int> Tree;
+    // merge is min, and root[curr] = delta
+    good_split(const vi& a) : n(a.size()), a(a), Tree(n, inf) {
+        // https://codeforces.com/contest/1887/problem/D
+        auto L = closest_left(a, less<int>());
+        linear_rmq<int> t(a, [](const int& x, const int& y) {return x > y;});
+        int prev = 0;
+        for(int i = 0; i < n; i++) {
+            Tree.update_at(0, prev, i, inf);
+        }
+        set<int> s;
+        for(int r = 1; r < n; r++) {
+            for(auto it = s.lb(L[r]); it != end(s);) {
+                Tree.update_at(r, prev, *it, inf);
+                it = s.erase(it);
+            }
+            int left = 0, right = L[r] - 1, right_most = 0;
+            while(left <= right) {
+                int middle = midPoint;
+                if(t.query(middle, L[r] - 1) > a[r]) right_most = middle, left = middle + 1;
+                else right = middle - 1;
+            }
+            if(L[r] - 1 > 0) {
+                Tree.update_at(r, prev, L[r] - 1, right_most);
+                s.insert(L[r] - 1);
+            }
+        }
+    }
+
+    int query(int l, int r) {
+        return Tree.queries_at(r, l, r) < l;
+    }
+};
+
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n; cin >> n;
+    vi a(n + 1);
+    a[0] = -inf;
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    good_split s(a);
+    for(int i = 1; i <= n; i++) a[i] = -a[i];
+    good_split t(a);
+    int q; cin >> q;
+    for(int i = 1; i <= q; i++) {
+        int l, r; cin >> l >> r;
+        cout << (s.query(l, r) || t.query(l, r) ? "YES" : "NO") << '\n';
+        if(i % 10 == 0) {
+            cout.flush();
+        }
     }
 }
 
@@ -303,3 +530,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

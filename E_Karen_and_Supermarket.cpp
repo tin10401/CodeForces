@@ -249,23 +249,50 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
+    int n, b; cin >> n >> b;
+    vvi graph(n);
+    vi c(n), d(n); 
     for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+        cin >> c[i] >> d[i];
+        if(i) {
+            int p; cin >> p;
+            p--;
+            graph[p].pb(i);
+        }
     }
+    vi size(n);
+    auto dfs = [&](auto& dfs, int node = 0) -> vvll {
+        vt<vvll> a;
+        vvll dp(2, vll(2, INF));
+        size[node] = 1;
+        dp[0][0] = 0;
+        dp[1][0] = c[node];
+        dp[1][1] = c[node] - d[node];
+        for(auto& nei : graph[node]) {
+            auto t = dfs(dfs, nei);
+            int N = size[node], M = size[nei];
+            vvll next(N + M + 1, vll(2, INF));
+            for(int i = 0; i <= N; i++) {
+                for(int j = 0; j <= M; j++) {
+                    next[i + j][0] = min(next[i + j][0], dp[i][0] + t[j][0]);
+                    next[i + j][1] = min(next[i + j][1], dp[i][1] + min(t[j][0], t[j][1]));
+                }
+            }
+            size[node] += size[nei];
+            swap(dp, next);
+        }
+        return dp;
+    };
+    auto dp = dfs(dfs);
+    int res = 0;
+    for(int i = 1; i <= n; i++) {
+        if(min(dp[i][0], dp[i][1]) <= b) {
+            res = i;
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {

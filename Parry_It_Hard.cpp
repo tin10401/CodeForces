@@ -247,25 +247,47 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n, x; cin >> n >> x;
+    vi a(n), b(n); cin >> a >> b;
+    vi lim(n + 1, inf);
+    for(int i = n - 1; i >= 0; i--) {
+        lim[i] = min(lim[i + 1], x - a[i]);
     }
+    vi prefix(n);
+    int first = inf;
+    int N = 0;
+    for(int i = 0; i < n; i++) {
+        prefix[i] = N;
+        if(x - N >= a[i] && x - N >= b[i] && N + 1 <= lim[i + 1]) {
+            first = min(first, i);
+            N++;
+        }
+    }
+    if(N == 0) {
+        cout << string(n, '0') << '\n';
+        return;
+    }
+    vi suffix(n + 1);
+    for(int i = n - 1, mx = 0; i >= 0; i--) {
+        suffix[i] = mx;
+        if(b[i] <= x - N + 1 + mx) mx++;
+    }
+    for(int i = 0; i < n; i++) {
+        int s = suffix[i];
+        if(i >= first && prefix[i] + s + 1 >= N) {
+            if(x - max(0, N - s - 1) >= b[i]) cout << 1; 
+            else cout << 0;
+        } else {
+            cout << 0;
+        }
+    }
+    cout << '\n';
 }
 
 signed main() {
@@ -276,7 +298,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

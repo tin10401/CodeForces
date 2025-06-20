@@ -249,23 +249,240 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+template<typename T, typename I = ll, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
+class SGT { 
+    public: 
+    int n;  
+    vt<T> root;
+	vt<II> lazy;
+    T DEFAULT;
+    F func;
+    G apply_func;
+	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
+        this->n = n;
+        this->DEFAULT = DEFAULT;
+		int k = 1;
+        while(k < n) k <<= 1; 
+        root.rsz(k << 1, DEFAULT);    
     }
-    return edges;
-}
+    
+    void update_at(int id, T val) {  
+        update_at(entireTree, id, val);
+    }
+    
+    void update_at(iter, int id, T val) {  
+        if(left == right) { 
+            root[i] = val;  
+            return;
+        }
+        int middle = midPoint;  
+        if(id <= middle) update_at(lp, id, val);   
+        else update_at(rp, id, val);   
+        root[i] = func(root[lc], root[rc]);
+    }
+
+    int mex(int bound, int k) {
+        return find_mex(entireTree, bound, k);
+    }
+
+    int find_mex(iter, int bound, int &k) {
+        if(left == right) {
+            if(--k == 0) return left;
+            return -1;
+        }
+        int middle = midPoint;
+        if(root[lc] < bound) {
+            int t = find_mex(lp, bound, k);
+            if(t != -1) return t;
+        }
+        if(root[rc] < bound) {
+            int t = find_mex(rp, bound, k);
+            if(t != -1) return t;
+        }
+        return -1;
+    }
+};
+
+template<typename T = int>
+class GRAPH {
+public:
+	int n;
+    vi tin, tout, depth;
+    int timer = 0;
+    GRAPH() {}
+
+    GRAPH(const vt<vt<T>>& graph, int root = 0) {
+        n = graph.size();
+        depth.rsz(n);
+        tin.rsz(n);
+        tout.rsz(n);
+        dfs(graph, root);
+    }
+
+	void dfs(const vt<vt<T>>& graph, int node, int par = -1) {
+        tin[node] = timer++;
+        for (auto& nei : graph[node]) {
+            if (nei == par) continue;
+            depth[nei] = depth[node] + 1;
+            dfs(graph, nei, node);
+        }
+        tout[node] = timer - 1;
+    }
+};
+
+struct Reachability_Tree { // 2 * n - 1 not 2 * n for total vertices
+    struct DSU {
+        vi p, r;
+        DSU(int n): p(n), r(n, 0) { iota(all(p), 0); }
+        int find(int x) {
+            return p[x] == x ? x : p[x] = find(p[x]);
+        }
+        bool same(int a, int b) {
+            return find(a) == find(b);
+        }
+        void merge(int a, int b) {
+            a = find(a); b = find(b);
+            if(a == b) return;
+            p[b] = a;
+            if(r[a] == r[b]) r[a]++;
+        }
+    };
+    int n;
+    GRAPH<int> g;
+    DSU root;
+    int rt;
+    vvi graph;
+    Reachability_Tree(int n) : n(n), root(n * 2 - 1), rt(n - 1), graph(n * 2 - 1) {}
+
+    void add_edge(int u, int v) {
+        if(root.same(u, v)) return;
+        rt++;
+        graph[rt].pb(root.find(u));
+        graph[rt].pb(root.find(v));
+        root.merge(rt, u);
+        root.merge(rt, v);
+    }
+
+    void build() {
+        g = GRAPH<int>(graph, rt);
+        vvi().swap(graph);
+    }
+
+    int get_rt(int u) {
+        return root.find(u);
+    }
+
+    int get(int u) {
+        return g.tin[u];
+    }
+
+    pii get_range(int u) {
+        return {g.tin[u], g.tout[u]};
+    }
+};
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n, q, r; cin >> n >> q >> r;
+    vi a(n); cin >> a;
+    r--;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
+    vi parent(n, -1);
+    {
+        auto dfs = [&](auto& dfs, int node, int par = -1) -> void {
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                parent[nei] = node;
+                dfs(dfs, nei, node);
+            }
+        };
+        dfs(dfs, r);
+    }
+    vi good(n, true);
+    var(3) Q(q);
+    vvi remove(q);
+    for(int i = 0; i < q; i++) {
+        auto& [op, v, k] = Q[i]; cin >> op;
+        if(op == 1) {
+            cin >> v;
+            v--;
+            while(v != r && good[v]) {
+                remove[i].pb(v);
+                good[v] = false;
+                v = parent[v];
+            }
+        } else {
+            cin >> v >> k;
+            v--;
+        }
+    }
+    Reachability_Tree Tree(n);
+    vi node(q);
+    vi anc(n);
+    {
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+            for(auto & nei : graph[node]) {
+                if(nei == par) continue;
+                dfs(dfs, nei, node);
+                if(good[nei]) {
+                    Tree.add_edge(nei, node);
+                }
+            }
+            anc[node] = Tree.get_rt(node);
+        };
+        dfs(dfs, r);
+    }
+    vvi().swap(graph);
+    vi().swap(good);
+    for(int i = q - 1; i >= 0; i--) {
+        auto& [op, v, k] = Q[i];
+        if(op == 2) {
+            node[i] = anc[v];
+        } else {
+            for(auto& node : remove[i]) {
+                anc[node] = Tree.get_rt(node);
+                Tree.add_edge(node, parent[node]);
+            }
+        }
+    }
+    vi().swap(parent);
+    Tree.build();
+    const int N = n + 11;
+    vi arr(2 * N, N);
+    for(int i = 0; i < n; i++) {
+        arr[Tree.get(i)] = a[i];
+    }
+    vvar(3) real_q(2 * N);
+    for(int i = 0; i < q; i++) {
+        auto& [op, v, k] = Q[i];
+        if(op == 2) {
+            int p = node[i];
+            if(v == r) node[i] = Tree.rt;
+            auto [L, R] = Tree.get_range(node[i]);
+            real_q[R].pb({L, k, i});
+        }
+    }
+    var(3)().swap(Q);
+    SGT<int> root(N, inf, [](const int& a, const int& b) {return min(a, b);});
+    for(int i = 0; i < N; i++) {
+        root.update_at(i, -inf);
+    }
+    vpii ans;
+    for(auto& it : arr) it = min(it, N - 1);
+    for(int i = 0; i < 2 * N; i++) {
+        root.update_at(arr[i], i);
+        for(auto& [L, k, id] : real_q[i]) {
+            ans.pb({id, root.mex(L, k)});
+        }
+    }
+    srt(ans);
+    for(auto& it : ans) cout << it.ss << '\n';
 }
 
 signed main() {

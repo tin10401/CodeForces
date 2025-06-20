@@ -225,7 +225,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 5e6 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
@@ -247,24 +247,128 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+int phi[MX];
+
+void generatePrime() {  
+    iota(all(phi), 0);
+    for(int i = 2; i < MX; i++) {   
+        if(phi[i] == i) {
+            for(int j = i; j < MX; j += i) {   
+                phi[j] -= phi[j] / i;
+            }
+        }
     }
-    return edges;
+} static const bool _generate_prime_init = []() { generatePrime(); return true; }();
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree() {}
+
+    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size, root[idx] = val;
+        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+
+    void remove(int idx) {
+        if(idx < 0 || idx >= n) return;
+        idx += size;
+        for(; idx > 0; idx >>= 1) root[idx].erase();
+    }
+    
+    T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while(l <= r) {
+            if((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        if(idx < 0 || idx >= n) return DEFAULT;
+        return root[idx + size];
+    }
+
+    T get() {
+        return root[1];
+    }
+};
+
+ar(3) lca(int u, int v) {
+    int dist_a = 0, dist_b = 0;
+    while(u != v) {
+        if(u > v) {
+            u = phi[u];
+            dist_a++;
+        } else {
+            v = phi[v];
+            dist_b++;
+        }
+    }
+    return {u, dist_a, dist_b};
 }
 
+struct info {
+    int v, cost, cnt;
+    info(int x = -inf) : v(x), cost(0), cnt(1) { }
+ 
+    friend info operator+(const info& a, const info& b) {
+        if(a.v == -inf) return b;
+        if(b.v == -inf) return a;
+        auto [c, dist_a, dist_b] = lca(a.v, b.v);
+        info res;
+        res.cost = a.cost + b.cost + a.cnt * dist_a + b.cnt * dist_b;
+        res.v = c;
+        res.cnt = a.cnt + b.cnt;
+        return res;
+    }
+};
+
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
+    int n, q; cin >> n >> q;
+    vi a(n); cin >> a;
+    set<int> s;
+    basic_segtree<info> root(n, info());
     for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+        if(a[i] > 1) s.insert(i);
+        root.update_at(i, info(a[i]));
+    }
+    while(q--) {
+        int op, l, r; cin >> op >> l >> r;
+        l--, r--;
+        if(op == 1) {
+            for(auto it = s.lb(l); it != end(s) && *it <= r; ) {
+                int i = *it;
+                a[i] = phi[a[i]];
+                root.update_at(i, a[i]);
+                if(a[i] == 1) it = s.erase(it);
+                else it++;
+            }
+        } else {
+            cout << root.queries_range(l, r).cost << '\n';
+        }
     }
 }
 
@@ -303,3 +407,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

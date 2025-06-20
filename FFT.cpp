@@ -87,17 +87,20 @@ struct FFT { // given 2 array a and b, compute the number of pair that make up (
     }
  
     static vt<T> convolve(const vt<T>& a, const vt<T>& b) {
-        vt<cd> fa(all(a)), fb(all(b));
-        int n = 1;
-        while(n < (int)a.size() + (int)b.size() - 1) n <<= 1;
-        fa.rsz(n);
-        fb.rsz(n);
+        int a_sz = (int)a.size();
+        int b_sz = (int)b.size();
+        int needed = a_sz + b_sz - 1;
+        int N = 1;
+        while (N < needed) N <<= 1;
+        vector<cd> fa(N, cd(0,0)), fb(N, cd(0,0));
+        for(int i = 0; i < (int)a.size(); i++) fa[i] = cd(db(a[i]), 0);
+        for(int j = 0; j < (int)b.size(); j++) fb[j] = cd(db(b[j]), 0);
         fft(fa, false);
         fft(fb, false);
-        for(int i = 0; i < n; i++) fa[i] *= fb[i];
+        for(int i = 0; i < N; i++) fa[i] *= fb[i];
         fft(fa, true);
-        vt<T> res(n);
-        for(int i = 0; i < n; i++)
+        vt<T> res(N);
+        for(int i = 0; i < N; i++)
             res[i] = (T)round(fa[i].real());
         return res;
     }

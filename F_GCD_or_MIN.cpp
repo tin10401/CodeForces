@@ -247,25 +247,117 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+vll factorize(ll n) {
+    using u64  = uint64_t;
+    using u128 = unsigned __int128;
+    vll pf;
+
+    auto mul_mod = [](u64 a, u64 b, u64 m) -> u64 {
+        return (u64)((u128)a * b % m);
+    };
+    auto pow_mod = [&](u64 a, u64 e, u64 m) -> u64{
+        u64 r = 1;
+        while(e) { if (e & 1) r = mul_mod(r, a, m); a = mul_mod(a, a, m); e >>= 1; }
+        return r;
+    };
+    auto isPrime = [&](u64 x)-> bool {
+        if (x < 2) return false;
+        for(u64 p:{2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37})
+            if(x % p == 0) return x == p;
+        u64 d = x-1, s = 0;
+        while((d & 1) == 0) { d >>= 1; ++s; }
+        for(u64 a:{2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL}) {
+            u64 y = pow_mod(a, d, x);
+            if(y == 1 || y == x - 1) continue;
+            bool comp = true;
+            for(u64 r = 1; r < s; ++r) {
+                y = mul_mod(y, y, x);
+                if(y == x - 1) { comp = false; break; }
+            }
+            if(comp) return false;
+        }
+        return true;
+    };
+    auto rho = [&](u64 n) -> u64{                
+        if((n & 1) == 0) return 2;
+        mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count()); 
+        uniform_int_distribution<u64> dist(2, n - 2);
+        while(true) {
+            u64 y = dist(rng), c = dist(rng), m = 128, g = 1, r = 1, q = 1, ys, x;
+            auto f = [&](u64 v){ return (mul_mod(v, v, n) + c) % n; };
+            while(g == 1) {
+                x = y;  for(u64 i=0;i<r;++i) y = f(y);
+                u64 k = 0;
+                while(k < r && g == 1) {
+                    ys = y;
+                    u64 lim = min(m, r - k);
+                    for(u64 i = 0; i < lim; ++i){ y = f(y); q = mul_mod(q, (x > y ? x - y : y - x), n); }
+                    g = std::gcd<u64>(q, n);  k += m;
+                }
+                r <<= 1;
+            }
+            if(g == n) {
+                do { ys = f(ys); g = std::gcd<u64>((x > ys ? x - ys : ys - x), n); } while (g == 1);
+            }
+            if(g != n) return g;
+        }
+    };
+
+    auto fact = [&](auto& fact, u64 v) -> void {
+        static const int small[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43};
+        for(int p : small){ if((u64)p * (u64)p > v) break;
+            while(v % p == 0){ pf.pb(p); v /= p; }
+        }
+        if(v == 1) return;
+        if(isPrime(v)){ pf.pb(v); return; }
+        u64 d = rho(v);
+        fact(fact, d); fact(fact, v/d);
+
+    };
+
+    if(n <= 0) return {};          
+    fact(fact, (u64)n);
+    srt(pf);
+    vpll uniq;
+    for(size_t i = 0; i < pf.size();) {
+        size_t j = i; while(j < pf.size() && pf[j] == pf[i]) ++j;
+        uniq.pb({pf[i], int(j-i)});
+        i = j;
     }
-    return edges;
+    vll divs = {1};
+    for(auto [p, e] : uniq) {
+        size_t sz = divs.size();
+        ll pk = 1;
+        for(int k = 1; k <= e;++k){
+            pk *= p;
+            for(size_t i = 0; i < sz; ++i) divs.pb(divs[i] * pk);
+        }
+    }
+    srt(divs);
+    return divs;
 }
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
+    int n; cin >> n;
+    map<int, int> mp;
+    int mn = inf;
     for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+        int x; cin >> x;
+        for(auto& it : factorize(x)) {
+            mp[it] = gcd(mp[it], x);
+        }
+        mn = min(mn, x);
     }
+    int res = 1;
+    for(auto& [x, y] : mp) {
+        if(x >= mn) break;
+        if(x == y) res++;
+    }
+    cout << res << '\n';
 }
 
 signed main() {

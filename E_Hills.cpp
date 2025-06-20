@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -249,24 +249,47 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n; cin >> n;
+    vi a(n + 1); 
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+    const int N = (n + 1) / 2;
+    vvll dp(N + 1, vll(3, INF));
+    dp[0][0] = 0;
+    if(N >= 1) dp[1][2] = 0;
+    for(int i = 2; i <= n; i++) {
+        vvll next(N + 1, vll(3, INF));
+        for(int k = 0; k <= N; k++) {
+            next[k][0] = min(dp[k][0], dp[k][1]);
+            if(dp[k][2] != INF) {
+                next[k][1] = dp[k][2] + max(0, a[i] - (a[i - 1] - 1));
+            }
+            if(k) {
+                auto& now = next[k][2];
+                if(dp[k - 1][0] != INF) {
+                    now = dp[k - 1][0] + max(0, a[i - 1] - (a[i] - 1));
+                }
+                if(i > 2) {
+                    if(dp[k - 1][1] != INF) {
+                        now = min(now, max(0, min(a[i - 1], a[i - 2] - 1) - (a[i] - 1)) + dp[k - 1][1]);
+                    }
+                } else {
+                    if(dp[k - 1][1] != INF) {
+                        now = min(now, max(0, a[i - 1] - (a[i] - 1)) + dp[k - 1][1]);
+                    }
+                }
+            }
+        }
+        swap(dp, next);
+    }
+    for(int k = 1; k <= N; k++) {
+        cout << MIN(dp[k]) << (k == N ? '\n' : ' ');
     }
 }
+
 
 signed main() {
     // careful for overflow, check for long long, use unsigned long long for random generator

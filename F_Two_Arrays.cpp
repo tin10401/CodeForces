@@ -119,6 +119,21 @@ template <class K, class V> using umap = std::unordered_map<K, V, custom>; templ
 template<class T> using max_heap = priority_queue<T>;
 template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
     
+template<typename T, size_t N>
+istream& operator>>(istream& is, array<T, N>& arr) {
+    for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is;
+}
+
+template<typename T, size_t N>
+istream& operator>>(istream& is, vector<array<T, N>>& vec) {
+    for (auto &arr : vec) { is >> arr; } return is;
+}
+
+inline std::ostream& operator<<(std::ostream& os, i128 x) {
+    if(x == 0) { os << '0'; return os; } if(x < 0) { os << '-'; x = -x; }
+    string s; while (x > 0) { int digit = int(x % 10); s.pb(char('0' + digit)); x /= 10; }
+    rev(s); os << s; return os;
+}
     
 template <typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) {    return in >> input.ff >> input.ss; }
     
@@ -150,6 +165,16 @@ vi closest_right(const vt<T>& a, Compare cmp) {
         while(j < n - 1 && cmp(a[i], a[j + 1])) j = closest[j + 1];
     }
     return closest;
+}
+
+template<typename T, typename V = string>
+vt<pair<T, int>> encode(const V& s) {
+    vt<pair<T, int>> seg;
+    for(auto& ch : s) {
+        if(seg.empty() || ch != seg.back().ff) seg.pb({ch, 1});
+        else seg.back().ss++;
+    }
+    return seg;
 }
 
     
@@ -201,80 +226,184 @@ const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
-const static int MOD = 1e9 + 7;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
+ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
+ll ceil(ll a, ll b) { if (b < 0) a = -a, b = -b; if (a >= 0) return (a + b - 1) / b; return a / b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-bool have_bit(ll x, int b) { return (x >> b) & 1; }
+ll have_bit(ll x, int b) { return x & (1LL << b); }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
+const vvi knight_dirs = {{-2, -1}, {-2,  1}, {-1, -2}, {-1,  2}, {1, -2}, {1,  2}, {2, -1}, {2,  1}}; // knight dirs
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
+ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
+ll modInv(ll a, ll m) { ll x, y; ll g = extended_gcd(a, m, x, y); if (g != 1) { return -1; } x %= m; if (x < 0) x += m; return x; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
 ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
+string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
+string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
+ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
+bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
+bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-struct info {
-    int w;
-    vi arr;
-};
-void solve() {
-    int n, m; cin >> n >> m;
-    vt<info> a(n);
-    vi b;
-    for(int i = 0; i < n; i++) {
-        a[i].arr.rsz(m);
-        cin >> a[i].arr;
-        cin >> a[i].w;
-        b.insert(end(b), all(a[i].arr));
+struct Tarjan {
+    int n, m;
+    vi tin, low, belong, bridges, size;
+    vvpii graph;
+    stack<int> s;
+    int timer, comp;
+    Tarjan(const vvpii& graph, int edges_size) : m(edges_size), graph(graph), timer(0), n(graph.size()), comp(0) {
+        tin.rsz(n);
+        low.rsz(n);
+        bridges.rsz(edges_size);
+        belong.rsz(n);
+        for(int i = 0; i < n; i++) {
+            if(!tin[i]) {
+                dfs(i);
+            }
+        }
     }
-    sort(all(a), [](const info& a, const info& b) { return a.w < b.w; });
-    srtU(b);
-    const int K = 100;
-    int N = b.size();
-    auto get_id = [&](int x) -> int {
-        return int(lb(all(b), x) - begin(b));
+
+    void dfs(int node = 0, int par = -1) {
+        s.push(node);
+        low[node] = tin[node] = ++timer;
+        for(auto& [nei, id] : graph[node]) {  
+            if(id == par) continue;
+            if(!tin[nei]) {   
+                dfs(nei, id);
+                low[node] = min(low[node], low[nei]);   
+                if(low[nei] > tin[node]) {  
+                    bridges[id] = true;
+                }
+            }
+            else {  
+                low[node] = min(low[node], tin[nei]);
+            }
+        }
+        if(low[node] == tin[node]) {
+            int now = comp++;
+            int cnt = 0;
+            while(true) {
+                int u = s.top(); s.pop();
+                belong[u] = now;
+                cnt++;
+                if(u == node) break;
+            }
+            size.pb(cnt);
+        }
     };
-    vvi pos(N);
+
+    vvpii compress_graph(vpii edges) { // return a root of 1 degree and a bridge graph
+        assert(m == edges.size());
+        vi degree(comp);
+        vvpii G(comp);
+        for(int i = 0; i < m; i++) {
+            if(!bridges[i]) continue;
+            auto& [u, v] = edges[i];
+            u = belong[u], v = belong[v];
+            assert(u != v);
+            G[u].pb({v, i});
+            G[v].pb({u, i});
+            degree[u]++;
+            degree[v]++;
+        }
+        return G;
+    }
+
+    void orientInternalEdges(vpii &edges) { // directed edges in same component to create a complete cycle
+        vb oriented(m);
+        vi disc(n, 0);
+        int t2 = 0;
+        auto dfs2 = [&](auto& dfs2, int u) -> void {
+            for(auto &[v, id] : graph[u]) {
+                if(bridges[id] || oriented[id]) continue;
+                if(!disc[v]) {
+                    edges[id] = {u, v};
+                    oriented[id] = true;
+                    disc[v] = ++t2;
+                    dfs2(dfs2, v);
+                } else {
+                    if(disc[u] > disc[v]) edges[id] = {u, v};
+                    else edges[id] = {v, u};
+                    oriented[id] = true;
+                }
+            }
+        };
+        for(int u = 0; u < n; u++) {
+            if(!disc[u]) {
+                disc[u] = ++t2;
+                dfs2(dfs2, u);
+            }
+        }
+    }
+
+    void directed_edge(vpii& edges) {
+        orientInternalEdges(edges);
+        auto tree = compress_graph(edges);
+        int M = tree.size();
+        vi vis(M);
+        auto dfs = [&](auto& dfs, int node, int par) -> void {
+            vis[node] = true;
+            for(auto& [nei, id] : tree[node]) {
+                if(nei == par) continue;
+                auto& [u, v] = edges[id];
+                if(belong[u] != node) swap(u, v);
+                dfs(dfs, nei, node);
+            }
+        };
+        for(int i = 0; i < M; i++) {
+            if(!vis[i]) dfs(dfs, i, -1);
+        }
+    }
+
+    bool get_group_flag = false;
+    vvi get_group() {
+        assert(!get_group_flag);
+        get_group_flag = true;
+        vvi group(comp);
+        for(int i = 0; i < n; i++) {
+            group[belong[i]].pb(i);
+        }
+        return group;
+    }
+};
+
+void solve() {
+    int n; cin >> n;
+    vi a(n), b(n); cin >> a >> b;
+    vi c(a);
+    c.insert(end(c), all(b));
+    srtU(c);
+    const int N = c.size();
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(c), x) - begin(c));
+    };
+    vpii edges(n);
+    vvpii graph(N);
     for(int i = 0; i < n; i++) {
-        for(auto& x : a[i].arr) {
-            x = get_id(x);
-            pos[x].pb(i);
-        }
+        int u = get_id(a[i]), v = get_id(b[i]);
+        graph[u].pb({v, i});
+        graph[v].pb({u, i});
+        edges[i] = MP(u, v);
     }
-    vt<bitset<MX>> g; 
-    vi id(N);
-    for(int i = 0, ptr = 0; i < N; i++) {
-        if(pos[i].size() >= K) {
-            g.pb(bitset<MX>());
-            id[i] = g.size() - 1;
-            auto& now = g.back();
-            for(auto& v : pos[i]) {
-                now.set(v);
-            }
-        }
+    Tarjan g(graph, n);
+    g.directed_edge(edges);
+    set<int> A, B;
+    for(auto& [u, v] : edges) {
+        A.insert(u);
+        B.insert(v);
     }
-    bitset<MX> all, curr;
-    for(int i = 0; i <= n; i++) all.set(i);
-    ll res = INF;
-    for(int i = 0; i < n; i++) {
-        for(auto& x : a[i].arr) {
-            if(pos[x].size() >= K) {
-                curr |= g[id[x]];
-            }
-            else {
-                for(auto& v : pos[x]) curr.set(v);
-            }
-        }
-        curr ^= all;
-        int j = curr._Find_first();
-        if(j < n) {
-            res = min(res, (ll)a[i].w + a[j].w);
-        }
-        curr.reset();
-    }
-    cout << (res == INF ? -1 : res) << endl;
+    cout << A.size() + B.size() << '\n';
+    for(auto& it : edges) cout << c[it.ff] << ' ';
+    cout << '\n';
+    for(auto& it : edges) cout << c[it.ss] << ' ';
+    cout << '\n';
 }
 
 signed main() {
@@ -285,7 +414,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

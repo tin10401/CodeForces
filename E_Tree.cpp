@@ -247,24 +247,407 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
+    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return (ll)value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return (db)value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+
+template<typename T = int>
+class GRAPH {
+public:
+	int n, m;
+    vvi dp;
+    vi parent, subtree;
+    vi tin, tout, low, ord, depth;
+    vll depth_by_weight;
+    vvi weight;
+    int timer = 0;
+    vt<unsigned> in_label, ascendant;
+    vi par_head;
+    unsigned cur_lab = 1;
+    vt<vt<T>> adj;
+
+    GRAPH() {}
+
+    GRAPH(const vt<vt<T>>& graph, int root = 0) {
+        adj = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+//        depth_by_weight.rsz(n);
+//        weight.rsz(n, vi(m));
+        dp.rsz(n, vi(m, -1));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+        subtree.rsz(n, 1);
+        tin.rsz(n);
+        tout.rsz(n);
+        ord.rsz(n);
+        dfs(root);
+        init();
+        in_label.rsz(n);
+        ascendant.rsz(n);
+        par_head.rsz(n + 1);
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
     }
-    return edges;
-}
+
+	void dfs(int node, int par = -1) {
+        tin[node] = timer++;
+        ord[tin[node]] = node;
+        for (auto& nei : adj[node]) {
+            if (nei == par) continue;
+            depth[nei] = depth[node] + 1;
+//            depth_by_weight[nei] = depth_by_weight[node] + w;
+//            weight[nei][0] = w;
+            dp[nei][0] = node;
+            parent[nei] = node;
+            dfs(nei, node);
+            subtree[node] += subtree[nei];
+        }
+        tout[node] = timer - 1;
+    }
+
+    bool is_ancestor(int par, int child) { return tin[par] <= tin[child] && tin[child] <= tout[par]; }
+
+	void init() {
+        for (int j = 1; j < m; ++j) {
+            for (int i = 0; i < n; ++i) {
+                int p = dp[i][j - 1];
+                if(p == -1) continue;
+                //weight[i][j] = max(weight[i][j - 1], weight[p][j - 1]);
+                dp[i][j] = dp[p][j - 1];
+            }
+        }
+    }
+
+
+    void sv_dfs1(int u, int p = -1) {
+        in_label[u] = cur_lab++;
+        for(auto& v : adj[u]) if (v != p) {
+            sv_dfs1(v, u);
+            if(std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
+                in_label[u] = in_label[v];
+        }
+    }
+
+    void sv_dfs2(int u, int p = -1) {
+        for(auto& v : adj[u]) if (v != p) {
+            ascendant[v] = ascendant[u];
+            if(in_label[v] != in_label[u]) {
+                par_head[in_label[v]] = u;
+                ascendant[v] += in_label[v] & -in_label[v];
+            }
+            sv_dfs2(v, u);
+        }
+    }
+
+    int lift(int u, unsigned j) const {
+        unsigned k = std::__bit_floor(ascendant[u] ^ j);
+        return k == 0 ? u : par_head[(in_label[u] & -k) | k];
+    }
+
+    int lca(int a, int b) {
+        if(is_ancestor(a, b)) return a;
+        if(is_ancestor(b, a)) return b;
+        auto [x, y] = std::minmax(in_label[a], in_label[b]);
+        unsigned j = ascendant[a] & ascendant[b] & -std::__bit_floor((x - 1) ^ y);
+        a = lift(a, j);
+        b = lift(b, j);
+        return depth[a] < depth[b] ? a : b;
+    }
+
+    int path_queries(int u, int v) { // lca in logn
+        if(depth[u] < depth[v]) swap(u, v);
+        int res = 0;
+        int diff = depth[u] - depth[v];
+        for(int i = 0; i < m; i++) {
+            if(diff & (1 << i)) { 
+                res = max(res, weight[u][i]);
+                u = dp[u][i]; 
+            }
+        }
+        if(u == v) return res;
+        for(int i = m - 1; i >= 0; --i) {
+            if(dp[u][i] != dp[v][i]) {
+                res = max({res, weight[u][i], weight[v][i]});
+                u = dp[u][i];
+                v = dp[v][i];
+            }
+        }
+        return max({res, weight[u][0], weight[v][0]});
+    }
+
+    int dist(int u, int v) {
+        int a = lca(u, v);
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+	
+	ll dist_by_weight(int u, int v) {
+        int a = lca(u, v);
+        return depth_by_weight[u] + depth_by_weight[v] - 2 * depth_by_weight[a];
+    }
+
+	int kth_ancestor(int u, ll k) {
+        if(u < 0 || k > depth[u]) return -1;
+        for(int i = 0; i < m && u != -1; ++i) {
+            if(k & (1LL << i)) {
+                u = (u >= 0 ? dp[u][i] : -1);
+            }
+        }
+        return u;
+    }
+
+
+    int kth_ancestor_on_path(int u, int v, ll k) {
+        int d = dist(u, v);
+        if(k >= d) return v;
+        int w  = lca(u, v);
+        int du = depth[u] - depth[w];
+        if(k <= du) return kth_ancestor(u, k);
+        int rem = k - du;
+        int dv  = depth[v] - depth[w];
+        return kth_ancestor(v, dv - rem);
+    }
+
+    int kth_downward(int v, ll k) {
+        if(k < 1 || k > depth[v] + 1) return -1;
+        ll steps_up = depth[v] - (k - 1);
+        return kth_ancestor(v, steps_up);
+    }
+
+    int max_intersection(int a, int b, int c) { // # of common intersection between path(a, c) OR path(b, c)
+        auto cal = [&](int u, int v, int goal){
+            return (dist(u, goal) + dist(v, goal) - dist(u, v)) / 2 + 1;
+        };
+        int res = 0;
+        res = max(res, cal(a, b, c));
+        res = max(res, cal(a, c, b));
+        res = max(res, cal(b, c, a));
+        return res;
+    }
+	
+	int intersection(int a, int b, int c, int d) { // common edges between path[a, b] OR path[c, d]
+        int r1 = lca(a, b), r2 = lca(c, d);
+        int q = depth[r1] > depth[r2] ? r1 : r2;
+        int p = lca(a, c), t = lca(a, d);
+        if (depth[t] > depth[p]) p = t;
+        t = lca(b,c); if (depth[t] > depth[p]) p = t;
+        t = lca(b,d); if (depth[t] > depth[p]) p = t;
+        if (depth[p] < depth[q]) return 0;
+        return depth[p] - depth[q];
+    }
+
+    bool is_continuous_chain(int a, int b, int c, int d) { // determine if path[a, b][b, c][c, d] don't have any intersection
+        return dist(a, b) <= dist(a, c) && dist(d, c) <= dist(d, b) && intersection(a, b, c, d) == 0;
+    }
+
+    int rooted_lca(int a, int b, int c) { return lca(a, c) ^ lca(a, b) ^ lca(b, c); } 
+
+    int next_on_path(int u, int v) { // closest_next_node from u to v
+        if(u == v) return -1;
+        if(is_ancestor(u, v)) return kth_ancestor(v, depth[v] - depth[u] - 1);
+        return parent[u];
+    }
+
+    void reroot(int root) {
+        fill(all(parent), -1);
+        timer = 0;
+        dfs(root);
+        init();
+        cur_lab = 1;
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
+    }
+
+    int comp_size(int c,int v){
+        if(parent[v] == c) return subtree[v];
+        return n - subtree[c];
+    }
+
+    int rooted_lca_potential_node(int a, int b, int c) { // # of nodes where rooted at will make lca(a, b) = c
+        if(rooted_lca(a, b, c) != c) return 0;
+        int v1 = next_on_path(c, a);
+        int v2 = next_on_path(c, b);
+        return n - (v1 == -1 ? 0 : comp_size(c, v1)) - (v2 == -1 ? 0 : comp_size(c, v2));
+    }
+	
+	vi get_path(int u, int v) { // get every node in path [u, v]
+        vi path1, path2;
+        int c = lca(u, v);
+        while(u != c) {
+            path1.pb(u);
+            u = parent[u];
+        }
+        while(v != c) {
+            path2.pb(v);
+            v = parent[v];
+        }
+        rev(path2);
+        path1.pb(c);
+        path1.insert(end(path1), all(path2));
+        return path1;
+    }
+};
+
+template<typename T = int>
+struct virtual_tree {
+    GRAPH<T> g;
+    using info = pair<int, ll>;
+    vt<vt<info>> graph; // [node, dist]
+    bool dist_by_weight;
+    vi subtree, importance;
+    int total;
+    ll ans = 0;
+    virtual_tree(const vt<vt<T>>& _graph, bool _dist_by_weight = false) : g(_graph), graph(_graph.size()), dist_by_weight(_dist_by_weight), subtree(_graph.size()), importance(_graph.size()) {}
+
+    int build(vi& vertices) {
+        int n = vertices.size();
+        auto cmp = [&](const int& a, const int& b) -> bool {
+            return g.tin[a] < g.tin[b];
+        };
+        sort(all(vertices), cmp);
+        auto a(vertices);
+        for(int i = 0; i < n - 1; i++) {
+            int u = vertices[i], v = vertices[i + 1];
+            a.pb(g.lca(u, v));
+        }
+        sort(all(a), cmp);
+        a.erase(unique(all(a)), end(a));
+        total = vertices.size();
+        for(auto& u : a) {
+            vt<info>().swap(graph[u]);
+            subtree[u] = 0; 
+            importance[u] = false;
+        }
+        for(auto& u : vertices) {
+            importance[u] = true;
+        }
+        vi s;
+        s.pb(a[0]);
+        for(int i = 1; i < (int)a.size(); i++) {
+            int u = a[i];
+            while(!s.empty() && !g.is_ancestor(s.back(), u)) s.pop_back();
+            int p = s.back();
+            ll d = dist_by_weight ? g.dist_by_weight(p, u) : g.dist(p, u);
+            graph[p].pb({u, d});
+            graph[u].pb({p, d});
+            s.pb(u);
+        }
+        return s[0];
+    }
+
+    vmint dfs(int u, int par, int m, int C, vmint &dp0, bool ok = false) {
+        bool mark = (par != -1 && importance[u] || ok);
+        if(mark) {
+            auto old(dp0);
+            int M = old.size();
+            int N = min(m, M);
+            dp0.assign(N + 1, 0);
+            for(int i = 0; i < M; i++) {
+                if(i + 1 <= N) dp0[i + 1] += old[i];
+                int freeGroups = i - C;
+                if(freeGroups > 0) {
+                    dp0[i] += old[i] * freeGroups;
+                }
+            }
+        }
+        for(auto &[v, _] : graph[u]) {
+            if(v == par) continue;
+            dfs(v, u, m, C + mark, dp0);
+        }
+        return dp0;
+    }
+};
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    int n, q; cin >> n >> q;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    virtual_tree<int> g(graph);
+    while(q--) {
+        int k, m, r; cin >> k >> m >> r;
+        vi a(k); cin >> a;
+        bool ok = false;
+        for(auto& x : a) x--;
+        r--;
+        for(auto& x : a) {
+            if(x == r) ok = true;
+        }
+        a.pb(r);
+        srtU(a);
+        g.build(a);
+        int C = 0;
+        vmint dp0(1, mint(1));          
+        auto res = g.dfs(r, -1, m, 0, dp0, ok);
+        mint ans = 0;
+        for (int i = 1; i < (int)res.size() && i <= m; i++) ans += res[i];
+        cout << ans << "\n";
     }
 }
 

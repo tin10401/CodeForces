@@ -289,114 +289,313 @@ public:
     }
 };
 
-int L[MX], R[MX], ans[MX], lazy1[MX], lazy2[MX], id[MX], ptr, key[MX], res[MX];
-ull pri[MX];
-int new_node(int K, int Id) {
+struct TreapNode {
+    int pri, size, reverse, flip;
+    int key;
+    ll ans, lazy_add, lazy_set;
+    ll pref[2], suff[2];
+    int left;
+    int right;
+    TreapNode(int key = 0) : reverse(0), key(key), ans(key), lazy_add(0), lazy_set(-INF), flip(0), pri(rand()), size(1), left(0), right(0) { 
+//            for(int i = 0; i < HASH_COUNT; i++) {
+//                pref[i] = suff[i] = key;
+//            }
+    }
+    bool empty() { return flip == 0 && lazy_add == 0 && reverse == 0 && lazy_set == -INF; }
+    void reset() { flip = lazy_add = reverse = 0; lazy_set = -INF; }
+};
+
+static TreapNode nodes[MX];
+int ptr = 0;
+int new_node(int key) {
     int node = ++ptr;
-    L[ptr] = R[ptr] = ans[ptr] = lazy1[ptr] = lazy2[ptr] = 0;
-    pri[ptr] = rng();
-    key[ptr] = K;
-    id[ptr] = Id;
+    nodes[node] = TreapNode(key);
     return node;
 }
 template<typename T>
 class Treap {
 private:
-    int root = 0;
- 
-	inline void apply(int treap, int c, T val = 0) {
+    int root;
+
+    int get_size(int treap) {
+        return !treap ? 0 : nodes[treap].size;
+    }
+    
+    T get_ans(int treap) {
+        return !treap ? 0 : nodes[treap].ans;
+    }
+    
+    ll get_pref(int treap, int i) {
+        return !treap ? 0 : (nodes[treap].reverse ? nodes[treap].suff[i] : nodes[treap].pref[i]);
+    }
+
+    ll get_suff(int treap, int i) {
+        return !treap ? 0 : (nodes[treap].reverse ? nodes[treap].pref[i] : nodes[treap].suff[i]);
+    }
+    
+	void unite(int treap) {  
         if(!treap) return;
-        key[treap] += val;
-        ans[treap] += c;
-        lazy2[treap] += c;
-        lazy1[treap] += val;
+        nodes[treap].size = get_size(nodes[treap].left) + get_size(nodes[treap].right) + 1;
+//        for(int i = 0; i < HASH_COUNT; i++) {
+//            nodes[treap].pref[i] = (get_pref(nodes[treap].right, i) + (p[i][get_size(nodes[treap].right)] * nodes[treap].key) % mod[i] + (get_pref(nodes[treap].left, i) * p[i][get_size(nodes[treap].right) + 1]) % mod[i]) % mod[i];
+//            nodes[treap].suff[i] = (get_suff(nodes[treap].left, i) + (p[i][get_size(nodes[treap].left)] * nodes[treap].key) % mod[i] + (get_suff(nodes[treap].right, i) * p[i][get_size(nodes[treap].left) + 1]) % mod[i]) % mod[i];
+//        }
     }
- 
-    inline void push(int treap) {  
-        if(!treap || lazy2[treap] == 0) return;
-        apply(L[treap], lazy2[treap], lazy1[treap]);
-        apply(R[treap], lazy2[treap], lazy1[treap]);
-        lazy2[treap] = lazy1[treap] = 0;
+
+    void push(int treap) {  
+        if(!treap || nodes[treap].empty()) return;
+        if(nodes[treap].reverse) {
+            swap(nodes[treap].left, nodes[treap].right);
+            auto& L = nodes[treap].left;
+            auto& R = nodes[treap].right;
+            if(L) nodes[L].reverse ^= 1;
+            if(R) nodes[R].reverse ^= 1;
+        }
+        if(nodes[treap].flip) {
+            auto&L = nodes[treap].left;
+            auto&R = nodes[treap].right;
+            if(L) nodes[L].flip ^= 1;
+            if(R) nodes[R].flip ^= 1;
+        }
+        if(nodes[treap].lazy_set != -INF) {
+            nodes[treap].key = nodes[treap].lazy_set;
+            auto& L = nodes[treap].left;
+            auto&R = nodes[treap].right;
+            if(L) nodes[L].lazy_set = nodes[treap].lazy_set;
+            if(R) nodes[R].lazy_set = nodes[treap].lazy_set;
+            nodes[treap].reset();
+            unite(treap);
+            return;
+        }
+        if(nodes[treap].lazy_add) {
+            nodes[treap].key += nodes[treap].lazy_add;
+            auto&L = nodes[treap].left;
+            auto&R = nodes[treap].right;
+            if(L) nodes[L].lazy_add += nodes[treap].lazy_add;
+            if(R) nodes[R].lazy_add += nodes[treap].lazy_add;
+        }
+        nodes[treap].reset();
+        unite(treap);
     }
- 
-    inline void split(int treap, int& left, int& right, int k) {
-        if (!treap) {
+
+    void split(int treap, int& left, int& right, int k) {
+        if(!treap) {
             left = right = 0;
             return;
         }
         push(treap);
-        if ((key[treap] > k)) { 
-            split(L[treap], left, L[treap], k);
+        if((by_value ? (nodes[treap].key > k) : (get_size(nodes[treap].left) >= k))) { 
+            split(nodes[treap].left, left, nodes[treap].left, k);
             right = treap;
         } else {
-            split(R[treap], R[treap], right, k);
+            split(nodes[treap].right, nodes[treap].right, right, k - (by_value ? 0 : (get_size(nodes[treap].left) + 1)));
             left = treap;
         }
+        unite(treap);
     }
- 
-	inline void merge(int& treap, int left, int right) {
-        if (!left || !right) {
+
+	void merge(int& treap, int left, int right) {
+        if(!left || !right) {
             treap = left ? left : right;
             return;
         }
-        if(pri[left] < pri[right]) {
+        if(nodes[left].pri < nodes[right].pri) {
             push(left);
-            merge(R[left], R[left], right);
+            merge(nodes[left].right, nodes[left].right, right);
             treap = left;
         } else {
             push(right);
-            merge(L[right], left, L[right]);
+            merge(nodes[right].left, left, nodes[right].left);
             treap = right;
         }
+        unite(treap);
     }
- 
 public:
     bool by_value;
-    Treap(bool by_value = false) : root(0), by_value(by_value) {} // all one base indexing
- 
-    inline void insert(T key, int id) { 
+    Treap(bool by_value) : root(0), by_value(by_value) {} // all one base indexing
+    
+    void insert(T key) { 
+        if(!by_value) {
+            merge(root, root, new_node(key));
+            return;
+        }
         int A = 0;
         split(root, root, A, key - 1);
-        merge(root, root, new_node(key, id));
+        merge(root, root, new_node(key));
         merge(root, root, A);
     }
- 
-	inline void split_and_apply(int l, T k = 0) { 
-        int A = 0, B = 0;
-        split(root, root, A, l - 1); 
-        if(A) { 
-            apply(A, 1, k);
-            push(A);
+    
+	void insert_at(int k, T x) {
+        if(get_size(root) < k) {
+            insert(x);
+            return;
         }
-        split(A, A, B, l - 1);
-        root = merge_treap(root, A);
+        int A = 0;
+        split(root, root, A, k - 1);
+        merge(root, root, new_node(x));
+        merge(root, root, A);
+    }
+
+    void split_and_insert_at(int l, int r, int k) {
+        // split s[l, r], concatnate t = s[1, l - 1] + s[r + 1, n], then insert s[i, j] at kth position of the t string
+        int A = 0, B = 0;
+        split(root, root, A, l - 1);
+        split(A, A, B, r - l + 1);
+        merge(root, root, B);
+        if(get_size(root) < k) {
+            merge(root, root, A);
+            return;
+        }
+        split(root, root, B, k);
+        merge(root, root, A);
         merge(root, root, B);
     }
- 
- 
-    int merge_treap(int A, int B) {
-        if (!B) return A;
-        push(B);
-        A = merge_treap(A, L[B]);
-        A = merge_treap(A, R[B]);
-        L[B] = R[B] = 0;
-        int tx = 0, ty = 0;
-        split(A, tx, ty, key[B]);
-        merge(tx, tx, B);
-        merge(A, tx, ty);
-        return A;
+
+	bool is_palindrome(int l, int r) { // https://csacademy.com/contest/archive/task/strings/statement/
+        int L = 0, M = 0, R = 0;
+        split(root, L, M, l - 1);
+        split(M, M, R, r - l + 1);
+        push(M);  
+        bool ok = (nodes[M].pref[0] == nodes[M].suff[0]) && (nodes[M].pref[1] == nodes[M].suff[1]);
+        merge(M, M, R);
+        merge(root, L, M);
+        return ok;
     }
-    
-    inline void print() {  
-        print(root);
+
+	void split_and_apply(int l, int r, T k = 0) { 
+        if(by_value) {
+            int A = 0, B = 0;
+            split(root, root, A, l - 1); 
+            if(A) { 
+                push(A);
+            }
+            split(A, A, B, l - 1);
+            root = merge_treap(root, A);
+            merge(root, root, B);
+            return;
+        }
+        int A = 0, B = 0;
+        split(root, root, A, l - 1); 
+        split(A, A, B, r - l + 1);
+        if(A) { 
+            push(A);
+        }
+        merge(root, root, A);
+        merge(root, root, B);
+    }
+
+    void split_and_swap(int k) {
+        if(k == 0 || k == get_size(root)) return; 
+        int A = 0, B = 0, C = 0;
+        split(root, root, A, k);
+        if(!A) return;
+        merge(root, A, root);
+    }
+
+    void shift_right(int l, int r) { // [1 2 3 4] -> [4 1 2 3] and off_set by 1
+        r = r - l + 1;
+        int A = 0, B = 0, C = 0;
+        split(root, root, A, l - 1);
+        split(A, A, B, r);
+        split(A, A, C, r - 1);
+        merge(root, root, C);
+        merge(root, root, A);
+        merge(root, root, B);
+    }
+
+    void erase_at(int k) { 
+        int A = 0, B = 0;
+        split(root, root, A, k - 1);
+        split(A, A, B, 1);
+        merge(root, root, B);
     }
 	
-    inline void print(int treap) {  
+	void update_at(int k, T x) {
+        if(get_size(root) < k) return;
+        int A = 0, B = 0;
+        split(root, root, A, k - 1);
+        split(A, A, B, 1);
+        A = new_node(x);
+        merge(root, root, A);
+        merge(root, root, B);
+    }
+
+    T queries_at(int k) {  
+        int A = 0, B = 0, C = 0;
+        split(root, A, B, k - 1);
+        split(B, B, C, 1);  
+        T ans = nodes[B].key;
+        merge(root, A, B);  
+        merge(root, root, C);
+        return ans;
+    }
+	
+	T queries_range(int l, int r) {
+        int A = 0, B = 0;
+        split(root, root, A, l - 1);
+        split(A, A, B, (!by_value ? r - l + 1 : r));
+        T res = get_ans(A);
+        merge(root, root, A);
+        merge(root, root, B);
+        return res == INF ? -1 : res;
+    }
+
+	int erase_range(int l, int r) {
+        int A = 0, B = 0;
+        split(root, root, A, l - 1);
+        split(A, A, B, r);
+        merge(root, root, B);
+        return A;
+    }
+
+	int merge_treap(int A, int B) {
+        if(!B) return A;
+        if(!A) return B;
+        push(B);
+        A = merge_treap(A, nodes[B].left);
+        A = merge_treap(A, nodes[B].right);
+        nodes[B].left = nodes[B].right = 0;
+        int L = 0, R = 0;
+        split(A, L, R, nodes[B].key);
+        merge(L, L, B);
+        merge(A, L, R);
+        unite(A);
+        return A;
+    }
+
+    void merge_treap(int other) {
+        root = merge_treap(root, other);
+    }
+    
+    void reset() {
+        for(int i = 0; i <= ptr; i++) {
+            nodes[i] = TreapNode(0);
+        }
+        ptr = 0;
+        root = 0;
+    }
+
+    void print() {  
+        print(root);
+        cout << endl;
+    }
+	
+    void print(int treap) {  
         push(treap);
         if(!treap) return;
-        print(L[treap]); 
-        res[id[treap]] = ans[treap];
-        print(R[treap]);
+        print(nodes[treap].left); 
+        cout << char(nodes[treap].key + 'a');
+        print(nodes[treap].right);
+    }
+	
+	void print_substring(int pos, int len) { // 1 base index
+        int A = 0, B = 0;
+        split(root, root, A, pos - 1);
+        split(A, A, B, len);
+        print(A);
+        cout << endl;
+        merge(root, root, A);
+        merge(root, root, B);
     }
 };
 
@@ -442,6 +641,7 @@ class FW {
     }
 
     inline void update_range(int l, int r, T val) {
+		if(l > r) return;
         update_at(l, val), update_at(r + 1, -val);
     }
 	
@@ -449,17 +649,22 @@ class FW {
 		root.assign(n, DEFAULT);
 	}
 
-    int select(int x) { // get pos where sum >= x
-        int global = get(n), curr = 0;
-        for(int i = N; i >= 0; i--) {
-            int t = curr ^ (1LL << i);
-            if(t < n && global - root[t] >= x) {
-                swap(curr, t);
-                global -= root[curr];
+	ll select(ll k) {
+        ll pos = -1;
+        T acc = DEFAULT;
+        for(ll bit = 1LL << N; bit > 0; bit >>= 1) {
+            ll np = pos + bit;
+            if(np < n) {
+                T cand = acc + root[np];
+                if(cand.cnt < k) {
+                    acc = cand;
+                    pos = np;
+                }
             }
         }
-        return curr + 1;
+        return pos + 1;
     }
+
 };
 
 template<typename T>
@@ -1372,6 +1577,77 @@ struct nd_prefix_sum { // prefix sum on multidimensional
             res += sign * get_flat(idx);
         }
         return res;
+    }
+};
+
+struct interval_solver {
+    vpii a;
+    vi contain, is_contained, intersect;
+    vvi graph;
+    vi dp;
+    int n;
+    interval_solver(const vpii& a) : a(a), n(a.size()) {
+        // all inclusive(include itself), -1 if needed
+        contain.rsz(n); // how many segments does the ith contained
+        is_contained.rsz(n); // how many segment does the ith be in
+        intersect.rsz(n); // how many segment does the ith intersect with
+        graph.rsz(n + 1);
+        solve_contain();
+        solve_is_contained();
+        solve_intersect();
+    }
+
+    static bool cmp(const ar(3)& a, const ar(3)& b) { // [l, r, id]
+        if(a[0] != b[0]) return a[0] < b[0];
+        return a[1] > b[1];
+    }
+
+    void solve_is_contained() {
+        var(3) A;
+        for(int i = 0; i < n; i++) {
+            A.pb({a[i].ff, a[i].ss, i});
+        }
+        sort(all(A), cmp);
+        ordered_set<pii> s;
+        for(auto& [l, r, id] : A) {
+            s.insert({r, id});
+            is_contained[id] = s.size() - s.order_of_key(MP(r, -1));
+        }
+    }
+    
+    void solve_contain() {
+        var(3) A;
+        for(int i = 0; i < n; i++) {
+            A.pb({a[i].ff, a[i].ss, i});
+        }
+        sort(all(A), cmp);
+        ordered_set<pii> s;
+        for(int i = n - 1; i >= 0; i--) {
+            auto& [l, r, id] = A[i];
+            s.insert({r, id});
+            contain[id] = s.order_of_key(MP(r + 1, -1)); 
+        }
+    }
+
+    void solve_intersect() {
+        var(3) A;
+        for(int i = 0; i < n; i++) {
+            A.pb({a[i].ff, a[i].ss, i});
+        }
+        sort(all(A), cmp);
+        min_heap<int> q;
+        for(int i = 0; i < n; i++) {
+            auto& [l, r, id] = A[i];
+            while(!q.empty() && q.top() < l) q.pop();
+            int left = i, right = n - 1, extra = 0;
+            while(left <= right) {
+                int middle = midPoint;
+                if(A[middle][0] <= r) extra = middle - i + 1, left = middle + 1;
+                else right = middle - 1;
+            }
+            intersect[i] = q.size() + extra;
+            q.push(r);
+        }
     }
 };
 
@@ -2374,30 +2650,38 @@ vi min_knapsack(int n, const vi& a) { // return a vector which a[i] is min_eleme
     return dp;
 }
 
-vi min_knapsack(int n, const vi& a) { // return a vector which a[i] is min_element to reach sum_i, sum is bounded by n, giving n * sqrt(n)
-    // https://codeforces.com/contest/95/problem/E
-    vi count(n + 1, 0);
-    for(int sz : a) {
-        if(sz > 0 && sz <= n) count[sz]++;
+template<typename T>
+vector<T> sum_knapsack(int n, const vi& a) {
+    // return the # of subset sum to each dp[i]
+    // nqrt(n) 
+    vi cnt(n + 1, 0);
+    for(int x : a) {
+        if(x > 0 && x <= n) cnt[x]++;
     }
-
-    vi dp(n + 1, inf), next_dp;
-    dp[0] = 0;
-
-    for(int s = 1; s <= n; ++s) {
-        int cnt = count[s];
-        if(cnt <= 0) continue;
-
-        for(int r = 0; r < s; ++r) {
-            deque<pii> dq; // (q, value)
-            for(int j = r, q = 0; j <= n; j += s, ++q) {
-                int val = dp[j] - q;
-                while(!dq.empty() && dq.front().ff < q - cnt) dq.pop_front();
-                while(!dq.empty() && dq.back().ss >= val) dq.pop_back();
-                dq.emplace_back(q, val);
-                dp[j] = min(dp[j], dq.front().ss + q);
+    vt<T> dp(n + 1, T(0)), ndp(n + 1, T(0));
+    dp[0] = T(1);
+    for(int v = 1; v <= n; ++v) {
+        int c = cnt[v];
+        if(c == 0) continue;
+        fill(ndp.begin(), ndp.end(), T(0));
+        for(int r0 = 0; r0 < v; ++r0) {
+            T window_sum = T(0);
+            int maxK = (n - r0) / v;
+            for(int k = 0; k <= maxK; ++k) {
+                int j = r0 + k * v;
+                window_sum = window_sum + dp[j];
+                if(k - (c + 1) >= 0) {
+                    int jrem = r0 + (k - (c + 1)) * v;
+                    window_sum = window_sum - dp[jrem];
+                }
+                ndp[j] = window_sum;
             }
         }
+        dp.swap(ndp);
+    }
+    int zero = count(all(a), 0);
+    for(auto& x : dp) {
+        x *= (zero + 1);
     }
     return dp;
 }
@@ -2944,6 +3228,144 @@ struct Static_Range_Mode_Query {
             }
         }
         return {V[value], freq};
+    }
+};
+
+struct RangeSorter {
+    // use 1 base index array
+    // works for permutation
+    int POOLSZ;
+    int free_top;
+    var(2) ch;
+    vi rots, rs, typ, cnt, free_list;
+    set<int> runs;
+    int n;
+
+    RangeSorter(int _n, const vi& a)
+        : POOLSZ(_n * ((int)log2(_n) + 3)), free_list(POOLSZ), ch(POOLSZ), cnt(POOLSZ),
+          rots(_n + 2), rs(_n + 2), typ(_n + 2), n(_n)
+    {
+        free_top = POOLSZ - 1;
+        for(int i = 1; i < POOLSZ; i++) free_list[i] = i;
+        runs.clear();
+        for(int i = 1; i <= n; i++) {
+            rs[i] = i;
+            typ[i] = false;
+            runs.insert(i);
+            build_node(rots[i], 1, n, a[i]);
+        }
+    }
+
+    int alloc_node() {
+        int x = free_list[free_top--];
+        ch[x][0] = ch[x][1] = cnt[x] = 0;
+        return x;
+    }
+
+    void build_node(int &T, int L, int R, int p) {
+        T = alloc_node();
+        cnt[T] = 1;
+        if(L == R) return;
+        int M = (L + R) >> 1;
+        if(p <= M) build_node(ch[T][0], L, M, p);
+        else build_node(ch[T][1], M + 1, R, p);
+    }
+
+    int merge_tree(int t1, int t2) {
+        if(!t1 || !t2) return t1 ^ t2;
+        ch[t1][0] = merge_tree(ch[t1][0], ch[t2][0]);
+        ch[t1][1] = merge_tree(ch[t1][1], ch[t2][1]);
+        cnt[t1] += cnt[t2];
+        free_list[++free_top] = t2;
+        return t1;
+    }
+
+    void split_tree(int t1, int &t2, int k) {
+        t2 = alloc_node();
+        int ls = cnt[ch[t1][0]];
+        if(k > ls) split_tree(ch[t1][1], ch[t2][1], k - ls);
+        else swap(ch[t1][1], ch[t2][1]);
+        if(k < ls) split_tree(ch[t1][0], ch[t2][0], k);
+        cnt[t2] = cnt[t1] - k;
+        cnt[t1] = k;
+    }
+
+    int ask_kth(int T, int L, int R, int k) {
+        if(L == R) return L;
+        int ls = cnt[ch[T][0]];
+        int M = (L + R) >> 1;
+        if(k <= ls) return ask_kth(ch[T][0], L, M, k);
+        else return ask_kth(ch[T][1], M + 1, R, k - ls);
+    }
+
+    void split_at(int x) {
+        if(x < 1 || x > n) return;
+        auto it = prev(runs.ub(x));
+        int st = *it;
+        if (st == x) return;
+        int en = rs[st];
+        int len_left = x - st;
+        bool desc = typ[st];
+        int root = rots[st];
+        runs.erase(it);
+
+        int left_root, right_root;
+        if(!desc) {
+            split_tree(root, right_root, len_left);
+            left_root = root;
+        } else {
+            split_tree(root, left_root, (en - st + 1) - len_left);
+            right_root = root;
+        }
+        rots[st] = left_root;
+        rs[st] = x - 1;
+        typ[st] = desc;
+        rots[x] = right_root;
+        rs[x] = en;
+        typ[x] = desc;
+
+        runs.insert(st);
+        runs.insert(x);
+    }
+
+    void merge_runs(int a, int b) {
+        runs.erase(b);
+        rots[a] = merge_tree(rots[a], rots[b]);
+        rs[a] = rs[b];
+    }
+
+    void sort_range(int L, int R, bool descending) {
+        split_at(L);
+        split_at(R + 1);
+        auto itL = runs.lb(L);
+        auto itR = runs.ub(R);
+        vi to_merge;
+        for(auto it = itL; it != itR; ++it)
+            to_merge.pb(*it);
+        int base = to_merge[0];
+        for(size_t i = 1; i < to_merge.size(); i++)
+            merge_runs(base, to_merge[i]);
+        typ[base] = descending;
+    }
+
+    void sort_ascending(int L, int R) { sort_range(L, R, false); }
+    void sort_descending(int L, int R) { sort_range(L, R, true); }
+
+    int get(int pos) {
+        auto it = prev(runs.ub(pos));
+        int st = *it;
+        int offset = pos - st + 1;
+        bool desc = typ[st];
+        int length = rs[st] - st + 1;
+        if(!desc) return ask_kth(rots[st], 1, n, offset);
+        else return ask_kth(rots[st], 1, n, length - offset + 1);
+    }
+
+    vi final_array() {
+        vi ans(n);
+        for (int i = 1; i <= n; i++)
+            ans[i - 1] = get(i);
+        return ans;
     }
 };
 

@@ -249,23 +249,73 @@ string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
-    }
-    return edges;
-}
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+    ll n, k; cin >> n >> k;
+    vll a(n); cin >> a;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
+    vi parent(n, -1);
+    {
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                parent[nei] = node;
+                dfs(dfs, nei, node);
+            }
+        }; dfs(dfs);
+    }
+    vll limit(n);
+    ll total = 0;
+    vvi g(n);
+    for(int i = 0; i < n; i++) {
+        total += max(a[i], 0LL);
+        ll s = max(a[i], 0LL);
+        for(auto& j : graph[i]) {
+            if(parent[j] == i) {
+                if(a[j] == -1) {
+                    g[i].pb(j);
+                    g[j].pb(i);
+                }
+                s += max(a[j], 0LL);
+            }
+        }
+        limit[i] = k - s;
+        if(limit[i] < 0) {
+            cout << -1 << '\n';
+            return;
+        }
+    }
+    ll res = 0;
+    {
+        vvll dp(n, vll(2));
+        vi vis(n);
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+            vis[node] = true;
+            dp[node][0] = 0;
+            dp[node][1] = limit[node];
+            for(auto& nei : g[node]) {
+                if(nei == par || vis[nei]) continue;
+                dfs(dfs, nei, node);
+                dp[node][1] += min(dp[nei][0], dp[nei][1]);
+                dp[node][0] += dp[nei][1];
+            } 
+        };
+        ll extra = 0;
+        for(int i = 0; i < n; i++) {
+            if(vis[i]) continue;
+            dfs(dfs, i);
+            if(i == 0 && a[i] == -1) extra += dp[i][1];
+            else extra += min(dp[i][1], dp[i][0]);
+        }
+        res = extra + total;
+    }
+    cout << res << '\n';
 }
 
 signed main() {
