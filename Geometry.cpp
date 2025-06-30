@@ -146,6 +146,23 @@ struct CHT : multiset<Line> { // cht max, for min just inverse the sign
         else x->p = div(y->c - x->c, x->m - y->m);
         return x->p >= y->p;
     }
+	
+//    inline ld div(const Line& X, const Line& Y) { // for ld comparison
+//        return (Y.c - X.c) / (X.m - Y.m);
+//    }
+//
+//    bool isect(iterator x, iterator y) {
+//        if(y == end()) {
+//            x->p = INF;
+//            return false;
+//        }
+//        if(x->m == y->m) {
+//            x->p = x->c > y->c ? INF : -INF;
+//        } else {
+//            x->p = div(*x, *y); 
+//        }
+//        return x->p >= y->p;
+//    }
 
     void add(ll m, ll c) {
         auto z = insert({m, c, 0, 0}), y = z++, x = y;

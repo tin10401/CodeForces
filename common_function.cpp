@@ -853,3 +853,28 @@ string validate_substring(int n, const string& t, vi a) {
     }
     return s;
 }
+
+vi derangement(const vi& a) { // return an array where nothing is in the original position
+    vpii arr;
+    map<int, int> mp;
+    int mx = 0;
+    int n = a.size();
+    for(int i = 0; i < n; i++) {
+        int x = a[i];
+        arr.pb({a[i], i});
+        mx = max(mx, ++mp[x]);
+    }
+    srt(arr);
+    auto A(arr);
+    auto b(a);
+    ROTATE(arr, mx);
+    for(int i = 0; i < n; i++) {
+        b[A[i].ss] = arr[i].ff;
+    }
+    for(int i = 0; i < n; i++) {
+        if(a[i] == b[i]) {
+            return {};
+        }
+    }
+    return b;
+}

@@ -30,7 +30,7 @@ class Binary_Trie {
             curr = T[curr].c[bits];
             T[curr].cnt += v;
         }
-		// dfs_insert(0, num, m - 1);
+		// dfs_insert(root, num, m - 1);
     }
 	
 	void dfs_insert(int curr, ll num, int bit) {
@@ -759,11 +759,29 @@ vll base, mod;
 ll p[HASH_COUNT][MX];
 void initGlobalHashParams() {
     if (!base.empty() && !mod.empty()) return;
-    vll candidateBases = {
-        10859ULL,10861ULL,10867ULL,10883ULL,10889ULL,10891ULL,10903ULL,10909ULL
+	vll candidateBases = {
+        10007ULL, 10009ULL, 10037ULL, 10039ULL, 10061ULL, 10067ULL, 10069ULL, 10079ULL, 10091ULL, 10093ULL,
+        10099ULL, 10103ULL, 10111ULL, 10133ULL, 10139ULL, 10141ULL, 10151ULL, 10159ULL, 10163ULL, 10169ULL,
+        10177ULL, 10181ULL, 10193ULL, 10211ULL, 10223ULL, 10243ULL, 10247ULL, 10253ULL, 10259ULL, 10267ULL,
+        10271ULL, 10273ULL, 10289ULL, 10301ULL, 10303ULL, 10313ULL, 10321ULL, 10331ULL, 10333ULL, 10337ULL,
+        10343ULL, 10357ULL, 10369ULL, 10391ULL, 10399ULL, 10427ULL, 10429ULL, 10433ULL, 10453ULL, 10457ULL,
+        10459ULL, 10463ULL, 10477ULL, 10487ULL, 10499ULL, 10501ULL, 10513ULL, 10529ULL, 10531ULL, 10559ULL,
+        10567ULL, 10589ULL, 10597ULL, 10601ULL, 10607ULL, 10613ULL, 10627ULL, 10631ULL, 10639ULL, 10651ULL,
+        10657ULL, 10663ULL, 10667ULL, 10687ULL, 10691ULL, 10709ULL, 10711ULL, 10723ULL, 10729ULL, 10733ULL,
+        10739ULL, 10753ULL, 10771ULL, 10781ULL, 10789ULL, 10799ULL, 10831ULL, 10837ULL, 10847ULL, 10853ULL,
+        10859ULL, 10861ULL, 10867ULL, 10883ULL, 10889ULL, 10891ULL, 10903ULL, 10909ULL, 10937ULL, 10939ULL
     };
+
     vll candidateMods = {
-        1000002021ULL,1000002071ULL,1000002083ULL,1000002101ULL,1000002133ULL
+        1000000007ULL, 1000000009ULL, 1000000021ULL, 1000000033ULL, 1000000087ULL, 1000000093ULL, 1000000097ULL, 1000000103ULL, 1000000123ULL, 1000000181ULL,
+        1000000207ULL, 1000000223ULL, 1000000241ULL, 1000000271ULL, 1000000289ULL, 1000000297ULL, 1000000321ULL, 1000000349ULL, 1000000363ULL, 1000000403ULL,
+        1000000409ULL, 1000000411ULL, 1000000427ULL, 1000000433ULL, 1000000439ULL, 1000000447ULL, 1000000453ULL, 1000000459ULL, 1000000483ULL, 1000000513ULL,
+        1000000531ULL, 1000000579ULL, 1000000607ULL, 1000000613ULL, 1000000637ULL, 1000000663ULL, 1000000711ULL, 1000000753ULL, 1000000787ULL, 1000000801ULL,
+        1000000829ULL, 1000000891ULL, 1000000901ULL, 1000000931ULL, 1000000951ULL, 1000000993ULL, 1000001011ULL, 1000001021ULL, 1000001053ULL, 1000001097ULL,
+        1000001143ULL, 1000001161ULL, 1000001163ULL, 1000001179ULL, 1000001193ULL, 1000001231ULL, 1000001263ULL, 1000001303ULL, 1000001311ULL, 1000001351ULL,
+        1000001369ULL, 1000001431ULL, 1000001453ULL, 1000001503ULL, 1000001531ULL, 1000001593ULL, 1000001617ULL, 1000001649ULL, 1000001663ULL, 1000001703ULL,
+        1000001753ULL, 1000001783ULL, 1000001801ULL, 1000001853ULL, 1000001871ULL, 1000001957ULL, 1000001963ULL, 1000001969ULL, 1000002003ULL, 1000002029ULL,
+        1000002043ULL, 1000002051ULL, 1000002061ULL, 1000002083ULL, 1000002101ULL, 1000002133ULL, 1000002161ULL, 1000002179ULL, 1000002253ULL, 1000002271ULL
     };
 								 
 	unsigned seed = chrono::steady_clock::now().time_since_epoch().count();
@@ -1103,10 +1121,65 @@ struct LCS { // longest common subsequence
 
 class suffix_array {
     public:
+    template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
+        struct linear_rmq {
+            vt<T> values;
+            F compare;
+            vi head;
+            vt<array<unsigned,2>> masks;
+
+            linear_rmq() {}
+
+            linear_rmq(const vt<T>& arr, F cmp = F{})
+                : values(arr), compare(cmp),
+                head(arr.size()+1),
+                masks(arr.size())
+                {
+                    vi monoStack{-1};
+                    int n = arr.size();
+                    for (int i = 0; i <= n; i++) {
+                        int last = -1;
+                        while (monoStack.back() != -1 &&
+                                (i == n || !compare(values[monoStack.back()], values[i])))
+                        {
+                            if (last != -1) head[last] = monoStack.back();
+                            unsigned diffBit = __bit_floor(unsigned(monoStack.end()[-2] + 1) ^ i);
+                            masks[monoStack.back()][0] = last = (i & -diffBit);
+                            monoStack.pop_back();
+                            masks[monoStack.back() + 1][1] |= diffBit;
+                        }
+                        if (last != -1) head[last] = i;
+                        monoStack.pb(i);
+                    }
+                    for (int i = 1; i < n; i++) {
+                        masks[i][1] = (masks[i][1] | masks[i-1][1])
+                            & -(masks[i][0] & -masks[i][0]);
+                    }
+                }
+
+            T query(int L, int R) const {
+                unsigned common = masks[L][1] & masks[R][1]
+                    & -__bit_floor((masks[L][0] ^ masks[R][0]) | 1);
+                unsigned k = masks[L][1] ^ common;
+                if (k) {
+                    k = __bit_floor(k);
+                    L = head[(masks[L][0] & -k) | k];
+                }
+                k = masks[R][1] ^ common;
+                if (k) {
+                    k = __bit_floor(k);
+                    R = head[(masks[R][0] & -k) | k];
+                }
+                return compare(values[L], values[R]) ? values[L] : values[R];
+            }
+        };
     string s;
     int n;
     vi sa, pos, lcp;
     ll distinct_substring;
+    linear_rmq<int> rmq;
+    suffix_array() {}
+
     suffix_array(const string& s) {
         this->s = s;
         distinct_substring = 0;
@@ -1114,26 +1187,76 @@ class suffix_array {
         sa.rsz(n), pos.rsz(n), lcp.rsz(n);
         init();
         build_lcp();
+        rmq = linear_rmq<int>(lcp, [](const int& a, const int& b) {return a < b;});
     }
 
+    int get_lcp(int i, int j) {
+        if(i == j) return s.size() - i;
+        i = pos[i], j = pos[j];
+        if(i > j) swap(i, j);
+        return rmq.query(i, j - 1);
+    }
+
+    void sorted_substring(vpii& S) {
+        // https://codeforces.com/edu/course/2/lesson/2/5/practice/status
+        sort(all(S), [&](const pii &a, const pii& b) {
+                    auto& [l1, r1] = a;
+                    auto& [l2, r2] = b;
+                    int len1 = r1 - l1 + 1;
+                    int len2 = r2 - l2 + 1;
+                    int common = get_lcp(l1, l2);
+                    debug(a, b, common);
+                    if(common >= min(len1, len2)) {
+                        if(len1 != len2) return len1 < len2;
+                        return l1 < l2;
+                    }
+                    return s[l1 + common] < s[l2 + common];
+                });
+    }
+
+
     void init() {
-        vi tmp(n);
+        vi r(n), tmp(n), sa2(n), cnt(max(256, n) + 1);
+
         for(int i = 0; i < n; i++) {
             sa[i] = i;
-            pos[i] = s[i];
+            r[i] = s[i];
         }
-        for(int gap = 1; ; gap <<= 1) {
-            auto cmp = [&](int x, int y) -> bool {
-                if(pos[x] != pos[y]) return pos[x] < pos[y];
-                x += gap, y += gap;
-                return x < n && y < n ? pos[x] < pos[y] : x > y;
-            };
-            sort(all(sa), cmp);
-            for(int i = 0; i < n - 1; i++) {
-                tmp[i + 1] = tmp[i] + cmp(sa[i], sa[i + 1]);
+
+        for(int k = 1; k < n; k <<= 1) {
+            fill(all(cnt), 0);
+            for(int i = 0; i < n; i++) {
+                int key = (i + k < n ? r[i + k] + 1 : 0);
+                cnt[key]++;
             }
-            for(int i = 0; i < n; i++) pos[sa[i]] = tmp[i];
-            if(tmp[n - 1] == n - 1) break;
+            for(int i = 1; i < (int)cnt.size(); i++) cnt[i] += cnt[i - 1];
+            for(int i = n - 1; i >= 0; i--) {
+                int j = sa[i];
+                int key = (j + k < n ? r[j + k] + 1 : 0);
+                sa2[--cnt[key]] = j;
+            }
+
+            fill(all(cnt), 0);
+            for(int i = 0; i < n; i++) {
+                cnt[r[i] + 1]++;
+            }
+            for(int i = 1; i < (int)cnt.size(); i++) cnt[i] += cnt[i - 1];
+            for(int i = n - 1; i >= 0; i--) {
+                int j = sa2[i];
+                sa[--cnt[r[j] + 1]] = j;
+            }
+
+            tmp[sa[0]] = 0;
+            for(int i = 1; i < n; i++) {
+                auto [a1, b1] = MP(r[sa[i - 1]], sa[i - 1] + k < n ? r[sa[i - 1] + k] : -1);
+                auto [a2, b2] = MP(r[sa[i]], sa[i] + k < n ? r[sa[i] + k] : -1);
+                tmp[sa[i]] = tmp[sa[i - 1]] + (a1 != a2 || b1 != b2);
+            }
+            r = tmp;
+            if(r[sa[n - 1]] == n - 1) break;  
+        }
+        for(int i = 0; i < n; i++) {
+            pos[sa[i]] = i;
         }
     }
 
@@ -1147,54 +1270,68 @@ class suffix_array {
         }
         distinct_substring = (ll)n * (n + 1) / 2 - sum(lcp);
     }
-     
+
     int check(const string& x, int m) {
-        int found = -1, j = sa[m];
-        if(n - j >= (int)x.size()) found = 0;
-        for(int i = 0; i < min(n, (int)x.size()); i++)
-        {
-            if(s[i + j] < x[i]) return -1;
-            if(s[i + j] > x[i]) return 1;
+        int j = sa[m];
+        int L = min((int)x.size(), n - j);
+        for(int i = 0; i < L; i++) {
+            if(s[j + i] < x[i]) return -1;
+            if(s[j + i] > x[i]) return  1;
         }
-        return found;
+        if((int)x.size() == L) return 0;
+        return -1;
+    }
+     
+    pii get_bound(const string& x) {
+        int l = 0, r = n - 1, first = -1;
+        while(l <= r) {
+            int m = (l + r) >> 1;
+            int v = check(x, m);
+            if(v >= 0) {
+                if(v == 0) first = m;
+                r = m - 1;
+            } else {
+                l = m + 1;
+            }
+        }
+        if(first == -1) return {-1, -1};
+        l = first; 
+        r = n - 1;
+        int last = first;
+        while(l <= r) {
+            int m = (l + r) >> 1;
+            int v = check(x, m);
+            if(v <= 0) {
+                if(v == 0) last = m;
+                l = m + 1;
+            } else {
+                r = m - 1;
+            }
+        }
+        return {first, last};
     }
 
     int count(const string& x) {
-        int left = 0, right = n - 1, left_most = -1, right_most = -1;
-        while(left <= right) {
-            int middle = midPoint;
-            int val = check(x, middle);
-            if(val == 0) left_most = middle, right = middle - 1;
-            else if(val == -1) left = middle + 1;
-            else right = middle - 1;
-        }
-        if(left_most == -1) return 0;
-        left = left_most, right = n - 1;
-        while(left <= right) {
-            int middle = midPoint;
-            int val = check(x, middle);
-            if(val == 0) right_most = middle, left = middle + 1;
-            else if(val == -1) left = middle + 1;
-            else right = middle - 1;
-        }
-        return right_most - left_most + 1;
+        if(x.size() > n) return 0;
+        auto [l, r] = get_bound(x);
+        return l == -1 ? 0 : r - l + 1;
     }
 
-    string lcs(const string& t) {
+    string lcs(const string& s, const string& t) {
         string combined = s + '$' + t;
         suffix_array sa_combined(combined);
         int max_lcp = 0, start_pos = 0;
         int split = s.size();
-        for (int i = 1; i < sa_combined.n; i++) {
+        for(int i = 1; i < sa_combined.n; i++) {
             int suffix1 = sa_combined.sa[i - 1];
             int suffix2 = sa_combined.sa[i];
             bool in_s1 = suffix1 < split;
             bool in_t1 = suffix2 > split;
             bool in_s2 = suffix2 < split;
             bool in_t2 = suffix1 > split;
-            if ((in_s1 && in_t1) || (in_s2 && in_t2)) {
+            if((in_s1 && in_t1) || (in_s2 && in_t2)) {
                 int len = sa_combined.lcp[i - 1];
-                if (len > max_lcp) {
+                if(len > max_lcp) {
                     max_lcp = len;
                     start_pos = sa_combined.sa[i];
                 }
@@ -1202,4 +1339,425 @@ class suffix_array {
         }
         return combined.substr(start_pos, max_lcp);
     }
+
+    string kth_distinct(ll k) {
+        if(k > (ll)n * (n + 1) / 2) return "";
+        ll prev = 0, curr = 0;
+        for(int i = 0; i < n; i++) {
+            if(curr + (n - sa[i]) - prev >= k) {
+                string ans = s.substr(sa[i], prev);
+                while(curr < k) {
+                    ans += s[sa[i] + prev++];
+                    curr++;
+                }
+                return ans;
+            }
+            curr += (n - sa[i]) - prev;
+            prev = lcp[i];
+        }
+        return "";
+    }
+
+    string lcs(vs& a) {
+        int K = a.size();
+        if(K == 0) return "";
+        if(K == 1) return a[0];
+
+        int total = 0;
+        for(auto &s : a) total += s.size() + 1;
+        string T; 
+        T.reserve(total);
+        vi owner;
+        owner.reserve(total);
+        for(int i = 0; i < K; i++) {
+            for(char& c : a[i]) {
+                T.pb(c);
+                owner.pb(i);
+            }
+            T.pb(char(1 + i));
+            owner.pb(-1);
+        }
+
+        suffix_array sa2(T);
+        int N2 = sa2.n;
+
+        vi freq(K);
+        int have = 0, left = 0;
+        int best = 0, bestPos = 0;
+        deque<pii> dq;
+
+        for(int right = 0; right < N2; right++) {
+            int id = owner[sa2.sa[right]];
+            if(id >= 0 && ++freq[id] == 1) have++;
+
+            if(right > 0) {
+                int idx = right - 1;
+                int v = sa2.lcp[idx];
+                while(!dq.empty() && dq.back().ss >= v) dq.pop_back();
+                dq.emplace_back(idx, v);
+            }
+
+            while(have == K) {
+                while(!dq.empty() && dq.front().ff < left) dq.pop_front();
+                if(left < right && !dq.empty() && dq.front().ss > best) {
+                    best = dq.front().ss;
+                    bestPos = sa2.sa[dq.front().ff];
+                }
+                int idL = owner[sa2.sa[left]];
+                if(idL >= 0 && --freq[idL] == 0) have--;
+                left++;
+            }
+        }
+        return best > 0 ? T.substr(bestPos, best) : string();
+    }
+
+    vi lcp_vector(const string& s, const string& t) { // return a vector for each i in t represents the lcp in s
+        int n = s.size(), m = t.size();
+        const int N = n + m + 1;
+        suffix_array S(s + '#' + t);
+        vi prev(N, -1), next(N, -1);
+        for(int i = 0; i < N; i++) {
+            if(i) prev[i] = prev[i - 1];
+            int p = S.sa[i];
+            if(p < n) prev[i] = i;
+        }
+        for(int i = N - 1; i >= 0; i--) {
+            if(i < N - 1) next[i] = next[i + 1];
+            int p = S.sa[i];
+            if(p < n) next[i] = i;
+        }
+        vi A(m);
+        for(int i = n + 1; i < N; i++) {
+            int p = S.pos[i];
+            int mx = 0;
+            if(prev[p] != -1) {
+                mx = max(mx, S.get_lcp(i, S.sa[prev[p]]));
+            }
+            if(next[p] != -1) {
+                mx = max(mx, S.get_lcp(i, S.sa[next[p]]));
+            }
+            A[i - (n + 1)] = mx;
+        }
+        return A;
+    }
 };
+
+struct substring_count {
+    // https://codeforces.com/contest/914/problem/F
+    int n, W;
+    string s;
+    vt<ull> B[26];
+
+    substring_count(const string& str) : n(str.size()), s(str) {
+        W = (n + 63) / 64;
+        for(int c = 0; c < 26; c++)
+            B[c].assign(W, 0);
+        for(int i = 0; i < n; i++) {
+            int c = s[i] - 'a';
+            int w = i >> 6, b = i & 63;
+            B[c][w] |= (1ULL << b);
+        }
+    }
+
+    void update(int pos, char newc) {
+        int oldc = s[pos] - 'a', nc = newc - 'a';
+        if(oldc == nc) return;
+        int w = pos >> 6, b = pos & 63;
+        ull mask = 1ULL << b;
+        B[oldc][w] ^= mask;
+        B[nc][w] ^= mask;
+        s[pos] = newc;
+    }
+
+    ll query(int l, int r, const string& y) const {
+        int m = y.size();
+        if(m > r - l + 1) return 0;
+        vt<ull> M = B[y[0] - 'a'];
+        for(int j = 1; j < m; j++) {
+            int c = y[j] - 'a';
+            int sw = j >> 6, sb = j & 63;
+            vt<ull> T(W, 0);
+            for(int w = 0; w + sw < W; w++) {
+                ull low  = B[c][w + sw] >> sb;
+                ull high = sb ? B[c][w + sw + 1] << (64 - sb) : 0;
+                T[w] = low | high;
+            }
+            for(int w = 0; w < W; w++)
+                M[w] &= T[w];
+        }
+        int start = l, end = r - m + 1;
+        int wL = start >> 6, bL = start & 63;
+        int wR = end >> 6, bR = end & 63;
+        long long ans = 0;
+        if(wL == wR) {
+            ull mask = (~0ULL << bL) & (~0ULL >> (63 - bR));
+            ans = pct(M[wL] & mask);
+        } else {
+            ans += pct(M[wL] & (~0ULL << bL));
+            for (int w = wL + 1; w < wR; w++)
+                ans += pct(M[w]);
+            ans += pct(M[wR] & (~0ULL >> (63 - bR)));
+        }
+        return ans;
+    }
+};
+
+struct eer_tree {
+    struct Node {
+        int len, link, next[26];
+        ll palindrome;
+        Node(int l = 0) : len(l), link(0), palindrome(0) { mset(next, 0); }
+    };
+
+    struct SnapInfo {
+        int last;
+        int max_len;
+        int max_end;
+        ll total_palindrome;
+    };
+
+    vt<Node> F;
+    string s;
+    int last;
+    int max_len, max_end;
+    ll total_palindrome;
+    vt<SnapInfo> snaps;
+
+    eer_tree() : max_len(0), max_end(0), last(0), total_palindrome(0) {
+        init();
+    }
+
+    void init(int n = 0) {
+        s.clear();
+        vt<Node>().swap(F);
+        F.reserve(n + 2);
+        F.pb(Node(-1));
+        F.pb(Node(0));
+        total_palindrome = 0;
+        last = 1;
+        max_len = 0;
+        max_end = 1;
+        snaps.clear();
+    }
+
+    int insert(char ch) {
+        s.pb(ch);
+        int pos = (int)s.size() - 1;
+        int c = ch - 'a';
+        int curr = last;
+        while(true) {
+            int L = F[curr].len;
+            if(pos - 1 - L >= 0 && s[pos - 1 - L] == ch) break;
+            curr = F[curr].link;
+        }
+        int created = false;
+        if(!F[curr].next[c]) {
+            int new_node = (int)F.size();
+            F[curr].next[c] = new_node;
+            F.pb(Node(F[curr].len + 2));
+            if(F.back().len == 1) {
+                F.back().link = 1;
+                F.back().palindrome = 1;
+            } else {
+                int link_cand = F[curr].link;
+                while(true) {
+                    int L = F[link_cand].len;
+                    if (pos - 1 - L >= 0 && s[pos - 1 - L] == ch) break;
+                    link_cand = F[link_cand].link;
+                }
+                F.back().link = F[link_cand].next[c];
+                F.back().palindrome = F[F.back().link].palindrome + 1;
+            }
+            created = true;
+        }
+        last = F[curr].next[c];
+        if(F[last].len > max_len) {
+            max_len = F[last].len;
+            max_end = pos;
+        }
+        total_palindrome += F[last].palindrome;
+        snaps.pb({last, max_len, max_end, total_palindrome});
+        return created;
+    }
+
+    void pop() {
+        if (s.empty()) return;
+        s.pop_back();
+        snaps.pop_back();
+        if(snaps.empty()) {
+            last = 1;
+            max_len = 0;
+            max_end = 1;
+            total_palindrome = 0;
+        } else {
+            auto &st = snaps.back();
+            last = st.last;
+            max_len = st.max_len;
+            max_end = st.max_end;
+            total_palindrome = st.total_palindrome;
+        }
+    }
+
+    string longest_palindrome() {
+        int start = max_end - max_len + 1;
+        return s.substr(start, max_len);
+    }
+
+    int distinct_palindrome() {
+        return (int)F.size() - 2;
+    }
+};
+
+template<int sigma = 26, char mch = 'a'>
+struct eertree {
+    // https://judge.yosupo.jp/problem/palindromes_in_deque
+    eertree(size_t q) {
+        q += 2;
+        cnt = len = par = link = slink = vector(q, 0);
+        to.resize(q);
+        link[0] = slink[0] = 1;
+        len[1] = -1;
+    }
+
+    template<bool back = 1>
+    static int get(auto const& d, size_t idx) {
+        if(idx >= size(d)) {
+            return -1;
+        } else if constexpr (back) {
+            return prev(end(d))[-idx];
+        } else {
+            return begin(d)[idx];
+        }
+    }
+    template<bool back = 1>
+    static void push(auto &d, auto c) {
+        if constexpr (back) {
+            d.push_back(c);
+        } else {
+            d.push_front(c);
+        }
+    }
+    template<bool back = 1>
+    static void pop(auto &d) {
+        if constexpr (back) {
+            d.pop_back();
+        } else {
+            d.pop_front();
+        }
+    }
+
+    template<bool back = 1>
+    void add_letter(char c) {
+        c -= mch;
+        push<back>(s, c);
+        int pre = get<back>(states, 0);
+        int last = make_to<back>(pre, c);
+        active += !(cnt[last]++);
+        int D = 2 + len[pre] - len[last];
+        while(D + len[pre] <= len[last]) {
+            pop<back>(states);
+            if(!empty(states)) {
+                pre = get<back>(states, 0);
+                D += get<back>(diffs, 0);
+                pop<back>(diffs);
+            } else {
+                break;
+            }
+        }
+        if(!empty(states)) {
+            push<back>(diffs, D);
+        }
+        push<back>(states, last);
+    }
+    template<bool back = 1>
+    void pop_letter() {
+        int last = get<back>(states, 0);
+        active -= !(--cnt[last]);
+        pop<back>(states);
+        pop<back>(s);
+        array cands = {pair{link[last], len[last] - len[link[last]]},
+                       pair{par[last], 0}};
+        for(auto [state, diff]: cands) {
+            if(empty(states)) {
+                states = {state};
+                diffs = {diff};
+            } else {
+                int D = get<back>(diffs, 0) - diff;
+                int pre = get<back>(states, 0);
+                if(D + len[state] > len[pre]) {
+                    push<back>(states, state);
+                    pop<back>(diffs);
+                    push<back>(diffs, D);
+                    push<back>(diffs, diff);
+                }
+            }
+        }
+        pop<back>(diffs);
+    }
+    void add_letter(char c, bool back = 1) {
+        if(back) {
+            add_letter<1>(c);
+        } else {
+            add_letter<0>(c);
+        }
+    }
+    void pop_letter(bool back = 1) {
+        if(back) {
+            pop_letter<1>();
+        } else {
+            pop_letter<0>();
+        }
+    }
+    int distinct() { return active; }
+
+    template<bool back = 1>
+    int maxlen() { return len[get<back>(states, 0)]; }
+
+    void pop_front() { pop_letter(0); }
+    void pop_back() { pop_letter(1); }
+    void push_front(char c) { add_letter(c, 0); }
+    void push_back(char c) { add_letter(c, 1); }
+    int longest_prefix_pal() { return maxlen<0>(); }
+    int longest_suffix_pal() { return maxlen<1>(); }
+
+    vector<array<int, sigma>> to;
+    vector<int> len, link, slink, par, cnt;
+
+    deque<char> s;
+    deque<int> states = {0}, diffs;
+    int sz = 2, active = 0;
+
+    template<bool back = 1>
+    int get_link(int v, char c) {
+        while(c != get<back>(s, len[v] + 1)) {
+            if(c == get<back>(s, len[link[v]] + 1)) {
+                v = link[v];
+            } else {
+                v = slink[v];
+            }
+        }
+        return v;
+    }
+
+    template<bool back = 1>
+    int make_to(int last, char c) {
+        last = get_link<back>(last, c);
+        if(!to[last][c]) {
+            int u = to[get_link<back>(link[last], c)][c];
+            link[sz] = u;
+            par[sz] = last;
+            len[sz] = len[last] + 2;
+            if(len[sz] - len[u] == len[u] - len[link[u]]) {
+                slink[sz] = slink[u];
+            } else {
+                slink[sz] = u;
+            }
+            to[last][c] = sz++;
+        }
+        return to[last][c];
+    }
+
+};
+
+
+

@@ -212,7 +212,7 @@ public:
         if(size(root) < k) return;
         TreapNode*A, *B;
         split(root, root, A, k - 1);
-        split(A, A, B, 1);
+        split(A, A, B, by_value ? k : 1);
         A = new TreapNode(x);
         merge(root, root, A);
         merge(root, root, B);
@@ -656,7 +656,7 @@ class FW {
             ll np = pos + bit;
             if(np < n) {
                 T cand = acc + root[np];
-                if(cand.cnt < k) {
+                if(cand < k) {
                     acc = cand;
                     pos = np;
                 }
@@ -1299,19 +1299,39 @@ class MO {
     public: 
     int n, q;  
     int block;
+    const static int K = 3;
     vi a;   
-    var(3) Q;
-    MO(vi& a, var(3)& Q) {  // 1 base index array
+    var(K) Q;
+    MO(vi& a, var(K)& Q) {  // 1 base index array
         n = a.size();
         q = Q.size();
         this->a = a;    
         this->Q = Q;
-        block = sqrt(n);
+		block = max(1, n / (int)sqrt(q));
+    }
+	
+	inline ll hilbertOrder(int x, int y, int pow, int rotate) {
+        if(pow == 0) return 0;
+        int hpow = 1 << (pow - 1);
+        int seg = (x < hpow) ? ((y < hpow) ? 0 : 3) : ((y < hpow) ? 1 : 2);
+        static const int rotateDelta[4] = {3, 0, 0, 1};
+        seg = (seg + rotate) & 3;
+        int nx = x & (x ^ hpow), ny = y & (y ^ hpow);
+        int nrot = (rotate + rotateDelta[seg]) & 3;
+        ll subSquare = 1ll << (2*pow - 2);
+        ll ans = seg * subSquare;
+        ll add = hilbertOrder(nx, ny, pow - 1, nrot);
+        if (seg == 1 || seg == 2) return ans + add;
+        return ans + (subSquare - add - 1);
     }
 
     vll queries() {    
 		// don't forget the sorting, you might accidentally remove it
-        auto cmp = [&](const ar(3)& a, const ar(3)& b) -> bool {    
+//        sort(Q.begin(), Q.end(), [&](auto &A, auto &B){
+//            return hilbertOrder(A[0], A[1], 18, 0)
+//                 < hilbertOrder(B[0], B[1], 18, 0);
+//        });
+        auto cmp = [&](const ar(K)& a, const ar(K)& b) -> bool {    
             if(a[0] / block != b[0] / block) return a[0] / block < b[0] / block;
             int d = a[0] / block;   
             if(d & 1) return a[1] > b[1];
@@ -1346,6 +1366,97 @@ class MO {
 			while(r > qr) modify(a[r--], -1);
 			while(l < ql) modify(a[l++], -1);
             res[id] = ans;
+        }
+        return res;
+    }
+};
+
+struct Mo_Update {
+    struct Update { int pos, oldv, newv; };
+    struct Query  { int l, r, t, idx; };
+    int n, B, cl, cr, ct;
+    vi A, orig, freq;
+    ll ans;
+    vector<Update> ups;
+    vector<Query> qs;
+
+    Mo_Update(vi &arr, var(3) &ops) { // 1 base index
+        n = arr.size();
+        cl = 1; cr = 0; ct = 0; ans = 0; // change to cl = 0, cr = -1 if needed for 0 index
+        auto curr(arr);
+        for(auto &[op, l, r] : ops) {
+            if(op == 0) { // update
+                ups.pb({l, curr[l], r});
+                curr[l] = r;
+            } else { // query
+                if(l > r) swap(l, r);
+                qs.pb({l, r, (int)ups.size(), (int)qs.size()});
+            }
+        }
+        orig = arr;
+        for(auto &u : ups) orig.pb(u.newv);
+        srtU(orig);
+        A.rsz(n);
+        auto get_id = [&](ll x) -> int {
+            return int(lb(all(orig), x) - begin(orig));
+        };
+        for(int i = 0; i < n; i++)
+            A[i] = get_id(arr[i]);
+        for (auto &u : ups) {
+            u.oldv = get_id(u.oldv);
+            u.newv = get_id(u.newv);
+        }
+        freq.assign(orig.size(), 0);
+        B = max(1, int(pow(n, 2.0 / 3.0)));
+    }
+
+    inline void add(int i) {
+        int v = A[i];
+        if(++freq[v] == 1) ans += orig[v];
+    }
+
+    inline void remove_(int i) {
+        int v = A[i];
+        if(--freq[v] == 0) ans -= orig[v];
+    }
+
+    inline void apply(int t) {
+        auto &u = ups[t];
+        int p = u.pos;
+        if(cl <= p && p <= cr) {
+            remove_(p);
+            A[p] = u.newv;
+            add(p);
+        } else A[p] = u.newv;
+    }
+
+    inline void rollback(int t) {
+        auto &u = ups[t];
+        int p = u.pos;
+        if(cl <= p && p <= cr) {
+            remove_(p);
+            A[p] = u.oldv;
+            add(p);
+        } else A[p] = u.oldv;
+    }
+
+    vll run() {
+        sort(all(qs), [&](const auto &a, const auto &b) {
+            int ab = a.l / B, bb = b.l / B;
+            if(ab != bb) return ab < bb;
+            int ar = a.r / B, br = b.r / B;
+            if(ar != br) return ar < br;
+            return a.t < b.t;
+        });
+        vll res(qs.size());
+        for(auto &q : qs) {
+            while(ct < q.t) apply(ct++);
+            while(ct > q.t) rollback(--ct);
+            while(cl > q.l) add(--cl);
+            while(cr < q.r) add(++cr);
+            while(cl < q.l) remove_(cl++);
+            while(cr > q.r) remove_(cr--);
+            res[q.idx] = ans;
         }
         return res;
     }
@@ -2935,112 +3046,6 @@ struct bracket {
     }
 };
 
-template<typename T>
-struct wavelet_tree { // one base index
-    int lo, hi;
-    wavelet_tree *l, *r;
-    vi b, c;
-
-    wavelet_tree() : lo(1), hi(0), l(nullptr), r(nullptr) {}
-
-    void init(int *from, int *to, int x, int y) {
-        lo = x, hi = y;
-        if(from >= to) return;
-        int mid = (lo + hi) >> 1;
-        auto f = [mid](int x) { return x <= mid; };
-        int n = to - from;
-        b.rsz(n + 2);
-        c.rsz(n + 2);
-        b[0] = 0; c[0] = 0;
-        for (int i = 0; i < n; i++) {
-            b[i + 1] = b[i] + f(from[i]);
-            c[i + 1] = c[i] + from[i];
-        }
-        if (hi == lo) return;
-        auto pivot = stable_partition(from, to, f);
-        l = new wavelet_tree();
-        l->init(from, pivot, lo, mid);
-        r = new wavelet_tree();
-        r->init(pivot, to, mid + 1, hi);
-    }
-
-    void init(vt<T> &v) {
-        reset();
-        if(v.empty()) return;
-        int L = MIN(v);
-        int R = MAX(v);
-        init(v.data(), v.data() + v.size(), L, R);
-    }
-
-    int get_kth(int l_idx, int r_idx, T k) {
-        int N = (int)b.size() - 2;
-        l_idx = max(1, l_idx);
-        r_idx = min(r_idx, N);
-        if(l_idx > r_idx) return 0;
-        if(lo == hi) return lo;
-        int inLeft = b[r_idx] - b[l_idx - 1], lb = b[l_idx - 1], rb = b[r_idx];
-        if(k <= inLeft) return this->l->get_kth(lb + 1, rb, k);
-        return this->r->get_kth(l_idx - lb, r_idx - rb, k - inLeft);
-    }
-
-    int count_less_or_equal_to(int l_idx, int r_idx, T k) {
-        int N = (int)b.size() - 2;
-        l_idx = max(1, l_idx);
-        r_idx = min(r_idx, N);
-        if(l_idx > r_idx || k < lo) return 0;
-        if (hi <= k) return r_idx - l_idx + 1;
-        int mid = (lo + hi) >> 1;
-        int lb = b[l_idx - 1], rb = b[r_idx];
-        if (k <= mid) return l->count_less_or_equal_to(lb + 1, rb, k);
-        int leftCount = rb - lb;
-        return leftCount + r->count_less_or_equal_to(l_idx - lb, r_idx - rb, k);
-    }
-
-    int count_equal_to(int l_idx, int r_idx, T k) {
-        int N = (int)b.size() - 2;
-        l_idx = max(1, l_idx);
-        r_idx = min(r_idx, N);
-        if(l_idx > r_idx || k < lo || k > hi) return 0;
-        if(lo == hi) return r_idx - l_idx + 1;
-        int lb = b[l_idx - 1], rb = b[r_idx];
-        int mid = (lo + hi) >> 1;
-        if(k <= mid) return this->l->count_equal_to(lb + 1, rb, k);
-        return this->r->count_equal_to(l_idx - lb, r_idx - rb, k);
-    }
-
-    ll sum_less_or_equal_to(int l_idx, int r_idx, T k) {
-        int N = (int)b.size() - 2;
-        l_idx = max(1, l_idx);
-        r_idx = min(r_idx, N);
-        if(l_idx > r_idx || k < lo) return 0;
-        if(hi <= k) return c[r_idx] - c[l_idx - 1];
-        int lb = b[l_idx - 1], rb = b[r_idx];
-        return this->l->sum_less_or_equal_to(lb + 1, rb, k) + this->r->sum_less_or_equal_to(l_idx - lb, r_idx - rb, k);
-    }
-
-    ~wavelet_tree() {
-        delete l;
-        delete r;
-    }
-
-    void reset() {
-        if (l) {
-            l->reset();
-            delete l;
-            l = nullptr;
-        }
-        if (r) {
-            r->reset();
-            delete r;
-            r = nullptr;
-        }
-        b.clear();
-        c.clear();
-        lo = 1;
-        hi = 0;
-    }
-};
-
 struct square_root_decomp {
     int block_size;
     vi a;
@@ -3406,6 +3411,10 @@ struct MonoQueue {
 
     bool empty() const {
         return in.empty() && out.empty();
+    }
+	
+	int size() {
+        return int(in.size() + out.size());
     }
 };
 

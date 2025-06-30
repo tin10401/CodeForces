@@ -49,6 +49,13 @@ void generatePrime() {
     }
 } static const bool _generate_prime_init = []() { generatePrime(); return true; }();
 
+// phi[divisor(n)] == n
+//void insert(int x) {
+//    for(auto& d : factorize(x)) {
+//        ans += comb.choose(cnt[d]++, K - 1) * phi[d];
+//    }    
+//}
+
 bool isPrime(uint64_t n) {
     if(n < 2) return false;
     for(uint64_t p : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL, 23ULL})
@@ -515,7 +522,8 @@ class Combinatoric {
     }
 	
     T nCk(int n, int r) { // change to ll if needed
-        T ans = 1;
+        if(n < r) return 0;
+		T ans = 1;
         for(int i = 1 ; i <= r ; i++) {
             ans *= n - i + 1;
             ans /= i ;   
@@ -571,6 +579,35 @@ class Combinatoric {
     }
 
 }; Combinatoric<mint> comb(MX);
+
+struct SumKBinomial {
+    // https://codeforces.com/contest/1549/problem/E
+    // return sum (nck(1 * k, x) + nck(2 * k, x) + ... + (n * k, x)) for each x from 1 to n * k
+    // bruteforce is given x
+    // for(int i = 0; i <= n; i++) {
+    //      ans += nck(i * k, x)
+    // }
+    int N, K;
+    vt<T> A;
+    SumKBinomial(int N_, int K_) : N(N_), K(K_), A(K_ * N_ + 1) {
+        T invK = T(K).inv();
+        A[0] = T(N);
+        int M = K * N;
+        for(int j = 1; j <= M; j++) {
+            T num = comb.choose(K * (N + 1), j + 1) - comb.choose(K, j + 1);
+            for(int i = 2; i <= K; i++) {
+                int idx = j + 1 - i;
+                if(idx < 0) break;
+                num -= comb.choose(K, i) * A[idx];
+            }
+            A[j] = num * invK;
+        }
+    }
+
+    T query(int x) const {
+        return (x >= 0 && x < (int)A.size() ? A[x] : T(0));
+    }
+};
 
 template<typename T>
 T sum_of_powers(long long n, int k) { // find (1 ^ k + 2 ^ k + ... + n ^ k) sum
@@ -1068,20 +1105,21 @@ struct sos_dp {
     }
 };
 
-vi submask_nck(int bit, int k) {
-    if(k < 0 || k > bit) return {};
+vll submask_nck(int n, int k) {
+    if(k < 0 || k > n) return {};
     if(k == 0) return {0};
-    vi masks;
-    int m = (1 << k) - 1;
-    int limit = 1 << bit;
+    vll masks;
+    ll m = (1LL << k) - 1;
+    ll limit = 1LL << n;
     while(m < limit) {
         masks.pb(m);
-        int x = m & -m;
-        int y = m + x;
+        ll x = m & -m;
+        ll y = m + x;
         m = ((m & ~y) / x >> 1) | y;
     }
     return masks;
 }
+
 
 //for(auto& p : primes) {
 //	for(int c = m / p; c >= 1; c--) f[c] += f[c * p];
