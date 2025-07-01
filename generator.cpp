@@ -260,11 +260,27 @@ vpii gen_tree(int n) {
     return edges;
 }
 
+string gen_string(int n) {
+    int N = uni(1, n);
+    string s;
+    while(N--) {
+        s += char(uni(0, 25) + 'a'); 
+    }
+    return s;
+}
+
 void solve() {
     int n = uni(1, 10);
     cout << n << '\n';
     for(int i = 0; i < n; i++) {
-        cout << uni(-10, 10) << (i == n - 1 ? '\n' : ' ');
+        cout << gen_string(5) << '\n';
+    }
+    int q = uni(1, 10);
+    cout << q << '\n';
+    while(q--) {
+        int x = uni(1, n);
+        int y = uni(1, n);
+        cout << x << ' ' << y << '\n';
     }
 }
 

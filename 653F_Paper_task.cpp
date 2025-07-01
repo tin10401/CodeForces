@@ -251,6 +251,96 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T>
+struct PSGT {
+    struct Node {
+        int l, r;
+        T key;
+        Node(int key) : key(key), l(0), r(0) {}
+    };
+    int new_node(int prev) {
+        F.pb(F[prev]);
+        return F.size() - 1;
+    }
+
+    int new_node() {
+        F.pb(0);
+        return F.size() - 1;
+    }
+    vt<Node> F;
+    vi t;
+    int n;
+    T DEFAULT;
+    PSGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT), t(n) {
+        F.reserve(n * 20);
+        F.pb(Node(DEFAULT));
+    }
+
+	int update(int prev, int id, T delta, int left, int right) {  
+        int curr = new_node(prev);
+        if(left == right) { 
+            F[curr].key = merge(F[curr].key, delta);
+            return curr;
+        }
+        int middle = midPoint;
+        if(id <= middle) F[curr].l = update(F[prev].l, id, delta, left, middle); // PSGT
+        else F[curr].r = update(F[prev].r, id, delta, middle + 1, right);
+        F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
+        return curr;
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return F[curr].key;
+        int middle = midPoint;  
+		return merge(queries_at(F[curr].l, start, end, left, middle), queries_at(F[curr].r, start, end, middle + 1, right));
+    };
+        
+    T get(int curr, int prev, int k, int left, int right) {    
+        if(F[curr].key - F[prev].key < k) return DEFAULT;
+        if(left == right) return left;
+        int leftCount = F[F[curr].l].key - F[F[prev].r].key;
+        int middle = midPoint;
+        if(leftCount >= k) return get(F[curr].l, F[prev].l, k, left, middle);
+        return get(F[curr].r, F[prev].r, k - leftCount, middle + 1, right);
+    }
+
+    T get(int l, int r, int k) {
+        return get(t[r], t[l - 1], k, 0, n - 1);
+    }
+	
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(F[curr].key < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(F[F[curr].f].key >= k) return find_k(F[curr].f, k, left, middle);
+        return find_k(F[curr].ss, k - F[F[curr].l].key, middle + 1, right);
+    }
+
+    void update_at(int i, int prev, int id, T delta) { 
+        t[i] = update(prev, id, delta, 0, n - 1); 
+    }
+
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+    }
+
+	T queries_range(int l, int r, int low, int high) {
+        if(l > r || low > high) return DEFAULT;
+        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+        auto R = queries_at(r, low, high);
+        return R - L;
+    }
+
+    T merge(T left, T right) {
+        return left + right;
+    }
+};
+
 class suffix_array {
     public:
     template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
@@ -329,19 +419,23 @@ class suffix_array {
         return rmq.query(i, j - 1);
     }
 
-    bool compare(pii a, pii b) {
-        auto& [l1, r1] = a;
-        auto& [l2, r2] = b;
-        int len1 = r1 - l1 + 1;
-        int len2 = r2 - l2 + 1;
-        int common = get_lcp(l1, l2);
-        debug(a, b, common);
-        if(common >= min(len1, len2)) {
-            if(len1 != len2) return len1 < len2;
-            return l1 < l2;
-        }
-        return s[l1 + common] < s[l2 + common];
+    void sorted_substring(vpii& S) {
+        // https://codeforces.com/edu/course/2/lesson/2/5/practice/status
+        sort(all(S), [&](const pii &a, const pii& b) {
+                    auto& [l1, r1] = a;
+                    auto& [l2, r2] = b;
+                    int len1 = r1 - l1 + 1;
+                    int len2 = r2 - l2 + 1;
+                    int common = get_lcp(l1, l2);
+                    debug(a, b, common);
+                    if(common >= min(len1, len2)) {
+                        if(len1 != len2) return len1 < len2;
+                        return l1 < l2;
+                    }
+                    return s[l1 + common] < s[l2 + common];
+                });
     }
+
 
     void init() {
         vi r(n), tmp(n), sa2(n), cnt(max(256, n) + 1);
@@ -570,35 +664,35 @@ class suffix_array {
     }
 };
 
-
-
 void solve() {
+    int n; cin >> n;
     string s; cin >> s;
-    int n = s.size();
-    vvar(3) dp(n + 1, var(3)(n + 1, {-inf, 0, 0}));
-    dp[0][1] = {0, -1, -1};
-    suffix_array S(s);
-    ar(3) best = {-inf, 1, n};
+    stack<int> st;
+    vi right(n, -1);
     for(int i = 0; i < n; i++) {
-        for(int j = i + 1; j < n; j++) {
-            dp[i][j + 1] = max(dp[i][j + 1], dp[i][j]);
-            int len = min(S.get_lcp(i, j), j - i);
-            if(j == 0 || (j + len + 1 <= n && (i + len == j || s[i + len] < s[j + len]))) {
-                dp[j][j + len + 1] = max(dp[j][j + len + 1], {dp[i][j][0] + 1, i, j});
-            }
+        char c = s[i];
+        if(c == ')' && !st.empty() && s[st.top()] == '(') {
+            right[st.top()] = i;
+            st.pop();
+        } else {
+            st.push(i);
         }
-        best = max(best, {dp[i][n][0], i, n});
     }
-    vs ans;
-    pii curr = {best[1], best[2]};
-    while(curr.ff != -1) {
-        ans.pb(s.substr(curr.ff, curr.ss - curr.ff));
-        auto it = dp[curr.ff][curr.ss];
-        curr = {it[1], it[2]};
+    PSGT<int> root(n + 1, 0);
+    for(int i = n - 1; i >= 0; i--) {
+        if(right[i] == -1) continue;
+        root.update_at(i, root.t[right[i] + 1], right[i], 1);
     }
-    rev(ans);
-    cout << ans.size() << '\n';
-    for(auto& x : ans) cout << x << '\n';
+    suffix_array S(s);
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+        int p = S.sa[i];
+        if(right[p] != -1) {
+            res += root.queries_at(p, p, n) - (i ? root.queries_at(p, p, p + S.lcp[i - 1] - 1) : 0);
+        }
+    }
+    cout << res << '\n';
+
 }
 
 signed main() {

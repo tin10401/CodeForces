@@ -822,7 +822,7 @@ struct PSGT {
     struct Node {
         int l, r;
         T key;
-        Node(int key) : key(key), l(0), r(0) {}
+        Node(T key) : key(key), l(0), r(0) {}
     };
     int new_node(int prev) {
         F.pb(F[prev]);

@@ -1442,6 +1442,177 @@ class suffix_array {
     }
 };
 
+template<int sigma = 26>
+struct SAM {
+    struct State {
+        int len;
+        int link;
+        array<int, sigma> next;
+        ll cnt;
+        State() : len(0), link(-1), cnt(0) { next.fill(-1); }
+    };
+
+    vt<State> st;
+    int last;
+    ll distinct_substring;
+    vll dp_distinct;
+    vll dp_all;
+
+    SAM(int maxlen = 0) {
+        st.reserve(2 * maxlen);
+        st.emplace_back();
+        last = 0;
+    }
+
+    SAM(const string& s) {
+        st.reserve(2 * (int)s.size());
+        st.emplace_back();
+        last = 0;
+
+        for(char ch : s) {
+            extend(ch);
+        }
+        compute_counts();
+        build_dp();
+
+        distinct_substring = 0;
+        for (int i = 1; i < (int)st.size(); i++) {
+            distinct_substring += st[i].len - (st[i].link == -1 ? 0 : st[st[i].link].len);
+        }
+    }
+
+    void extend(char ch) {
+        int c = ch - 'a';
+        int cur = st.size();
+        st.emplace_back();
+        st[cur].len = st[last].len + 1;
+        st[cur].cnt = 1;
+
+        int p = last;
+        while(p != -1 && st[p].next[c] == -1) {
+            st[p].next[c] = cur;
+            p = st[p].link;
+        }
+        if(p == -1) {
+            st[cur].link = 0;
+        } else {
+            int q = st[p].next[c];
+            if(st[p].len + 1 == st[q].len) {
+                st[cur].link = q;
+            } else {
+                int clone = st.size();
+                st.pb(st[q]);
+                st[clone].len = st[p].len + 1;
+                st[clone].cnt = 0;
+                while(p != -1 && st[p].next[c] == q) {
+                    st[p].next[c] = clone;
+                    p = st[p].link;
+                }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+
+    void compute_counts() {
+        int N = st.size();
+        int maxL = 0;
+        for(auto& s : st) maxL = max(maxL, s.len);
+
+        vi bucket(maxL + 1, 0);
+        for(auto& s : st) bucket[s.len]++;
+        for(int i = 1; i <= maxL; i++) bucket[i] += bucket[i - 1];
+
+        vi order(N);
+        for(int i = N - 1; i >= 0; i--) order[--bucket[st[i].len]] = i;
+
+        for(int i = N - 1; i > 0; i--) {
+            int v = order[i];
+            int p = st[v].link;
+            if(p != -1) st[p].cnt += st[v].cnt;
+        }
+    }
+
+    ll count(const string& s) {
+        int v = 0;
+        for(char ch : s) {
+            int c = ch - 'a';
+            if(st[v].next[c] == -1) return 0;
+            v = st[v].next[c];
+        }
+        return st[v].cnt;
+    }
+
+    void build_dp() {
+        int N = st.size(), maxL = 0;
+        for(auto& s : st) maxL = max(maxL, s.len);
+
+        vvi bucket(maxL + 1);
+        for(int i = 0; i < N; i++) bucket[st[i].len].pb(i);
+
+        dp_distinct.assign(N, 0);
+        dp_all.assign(N, 0);
+
+        for(int L = maxL; L >= 0; L--) {
+            for(int v : bucket[L]) {
+                for(int c = 0; c < sigma; c++) {
+                    int u = st[v].next[c];
+                    if(u == -1) continue;
+                    dp_distinct[v] += 1 + dp_distinct[u];
+                    dp_all[v] += st[u].cnt + dp_all[u];
+                }
+            }
+        }
+    }
+
+    string kth_distinct(ll k) {
+        string res;
+        int v = 0;
+        while(k > 0) {
+            for(int c = 0; c < sigma; c++) {
+                int u = st[v].next[c];
+                if(u == -1) continue;
+
+                ll cnt_sub = 1 + dp_distinct[u];
+                if(k > cnt_sub) {
+                    k -= cnt_sub;
+                } else {
+                    res.pb('a' + c);
+                    k--;
+                    v = u;
+                    break;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    string kth_all(ll k) const {
+        string res;
+        int v = 0;
+
+        while(k > 0) {
+            for(int c = 0; c < sigma; c++) {
+                int u = st[v].next[c];
+                if(u == -1) continue;
+                ll cnt_sub = st[u].cnt + dp_all[u];
+                if(k > cnt_sub) {
+                    k -= cnt_sub;
+                } else {
+                    res.pb('a' + c);
+                    k -= st[u].cnt;
+                    v = u;
+                    break;
+                }
+            }
+        }
+
+        return res;
+    }
+};
+
+
 struct substring_count {
     // https://codeforces.com/contest/914/problem/F
     int n, W;

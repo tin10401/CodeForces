@@ -329,19 +329,23 @@ class suffix_array {
         return rmq.query(i, j - 1);
     }
 
-    bool compare(pii a, pii b) {
-        auto& [l1, r1] = a;
-        auto& [l2, r2] = b;
-        int len1 = r1 - l1 + 1;
-        int len2 = r2 - l2 + 1;
-        int common = get_lcp(l1, l2);
-        debug(a, b, common);
-        if(common >= min(len1, len2)) {
-            if(len1 != len2) return len1 < len2;
-            return l1 < l2;
-        }
-        return s[l1 + common] < s[l2 + common];
+    void sorted_substring(vpii& S) {
+        // https://codeforces.com/edu/course/2/lesson/2/5/practice/status
+        sort(all(S), [&](const pii &a, const pii& b) {
+                    auto& [l1, r1] = a;
+                    auto& [l2, r2] = b;
+                    int len1 = r1 - l1 + 1;
+                    int len2 = r2 - l2 + 1;
+                    int common = get_lcp(l1, l2);
+                    debug(a, b, common);
+                    if(common >= min(len1, len2)) {
+                        if(len1 != len2) return len1 < len2;
+                        return l1 < l2;
+                    }
+                    return s[l1 + common] < s[l2 + common];
+                });
     }
+
 
     void init() {
         vi r(n), tmp(n), sa2(n), cnt(max(256, n) + 1);
@@ -570,35 +574,30 @@ class suffix_array {
     }
 };
 
-
-
 void solve() {
     string s; cin >> s;
     int n = s.size();
-    vvar(3) dp(n + 1, var(3)(n + 1, {-inf, 0, 0}));
-    dp[0][1] = {0, -1, -1};
     suffix_array S(s);
-    ar(3) best = {-inf, 1, n};
+    const auto& lcp = S.lcp;
+    auto left = closest_left(lcp, less<int>());
+    auto right = closest_right(lcp, less_equal<int>());
+    ll res = 0;
     for(int i = 0; i < n; i++) {
-        for(int j = i + 1; j < n; j++) {
-            dp[i][j + 1] = max(dp[i][j + 1], dp[i][j]);
-            int len = min(S.get_lcp(i, j), j - i);
-            if(j == 0 || (j + len + 1 <= n && (i + len == j || s[i + len] < s[j + len]))) {
-                dp[j][j + len + 1] = max(dp[j][j + len + 1], {dp[i][j][0] + 1, i, j});
-            }
-        }
-        best = max(best, {dp[i][n][0], i, n});
+        ll X = lcp[i];
+        if(X == 0) continue;
+        int L = left[i], R = right[i];
+        int border = 0;
+        if(L) border = max(border, lcp[L - 1]);
+        if(R + 1 < n) border = max(border, lcp[R + 1]);
+        ll occur = R - L + 2;
+        res += occur * occur * (X - border);
     }
-    vs ans;
-    pii curr = {best[1], best[2]};
-    while(curr.ff != -1) {
-        ans.pb(s.substr(curr.ff, curr.ss - curr.ff));
-        auto it = dp[curr.ff][curr.ss];
-        curr = {it[1], it[2]};
+    for(int i = 0; i < n; i++) {
+        int len = n - S.sa[i];
+        len -= max(i ? lcp[i - 1] : 0, lcp[i]);
+        res += len;
     }
-    rev(ans);
-    cout << ans.size() << '\n';
-    for(auto& x : ans) cout << x << '\n';
+    cout << res << '\n';
 }
 
 signed main() {
@@ -609,7 +608,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

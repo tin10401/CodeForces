@@ -251,6 +251,169 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<typename T = int>
+class GRAPH {
+public:
+	int n, m;
+    vvi dp;
+    vi parent, subtree;
+    vi tin, tout, low, ord, depth;
+    int timer = 0;
+    vt<unsigned> in_label, ascendant;
+    vi par_head;
+    unsigned cur_lab = 1;
+    vt<vt<T>> adj;
+
+    GRAPH() {}
+
+    GRAPH(const vt<vt<T>>& graph, int root = 0) {
+        adj = graph;
+        n = graph.size();
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m, -1));
+        depth.rsz(n);
+        parent.rsz(n, -1);
+        subtree.rsz(n, 1);
+        tin.rsz(n);
+        tout.rsz(n);
+        ord.rsz(n);
+        dfs(root);
+        in_label.rsz(n);
+        ascendant.rsz(n);
+        par_head.rsz(n + 1);
+        sv_dfs1(root);
+        ascendant[root] = in_label[root];
+        sv_dfs2(root);
+    }
+
+	void dfs(int node, int par = -1) {
+        tin[node] = timer++;
+        ord[tin[node]] = node;
+        for (auto& nei : adj[node]) {
+            if (nei == par) continue;
+            depth[nei] = depth[node] + 1;
+            dp[nei][0] = node;
+            parent[nei] = node;
+            dfs(nei, node);
+            subtree[node] += subtree[nei];
+        }
+        tout[node] = timer - 1;
+    }
+
+    bool is_ancestor(int par, int child) { return tin[par] <= tin[child] && tin[child] <= tout[par]; }
+
+    void sv_dfs1(int u, int p = -1) {
+        in_label[u] = cur_lab++;
+        for(auto& v : adj[u]) if (v != p) {
+            sv_dfs1(v, u);
+            if(std::__countr_zero(in_label[v]) > std::__countr_zero(in_label[u]))
+                in_label[u] = in_label[v];
+        }
+    }
+
+    void sv_dfs2(int u, int p = -1) {
+        for(auto& v : adj[u]) if (v != p) {
+            ascendant[v] = ascendant[u];
+            if(in_label[v] != in_label[u]) {
+                par_head[in_label[v]] = u;
+                ascendant[v] += in_label[v] & -in_label[v];
+            }
+            sv_dfs2(v, u);
+        }
+    }
+
+    int lift(int u, unsigned j) const {
+        unsigned k = std::__bit_floor(ascendant[u] ^ j);
+        return k == 0 ? u : par_head[(in_label[u] & -k) | k];
+    }
+
+    int lca(int a, int b) {
+        if(is_ancestor(a, b)) return a;
+        if(is_ancestor(b, a)) return b;
+        auto [x, y] = std::minmax(in_label[a], in_label[b]);
+        unsigned j = ascendant[a] & ascendant[b] & -std::__bit_floor((x - 1) ^ y);
+        a = lift(a, j);
+        b = lift(b, j);
+        return depth[a] < depth[b] ? a : b;
+    }
+
+    int dist(int u, int v) {
+        int a = lca(u, v);
+        return depth[u] + depth[v] - 2 * depth[a];
+    }
+};
+
+template<class T, typename TT = int>
+class HLD {
+    private:
+	vpii get_path_helper(int node, int par) {
+        vpii seg;
+        while(node != par && node != -1) {   
+            if(g.depth[tp[node]] > g.depth[par]) {   
+                seg.pb({id[node], id[tp[node]]});
+                node = parent[tp[node]];
+            } else {   
+                seg.pb({id[node], id[par] + 1});
+                break;  
+            } 
+        }   
+        seg.pb({id[par], id[par]});
+        return seg;
+    }
+    public:
+    vi id, tp, sz, parent, chain_id;
+    int chain_cnt;
+    int ct;
+    vt<vt<T>> graph;
+    int n;
+    GRAPH<TT> g;
+    T DEFAULT;
+    HLD() {}
+
+    HLD(vt<vt<TT>>& graph, int root = 0) : g(graph, root), n(graph.size()), DEFAULT(DEFAULT) {
+        this->parent = move(g.parent);
+        this->sz = move(g.subtree);
+        chain_cnt = 0;
+        chain_id.rsz(n);
+        ct = 0;
+        id.rsz(n), tp.rsz(n);
+        dfs(graph, root, -1, root);
+    }
+        
+    void dfs(const vt<vt<TT>>& graph, int node = 0, int par = -1, int top = 0) {   
+        id[node] = ct++;    
+        tp[node] = top;
+        if(node == top) chain_id[node] = chain_cnt++;
+        else chain_id[node] = chain_id[top];
+        int nxt = -1, max_size = -1;    
+        for(auto& nei : graph[node]) {   
+            if(nei == par) continue;    
+            if(sz[nei] > max_size) {   
+                max_size = sz[nei]; 
+                nxt = nei;  
+            }   
+        }   
+        if(nxt == -1) return;   
+        dfs(graph, nxt, node, top);   
+        for(auto& nei : graph[node]) {   
+            if(nei != par && nei != nxt) dfs(graph, nei, node, nei);  
+        }   
+    }
+
+	vpii get_path(int u, int v) {
+        int p = g.lca(u, v);
+        auto path = get_path_helper(u, p);
+        auto other = get_path_helper(v, p);
+        other.pop_back();
+        for(auto& [l, r] : other) {
+            swap(l, r);
+        }
+        rev(other);
+        path.insert(end(path), all(other));
+        return path;
+    }
+};
+
 class suffix_array {
     public:
     template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
@@ -329,19 +492,23 @@ class suffix_array {
         return rmq.query(i, j - 1);
     }
 
-    bool compare(pii a, pii b) {
-        auto& [l1, r1] = a;
-        auto& [l2, r2] = b;
-        int len1 = r1 - l1 + 1;
-        int len2 = r2 - l2 + 1;
-        int common = get_lcp(l1, l2);
-        debug(a, b, common);
-        if(common >= min(len1, len2)) {
-            if(len1 != len2) return len1 < len2;
-            return l1 < l2;
-        }
-        return s[l1 + common] < s[l2 + common];
+    void sorted_substring(vpii& S) {
+        // https://codeforces.com/edu/course/2/lesson/2/5/practice/status
+        sort(all(S), [&](const pii &a, const pii& b) {
+                    auto& [l1, r1] = a;
+                    auto& [l2, r2] = b;
+                    int len1 = r1 - l1 + 1;
+                    int len2 = r2 - l2 + 1;
+                    int common = get_lcp(l1, l2);
+                    debug(a, b, common);
+                    if(common >= min(len1, len2)) {
+                        if(len1 != len2) return len1 < len2;
+                        return l1 < l2;
+                    }
+                    return s[l1 + common] < s[l2 + common];
+                });
     }
+
 
     void init() {
         vi r(n), tmp(n), sa2(n), cnt(max(256, n) + 1);
@@ -570,35 +737,75 @@ class suffix_array {
     }
 };
 
-
-
 void solve() {
+    int n; cin >> n;
     string s; cin >> s;
-    int n = s.size();
-    vvar(3) dp(n + 1, var(3)(n + 1, {-inf, 0, 0}));
-    dp[0][1] = {0, -1, -1};
-    suffix_array S(s);
-    ar(3) best = {-inf, 1, n};
-    for(int i = 0; i < n; i++) {
-        for(int j = i + 1; j < n; j++) {
-            dp[i][j + 1] = max(dp[i][j + 1], dp[i][j]);
-            int len = min(S.get_lcp(i, j), j - i);
-            if(j == 0 || (j + len + 1 <= n && (i + len == j || s[i + len] < s[j + len]))) {
-                dp[j][j + len + 1] = max(dp[j][j + len + 1], {dp[i][j][0] + 1, i, j});
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    HLD<int> G(graph);
+    {
+        string t(s);
+        for(int i = 0; i < n; i++) {
+            t[G.id[i]] = s[i];
+        }
+        swap(s, t);
+    }
+    suffix_array S(s + '#' + string(rbegin(s), rend(s)));
+    int q; cin >> q;
+    while(q--) {
+        int u1, v1, u2, v2; cin >> u1 >> v1 >> u2 >> v2;
+        u1--, v1--, u2--, v2--;
+        auto A = G.get_path(u1, v1);
+        auto B = G.get_path(u2, v2);
+        int lcp = 0;
+        int i = 0, j = 0;
+        while(i < (int)A.size() && j < (int)B.size()) {
+            auto& [l1, r1] = A[i];
+            auto& [l2, r2] = B[j];
+            int len = min(abs(r1 - l1), abs(r2 - l2)) + 1;
+            int rl1 = 2 * n - l1;
+            int rl2 = 2 * n - l2;
+            if(l1 <= r1 && l2 <= r2) {
+                int now = min(len, S.get_lcp(l1, l2));
+                if(now == 0) break;
+                lcp += now;
+                l1 += now;
+                l2 += now;
+                if(l1 > r1) i++;
+                if(l2 > r2) j++;
+            } else if(l1 <= r1 && l2 > r2) {
+                int now = min(len, S.get_lcp(l1, rl2));  
+                if(now == 0) break;
+                lcp += now;
+                l1 += now;
+                l2 -= now;
+                if(l1 > r1) i++;
+                if(l2 < r2) j++;
+            } else if(l1 > r1 && l2 > r2) {
+                int now = min(len, S.get_lcp(rl1, rl2));
+                if(now == 0) break;
+                lcp += now;
+                l1 -= now;
+                l2 -= now;
+                if(l1 < r1) i++;
+                if(l2 < r2) j++;
+            } else {
+                int now = min(len, S.get_lcp(rl1, l2));
+                if(now == 0) break;
+                lcp += now;
+                l1 -= now;
+                l2 += now;
+                if(l1 < r1) i++;
+                if(l2 > r2) j++;
             }
         }
-        best = max(best, {dp[i][n][0], i, n});
+        cout << lcp << '\n';
     }
-    vs ans;
-    pii curr = {best[1], best[2]};
-    while(curr.ff != -1) {
-        ans.pb(s.substr(curr.ff, curr.ss - curr.ff));
-        auto it = dp[curr.ff][curr.ss];
-        curr = {it[1], it[2]};
-    }
-    rev(ans);
-    cout << ans.size() << '\n';
-    for(auto& x : ans) cout << x << '\n';
 }
 
 signed main() {
