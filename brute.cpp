@@ -1,162 +1,213 @@
-#include <bits/stdc++.h>
+#line 2 "/Users/noya2/Desktop/Noya2_library/template/template.hpp"
 using namespace std;
 
-#define MAX 605505
-#define pb push_back
-#define MP make_pair
+#include<bits/stdc++.h>
+#line 1 "/Users/noya2/Desktop/Noya2_library/template/inout_old.hpp"
+namespace noya2 {
 
-/*Suffix Array n logn^2 */
-struct mytuple {
-    int originalIdx;
-    int firstHalf,secondHalf;
-};
-
-int sr[35][MAX]; //suffixRank , gives rank of jth suffix on ith iteration
-int SA[MAX];
-mytuple t[MAX];
-
-bool compare(const mytuple &a , const mytuple &b) {
-    return a.firstHalf == b.firstHalf ?a.secondHalf < b.secondHalf :a.firstHalf < b.firstHalf;
+template <typename T, typename U>
+ostream &operator<<(ostream &os, const pair<T, U> &p){
+    os << p.first << " " << p.second;
+    return os;
+}
+template <typename T, typename U>
+istream &operator>>(istream &is, pair<T, U> &p){
+    is >> p.first >> p.second;
+    return is;
 }
 
-void getSA(string s, int length ) {
-    int pos = 0;
-    memset(SA , 0 ,sizeof(SA));
+template <typename T>
+ostream &operator<<(ostream &os, const vector<T> &v){
+    int s = (int)v.size();
+    for (int i = 0; i < s; i++) os << (i ? " " : "") << v[i];
+    return os;
+}
+template <typename T>
+istream &operator>>(istream &is, vector<T> &v){
+    for (auto &x : v) is >> x;
+    return is;
+}
 
-    for(int i=0; i<length; i++)
-        sr[0][i] = s[i] - 'a'; 
+void in() {}
+template <typename T, class... U>
+void in(T &t, U &...u){
+    cin >> t;
+    in(u...);
+}
 
-    for(int cnt = 1,stp = 1; (cnt>>1) < length ; cnt<<=1,stp++) {
-        for(int i = 0; i<length ; i++) {
-            t[i].firstHalf = sr[stp-1][i];
-            t[i].secondHalf = i+cnt < length ? sr[stp-1][i+cnt] : -1;
-            t[i].originalIdx = i;
+void out() { cout << "\n"; }
+template <typename T, class... U, char sep = ' '>
+void out(const T &t, const U &...u){
+    cout << t;
+    if (sizeof...(u)) cout << sep;
+    out(u...);
+}
+
+template<typename T>
+void out(const vector<vector<T>> &vv){
+    int s = (int)vv.size();
+    for (int i = 0; i < s; i++) out(vv[i]);
+}
+
+struct IoSetup {
+    IoSetup(){
+        cin.tie(nullptr);
+        ios::sync_with_stdio(false);
+        cout << fixed << setprecision(15);
+        cerr << fixed << setprecision(7);
+    }
+} iosetup_noya2;
+
+} // namespace noya2
+#line 1 "/Users/noya2/Desktop/Noya2_library/template/const.hpp"
+namespace noya2{
+
+const int iinf = 1'000'000'007;
+const long long linf = 2'000'000'000'000'000'000LL;
+const long long mod998 =  998244353;
+const long long mod107 = 1000000007;
+const long double pi = 3.14159265358979323;
+const vector<int> dx = {0,1,0,-1,1,1,-1,-1};
+const vector<int> dy = {1,0,-1,0,1,-1,-1,1};
+const string ALP = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const string alp = "abcdefghijklmnopqrstuvwxyz";
+const string NUM = "0123456789";
+
+void yes(){ cout << "Yes\n"; }
+void no(){ cout << "No\n"; }
+void YES(){ cout << "YES\n"; }
+void NO(){ cout << "NO\n"; }
+void yn(bool t){ t ? yes() : no(); }
+void YN(bool t){ t ? YES() : NO(); }
+
+} // namespace noya2
+#line 2 "/Users/noya2/Desktop/Noya2_library/template/utils.hpp"
+
+#line 6 "/Users/noya2/Desktop/Noya2_library/template/utils.hpp"
+
+namespace noya2{
+
+unsigned long long inner_binary_gcd(unsigned long long a, unsigned long long b){
+    if (a == 0 || b == 0) return a + b;
+    int n = __builtin_ctzll(a); a >>= n;
+    int m = __builtin_ctzll(b); b >>= m;
+    while (a != b) {
+        int mm = __builtin_ctzll(a - b);
+        bool f = a > b;
+        unsigned long long c = f ? a : b;
+        b = f ? b : a;
+        a = (c - b) >> mm;
+    }
+    return a << std::min(n, m);
+}
+
+template<typename T> T gcd_fast(T a, T b){ return static_cast<T>(inner_binary_gcd(std::abs(a),std::abs(b))); }
+
+long long sqrt_fast(long long n) {
+    if (n <= 0) return 0;
+    long long x = sqrt(n);
+    while ((x + 1) * (x + 1) <= n) x++;
+    while (x * x > n) x--;
+    return x;
+}
+
+template<typename T> T floor_div(const T n, const T d) {
+    assert(d != 0);
+    return n / d - static_cast<T>((n ^ d) < 0 && n % d != 0);
+}
+
+template<typename T> T ceil_div(const T n, const T d) {
+    assert(d != 0);
+    return n / d + static_cast<T>((n ^ d) >= 0 && n % d != 0);
+}
+
+template<typename T> void uniq(std::vector<T> &v){
+    std::sort(v.begin(),v.end());
+    v.erase(unique(v.begin(),v.end()),v.end());
+}
+
+template <typename T, typename U> inline bool chmin(T &x, U y) { return (y < x) ? (x = y, true) : false; }
+
+template <typename T, typename U> inline bool chmax(T &x, U y) { return (x < y) ? (x = y, true) : false; }
+
+template<typename T> inline bool range(T l, T x, T r){ return l <= x && x < r; }
+
+} // namespace noya2
+#line 8 "/Users/noya2/Desktop/Noya2_library/template/template.hpp"
+
+#define rep(i,n) for (int i = 0; i < (int)(n); i++)
+#define repp(i,m,n) for (int i = (m); i < (int)(n); i++)
+#define reb(i,n) for (int i = (int)(n-1); i >= 0; i--)
+#define all(v) (v).begin(),(v).end()
+
+using ll = long long;
+using ld = long double;
+using uint = unsigned int;
+using ull = unsigned long long;
+using pii = pair<int,int>;
+using pll = pair<ll,ll>;
+using pil = pair<int,ll>;
+using pli = pair<ll,int>;
+
+namespace noya2{
+
+/*　~ (. _________ . /)　*/
+
+}
+
+using namespace noya2;
+
+
+#line 2 "c.cpp"
+
+
+void solve(){
+    ll ini; in(ini);
+    const int mx = 301;
+    // const int mx = 10;
+    vector<pii> ab = [&]{
+        int n; in(n);
+        vector<int> mb(mx,-1);
+        rep(i,n){
+            int a, b; in(a,b);
+            chmax(mb[a],b);
         }
-
-        sort(t,t+length,compare);
-
-        int rnk = 0;
-        sr[stp][t[0].originalIdx] = 0;
-        for(int i = 1 ; i<length ; i++) {
-            if(t[i-1].firstHalf == t[i].firstHalf && t[i].secondHalf == t[i-1].secondHalf)
-                rnk = sr[stp][t[i-1].originalIdx]; //same as the last one
-            else
-                rnk = i; //new rank
-            sr[stp][t[i].originalIdx] = rnk;
+        vector<pii> ret;
+        rep(i,mx){
+            if (mb[i] != -1){
+                ret.emplace_back(i,mb[i]);
+            }
+        }
+        return ret;
+    }();
+    const int lim = mx*mx;
+    vector<int> f(lim);
+    rep(y,lim){
+        for (auto [a, b] : ab){
+            if (y >= b){
+                int x = y + a - b;
+                if (x < lim){
+                    chmax(f[x],f[y]+b);
+                }
+            }
         }
     }
-
-    for(int i=0; i<length; i++)
-        SA[i] = t[i].originalIdx;
-    return ;
-}
-//return the LCP BETWEEN TWO IDX
-int getLCP(int i,int j,int n) {
-    int res = 0;
-    if(i==j)
-        return n - i;
-    for(int stp = ceil(log(n)/log(2)) ; stp>=0 && i < n && j < n ; stp--){
-        if(sr[stp][i] == sr[stp][j]) {
-            res += 1<<stp;
-            i += 1<<stp;
-            j += 1<<stp;
+    // out(f);
+    ll ans = 0;
+    rep(y,lim){
+        for (auto [a, b] : ab){
+            if (y < b) continue;
+            if (y > ini) continue;
+            ll k = (ini - y) / (a - b);
+            chmax(ans,f[y]+k*b);
         }
     }
-    return res;
+    ans += ini;
+    out(ans);
 }
 
-vector<string> in;
-int posInSA[MAX]; //position of the ith string in SA
-int invMapping[MAX];
-
-int upSearch(int idx,int n,int lcp){
-    int l = 0,r=idx;
-    while(l<r){
-        int md = (l+r)/2;
-        if(getLCP(SA[md],SA[idx],n) < lcp)
-            l = md+1;
-        else
-            r = md;
-    }
-    return l;
+int main(){
+    int t = 1; //in(t);
+    while (t--) { solve(); }
 }
 
-
-int downSearch(int idx,int n,int lcp){
-    int l = idx,r=n-1;
-    while(l<r){
-        int md = (l+r+1)/2;
-        if(getLCP(SA[md],SA[idx],n) < lcp)
-            r = md-1;
-        else
-            l = md;
-    }
-    return l;
-}
-
-int main() {
-    int n;
-    cin>>n;
-    for(int i=0;i<n;i++){
-        string s;
-        cin>>s;
-        in.pb(s);
-    }
-    string all = in[0];
-    for(int i=1;i<n;i++){
-        all += '#';
-        all += in[i];
-    }
-    
-    //cout<<all<<endl;
-   
-    getSA(all,all.size());
-    for(int i=0;i<all.size();i++)
-        invMapping[SA[i]]=i;
-    int cur = 0;
-    for(int i=0;i<n;i++){
-        posInSA[i]=invMapping[cur];
-        cur += in[i].size()+1;
-    }
-
-/*    for(int i=0;i<all.size();i++)
-        cout<<SA[i]<<" ";
-    cout<<endl;
-
-    for(int i=0;i<n;i++)
-        cout<<posInSA[i]<<" ";
-    cout<<endl;*/
-
-    int q;
-    cin>>q;
-    while(q--){
-        int a,b;
-        cin>>a>>b;
-        a--;
-        b--;
-        
-        int ft = posInSA[a];
-        int st = posInSA[b];
-        if(ft>st)
-            swap(ft,st);
-       
-        int lcp = getLCP(SA[ft],SA[st],all.size());
-        lcp = min(lcp,(int)in[a].size());
-        lcp = min(lcp,(int)in[b].size());
-        //cout<<lcp<<endl;
-
-        if(lcp==0){
-            cout<<"0\n";
-            continue;
-        }
-    
-        int upIdx = upSearch(ft,all.size(),lcp);
-        //cout<<upIdx<<endl;
-        
-        int downIdx = downSearch(st,all.size(),lcp);
-        //cout<<downIdx<<endl;
-        
-        cout<<downIdx-upIdx+1<<"\n";
-    }
-    return 0;
-}

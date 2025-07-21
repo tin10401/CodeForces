@@ -145,7 +145,6 @@ public:
         return u;
     }
 
-
     int kth_ancestor_on_path(int u, int v, ll k) {
         int d = dist(u, v);
         if(k >= d) return v;
@@ -175,14 +174,19 @@ public:
     }
 	
 	int intersection(int a, int b, int c, int d) { // common edges between path[a, b] OR path[c, d]
-        int r1 = lca(a, b), r2 = lca(c, d);
-        int q = depth[r1] > depth[r2] ? r1 : r2;
-        int p = lca(a, c), t = lca(a, d);
-        if (depth[t] > depth[p]) p = t;
-        t = lca(b,c); if (depth[t] > depth[p]) p = t;
-        t = lca(b,d); if (depth[t] > depth[p]) p = t;
-        if (depth[p] < depth[q]) return 0;
-        return depth[p] - depth[q];
+        vi arr = {a, b, c, d, lca(a, b), lca(a, c), lca(a, d), lca(b, c), lca(b, d), lca(c, d)};
+        srtU(arr);
+        vi s;
+        int res = 0;
+        for(auto& x : arr) {
+            if(dist(x, a) + dist(x, b) == dist(a, b) && dist(c, x) + dist(x, d) == dist(c, d)) {
+                s.pb(x);
+                for(auto& y : s) {
+                    res = max(res, dist(x, y)); // +1 if looking for maximum node
+                }
+            }
+        }
+        return res;
     }
 
     bool is_continuous_chain(int a, int b, int c, int d) { // determine if path[a, b][b, c][c, d] don't have any intersection
@@ -1402,6 +1406,7 @@ struct block_cut_tree {
             if(!tin[i]) dfs(i, -1);
         }
         build();
+        // buildBCT();
     }
 
     void dfs(int node, int prev_id) {
@@ -1427,6 +1432,29 @@ struct block_cut_tree {
             } else if(tin[nei] < tin[node]) {
                 s.push(j);
                 low[node] = min(low[node], tin[nei]);
+            }
+        }
+    }
+
+    void buildBCT() {
+        // https://codeforces.com/contest/487/problem/E
+        // build a bipartile graph city -> supernode -> city -> supernode ...
+        int C = comps.size();
+        int N = n + C;
+        tree.assign(N, {});
+        for(int i = 0; i < C; i++) {
+            int compNode = n + i;
+            auto& comp = comps[i];
+            vi verts;
+            for(int eid : comp) {
+                auto &[u, v] = edges[eid];
+                verts.pb(u);
+                verts.pb(v);
+            }
+            srtU(verts);
+            for(int u : verts) {
+                tree[compNode].pb(u);
+                tree[u].pb(compNode);
             }
         }
     }

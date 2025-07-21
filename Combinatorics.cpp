@@ -515,15 +515,21 @@ class Combinatoric {
         }
     }
     
-    T choose(int a, int b) {  
+    T nCk(int a, int b) {  
         if(a < b) return 0;
         assert(max(a, b) <= n);
         return fact[a] * inv[b] * inv[a - b];
     }
-	
-    T nCk(int n, int r) { // change to ll if needed
+
+    T nPk(int n, int k) {
+        if (k < 0 || k > n) return 0; 
+        return fact[n] * inv[n - k];
+    }
+
+    ll nCk_no_mod(int n, int r) { // change to ll if needed
         if(n < r) return 0;
-		T ans = 1;
+        r = min(r, n - r);
+        ll ans = 1;
         for(int i = 1 ; i <= r ; i++) {
             ans *= n - i + 1;
             ans /= i ;   
@@ -531,11 +537,23 @@ class Combinatoric {
         return ans ;
     }
 
+    ll derangement(int n) {
+        if(n == 0) return 1;
+        if(n == 1) return 0;
+        vll D(n + 1);
+        D[0] = 1;
+        D[1] = 0;
+        for(int i = 2; i <= n; ++i) {
+            D[i] = (i - 1) * (D[i - 1] + D[i - 2]);
+        }
+        return D[n];
+    }
+
 	T nCk_increasing_sequence(int l, int r, int len) { // given a range of number from l to r, len k, 
                                                        // return the number of ways to choose those element in increasing order
 //        if(len > r - l + 1) return 0;  // not enough numbers
 //        return choose(r - l + 1, len); // for strictly increasing/decreasing
-        return choose(r - l + len, len);
+        return nCk(r - l + len, len);
         // x _ _ _ y
         // # of way to choose the _ unknown value
         // len = pos[y] - pos[x] - 1
@@ -571,11 +589,11 @@ class Combinatoric {
 
     T catalan(int k) { // # of pair of balanced bracket of length n is catalan(n / 2)
         if(k == 0) return 1;
-        return choose(2 * k, k) - choose(2 * k, k - 1);
+        return nCk(2 * k, k) - nCk(2 * k, k - 1);
     }
 
 	T monotonic_array_count(int n, int m) {// len n, element from 1 to m increasing/decreasing
-        return choose(n + m - 1, n);
+        return nCk(n + m - 1, n);
     }
 
 }; Combinatoric<mint> comb(MX);

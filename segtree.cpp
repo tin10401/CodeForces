@@ -200,171 +200,53 @@ public:
     }
 
     template<typename Pred>
-    int max_right(int start, Pred P) {
+    int max_right(int start, Pred P) const {
         if(start < 0) start = 0;
-        if(start >= n) return n - 1;
+        if(start >= n) return n;
         T sm = DEFAULT;
         int idx = start + size;
-        while((idx & 1) == 0) idx >>= 1;
-
         do {
-            T cand = func(sm, root[idx]);
-            if(P(cand)) {
-                sm = cand;
-                ++idx;
-                while((idx & 1) == 0) idx >>= 1;
-            } else {
+            while((idx & 1) == 0) idx >>= 1;
+            if(!P(func(sm, root[idx]))) {
                 while(idx < size) {
                     idx <<= 1;
-                    cand = func(sm, root[idx]);
+                    T cand = func(sm, root[idx]);
                     if(P(cand)) {
                         sm = cand;
-                        ++idx;
+                        idx++;
                     }
                 }
-                int leaf = idx - size;
-                return leaf - 1;
+                return idx - size - 1;
             }
+            sm = func(sm, root[idx]);
+            idx++;
         } while((idx & -idx) != idx);
         return n - 1;
     }
 
     template<typename Pred>
-    int min_left(int ending, Pred P) {
+    int min_left(int ending, Pred P) const {
         if(ending < 0) return 0;
-        if(ending >= n) ending = n;
+        if(ending >= n) ending = n - 1;
         T sm = DEFAULT;
-        int idx = ending + size;
-        while((idx & 1) == 1) idx >>= 1;
+        int idx = ending + size + 1;
         do {
-            T cand = func(root[idx], sm);
-            if(P(cand)) {
-                sm = cand;
-                --idx;
-                while((idx & 1) == 1) idx >>= 1;
-            } else {
+            idx--;
+            while(idx > 1 && (idx & 1)) idx >>= 1;
+            if(!P(func(root[idx], sm))) {
                 while(idx < size) {
                     idx = idx * 2 + 1;
-                    cand = func(root[idx], sm);
-                    if (P(cand)) {
+                    T cand = func(root[idx], sm);
+                    if(P(cand)) {
                         sm = cand;
-                        --idx;       
+                        idx--;
                     }
                 }
-                return (idx + 1) - size;
+                return idx + 1 - size;
             }
-        } while(idx > 1);
+            sm = func(root[idx], sm);
+        } while((idx & -idx) != idx);
         return 0;
-    }
-};
-
-template<class T, class I = int, typename F = function<T(const T&, const T&)>>
-class iterative_lazy_segtree {
-public:
-    int n, size, h;
-    vt<T> seg;
-    vt<I> lazy;
-    vi L, R;
-    F f;
-    T default_val;
-    
-    iterative_lazy_segtree(int n, T default_val, F f)
-        : n(n), default_val(default_val), f(f)
-    {
-        size = 1;
-        while(size < n) size <<= 1;
-        seg.assign(size << 1, default_val);
-        lazy.assign(size << 1, 0);
-        L.assign(size << 1, 0);
-        R.assign(size << 1, 0);
-        h = 0;
-        for(int i = size; i > 0; i >>= 1)
-            h++;
-        for (int i = 0; i < size; i++) {
-            L[size + i] = i;
-            R[size + i] = i;
-        }
-        for (int i = size - 1; i > 0; i--) {
-            L[i] = L[i << 1];
-            R[i] = R[i << 1 | 1];
-        }
-    }
-    
-    T get() {
-        return seg[1];
-    }
-    
-    inline void update_at(int idx, T val) {
-        if(idx < 0 || idx >= n) return;
-        idx += size;
-        push_to(idx);
-        seg[idx] = val;
-        rebuild_from(idx);
-    }
-    
-    inline void update_range(int l, int r, I val) {
-        if(l < 0 || r >= n || l > r) return;
-        int Lq = l + size, Rq = r + size;
-        push_to(Lq);
-        push_to(Rq);
-        int l0 = Lq, r0 = Rq;
-        while(Lq <= Rq) {
-            if(Lq & 1) { apply(Lq, val); Lq++; }
-            if(!(Rq & 1)) { apply(Rq, val); Rq--; }
-            Lq >>= 1; Rq >>= 1;
-        }
-        rebuild_from(l0);
-        rebuild_from(r0);
-    }
-    
-    inline T queries_range(int l, int r) {
-        if(l < 0 || r >= n || l > r) return default_val;
-        int Lq = l + size, Rq = r + size;
-        push_to(Lq);
-        push_to(Rq);
-        T res_left = default_val, res_right = default_val;
-        while(Lq <= Rq) {
-            if(Lq & 1) res_left = f(res_left, seg[Lq++]);
-            if(!(Rq & 1)) res_right = f(seg[Rq--], res_right);
-            Lq >>= 1; Rq >>= 1;
-        }
-        return f(res_left, res_right);
-    }
-    
-    inline T queries_at(int idx) {
-        if(idx < 0 || idx >= n) return default_val;
-        idx += size;
-        push_to(idx);
-        return seg[idx];
-    }
-    
-private:
-    inline void apply(int i, I val) {
-        seg[i] += (ll) val * (R[i] - L[i] + 1);
-        lazy[i] += val;
-    }
-    
-    inline void push(int i) {
-        if(lazy[i] != 0) {
-            apply(i << 1, lazy[i]);
-            apply(i << 1 | 1, lazy[i]);
-            lazy[i] = 0;
-        }
-    }
-    
-    inline void push_to(int i) {
-        for(int s = h; s >= 1; s--) {
-            int idx = i >> s;
-            push(idx);
-        }
-    }
-    
-    inline void rebuild_from(int i) {
-        for(i /= 2; i > 0; i /= 2) {
-            seg[i] = f(seg[i << 1], seg[i << 1 | 1]);
-            if(lazy[i] != 0)
-                seg[i] += (ll) lazy[i] * (R[i] - L[i] + 1);
-        }
     }
 };
 
@@ -849,7 +731,7 @@ struct PSGT {
             return curr;
         }
         int middle = midPoint;
-        if(id <= middle) F[curr].l = update(F[prev].l, id, delta, left, middle); // PSGT
+        if(id <= middle) F[curr].l = update(F[prev].l, id, delta, left, middle);
         else F[curr].r = update(F[prev].r, id, delta, middle + 1, right);
         F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
         return curr;
@@ -1302,10 +1184,10 @@ struct SGT_2D {
 
 int root[MX * 120], lazy[MX * 120], ptr; // MX should be 1e5
 pii child[MX * 120];
-class implit_segtree {
+class implicit_segtree {
     public:
     int n;
-    implit_segtree(int n) {
+    implicit_segtree(int n) {
         this->n = n;
         root[0] = a.queries(0, n - 1); // initialize
         lazy[0] = -1;
@@ -2139,12 +2021,148 @@ struct sorted_info {
     }
 };
 
-struct info {
-    int x;
-    info(int x = 0) : x(x) {}
+struct power_sum_info { // keep track of sum of a^5 segtree sum
+    mint s1, s2, s3, s4, s5;
+    power_sum_info(mint x = 0)
+      : s1(x),
+        s2(x * x),
+        s3(x * x * x),
+        s4(x * x * x * x),
+        s5(x * x * x * x * x)
+    {}
 
-    friend info operator+(const info& a, const info& b) {
-        return info(a.x + b.x);
+    friend power_sum_info operator+(const power_sum_info& a, const power_sum_info& b) {
+        power_sum_info res;
+        res.s1 = a.s1 + b.s1;
+        res.s2 = a.s2 + b.s2;
+        res.s3 = a.s3 + b.s3;
+        res.s4 = a.s4 + b.s4;
+        res.s5 = a.s5 + b.s5;
+        return res;
+    }
+
+    void apply(mint v, int len) {
+        mint v2 = v * v;
+        mint v3 = v2 * v;
+        mint v4 = v3 * v;
+        mint v5 = v4 * v;
+        // s5 = s5 + 5*s4*v + 10*s3*v^2 + 10*s2*v^3 + 5*s1*v^4 + len*v^5
+        s5 = s5 + 5 * s4 * v + 10 * s3 * v2 + 10 * s2 * v3 + 5 * s1 * v4 + mint(len) * v5;
+        // s4 = s4 + 4*s3*v + 6*s2*v^2 + 4*s1*v^3 + len*v^4
+        s4 = s4 + 4 * s3 * v + 6 * s2 * v2 + 4 * s1 * v3 + mint(len) * v4;
+        // s3 = s3 + 3*s2*v + 3*s1*v^2 + len*v^3
+        s3 = s3 + 3 * s2 * v + 3 * s1 * v2 + mint(len) * v3;
+        // s2 = s2 + 2*s1*v + len*v^2
+        s2 = s2 + 2 * s1 * v + mint(len) * v2;
+        // s1 = s1 + len*v
+        s1 = s1 + mint(len) * v;
     }
 };
 
+struct bad_pair_info {
+    // count number of [l, r] such that their [for(int i..) for(int j...) s += a[i] * a[j], s is odd]
+    // we work on prefix and it's bad when prefix[r] - prefix[l - 1] % 4 == {2, 3}
+    // when query, we do queries_range(l - 1, r) not normal [l, r] bc we're working with prefix
+    // https://codeforces.com/group/o09Gu2FpOx/contest/541484/problem/K
+    // when update a[i] to v, we update the prefix [i, n] with a[i] == 0 ? 1 : -1
+    int dp[4];
+    ll bad;
+    bad_pair_info(int p = -1) : bad(0) {
+        mset(dp, 0);
+        if(p == -1) return;
+        dp[p] = 1;
+    }
+    
+    friend bad_pair_info operator+(const bad_pair_info& a, const bad_pair_info& b) {
+        bad_pair_info res;
+        res.bad = a.bad + b.bad;
+        for(int i = 0; i < 4; i++) {
+            res.dp[i] = a.dp[i] + b.dp[i];
+            res.bad += (ll)a.dp[i] * (b.dp[(i + 2) % 4] + b.dp[(i + 3) % 4]);
+        }
+        return res;
+    }
+
+    void apply(int x) {
+        x = ((x % 4) + 4) % 4;
+        int now[4];
+        for(int i = 0; i < 4; i++) {
+            now[(i + x) % 4] = dp[i];
+        }
+        for(int i=  0; i < 4; i++) {
+            dp[i] = now[i];
+        }
+    }
+};
+
+struct max_k_subarray_info {
+    // max k non-overlapping subarray sum
+    // https://codeforces.com/contest/280/problem/D
+    const static int K = 20;
+    ll L[K + 1], R[K + 1], LR[K + 1], best[K + 1];
+    max_k_subarray_info(ll x = -INF) {
+        for(int i = 0; i <= K; i++) {
+            L[i] = R[i] = LR[i] = (i ? x : -INF);
+            best[i] = i ? max(0LL, x) : 0;
+        }
+    }
+
+    friend max_k_subarray_info operator+(const max_k_subarray_info& a, const max_k_subarray_info& b) {
+        if(a.L[1] == -INF) return b;
+        if(b.L[1] == -INF) return a;
+        max_k_subarray_info res;
+        for(int l = 0; l <= K; l++) {
+            for(int r = 0; l + r <= K; r++) {
+                int k = l + r;
+                res.L[k] = max(res.L[k], a.L[l] + b.best[r]);
+                res.R[k] = max(res.R[k], a.best[l] + b.R[r]);
+                res.LR[k] = max(res.LR[k], a.L[l] + b.R[r]);
+                res.best[k] = max(res.best[k], a.best[l] + b.best[r]);
+				if(r + 1 <= K) {
+                    res.best[k] = max(res.best[k], a.R[l] + b.L[r + 1]);
+                    res.L[k] = max(res.L[k], a.LR[l] + b.L[r + 1]);
+                    res.R[k] = max(res.R[k], a.R[l] + b.LR[r + 1]);
+                    res.LR[k] = max(res.LR[k], a.LR[l] + b.LR[r + 1]);
+                }
+//                if(l + 1 <= K) {
+//                    res.best[k] = max(res.best[k], a.R[l + 1] + b.L[r]);
+//                    res.L[k] = max(res.L[k], a.LR[l + 1] + b.L[r]);
+//                    res.R[k] = max(res.R[k], a.R[l + 1] + b.LR[r]);
+//                    res.LR[k] = max(res.LR[k], a.LR[l + 1] + b.LR[r]);
+//                }
+
+            }
+        }
+        return res;
+    }
+};
+
+struct binomial_info {
+    // https://codeforces.com/problemset/problem/266/E
+    mint s[6] = {};
+    binomial_info() {}
+    binomial_info(int x, int pos) {
+        mint v = x;
+        for(int p = 0; p < 6; p++)
+            s[p] = v * mint(pos + 1).pow(p);
+    }
+    friend binomial_info operator+(binomial_info const &A, binomial_info const &B) {
+        binomial_info R;
+        for(int p = 0; p < 6; p++)
+            R.s[p] = A.s[p] + B.s[p];
+        return R;
+    }
+    void apply(int l, int r, mint x) {
+        for(int p = 0; p < 6; p++) {
+            mint sum_ip = pre[p][r + 1] - pre[p][l];
+            s[p] = sum_ip * x;
+        }
+    }
+    mint get_res(int l, int k) const {
+        mint ans = 0;
+        mint base = mint(-l);
+        for(int p = 0; p <= k; p++)
+            ans += comb.nCk(k, p) * base.pow(k - p) * s[p];
+        return ans;
+    }
+};

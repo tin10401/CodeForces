@@ -128,6 +128,72 @@ struct manhattan {
     ll query() { return max(mx1 - mn1, mx2 - mn2); }
 };
 
+struct Rect { ll x1, y1, x2, y2; };
+
+struct SheetManager {
+    // https://codeforces.com/contest/1216/problem/C
+    vt<Rect> placed;
+    bool insert(const Rect &r) {
+        vt<Rect> clip;
+        for (auto &q : placed) {
+            Rect c{max(r.x1, q.x1), max(r.y1, q.y1), min(r.x2, q.x2), min(r.y2, q.y2)};
+            if(c.x1 < c.x2 && c.y1 < c.y2) clip.push_back(c);
+        }
+        if(clip.empty()) {
+            placed.pb(r);
+            return true;
+        }
+        vll ys;
+        ys.reserve(clip.size() * 2 + 2);
+        ys.pb(r.y1);
+        ys.pb(r.y2);
+        for(auto &c : clip) {
+            ys.pb(c.y1);
+            ys.pb(c.y2);
+        }
+        srtU(ys);
+        int Y = ys.size();
+        struct Node { int cnt, len; };
+        vt<Node> st(4 * Y);
+        vt<tuple<int, int, int, int>> events;
+        events.reserve(clip.size() * 2);
+        for (auto &c : clip) {
+            int y1 = lb(all(ys), c.y1) - ys.begin();
+            int y2 = lb(all(ys), c.y2) - ys.begin();
+            events.emplace_back(c.x1, y1, y2, 1);
+            events.emplace_back(c.x2, y1, y2, -1);
+        }
+        sort(events.begin(), events.end(), [](auto &a, auto &b) { return get<0>(a) < get<0>(b); });
+        auto update = [&](auto& update, int node, int l, int r, int ql, int qr, int v) {
+            if(ql >= r || qr <= l) return;
+            if(ql <= l && r <= qr) st[node].cnt += v;
+            else {
+                int m = (l + r) >> 1;
+                update(update, node << 1, l, m, ql, qr, v);
+                update(update, node << 1 | 1, m, r, ql, qr, v);
+            }
+            if(st[node].cnt > 0) st[node].len = ys[r] - ys[l];
+            else if(r - l == 1) st[node].len = 0;
+            else st[node].len = st[node << 1].len + st[node << 1 | 1].len;
+        };
+        ll covered = 0;
+        int prevX = get<0>(events[0]);
+        for(auto &e : events) {
+            int x, y1, y2, tp;
+            tie(x, y1, y2, tp) = e;
+            covered += 1LL * (x - prevX) * st[1].len;
+            update(update, 1, 0, Y - 1, y1, y2, tp);
+            prevX = x;
+        }
+        ll total = 1LL * (r.x2 - r.x1) * (r.y2 - r.y1);
+        if(covered < total) {
+            placed.pb(r);
+            return true;
+        }
+        return false;
+    }
+};
+
 struct Line {
     mutable ll m, c, p;
     bool isQuery;
@@ -244,7 +310,7 @@ public:
     }
 };
 
-struct Undo_CHT {
+struct Undo_CHT { // ll version
     struct Line {
         ll a, b;   // y = a*x + b
     };
@@ -257,9 +323,9 @@ struct Undo_CHT {
     vt<UndoEntry> undo;
     ll sz = 0;
 
-    Undo_CHT() {
-        A.resize(MX);
-        undo.reserve(MX);
+    Undo_CHT(int max_n) {
+        A.resize(max_n);
+        undo.reserve(max_n);
     }
 
     static bool bad(const Line &l1, const Line &l2, const Line &l3) {
@@ -311,6 +377,76 @@ struct Undo_CHT {
             }
         }
         return ans;
+    }
+};
+
+struct Undo_CHT { // ld version
+    struct Line {
+        ld a, b;   // y = a*x + b
+    };
+    struct UndoEntry {
+        Line prev;
+        int pos;
+        int old_sz;
+    };
+
+    vt<Line> A;
+    vt<UndoEntry> undo;
+    int sz = 0;
+
+    Undo_CHT(int maxn) {
+        A.rsz(maxn);
+        undo.reserve(maxn);
+    }
+
+    static bool bad(const Line &l1, const Line &l2, const Line &l3) {
+        return (l2.b - l1.b) * (l2.a - l3.a) >= (l3.b - l2.b) * (l1.a - l2.a);
+    }
+
+    void add(ld u, ld v) {
+        Line x{u, v};
+        int l = 1, r = sz - 1, pos = sz;
+        while(l <= r) {
+            int mid = (l + r) >> 1;
+            if(bad(A[mid - 1], A[mid], x)) {
+                pos = mid;
+                r = mid - 1;
+            } else {
+                l = mid + 1;
+            }
+        }
+        undo.pb({A[pos], pos, sz});
+        A[pos] = x;
+        sz = pos + 1;
+    }
+
+    void roll_back() {
+        auto e = undo.back(); undo.pop_back();
+        sz = e.old_sz;
+        A[e.pos] = e.prev;
+    }
+
+    ld cal(const Line &L, ld x) const {
+        return L.a * x + L.b;
+    }
+
+    ld query(ld x) const {
+        if (sz == 0) return -1e300; 
+        ld res = cal(A[0], x);
+        int l = 1, r = sz - 1;
+        while(l <= r) {
+            int mid = (l + r) >> 1;
+            ld y1 = cal(A[mid - 1], x);
+            ld y2 = cal(A[mid],   x);
+            if(y2 > y1) {
+                res = max(res, y2);
+                l = mid + 1;
+            } else {
+                res = max(res, y1);
+                r = mid - 1;
+            }
+        }
+        return res;
     }
 };
 

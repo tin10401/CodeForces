@@ -1,0 +1,6 @@
+[submodule "timeshift"]
+	path = timeshift
+	url = https://github.com/username/timeshift.git
+[submodule "vscode-node-debug2"]
+	path = vscode-node-debug2
+	url = https://github.com/username/vscode-node-debug2.git

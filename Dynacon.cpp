@@ -1,6 +1,6 @@
 struct Undo_DSU {
     int n;
-    using Record = ar(7);
+    using Record = ar(8);
     vi par, rank, col;
     bool is_bipartite;
     int comp;
@@ -16,30 +16,25 @@ struct Undo_DSU {
     }
     
     int find(int v) {
-        if (par[v] == v)
-            return v;
-        return find(par[v]);
+        return par[v] == v ? v : find(par[v]);
     }
     
     int getColor(int v) {
-        if (par[v] == v)
-            return col[v];
-        return col[v] ^ getColor(par[v]);
+        return par[v] == v ? col[v] : (col[v] ^ getColor(par[v]));
     }
     
     bool merge(int u, int v, bool save = true) {
         int ru = find(u), rv = find(v);
         int cu = getColor(u), cv = getColor(v);
-        if (ru == rv) {
-            if ((cu ^ cv) != 1) {
-                if (save) st.push({1, -1, -1, -1, -1, -1, (int)is_bipartite});
+        if(ru == rv) {
+            if((cu ^ cv) != 1) {
+                if(save) st.push({1, -1, -1, -1, -1, -1, comp, (int)is_bipartite});
                 is_bipartite = false;
-                return false;
             }
-            return true;
+            return false;
         }
-        if (rank[ru] < rank[rv]) swap(ru, rv);
-        if (save) st.push({0, ru, rank[ru], rv, rank[rv], col[rv], (int)is_bipartite});
+        if(rank[ru] < rank[rv]) swap(ru, rv);
+        if(save) st.push({0, ru, rank[ru], rv, rank[rv], col[rv], comp, (int)is_bipartite});
         comp--;
         par[rv] = ru;
         col[rv] = cu ^ cv ^ 1;
@@ -48,32 +43,33 @@ struct Undo_DSU {
     }
     
     void rollBack() {
-        if (st.empty()) return;
-        Record rec = st.top();
-        st.pop();
-        int type = rec[0];
-        if (type == 1) {
-            is_bipartite = (bool)rec[6];
-        } else if (type == 0) {
-            int ru = rec[1], oldRankRu = rec[2], rv = rec[3], oldRankRv = rec[4];
-            comp++;
-            rank[ru] = oldRankRu;
-            rank[rv] = oldRankRv;
-            par[rv] = rv;
-            col[rv] = rec[5];
-            is_bipartite = (bool)rec[6];
+        if(!st.empty()) {
+            Record rec = st.top();
+            st.pop();
+            int type = rec[0];
+            comp = rec[6];
+            is_bipartite = (bool)rec[7];
+            if(type == 0) {
+                int ru = rec[1], oldRankU = rec[2], rv = rec[3], oldRankV = rec[4], oldColV = rec[5];
+                par[rv] = rv;
+                rank[ru] = oldRankU;
+                rank[rv] = oldRankV;
+                col[rv] = oldColV;
+            }
         }
     }
     
     bool same(int u, int v) {
         return find(u) == find(v);
     }
-	
-	int get_rank(int u) {
-        int ru = find(u);
-        return rank[ru];
+    
+    int get_rank(int u) {
+        return rank[find(u)];
     }
 
+    int get_comp() const {
+        return comp;
+    }
 };
 
 template<typename T>
@@ -91,9 +87,9 @@ struct DynaCon {
 
     void update_range(int l, int r, T p) {  
         l += SZ, r += SZ + 1;
-        while (l < r) {
-            if (l & 1) seg[l++].pb(p);
-            if (r & 1) seg[--r].pb(p);
+        while(l < r) {
+            if(l & 1) seg[l++].pb(p);
+            if(r & 1) seg[--r].pb(p);
             l >>= 1; r >>= 1;
         }
     }
@@ -103,7 +99,7 @@ struct DynaCon {
         for(auto &[u, v] : seg[ind]) {
             A.merge(u, v);
         }
-        if (ind >= SZ) { ans[ind - SZ] = A.is_bipartite; }
+        if(ind >= SZ) { ans[ind - SZ] = A.comp; }
         else { process(2 * ind); process(2 * ind + 1); }
         while(A.st.size() > c) {
             A.rollBack();

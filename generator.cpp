@@ -254,8 +254,8 @@ vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
 vpii gen_tree(int n) {
     vpii edges;
     for(int i = 1; i < n; i++) {
-        int p = uni(0, i) + 1;
-        edges.pb({p, i});
+        int p = uni(0, i - 1) + 1;
+        edges.pb({p, i + 1});
     }
     return edges;
 }
@@ -270,17 +270,13 @@ string gen_string(int n) {
 }
 
 void solve() {
-    int n = uni(1, 10);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << gen_string(5) << '\n';
-    }
-    int q = uni(1, 10);
-    cout << q << '\n';
-    while(q--) {
-        int x = uni(1, n);
-        int y = uni(1, n);
-        cout << x << ' ' << y << '\n';
+    ll n = uni(1, 1e15);
+    int m = uni(1, 2e5);
+    cout << n << ' ' << m << '\n';
+    while(m--) {
+        int a = uni(2, 300);
+        int b = uni(1, a - 1);
+        cout << a << ' ' << b << '\n';
     }
 }
 

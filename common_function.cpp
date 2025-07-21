@@ -345,6 +345,27 @@ T lcm_mod(vi a) { // lcm of multiple number under a mod
     return res;
 }
 
+string smallest_distinct(const string& s) { // return a lexicographically smallest string where each character appear only once
+    int n = s.size();
+    vi last(26, -1);
+    for(int i = 0; i < n; i++) {
+        last[s[i] - 'a'] = i;
+    }
+    string t;
+    vi vis(26);
+    for(int i = 0; i < n; i++) {
+        if(vis[s[i] - 'a']) continue;
+        while(!t.empty() && t.back() >= s[i]) {
+            int j = t.back() - 'a';
+            if(last[j] > i) t.pop_back(), vis[j] = 0;
+            else break;
+        }
+        vis[s[i] - 'a'] = true;
+        t.pb(s[i]);
+    }
+    return t;
+}
+
 int count_distinct_palindromic_subsequence(const string& S, int mod) { // https://leetcode.com/problems/count-different-palindromic-subsequences/description/
     int N = S.size();
     if (N == 0) return 0;
@@ -672,6 +693,56 @@ vi bidirectional_cycle_vector(int n, const vvi& graph) { // return a cycle_vecto
     return inCycle;
 }
 
+string construct_string(const string& s) { // construct lexicographically smallest string where no 2 adjacent character is the same
+    // https://judge.eluminatis-of-lu.com/contest/686fe616d425270007014c27/1209
+    const int n = s.size();
+    const int K = 26;
+    vi cnt(K);
+    for(auto& ch : s) {
+        cnt[ch - 'a']++;
+    }
+    int mx = MAX(cnt);
+    if(mx * 2 - 1 > n) return "";
+    string res;
+    for(int i = 0; i < n; i++) {
+        int mx = MAX(cnt);
+        if(mx * 2 > (n - i)) {
+            for(int j = 0; j < K; j++) {
+                if(cnt[j] == mx) {
+                    cnt[j]--;
+                    res += char(j + 'a');
+                    break;
+                }
+            }
+        } else {
+            for(int j = 0; j < K; j++) {
+                if(cnt[j] && (res.empty() || res.back() - 'a' != j)) {
+                    cnt[j]--;
+                    res += char(j + 'a');
+                    break;
+                }
+            }
+        }
+    }
+    return res;
+}
+
+ll count_pop(ll n, int k) { // count how many number from [1, n] having pct as k
+    ll res = 0;
+    int ones = 0;
+    for(int i = 63; i >= 0; --i) {
+        if((n >> i) & 1) {
+            if(k - ones >= 0 && k - ones <= i) {
+                res += nCk_no_mod(i, k - ones);
+            }
+            ++ones;
+            if(ones > k) break;
+        }
+    }
+    if(ones == k) res++;
+    return res;
+}
+
 template<typename T>
 void minimal_rotation(T &s) {
     int n = int(s.size());
@@ -729,9 +800,23 @@ vll spfa(int V, const vvpii& g) {
 vvi rotate90(const vvi matrix) {
     int n = matrix.size(), m = matrix[0].size();
     vvi res(m, vi(n));
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
+    for(int i = 0; i < n; i++)
+        for(int j = 0; j < m; j++)
             res[j][n - 1 - i] = matrix[i][j];
+    return res;
+}
+
+ll allowed_kth(ll k, vi& allowed) { // find the kth number iff only digit in allowed vector show up
+    // https://codeforces.com/contest/1811/problem/E
+    ll res = 0, place = 1;
+    int B = allowed.size();
+    while(k > 0) {
+        ll d = k % B;           
+        ll e = allowed[d];     
+        res += (ll)e * place;
+        place *= 10;
+        k /= B;
+    }
     return res;
 }
 

@@ -1,0 +1,17 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-std=c++23",
+      "-O2",
+      "-DLOCAL",
+      "-o",
+      "a.out",
+      "submit.cpp"
+    ],
+    "directory": "/home/sololtin2001/CodeForces",
+    "file": "/home/sololtin2001/CodeForces/submit.cpp",
+    "output": "/home/sololtin2001/CodeForces/a.out"
+  }
+]

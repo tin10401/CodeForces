@@ -1,14 +1,16 @@
 template<typename T>
 class Treap {
-private:
+public:
     struct TreapNode {
         int pri, size, reverse;
         T key, ans, lazy;
         ll pref[2], suff[2];
         TreapNode* left;
         TreapNode* right;
+        TreapNode* par;
+        TreapNode* cor; // https://codeforces.com/contest/455/problem/D
         
-		TreapNode(T key) : reverse(0), key(key), ans(key), pri(rand()), size(1), left(nullptr), right(nullptr) {
+		TreapNode(T key) : reverse(0), lazy(0), key(key), ans(key), pri(rng()), size(1), left(nullptr), right(nullptr), par(nullptr), cor(nullptr) {
 //            for(int i = 0; i < HASH_COUNT; i++) {
 //                pref[i] = suff[i] = key;
 //            }
@@ -37,12 +39,13 @@ private:
 	void unite(TreapNode* treap) {  
         if(!treap) return;
         treap->size = size(treap->left) + size(treap->right) + 1;
+        if(treap->left) treap->left->par = treap;
+        if(treap->right) treap->right->par = treap;
 //        for(int i = 0; i < HASH_COUNT; i++) {
 //            treap->pref[i] = (get_pref(treap->right, i) + (p[i][size(treap->right)] * treap->key) % mod[i] + (get_pref(treap->left, i) * p[i][size(treap->right) + 1]) % mod[i]) % mod[i];
 //            treap->suff[i] = (get_suff(treap->left, i) + (p[i][size(treap->left)] * treap->key) % mod[i] + (get_suff(treap->right, i) * p[i][size(treap->left) + 1]) % mod[i]) % mod[i];
 //        }
     }
-
 
 	void apply(TreapNode*treap, int flag, T val = 0) {
         if(!treap) return;
@@ -101,7 +104,6 @@ private:
         delete treap;
     }
 
-public:
     bool by_value;
     Treap(bool by_value = false) : root(nullptr), by_value(by_value) {} // all one base indexing
     
@@ -109,15 +111,17 @@ public:
         destroy(root);
     }
 
-    void insert(T key) { 
+    TreapNode* insert(T key) { 
+        TreapNode* t = new TreapNode(key);
         if(!by_value) {
-            merge(root, root, new TreapNode(key));
-            return;
+            merge(root, root, t);
+            return t;
         }
         TreapNode* A;
         split(root, root, A, key - 1);
-        merge(root, root, new TreapNode(key));
+        merge(root, root, t);
         merge(root, root, A);
+        return t;
     }
     
 	void insert_at(int k, T x) {
@@ -129,6 +133,32 @@ public:
         split(root, root, A, k - 1);
         merge(root, root, new TreapNode(x));
         merge(root, root, A);
+    }
+
+    int find_index(TreapNode* treap) {
+        int pos = 0;
+        bool left = true;
+        while(treap) {
+            if(left) pos += size(treap->left) + 1;
+            if(treap->par && treap->par->right == treap) left = true;
+            else left = false;
+            treap = treap->par;
+        }
+        return pos;
+    }
+
+    int order_of_key(int r) {
+        int cnt = 0;
+        TreapNode* treap = root;
+        while(treap) {
+            if(find_index(treap->cor) <= r) {
+                cnt += size(treap->left) + 1;
+                treap = treap->right;
+            } else {
+                treap = treap->left;
+            }
+        }
+        return cnt;
     }
 
     void split_and_insert_at(int l, int r, int k) {
@@ -157,7 +187,7 @@ public:
         return ok;
     }
 
-	void split_and_apply(int l, int r, T k = 0) { 
+    void split_and_apply(int l, int r, T k = 0) { 
         if(by_value) {
             TreapNode* A, *B;
             split(root, root, A, l - 1); 
@@ -177,25 +207,6 @@ public:
             apply(A, 1, k);
             push(A);
         }
-        merge(root, root, A);
-        merge(root, root, B);
-    }
-
-	void split_and_swap(int k) {
-        if(k == 0 || k == size(root)) return; 
-        TreapNode* A, *B, *C;
-        split(root, root, A, k);
-        if(!A) return;
-        merge(root, A, root);
-    }
-
-    void shift_right(int l, int r) { // [1 2 3 4] -> [4 1 2 3] and off_set by 1
-        r = r - l + 1;
-        TreapNode* A, *B, *C;
-        split(root, root, A, l - 1);
-        split(A, A, B, r);
-        split(A, A, C, r - 1);
-        merge(root, root, C);
         merge(root, root, A);
         merge(root, root, B);
     }
@@ -1184,6 +1195,7 @@ struct xor_basis {
 };
 
 // this one is faster since it iterating over the # of value instead of BITS, careful with initializing BITS, you can go 60 if needed
+// prefer to use this one
 template<typename T, int BITS = 30>
 struct xor_basis {
     // subsequence [l, r] having subsequence_xor of x is pow(2, (r - l + 1) - rank())
@@ -1457,6 +1469,91 @@ struct Mo_Update {
             while(cl < q.l) remove_(cl++);
             while(cr > q.r) remove_(cr--);
             res[q.idx] = ans;
+        }
+        return res;
+    }
+};
+
+struct Mo4D {
+    // https://codeforces.com/contest/1767/problem/F
+    struct Query {
+        int l1, r1, l2, r2, id;
+    };
+    int n, B;
+    vt<Query> qs;
+    vi a, pos;
+    vvi cc;
+    vi mx, c;
+
+    Mo4D(vi& a, int _B = 0) : n(a.size()), a(a), B(_B ? _B : int(sqrt(n)) + 1) {}
+
+    void add_query(int l1, int r1, int l2, int r2, int id) {
+        qs.push_back({l1, r1, l2, r2, id});
+    }
+
+    void add(int u) {
+        int x = a[u];
+        int bl = x / B;
+        cc[bl][c[x]]--;
+        ++c[x];
+        cc[bl][c[x]]++;
+        mx[bl] = max(mx[bl], c[x]);
+    }
+
+    void del(int u) {
+        int x = a[u];
+        int bl = x / B;
+        if(mx[bl] == c[x] && cc[bl][c[x]] == 1) mx[bl]--;
+        cc[bl][c[x]]--;
+        --c[x];
+        cc[bl][c[x]]++;
+    }
+
+    ll get() {
+        int i = max_element(all(mx)) - begin(mx);
+        for(int j = 0; ; j++) {
+            if(c[i * B + j] == mx[i]) {
+                return pos[i * B + j];
+            }
+        }
+        return 0;
+    }
+
+    vi query() {
+        sort(all(qs), [&](const Query &a, const Query &b) {
+            int A[3] = {a.l1 / B, a.r1 / B, a.l2 / B};
+            int Bv[3] = {b.l1 / B, b.r1 / B, b.l2 / B};
+            if(A[0] != Bv[0]) return A[0] < Bv[0];
+            if(A[1] != Bv[1]) return A[1] < Bv[1];
+            if(A[2] != Bv[2]) return A[2] < Bv[2];
+            return a.r2 < b.r2;
+        });
+        pos = a;
+        srtU(pos);
+        const int N = a.size();
+        mx.rsz(N / B + 1);
+        cc.rsz(N / B + 1, vi(N));
+        c.rsz(N);
+        auto get_id = [&](int x) -> int {
+            return int(lb(all(pos), x) - begin(pos));
+        };
+        for(auto& x : a) x = get_id(x);
+
+        vi res(qs.size());
+        int cl1 = 0, cr1 = -1, cl2 = 0, cr2 = -1;
+
+        for(auto &q : qs) {
+            while(cr1 < q.r1) add(++cr1);
+            while(cl1 > q.l1) add(--cl1);
+            while(cr1 > q.r1) del(cr1--);
+            while(cl1 < q.l1) del(cl1++);
+
+            while(cr2 < q.r2) add(++cr2);
+            while(cl2 > q.l2) add(--cl2);
+            while(cr2 > q.r2) del(cr2--);
+            while(cl2 < q.l2) del(cl2++);
+
+            res[q.id] = get();
         }
         return res;
     }
@@ -2891,11 +2988,11 @@ struct Mat {
 
     Mat operator*(const Mat& o) const {
         Mat r(R, o.C, DEFAULT);
-        for (int i = 0; i < R; i++) {
-            for (int k = 0; k < C; k++) {
+        for(int i = 0; i < R; i++) {
+            for(int k = 0; k < C; k++) {
                 T v = a[i][k];
                 if(v == DEFAULT) continue;
-                for (int j = 0; j < o.C; j++)
+                for(int j = 0; j < o.C; j++)
                     r.a[i][j] = r.a[i][j] + v * o.a[k][j];
             }
         }
@@ -2904,8 +3001,8 @@ struct Mat {
 
     Mat pow(ll e) const {
         Mat res = identity(R, DEFAULT), base = *this;
-        while (e > 0) {
-            if (e & 1) res = res * base;
+        while(e > 0) {
+            if(e & 1) res = res * base;
             base = base * base;
             e >>= 1;
         }
@@ -2913,12 +3010,12 @@ struct Mat {
     }
 
     friend ostream& operator<<(ostream& os, const Mat& M) {
-        for (int i = 0; i < M.R; i++) {
-            for (int j = 0; j < M.C; j++) {
+        for(int i = 0; i < M.R; i++) {
+            for(int j = 0; j < M.C; j++) {
                 os << M.a[i][j];
-                if (j + 1 < M.C) os << ' ';
+                if(j + 1 < M.C) os << ' ';
             }
-            if (i + 1 < M.R) os << '\n';
+            if(i + 1 < M.R) os << '\n';
         }
         return os;
     }
@@ -3402,7 +3499,7 @@ struct MonoQueue {
         if(!out.empty()) out.pop();
     }
 
-    T query() const {
+    T top() const {
         if(in.empty() && out.empty()) return e;
         if(in.empty()) return out.top().ss;
         if(out.empty()) return in.top().ss;
@@ -3415,6 +3512,10 @@ struct MonoQueue {
 	
 	int size() {
         return int(in.size() + out.size());
+    }
+    
+    void clear() {
+        while(!empty()) pop();
     }
 };
 
