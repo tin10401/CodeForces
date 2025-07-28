@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,176 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+struct eer_tree {
+    struct Node {
+        int len, link, next[26];
+        ll palindrome;
+        int diff, slink;
+        int min_even_suffix_len; // https://codeforces.com/contest/1827/problem/C
+        Node(int l = 0)
+            : len(l), link(0), palindrome(0), diff(0), slink(0), min_even_suffix_len(0) {
+            memset(next, 0, sizeof next);
+        }
+    };
+
+    struct SnapInfo {
+        int last;
+        int max_len;
+        int max_end;
+        ll total_palindrome;
+    };
+
+    vt<Node> F;
+    string s;
+    int last;
+    int max_len, max_end;
+    ll total_palindrome;
+    vt<SnapInfo> snaps;
+
+    vi dp, g;
+
+    eer_tree(int reserve_n = 0) : max_len(0), max_end(0), last(0), total_palindrome(0) {
+        init(reserve_n);
+    }
+
+    void init(int n = 0) {
+        s.clear();
+        F.clear();  
+        F.reserve(n + 2);
+        snaps.clear();
+        F.emplace_back();
+        F.emplace_back(-1);
+        F.emplace_back(0);
+        F[1].link = 1;
+        F[2].link = 1;
+        total_palindrome = 0;
+        last = 2;
+        max_len = 0;
+        max_end = 1;
+        dp.clear();  
+        dp.reserve(n + 1);
+        dp.pb(0);
+        g.clear();  
+        g.reserve(n * 2 + 5);
+        g.rsz(3, 0);
+    }
+
+    bool insert(char ch) {
+        s.pb(ch);
+        int pos = s.size() - 1;
+        int c = ch - 'a';
+        int curr = last;
+        while(true) {
+            int L = F[curr].len;
+            if(pos - 1 - L >= 0 && s[pos - 1 - L] == ch) break;
+            curr = F[curr].link;
+        }
+
+        bool created = false;
+        if(!F[curr].next[c]) {
+            created = true;
+            int new_node = F.size();
+            F[curr].next[c] = new_node;
+            F.emplace_back(F[curr].len + 2);
+
+            if(F.back().len == 1) {
+                F.back().link       = 2;
+                F.back().palindrome = 1;
+            } else {
+                int link_cand = F[curr].link;
+                while (true) {
+                    int L = F[link_cand].len;
+                    if(pos - 1 - L >= 0 && s[pos - 1 - L] == ch) break;
+                    link_cand = F[link_cand].link;
+                }
+                F.back().link = F[link_cand].next[c];
+                F.back().palindrome = F[F.back().link].palindrome + 1;
+            }
+
+            Node &N = F.back();
+            N.diff  = N.len - F[N.link].len;
+            if(N.diff == F[N.link].diff) N.slink = F[N.link].slink;
+            else N.slink = N.link;
+            if(F[N.link].min_even_suffix_len) {
+                N.min_even_suffix_len = F[N.link].min_even_suffix_len;
+            } else if(N.len % 2 == 0) {
+                N.min_even_suffix_len = N.len;
+            }
+            g.pb(0);
+        }
+
+        last = F[curr].next[c];
+        if (F[last].len > max_len) {
+            max_len = F[last].len;
+            max_end = pos;
+        }
+        total_palindrome += F[last].palindrome;
+        snaps.pb({ last, max_len, max_end, total_palindrome });
+
+        dp.pb(inf);
+        int i = dp.size() - 1;
+        for(int v = last; v > 2; v = F[v].slink) {
+            int series_len = F[F[v].slink].len + F[v].diff;
+            int j = i - series_len;
+            int cand = dp[j];
+            g[v] = cand;
+            if(F[v].diff == F[F[v].link].diff) g[v] = min(g[v], g[F[v].link]);
+            dp[i] = min(dp[i], g[v] + 1);
+        }
+        return created;
+    }
+
+    void pop() {
+        if(s.empty()) return;
+        s.pop_back();
+        snaps.pop_back();
+        dp.pop_back();
+        if(dp.empty()) {
+            last = 2;
+            max_len = 0;
+            max_end = 1;
+            total_palindrome = 0;
+        } else {
+            auto &st = snaps.back();
+            last = st.last;
+            max_len = st.max_len;
+            max_end = st.max_end;
+            total_palindrome = st.total_palindrome;
+        }
+    }
+
+    int min_partition() const {
+        // https://www.spoj.com/problems/IITKWPCE/
+		// https://codeforces.com/contest/932/problem/G
+        return dp.empty() ? 0 : dp.back();
+    }
+
+    string longest_palindrome() const {
+        int start = max_end - max_len + 1;
+        return s.substr(start, max_len);
+    }
+
+    int distinct_palindrome() const {
+        return F.size() - 3;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    s = ' ' + s;
+    eer_tree tree('a');
+    vi dp(n + 1);
+    ll res = 0;
+    for(int i = 1; i <= n; i++) {
+        tree.insert(s[i]);
+        int len = tree.F[tree.last].min_even_suffix_len;
+        if(len) {
+            dp[i] = dp[i - len] + 1;
+        }
+        res += dp[i];
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -262,7 +431,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,79 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+int m;
+
+struct cartesian_tree {
+    int n, root;
+    vi parent, l, r;
+    vi a;
+    cartesian_tree(const vi& a) : n(a.size()), a(a),
+        parent(n, -1), l(n, -1), r(n, -1) {
+        vi st;
+        for (int i = 0; i < n; ++i) {
+            int last = -1;
+            while(!st.empty() && a[i] < a[st.back()]) {
+                last = st.back();
+                st.pop_back();
+            }
+            if(!st.empty()) {
+                parent[i] = st.back();
+                r[st.back()] = i;
+            }
+            if(last != -1) {
+                parent[last] = i;
+                l[i] = last;
+            }
+            st.pb(i);
+        }
+        root = st.front();
+        while(parent[root] != -1) root = parent[root];
+    }
+
+    ll res = -INF;
+    vll dfs(int node) {
+        vll dp(2, -INF);
+        dp[0] = 0;
+        dp[1] = (ll)a[node] * m - a[node];
+        if(l[node] != -1) {
+            auto L = dfs(l[node]);
+            const int N = dp.size() + L.size() - 1;
+            vll next(N, -INF);
+            for(int i = 0; i < dp.size(); i++) {
+                for(int j = 0; j < L.size(); j++) {
+                    next[i + j] = max(next[i + j], dp[i] + L[j] - (ll)a[node] * i * j * 2);
+                }
+            }
+            swap(dp, next);
+        }
+        if(r[node] != -1) {
+            auto R = dfs(r[node]);
+            const int N = dp.size() + R.size() - 1;
+            vll next(N, -INF);
+            for(int i = 0; i < dp.size(); i++) {
+                for(int j = 0; j < R.size(); j++) {
+                    next[i + j] = max(next[i + j], dp[i] + R[j] - (ll)a[node] * i * j * 2);
+                }
+            }
+            swap(dp, next);
+        }
+        if(m < dp.size()) {
+            res = max(res, dp[m]);
+        }
+        return dp;
+    }
+
+    ll run() {
+        dfs(root);
+        return res;
+    }
+};
+
 void solve() {
+    int n; cin >> n >> m;
+    vi a(n); cin >> a;
+    cartesian_tree tree(a);
+    cout << tree.run() << '\n';
 }
 
 signed main() {

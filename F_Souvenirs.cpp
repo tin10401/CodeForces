@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,127 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T>
+struct PSGT {
+    struct Node {
+        int l, r;
+        T key;
+        Node(T key = inf) : key(key), l(0), r(0) {}
+    };
+    int new_node(int prev) {
+        F.pb(F[prev]);
+        return F.size() - 1;
+    }
+
+    int new_node() {
+        F.emplace_back();
+        return F.size() - 1;
+    }
+    vt<Node> F;
+    vi t;
+    int n;
+    T DEFAULT;
+    vi a;
+    vvi arr;
+    int rt;
+    int curr_min;
+    PSGT(const vi& a, T DEFAULT) : n(a.size()), a(a), DEFAULT(DEFAULT), t(a.size()) {
+        F.reserve(n * 20);
+        F.pb(Node(DEFAULT));
+        arr.rsz(n * 4);
+        build(entireTree);
+    }
+
+    void build(iter) {
+        if(left == right) return;
+        for(int j = left; j <= right; j++) {
+            arr[i].pb(a[j]);
+        }
+        srtU(arr[i]);
+        int middle = midPoint;
+        build(lp);
+        build(rp);
+    }
+
+	int update(int prev, int p, iter) {  
+        if(left >= p) return prev;
+        if(left == right) { 
+            int curr = new_node(prev);
+            F[curr].key = merge(F[curr].key, abs(a[left] - a[p]));
+            curr_min = merge(curr_min, F[curr].key);
+            return curr;
+        }
+        auto can_prune = [&]() -> bool {
+            auto it = lb(all(arr[i]), a[p]);
+            if(it != end(arr[i])) {
+                if(abs(*it - a[p]) < curr_min) return false;
+            }
+            if(it != begin(arr[i])) {
+                it--;
+                if(abs(*it - a[p]) < curr_min) return false;
+            }
+            return true;
+        };
+        if(can_prune()) {
+            curr_min = min(curr_min, F[prev].key);
+            return prev;
+        }
+        int curr = new_node(prev);
+        int middle = midPoint;
+        F[curr].r = update(F[prev].r, p, rp);
+        F[curr].l = update(F[prev].l, p, lp);
+        F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
+        return curr;
+    }
+
+	T queries_at(int curr, int start, int end, int left, int right) { 
+        if(!curr || left > end || start > right) return DEFAULT;
+        if(left >= start && right <= end) return F[curr].key;
+        int middle = midPoint;  
+		return merge(queries_at(F[curr].l, start, end, left, middle), queries_at(F[curr].r, start, end, middle + 1, right));
+    };
+        
+    void update_at(int i, int& prev, int p) { 
+        curr_min = inf;
+        t[i] = update(prev, p, entireTree); 
+        prev = t[i];
+    }
+
+    T queries_at(int i, int start, int end) {
+        return queries_at(t[i], start, end, 0, n - 1);
+    }
+
+    T merge(T left, T right) {
+        return min(left, right);
+    }
+};
+
+struct min_abs_tree {
+    // https://codeforces.com/problemset/problem/765/F
+    vi a;
+    PSGT<int> root;
+    min_abs_tree(const vi& a) : a(a), root(a, inf) {
+        int prev = 0;
+        for(int i = 0; i < a.size(); i++) {
+            root.update_at(i, prev, i);
+        }
+    }
+
+    int query(int l, int r) {
+        return root.queries_at(r, l, r);
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    min_abs_tree root(a);
+    int q; cin >> q;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        cout << root.query(l, r) << '\n';
+    }
 }
 
 signed main() {

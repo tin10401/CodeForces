@@ -261,22 +261,25 @@ vpii gen_tree(int n) {
 }
 
 string gen_string(int n) {
-    int N = uni(1, n);
+    int N = n;
     string s;
     while(N--) {
-        s += char(uni(0, 25) + 'a'); 
+        s += char(uni(0, 9) + '0'); 
     }
     return s;
 }
 
 void solve() {
-    ll n = uni(1, 1e15);
-    int m = uni(1, 2e5);
-    cout << n << ' ' << m << '\n';
-    while(m--) {
-        int a = uni(2, 300);
-        int b = uni(1, a - 1);
-        cout << a << ' ' << b << '\n';
+    cout << 1 << '\n';
+    int n = uni(1, 10);
+    int q = uni(1, 10);
+    cout << n << ' ' << q << '\n';
+    cout << gen_string(n) << '\n';
+    while(q--) {
+        int l = uni(0, n - 1);
+        int r = uni(0, n - 1);
+        if(l > r) swap(l, r);
+        cout << l << ' ' << r << '\n';
     }
 }
 

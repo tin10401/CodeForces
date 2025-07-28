@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -252,6 +252,52 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
+    int n, m, q; cin >> n >> m >> q;
+    vi a(n); cin >> a;
+    vs s(m); cin >> s;
+    const int N = 1 << n;
+    const int K = 100;
+    vvi dp(N, vi(K + 1));
+    vi weight(N);
+    for(int mask = 0; mask < N; mask++) {
+        int score = 0;
+        for(int i = 0; i < n; i++) {
+            if(have_bit(mask, i)) score += a[i];
+        }
+        weight[mask] = score;
+    }
+    auto get_mask = [](const string& s) -> int {
+        int mask = 0;
+        for(int i = 0; i < s.size(); i++) {
+            if(s[i] == '1') mask |= 1 << i;
+        }
+        return mask;
+    };
+    vi cnt(N);
+    for(auto& t : s) {
+        cnt[get_mask(t)]++;
+    }
+    ll total = sum(a);
+    for(int mask = 0; mask < 1 << n; mask++) {
+        if(!cnt[mask]) continue;
+        for(int sub = 0; sub < 1 << n; sub++) {
+            int t = mask ^ sub;
+            ll w = total - weight[sub];
+            if(w <= K) {
+                dp[t][w] += cnt[mask];
+            }
+        }
+    }
+    for(int mask = 0; mask < N; mask++) {
+        for(int i = 1; i < dp[mask].size(); i++) {
+            dp[mask][i] += dp[mask][i - 1];
+        }
+    }
+    while(q--) {
+        string t; cin >> t;
+        int k; cin >> k;
+        cout << dp[get_mask(t)][k] << '\n';
+    }
 }
 
 signed main() {

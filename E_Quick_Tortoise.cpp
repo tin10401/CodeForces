@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,72 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+const int K = 502;
+bitset<K> L[K][K], R[K][K];
 void solve() {
+    int N, M; cin >> N >> M;
+    vvc a(N, vc(M)); cin >> a;
+    int q; cin >> q;
+    vi ans(q);
+    auto dfs = [&](auto& dfs, int l, int r, const var(5)& Q) -> void {
+        if(l > r || Q.empty()) return;
+        int m = (l + r) >> 1;
+        for(int i = N - 1; i >= 0; i--) {
+            L[i][m].reset();
+            if(a[i][m] == '.') {
+                L[i][m].set(i);
+                if(i + 1 < N && a[i + 1][m] == '.') L[i][m] |= L[i + 1][m];
+            }
+        }
+        for(int c = m - 1; c >= l; c--) {
+            for(int i = N - 1; i >= 0; i--) {
+                L[i][c].reset();
+                if(a[i][c] == '#') continue;
+                if(i + 1 < N) {
+                    L[i][c] = L[i + 1][c] | L[i][c + 1];
+                } else {
+                    L[i][c] = L[i][c + 1];
+                }
+            }
+        }
+        for(int i = 0; i < N; i++) {
+            R[i][m].reset();
+            if(a[i][m] == '.') {
+                R[i][m].set(i);
+                if(i - 1 >= 0 && a[i - 1][m] == '.') R[i][m] |= R[i - 1][m];
+            }
+        }
+        for(int c = m + 1; c <= r; c++) {
+            for(int i = 0; i < N; i++) {
+                R[i][c].reset();
+                if(a[i][c] == '#') continue;
+                if(i) {
+                    R[i][c] = R[i - 1][c] | R[i][c - 1]; 
+                } else {
+                    R[i][c] = R[i][c - 1];
+                }
+            }
+        }
+        var(5) left, right;
+        for(auto& [x1, y1, x2, y2, id] : Q) {
+            if(y2 < m) left.pb({x1, y1, x2, y2, id});
+            else if(y1 > m) right.pb({x1, y1, x2, y2, id});
+            else ans[id] = (int)(L[x1][y1] & R[x2][y2]).any();
+        }
+        dfs(dfs, l, m - 1, left);
+        dfs(dfs, m + 1, r, right);
+    };
+    var(5) Q(q);
+    for(int i = 0; i < q; i++) {
+        auto& [x1, y1, x2, y2, id] = Q[i]; cin >> x1 >> y1 >> x2 >> y2;
+        x1--, y1--, x2--, y2--;
+        id = i;
+    }
+    dfs(dfs, 0, M - 1, Q);
+    debug(ans);
+    for(auto& x : ans) {
+        cout << (x ? "Yes" : "No") << '\n';
+    }
 }
 
 signed main() {

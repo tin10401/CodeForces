@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -252,6 +252,51 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vvll pre(n + 1);
+    for(int i = 1; i <= n; i++) {
+        int m; cin >> m;
+        pre[i].pb(0);
+        for(int j = 1; j <= m; j++) {
+            int x; cin >> x;
+            if(pre[i].size() <= k) {
+                pre[i].pb(pre[i].back() + x);
+            
+            }
+        }
+    }
+    vll dp(k + 1, -INF);
+    dp[0] = 0;
+    ll res = -INF;
+    auto dfs = [&](auto& dfs, int l, int r) -> void {
+        if(l == r) {
+            int sz = pre[l].size() - 1;
+            for(int take = 0; take <= sz && take <= k; take++) {
+                res = max(res, dp[k - take] + pre[l][take]);
+            }
+            return;
+        }
+        int mid = (l + r) >> 1;
+        auto snap(dp);
+        for(int i = mid + 1; i <= r; i++) {
+            int sz = pre[i].size() - 1;
+            for(int j = k; j >= sz; j--) {
+                dp[j] = max(dp[j], dp[j - sz] + pre[i].back());
+            }
+        }
+        dfs(dfs, l, mid);
+        dp = snap;
+        for(int i = l; i <= mid; i++) {
+            int sz = pre[i].size() - 1;
+            for(int j = k; j >= sz; j--) {
+                dp[j] = max(dp[j], dp[j - sz] + pre[i].back());
+            }
+        }
+        dfs(dfs, mid + 1, r);
+        dp = snap;
+    };
+    dfs(dfs, 1, n);
+    cout << res << '\n';
 }
 
 signed main() {

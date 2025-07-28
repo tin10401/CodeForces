@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,265 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree() {}
+
+    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size, root[idx] = val;
+        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+    
+    T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while(l <= r) {
+            if((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        if(idx < 0 || idx >= n) return DEFAULT;
+        return root[idx + size];
+    }
+	
+	void update_range(int l, int r, ll v) {}
+
+    T get() {
+        return root[1];
+    }
+
+    template<typename Pred>
+    int max_right(int start, Pred P) const {
+        if(start < 0) start = 0;
+        if(start >= n) return n;
+        T sm = DEFAULT;
+        int idx = start + size;
+        do {
+            while((idx & 1) == 0) idx >>= 1;
+            if(!P(func(sm, root[idx]))) {
+                while(idx < size) {
+                    idx <<= 1;
+                    T cand = func(sm, root[idx]);
+                    if(P(cand)) {
+                        sm = cand;
+                        idx++;
+                    }
+                }
+                return idx - size - 1;
+            }
+            sm = func(sm, root[idx]);
+            idx++;
+        } while((idx & -idx) != idx);
+        return n - 1;
+    }
+
+    template<typename Pred>
+    int min_left(int ending, Pred P) const {
+        if(ending < 0) return 0;
+        if(ending >= n) ending = n - 1;
+        T sm = DEFAULT;
+        int idx = ending + size + 1;
+        do {
+            idx--;
+            while(idx > 1 && (idx & 1)) idx >>= 1;
+            if(!P(func(root[idx], sm))) {
+                while(idx < size) {
+                    idx = idx * 2 + 1;
+                    T cand = func(root[idx], sm);
+                    if(P(cand)) {
+                        sm = cand;
+                        idx--;
+                    }
+                }
+                return idx + 1 - size;
+            }
+            sm = func(root[idx], sm);
+        } while((idx & -idx) != idx);
+        return 0;
+    }
+};
+
+struct Undo_DSU {
+    int n;
+    using Record = ar(8);
+    vi par, rank, col;
+    bool is_bipartite;
+    int comp;
+    stack<Record> st;
+    Undo_DSU() {}
+
+    Undo_DSU(int n) : n(n) {
+        comp = n;
+        is_bipartite = true;
+        par.rsz(n);
+        rank.rsz(n, 1);
+        col.rsz(n, 0);
+        iota(par.begin(), par.end(), 0);
+    }
+    
+    int find(int v) {
+        return par[v] == v ? v : find(par[v]);
+    }
+    
+    int getColor(int v) {
+        return par[v] == v ? col[v] : (col[v] ^ getColor(par[v]));
+    }
+    
+    int merge(int u, int v, bool save = true) {
+        int ru = find(u), rv = find(v);
+        int cu = getColor(u), cv = getColor(v);
+        if(ru == rv) {
+            if((cu ^ cv) != 1) {
+                if(save) st.push({1, -1, -1, -1, -1, -1, comp, (int)is_bipartite});
+                is_bipartite = false;
+                return -1;
+            }
+            return false;
+        }
+        if(rank[ru] < rank[rv]) swap(ru, rv);
+        if(save) st.push({0, ru, rank[ru], rv, rank[rv], col[rv], comp, (int)is_bipartite});
+        comp--;
+        par[rv] = ru;
+        col[rv] = cu ^ cv ^ 1;
+        rank[ru] += rank[rv];
+        return true;
+    }
+    
+    void rollBack() {
+        while(!st.empty()) {
+            Record rec = st.top();
+            st.pop();
+            int type = rec[0];
+            comp = rec[6];
+            is_bipartite = (bool)rec[7];
+            if(type == 0) {
+                int ru = rec[1], oldRankU = rec[2], rv = rec[3], oldRankV = rec[4], oldColV = rec[5];
+                par[rv] = rv;
+                rank[ru] = oldRankU;
+                rank[rv] = oldRankV;
+                col[rv] = oldColV;
+            }
+        }
+    }
+    
+    bool same(int u, int v) {
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int u) {
+        return rank[find(u)];
+    }
+
+    int get_comp() const {
+        return comp;
+    }
+};
+
+int n, m, q; 
+
+vi pos;
+var(3) edges;
+Undo_DSU dsu;
+
+int merge(int i, vi& t) {
+    auto& [u, v, w] = edges[i];
+    int k = dsu.merge(u, v);
+    if(k == 1) {
+        t.pb(i);
+    } else if(k == -1) {
+        t.pb(i);
+        return false;
+    }
+    return true;
+}
+
+struct info {
+    vi res;
+
+    info(int l = -1) {
+        res.clear();
+        if(l == -1) return;
+        dsu.rollBack();
+        bool ok = true;
+        sort(edges.begin() + pos[l], edges.begin() + pos[l + 1], [](const ar(3)& a, const ar(3)& b) {return a[2] > b[2];});
+        for(int i = pos[l]; i < pos[l + 1] && ok; i++) {
+            if(!merge(i, res)) {
+                ok = false; 
+            }
+        }
+        if(ok) res.pb(-1);
+    }
+
+    friend info operator+(const info& a, const info& b) {
+        if(a.res.empty()) return b;
+        if(b.res.empty()) return a;
+        info res;
+        const auto& A = a.res, &B = b.res;
+        const int N = A.size(), M = B.size();
+        bool ok = true;
+        dsu.rollBack();
+        int i = 0, j = 0;
+        while(ok && ((i < N && A[i] != -1) || (j < M && B[j] != -1))) {
+            if(i == N || A[i] == -1) ok = merge(B[j++], res.res);
+            else if(j == M || B[j] == -1) ok = merge(A[i++], res.res);
+            else if(edges[A[i]][2] > edges[B[j]][2]) ok = merge(A[i++], res.res);
+            else ok = merge(B[j++], res.res);
+        }
+        if(ok) res.res.pb(-1);
+        return res;
+    }
+
+    int get() {
+        if(res.empty() || res.back() == -1) return -1;
+        return edges[res.back()][2];
+    }
+};
+
 void solve() {
+    cin >> n >> m >> q;
+    edges = var(3)(m); cin >> edges;
+    dsu = Undo_DSU(n);
+    for(auto& [u, v, w] : edges) {
+        u--, v--;
+    }
+    vpii Q(q);
+    for(auto& [l, r] : Q) {
+        cin >> l >> r;
+        l--;
+        pos.pb(l);
+        pos.pb(r);
+    }
+    srtU(pos);
+    const int N = pos.size() - 1;
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(pos), x) - begin(pos));
+    };
+    basic_segtree<info> root(N, info());
+    for(int i = 0; i < N; i++) {
+        root.update_at(i, info(i));
+    }
+    for(auto& [l, r] : Q) {
+        cout << root.queries_range(get_id(l), get_id(r) - 1).get() << '\n'; 
+    }
 }
 
 signed main() {
@@ -289,3 +547,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

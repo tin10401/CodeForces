@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,151 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree() {}
+
+    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, T val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size, root[idx] = val;
+        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+    
+    T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        while(l <= r) {
+            if((l & 1) == 1) res_left = func(res_left, root[l++]);
+            if((r & 1) == 0) res_right = func(root[r--], res_right);
+            l >>= 1; r >>= 1;
+        }
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        if(idx < 0 || idx >= n) return DEFAULT;
+        return root[idx + size];
+    }
+
+	
+	void update_range(int l, int r, ll v) {}
+
+    T get() {
+        return root[1];
+    }
+
+    template<typename Pred>
+    int max_right(int start, Pred P) const {
+        if(start < 0) start = 0;
+        if(start >= n) return n;
+        T sm = DEFAULT;
+        int idx = start + size;
+        do {
+            while((idx & 1) == 0) idx >>= 1;
+            if(!P(func(sm, root[idx]))) {
+                while(idx < size) {
+                    idx <<= 1;
+                    T cand = func(sm, root[idx]);
+                    if(P(cand)) {
+                        sm = cand;
+                        idx++;
+                    }
+                }
+                return idx - size - 1;
+            }
+            sm = func(sm, root[idx]);
+            idx++;
+        } while((idx & -idx) != idx);
+        return n - 1;
+    }
+
+    template<typename Pred>
+    int min_left(int ending, Pred P) const {
+        if(ending < 0) return 0;
+        if(ending >= n) ending = n - 1;
+        T sm = DEFAULT;
+        int idx = ending + size + 1;
+        do {
+            idx--;
+            while(idx > 1 && (idx & 1)) idx >>= 1;
+            if(!P(func(root[idx], sm))) {
+                while(idx < size) {
+                    idx = idx * 2 + 1;
+                    T cand = func(root[idx], sm);
+                    if(P(cand)) {
+                        sm = cand;
+                        idx--;
+                    }
+                }
+                return idx + 1 - size;
+            }
+            sm = func(root[idx], sm);
+        } while((idx & -idx) != idx);
+        return 0;
+    }
+};
+
+int n, k;
+
+struct info {
+    int ai, bi, bad1, bad2;
+    ll s1, s2;
+    info(int _ai = 0, int _bi = 0) : ai(_ai), bi(_bi) {
+        if(ai + k < bi) {
+            bad1 = 1;
+            s1 = bi;
+        } else {
+            bad1 = 0;
+            s1 = ai;
+        }
+        if(bi + k < ai) {
+            bad2 = 0;
+            s2 = ai;
+        } else {
+            bad2 = 1;
+            s2 = bi;
+        }
+    }
+    
+    friend info operator+(const info& a, const info& b) {
+        info res;
+        res.bad1 = a.bad1 == 0 ? b.bad1 : b.bad2;
+        res.s1 = a.s1 + (a.bad1 == 0 ? b.s1 : b.s2);
+        res.bad2 = a.bad2 == 0 ? b.bad1 : b.bad2;
+        res.s2 = a.s2 + (a.bad2 == 0 ? b.s1 : b.s2);
+        return res;
+    }
+};
+
+
 void solve() {
+    cin >> n >> k;
+    vi a(n), b(n); cin >> a >> b;
+    basic_segtree<info> root(n, info());
+    for(int i = 0; i < n; i++) root.update_at(i, info(a[i], b[i]));
+    int q; cin >> q;
+    while(q--) {
+        int type, p, x; cin >> type >> p >> x;
+        p--;
+        if(type == 1) a[p] = x;
+        else b[p] = x;
+        root.update_at(p, info(a[p], b[p]));
+        cout << root.get().s1 << '\n';
+    }
 }
 
 signed main() {
@@ -262,7 +406,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

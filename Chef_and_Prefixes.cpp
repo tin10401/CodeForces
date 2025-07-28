@@ -222,10 +222,10 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1LL << 62;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e6 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,189 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW() {}
+    FW(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    inline void update_at(int id, T val) {  
+        assert(id >= 0);
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    inline T get(int id) {   
+        assert(id < n);
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    inline void update_range(int l, int r, T val) {
+		if(l > r) return;
+        update_at(l, val), update_at(r + 1, -val);
+    }
+};
+
+template<typename T>
+struct path_queries { // update point, query path from rt to v mostly
+    int n;
+    FW<ll> fw;
+    vi curr, tin, tout;
+
+    path_queries(const vt<vt<T>>& graph, int rt = 0)
+      : n(graph.size()),
+        fw(graph.size(), 0),
+        curr(graph.size()), tin(graph.size()), tout(graph.size())
+    {
+        int timer = 0; 
+        auto dfs = [&](auto& dfs, int node, int par) -> void {
+            tin[node] = timer++;
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                dfs(dfs, nei, node);
+            }
+            tout[node] = timer - 1;
+        }; dfs(dfs, rt, -1);
+    }
+
+    void update_at(int i, int x) {
+        fw.update_range(tin[i], tout[i], x);
+    }
+    
+    ll query(int u) {
+        return fw.get(tin[u]);
+    }
+};
+
+template<typename T = int>
+class GRAPH {
+public:
+	int n, m;
+    vvi dp;
+    vt<vt<T>> adj;
+
+    GRAPH() {}
+
+    GRAPH(int _n) : n(_n) {
+        adj.rsz(_n);
+        m = log2(n) + 1;
+        dp.rsz(n, vi(m, -1));
+    }
+
+    void build_online(int node, int par) {
+        adj[par].pb(node);
+        dp[node][0] = par;
+        for(int j = 1; j < m; ++j) {
+            int p = dp[node][j - 1];
+            if(p == -1) continue;
+            dp[node][j] = dp[p][j - 1];
+        }
+    }
+	
+	int kth_ancestor(int u, ll k) {
+        for(int i = 0; i < m && u != -1; ++i) {
+            if(k & (1LL << i)) {
+                assert(dp[u][i] != -1);
+                u = dp[u][i];
+            }
+        }
+        return u;
+    }
+};
+
+GRAPH<int> g;
+
+struct Trie {
+    struct Node {
+        int c[26];
+        Node() {
+            mset(c, 0);
+        }
+    };
+    vt<Node> T;
+    char off;
+    Trie(char _off) : off(_off) {
+        T.pb(Node());
+    }
+
+    int new_node() {
+        T.pb(Node());
+        return T.size() - 1;
+    }
+
+    int get(char c) {
+        return c - off;
+    }
+
+    int insert(int curr, const string& S) {
+        for(auto& ch : S) {
+            int j = get(ch);
+            if(!T[curr].c[j]) {
+                int v = new_node();
+                T[curr].c[j] = v;
+                g.build_online(v, curr);
+            }
+            curr = T[curr].c[j];
+        }
+        return curr;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    vi rt(n + 1);
+    Trie trie('a');
+    g = GRAPH<int>(MX);
+    vi sz(n + 1);
+    for(int i = 1; i <= n; i++) {
+        string s; cin >> s;
+        rt[i] = trie.insert(0, s);
+        sz[i] = s.size();
+    }
+    int q; cin >> q;
+    vt<tuple<int, int, int, int, string>> Q(q);
+    for(auto& [op, i, K, x, t] : Q) {
+        cin >> op;
+        if(op == 2) {
+            cin >> i >> K >> t;
+            rt.pb(trie.insert(g.kth_ancestor(rt[i], sz[i] - K), t));
+            sz.pb(K + t.size());
+        } else if(op == 3) {
+            cin >> i;
+        } else {
+            cin >> i >> K >> x;
+        }
+    }
+    path_queries<int> tree(g.adj);
+    vll off_set(rt.size());
+    int c = n + 1;
+    for(auto& [op, i, K, x, t] : Q) {
+        if(op == 1) {
+            int u = g.kth_ancestor(rt[i], sz[i] - K);
+            tree.update_at(u, x);
+        } else if(op == 3) {
+            cout << tree.query(rt[i]) - off_set[i] << '\n';
+        } else {
+            off_set[c] = tree.query(rt[c]);
+            c++;
+        }
+    }
 }
 
 signed main() {

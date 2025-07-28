@@ -1196,117 +1196,93 @@ struct xor_basis {
 
 // this one is faster since it iterating over the # of value instead of BITS, careful with initializing BITS, you can go 60 if needed
 // prefer to use this one
-template<typename T, int BITS = 30>
+static const int BITS = 60;
+template<typename T>
 struct xor_basis {
-    // subsequence [l, r] having subsequence_xor of x is pow(2, (r - l + 1) - rank())
     T basis[BITS];
-    int r = 0;
- 
-    bool insert(T x) {
-        if (x == 0) return false;
-        x = min_value(x);
-        if (x == 0) return false;
-        for (int i = 0; i < r; ++i)
-            if ((basis[i] ^ x) < basis[i]) basis[i] ^= x;
-        basis[r++] = x;
-        int k = r - 1;
-        while (k > 0 && max_bit(basis[k]) > max_bit(basis[k - 1])) {
-            swap(basis[k], basis[k - 1]);
-            --k;
-        }
-        return true;
+
+    xor_basis() {
+        for (int b = 0; b < BITS; b++)
+            basis[b] = 0;
     }
- 
-    bool contains(T x) const {
-        return min_value(x) == 0;
-    }
- 
-    T min_value(T x) const {
-        if(r == BITS) return 0;
-        for (int i = 0; i < r; ++i) x = min(x, x ^ basis[i]);
-        return x;
-    }
- 
-    T max_value(T x = 0) const {
-        for (int i = 0; i < r; ++i) x = max(x, x ^ basis[i]);
-        return x;
-    }
- 
-    int rank() const { return r; }
- 
-    uint64_t size() const { return (r >= 64 ? 0ULL : 1ULL << r); }
- 
-    vt<T> get_compact_basis() const {
-        vt<T> vec;
-        for (int i = 0; i < r; ++i) vec.pb(basis[i]);
-        return vec;
-    }
- 
-    T get_kth_smallest(uint64_t k) const {
-        if (r >= 64 || k >= (1ULL << r)) return T(0);
-        T ans = 0;
-        for (int i = 0; i < r; ++i)
-            if ((k >> i) & 1ULL) ans ^= basis[i];
-        return ans;
-    }
- 
-    T get_kth_largest(uint64_t k) const {
-        uint64_t total = size();
-        if (total == 0 || k >= total) return T(0);
-        return get_kth_smallest(total - 1 - k);
-    }
- 
-    bool insert_base_on(T x, T c) {
-        for (int i = 0; i < r; ++i) x = std::min(x, x ^ basis[i]);
-        if (x == 0) return false;
-        for (int b = BITS - 1; b >= 0; --b) {
-            if (have_bit(c, b) || !have_bit(x, b)) continue;
-            for (int i = 0; i < r; ++i)
-                if (have_bit(basis[i], b)) basis[i] ^= x;
-            basis[r++] = x;
-            int k = r - 1;
-            while (k > 0 && max_bit(basis[k]) > max_bit(basis[k - 1])) {
-                std::swap(basis[k], basis[k - 1]);
-                --k;
+
+    bool add(T x) {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) {
+                basis[b] = x;
+                for(int d = 0; d < BITS; ++d) {
+                    if(d != b && ((basis[d] >> b) & 1)) {
+                        basis[d] ^= x;
+                    }
+                }
+                return true;
             }
-            return true;
+            x ^= basis[b];
         }
         return false;
     }
- 
-    T max_value_base_on(T x) const {
-        T res = 0;
-        for (int i = 0; i < r; ++i)
-            if (!have_bit(x, max_bit(basis[i]))) res ^= basis[i];
-        return res;
+
+    bool contains(T x) const {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) return false;
+            x ^= basis[b];
+        }
+        return true;
     }
- 
-    inline xor_basis operator+(const xor_basis& other) const {
-        if (r == 0) return other;
-        if (other.r == 0) return *this;
-        const xor_basis* big   = (r >= other.r ? this  : &other);
-        const xor_basis* small = (r >= other.r ? &other :  this);
-        xor_basis res = *big;
-        for (int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
-        return res;
+
+    T min_value(T x) const {
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(basis[b] && (x ^ basis[b]) < x)
+                x ^= basis[b];
+        }
+        return x;
     }
- 
-    xor_basis& operator^=(T k) {
-        for (int i = r - 1; i >= 0; --i)
-            if (basis[i] & 1) {
-                basis[i] ^= k;
+
+    T max_value(T x = 0) const {
+        for (int b = BITS - 1; b >= 0; --b) {
+            if (basis[b] && (x ^ basis[b]) > x)
+                x ^= basis[b];
+        }
+        return x;
+    }
+
+    bool add_base_on(T x, T c) { // https://atcoder.jp/contests/abc141/tasks/abc141_f
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(have_bit(c, b)) continue;
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) {
+                basis[b] = x;
+                return true;
             }
-        return *this;
+            x ^= basis[b];
+        }
+        return false;
     }
- 
+
+    T max_value_base_on(T x) const { // find max query(x) + (x ^ query(x));
+        T res = 0;
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(have_bit(x, b)) continue;
+            if(!have_bit(res, b)) res ^= basis[b];
+        }
+        return res;
+    }
+
+    void merge(const xor_basis &o) {
+        for(int b = 0; b < BITS; b++)
+            if(o.basis[b])
+                add(o.basis[b]);
+    }
+
     bool operator==(const xor_basis &o) const {
-        if (r != o.r) return false;
-        for (int i = 0; i < r; ++i)
-            if (basis[i] != o.basis[i]) return false;
+        for(int b = 0; b < BITS; b++)
+            if(basis[b] != o.basis[b])
+                return false;
         return true;
     }
 };
-
 class MO {  
     public: 
     int n, q;  
@@ -2923,6 +2899,20 @@ public:
     int get_median() {
         return left.top();
     }
+	
+	pii get_range_median() {
+        balance();
+        clear();
+        int ls = (int)left.size() - (int)left_removed.size();
+        int rs = (int)right.size() - (int)right_removed.size();
+
+        if (ls == rs) {
+            return {left.top(), right.top()};
+        } else {
+            return {left.top(), left.top()};
+        }
+    }
+
     
     ll get_cost() {
         ll median = get_median();
@@ -3249,6 +3239,120 @@ struct square_root_decomp {
     
     ll queries_at(int i) {
         return a[i] + lazy[id(i)];
+    }
+};
+
+struct square_root_decomp_max {
+    int B;
+    vi a;
+    vi mx;
+    vi cnt;
+    vt<map<int, int>> freq;
+    int n;
+
+    square_root_decomp_max(int n) : n(n) {
+        B = sqrt(n);
+        int num_blocks = (n + B - 1) / B;
+        mx.rsz(num_blocks);
+        cnt = vi(n);
+        freq = vt<map<int, int>>(num_blocks);
+    }
+    
+    int start_id(int i) {
+        return (i / B) * B;
+    }
+    
+    int end_id(int i) {
+        return min(((i / B) + 1) * B - 1, n - 1);
+    }
+    
+    int id(int i) {
+        return i / B;
+    }
+
+    void insert(int i) {
+        int I = id(i);
+        if(cnt[i]) freq[I][cnt[i]]--;
+        mx[I] = max(mx[I], ++cnt[i]);
+        freq[I][cnt[i]]++;
+    }
+
+    void remove(int i) {
+        int I = id(i);
+        if(mx[I] == cnt[i] && freq[I][cnt[i]] == 1) mx[I]--;
+        freq[I][cnt[i]]--;
+        if(--cnt[i]) freq[I][cnt[i]]++;
+    }
+    
+    pii queries_range(int l, int r) {
+        if(r - l + 1 <= B) {
+            int m = l;
+            for(int i = l + 1; i <= r; i++) {
+                if(cnt[i] > cnt[m]) {
+                    m = i;
+                }
+            }
+            return {m, cnt[m]};
+        }
+        int bl = id(l), br = id(r);
+        int m = 0;
+        for(int i = l; i <= end_id(l); i++) {
+            m = max(m, cnt[i]);
+        }
+        for(int i = start_id(r); i <= r; i++) {
+            m = max(m, cnt[i]);
+        }
+        for(int i = bl + 1; i < br; i++) {
+            m = max(m, mx[i]);
+        } 
+        for(int i = l; i <= end_id(l); i++) {
+            if(cnt[i] == m) {
+                return {i, m};
+            }
+        }
+        for(int i = bl + 1; i < br; i++) {
+            if(mx[i] == m) {
+                for(int j = i * B; j <= min((i + 1) * B - 1, n - 1); j++) {
+                    if(cnt[j] == m) {
+                        return {j, m};
+                    }
+                }
+                assert(false);
+            }
+        }
+        for(int i = start_id(r); i <= r; i++) {
+            if(cnt[i] == m) {
+                return {i, m};
+            }
+        }
+        assert(false);
+    }
+};
+
+struct cartesian_tree {
+    int n, root;
+    vi parent, l, r;
+    cartesian_tree(const vi& a) : n(a.size()),
+        parent(n, -1), l(n, -1), r(n, -1) {
+        vi st;
+        for (int i = 0; i < n; ++i) {
+            int last = -1;
+            while(!st.empty() && a[i] < a[st.back()]) {
+                last = st.back();
+                st.pop_back();
+            }
+            if(!st.empty()) {
+                parent[i] = st.back();
+                r[st.back()] = i;
+            }
+            if(last != -1) {
+                parent[last] = i;
+                l[i] = last;
+            }
+            st.pb(i);
+        }
+        root = st.front();
+        while(parent[root] != -1) root = parent[root];
     }
 };
 

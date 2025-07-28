@@ -963,3 +963,114 @@ vi derangement(const vi& a) { // return an array where nothing is in the origina
     }
     return b;
 }
+
+ar(3) find_max_median(const vi& a, int K) { // find max_median of len >= K
+	// https://codeforces.com/contest/2128/problem/E2
+	const int n = a.size();
+    auto f = [&](int x) -> pii {    
+        vi prefix(n + 1);   
+        for(int i = 1; i <= n; i++) {   
+            prefix[i] = prefix[i - 1] + (a[i - 1] >= x ? 1 : -1);
+        }
+        pii M = {-inf, -inf};
+        vpii mx(n + 1, M);   
+        for(int i = n; i >= 0; i--) {   
+            M = max(M, MP(prefix[i], i));
+            mx[i] = M;
+        }
+        for(int i = 0; i + K <= n; i++) {    
+            if(mx[i + K].ff >= prefix[i]) return {i, mx[i + K].ss - 1}; // this is ceil median, for floor make it >
+        }
+        return {-1, -1};
+    };
+    int left = MIN(a), right = MAX(a);
+    pii res;
+    int mx = 0;
+    while(left <= right) {
+        int middle = midPoint;
+        auto p = f(middle);
+        if(p.ff != -1) res = p, mx = middle, left = middle + 1;
+        else right = middle - 1;
+    }
+    return {mx, res.ff, res.ss};
+}
+
+template<typename T>
+vt<T> compute_lis(const vi& a, int K, const var(3)& queries) { // careful with k = 0 loop, it's k = 1 loop right now
+    // https://usaco.org/index.php?page=viewproblem2&cpid=997
+    int n = a.size();
+    int q = queries.size();
+    vt<T> ans(q);
+    vt<vt<T>> pre(n), suff(n);
+    vt<T> preT(n), suffT(n);
+    auto dfs = [&](auto& dfs, int l, int r, const var(3)& Q) -> void {
+        if(Q.empty()) return;
+        if(l == r) {
+            for(auto& [_, __, id] : Q) {
+                ans[id] = 2;
+            }
+            return;
+        }
+        int m = (l + r) >> 1;
+        {
+            vt<vt<T>> dp(K + 1, vt<T>(K + 1));
+            vt<T> C(K + 1);
+            T S = 0;
+            for(int i = m; i >= l; i--) {
+                int L = a[i];
+                auto old(dp);
+                for(int R = L; R <= K; R++) {
+                    T suff = 0;
+                    for(int j = R; j >= L; j--) {
+                        suff += old[j][R];
+                    }
+                    if(L == R) suff++;
+                    dp[L][R] += suff;
+                    S += suff;
+                    C[R] += suff;
+                }
+                preT[i] = S;
+                pre[i] = C;
+            }
+        }
+        {
+            vt<vt<T>> dp(K + 1, vt<T>(K + 1));
+            vt<T> C(K + 1);
+            T S = 0;
+            for(int i = m + 1; i <= r; i++) {
+                int R = a[i];
+                auto old(dp);
+                for(int L = R; L >= 1; L--) {
+                    T pre = 0; 
+                    for(int j = L; j <= R; j++) {
+                        pre += old[L][j];
+                    }
+                    if(L == R) pre++;
+                    dp[L][R] += pre;
+                    S += pre;
+                    C[L] += pre;
+                }
+                suffT[i] = S;
+                suff[i] = C;
+            }
+        }
+        var(3) left, right;
+        for(auto& [L, R, id] : Q) {
+            if(R <= m) left.pb({L, R, id});
+            else if(L > m) right.pb({L, R, id});
+            else {
+                T res = 1 + preT[L] + suffT[R];
+                T s = 0;
+                for(int y = K; y >= 1; y--) {
+                    s += suff[R][y];
+                    res += pre[L][y] * s;
+                }
+                ans[id] = res;
+            }
+        }
+        dfs(dfs, l, m, left);
+        dfs(dfs, m + 1, r, right);
+    };
+    dfs(dfs, 0, n - 1, queries);
+    return ans;
+}

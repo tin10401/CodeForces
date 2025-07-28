@@ -175,17 +175,29 @@ public:
         for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
     }
     
-    T queries_range(int l, int r) {
+	T queries_range(int l, int r) {
         l = max(0, l), r = min(r, n - 1);
         T res_left = DEFAULT, res_right = DEFAULT;
         l += size, r += size;
+        bool has_left = false, has_right = false;
         while(l <= r) {
-            if((l & 1) == 1) res_left = func(res_left, root[l++]);
-            if((r & 1) == 0) res_right = func(root[r--], res_right);
+            if((l & 1) == 1) {
+                if(!has_left) res_left = root[l++];
+                else res_left = func(res_left, root[l++]); 
+                has_left = true;
+            }
+            if((r & 1) == 0) {
+                if(!has_right) res_right = root[r--];
+                else res_right = func(root[r--], res_right);
+                has_right = true;
+            }
             l >>= 1; r >>= 1;
         }
+        if(!has_left) return res_right;
+        if(!has_right) return res_left;
         return func(res_left, res_right);
     }
+
 	
 	T queries_at(int idx) {
         if(idx < 0 || idx >= n) return DEFAULT;
@@ -958,6 +970,77 @@ struct LCM_tree {
 
     mint query(int l, int r) {
         return Tree.queries_at(r + 1, l, r);
+    }
+};
+
+struct min_abs_tree { // min of abs(a[i] - a[j]) in [l, r] where i ! = j
+    // https://codeforces.com/problemset/problem/765/F
+    vi a;
+    PSGT<int> root;
+    min_abs_tree(const vi& a) : a(a), root(a, inf) {
+        int prev = 0;
+        for(int i = 0; i < a.size(); i++) {
+            root.update_at(i, prev, i);
+        }
+    }
+
+    int query(int l, int r) {
+        return root.queries_at(r, l, r);
+    }
+};
+
+struct mod_tree { // n*sqrtn*logn for printing queries [l, r, x] sum a[i] % x for [l, r], can eliminate the log by doing sqrt decomp
+    // https://codeforces.com/gym/105009/problem/L
+    // assign F[curr].key = delta;
+    vi base;
+    PSGT<ll> tree;
+    vll prefix;
+    mod_tree(const vi& a) : tree(1, 1, 0) {
+        min_heap<pii> q;
+        int n = a.size();
+        prefix.rsz(n + 1);
+        for(int i = 0; i < n; i++) {
+            prefix[i + 1] = prefix[i] + a[i];
+            q.push({1, i});
+            q.push({a[i] + 1, i});
+            int curr = 1;
+            while(curr <= a[i]) {
+                base.pb(curr);
+                int add = a[i] / curr;
+                int last = a[i] / add;
+                curr = last + 1;
+            }
+            base.pb(1);
+            base.pb(a[i] + 1);
+        }
+        srtU(base);
+        const int N = base.size();
+        tree = PSGT<ll>(n, N, 0);
+        int prev = 0;
+        while(!q.empty()) {
+            auto [curr, id] = q.top(); q.pop(); 
+            int x = a[id];
+            if(curr <= x) {
+                int add = x / curr;
+                int last = x / add;
+                tree.update_at(get_id(curr), prev, id, add);
+                curr = last + 1;
+                if(curr <= x) q.push({curr, id});
+            } else {
+                tree.update_at(get_id(curr), prev, id, 0);
+            }
+        }
+    } 
+
+    int get_id(int x) {
+        return int(lb(all(base), x) - begin(base));
+    }
+
+    ll query(int l, int r, int x) {
+        int p = get_id(x + 1) - 1;
+        ll s = prefix[r + 1] - prefix[l];
+        ll floor_sum = (ll)x * tree.queries_at(p, l, r);
+        return s - floor_sum;
     }
 };
 
@@ -2164,5 +2247,184 @@ struct binomial_info {
         for(int p = 0; p <= k; p++)
             ans += comb.nCk(k, p) * base.pow(k - p) * s[p];
         return ans;
+    }
+};
+
+struct dsu_info {
+    // https://codeforces.com/contest/687/problem/D
+    vi res;
+
+    dsu_info(int l = -1) {
+        res.clear();
+        if(l == -1) return;
+        dsu.rollBack();
+        bool ok = true;
+        sort(edges.begin() + pos[l], edges.begin() + pos[l + 1], [](const ar(3)& a, const ar(3)& b) {return a[2] > b[2];});
+        for(int i = pos[l]; i < pos[l + 1] && ok; i++) {
+            if(!merge(i, res)) {
+                ok = false; 
+            }
+        }
+        if(ok) res.pb(-1);
+    }
+
+    friend dsu_info operator+(const dsu_info& a, const dsu_info& b) {
+        if(a.res.empty()) return b;
+        if(b.res.empty()) return a;
+        dsu_info res;
+        const auto& A = a.res, &B = b.res;
+        const int N = A.size(), M = B.size();
+        bool ok = true;
+        dsu.rollBack();
+        int i = 0, j = 0;
+        while(ok && ((i < N && A[i] != -1) || (j < M && B[j] != -1))) {
+            if(i == N || A[i] == -1) ok = merge(B[j++], res.res);
+            else if(j == M || B[j] == -1) ok = merge(A[i++], res.res);
+            else if(edges[A[i]][2] > edges[B[j]][2]) ok = merge(A[i++], res.res);
+            else ok = merge(B[j++], res.res);
+        }
+        if(ok) res.res.pb(-1);
+        return res;
+    }
+
+    int get() {
+        if(res.empty() || res.back() == -1) return -1;
+        return edges[res.back()][2];
+    }
+};
+
+struct swap_info {
+    // if one condition is bad, then swap the two array
+    // https://www.codechef.com/START196A/problems/SWAPABK
+    int ai, bi, bad1, bad2;
+    ll s1, s2;
+    swap_info(int _ai = 0, int _bi = 0) : ai(_ai), bi(_bi) {
+        if(ai + k < bi) {
+            bad1 = 1;
+            s1 = bi;
+        } else {
+            bad1 = 0;
+            s1 = ai;
+        }
+        if(bi + k < ai) {
+            bad2 = 0;
+            s2 = ai;
+        } else {
+            bad2 = 1;
+            s2 = bi;
+        }
+    }
+    
+    friend swap_info operator+(const swap_info& a, const swap_info& b) {
+        swap_info res;
+        res.bad1 = a.bad1 == 0 ? b.bad1 : b.bad2;
+        res.s1 = a.s1 + (a.bad1 == 0 ? b.s1 : b.s2);
+        res.bad2 = a.bad2 == 0 ? b.bad1 : b.bad2;
+        res.s2 = a.s2 + (a.bad2 == 0 ? b.s1 : b.s2);
+        return res;
+    }
+};
+
+struct dikstra_info {
+	// https://oj.uz/problem/view/BOI17_toll
+    ll dp[5][5];
+    dikstra_info() {
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                dp[i][j] = INF;
+            }
+        }
+    }
+
+    friend dikstra_info operator+(const dikstra_info& a, const dikstra_info& b) {
+        dikstra_info res;
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                for(int m = 0; m < k; m++) {
+                    res.dp[i][j] = min(res.dp[i][j], a.dp[i][m] + b.dp[m][j]);
+                }
+            }
+        }
+        return res;
+    }
+
+    void set(int r, int c, ll cost) {
+        dp[r][c] = min(dp[r][c], cost);
+    }
+};
+
+struct fraction_info {
+    // https://dmoj.ca/problem/dmopc19c7p4
+    mint dp[2][2];
+    fraction_info(int x = -1) { // numerator is dp[0][0], denominator is dp[1][0]
+        mset(dp, 0);
+        if (x < 0) {
+            dp[0][0] = 1;
+            dp[1][1] = 1;
+        } else {
+            dp[0][0] = x;
+            dp[0][1] = 1;
+            dp[1][0] = 1;
+            dp[1][1] = 0;
+        }
+    }
+
+    friend fraction_info operator+(fraction_info const &A, fraction_info const &B) {
+        fraction_info C;
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) {
+                mint sum = 0;
+                for(int k = 0; k < 2; k++) {
+                    sum += A.dp[i][k] * B.dp[k][j];
+                }
+                C.dp[i][j] = sum;
+            }
+        }
+        return C;
+    }
+};
+
+struct top_k_mode_info {
+    // https://codeforces.com/contest/840/problem/d
+    const static int k = 4;
+    pii slot[k];
+
+    top_k_mode_info(int value = -inf) {
+        for(auto &p : slot) p = {-1, 0};
+        if(value != -inf) slot[0] = {value, 1};
+    }
+
+    void add(int value, int count) {
+        for(auto& [x, c] : slot) {
+            if(x == value) {
+                c += count;
+                return;
+            }
+        }
+        for(auto& [x, c] : slot) {
+            if(x == -1) {
+                x = value;
+                c = count;
+                return;
+            }
+        }
+        pii cur = {value, count};
+        for(auto &p : slot) 
+            if(p.ss < cur.ss) swap(p, cur);
+
+        for(auto &[x, c] : slot) {
+            c -= cur.ss;
+            if(c == 0) {
+                x = -1;
+                c = 0;
+            }
+        }
+    }
+
+    friend top_k_mode_info operator+(const top_k_mode_info &left, const top_k_mode_info &right) {
+        top_k_mode_info res = left;
+        for(const auto &p : right.slot)
+            if(p.ff != -1) res.add(p.ff, p.ss);
+        return res;
     }
 };

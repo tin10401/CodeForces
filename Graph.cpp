@@ -447,19 +447,24 @@ public:
         return root[x] = p;
     }
     
-    bool merge(int u, int v) {  
-        u = find(u), v = find(v);   
-        if(u == v) {    
-            if(col[u] == col[v]) 
+    bool merge(int a, int b) {
+        int u = find(a);
+        int v = find(b);
+        if (u == v) {
+            if(col[a] == col[b]) {
                 is_bipartite = false;
-            return false;
+            }
+            return 0;
         }
-        if(rank[v] > rank[u]) swap(u, v); 
-        comp--;
+        if(rank[u] < rank[v]) {
+            swap(u, v);
+            swap(a, b);
+        }
         root[v] = u;
-        col[v] = col[u] ^ col[v] ^ 1;
         rank[u] += rank[v];
-        return true;
+        if(col[a] == col[b])
+            col[v] ^= 1;
+        return 1;
     }
     
     bool same(int u, int v) {    
@@ -479,7 +484,6 @@ public:
         while(!ans.empty() && ans.back().empty()) ans.pop_back();
         return ans;
     }
-
 };
 
 struct Persistent_DSU {

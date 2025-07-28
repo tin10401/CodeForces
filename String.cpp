@@ -1,3 +1,4 @@
+https://www.codechef.com/problems/MINXORSEG?tab=statement
 class Binary_Trie { 
     struct Node {
         int c[2];
@@ -64,6 +65,17 @@ class Binary_Trie {
         }
         return u;
     }
+	
+	int merge_tries(int u, int v) { // create new copies
+        if(u == 0) return v;
+        if(v == 0) return u;
+        int w = new_node();
+        T[w].cnt = T[u].cnt + T[v].cnt;
+        T[w].c[0] = merge_tries(T[u].c[0], T[v].c[0]);
+        T[w].c[1] = merge_tries(T[u].c[1], T[v].c[1]);
+        return mp[MP(u, v)] = w;
+    }
+
         
     ll max_xor(ll num) {  
         ll res = 0, curr = root;
@@ -201,7 +213,7 @@ class Binary_Trie {
         return res;
     }
 	
-	ll find_mex(ll x) { // find a first missing number
+	ll find_mex(ll x) { // https://codeforces.com/contest/842/submission/296903755
         ll mex = 0, curr = root;
         for(int i = BIT - 1; i >= 0; i--) {
             int bit = (x >> i) & 1;
@@ -1315,6 +1327,27 @@ class suffix_array {
                 });
     }
 
+	pii get_range(int x, int len) {
+        int left = 0, right = x - 1, L = -1, R = x;
+        while(left <= right) {
+            int middle = midPoint;
+            if(rmq.query(middle, x - 1) >= len) L = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        if(L == -1) {
+            if(lcp[x] < len) {
+                return {-1, -1};
+            }
+            L = x;
+        }
+        left = x, right = n - 1; 
+        while(left <= right) {
+            int middle = midPoint;
+            if(rmq.query(x, middle) >= len) R = middle + 1, left = middle + 1;
+            else right = middle - 1;
+        }
+        return {L, R};
+    }
 
     void init() {
         vi r(n), tmp(n), sa2(n), cnt(max(256, n) + 1);
@@ -1895,6 +1928,48 @@ class suffix_array { // O(n) suffix_array
         }
         distinct_substring = (ll)n * (n + 1) / 2 - sum(lcp);
         rmq = linear_rmq<int>(lcp, [](const int& a, const int& b) {return a < b;});
+        build_occurence_vector();
+    }
+    
+    vvi starts, ends;
+    void build_occurence_vector() {
+        starts.rsz(n + 1); 
+        ends.rsz(n + 1);
+        vpii st;
+        st.pb({0, 0});
+        for(int i = 0; i < n; i++) {
+            int last = i;
+            while(st.size() > 1 && lcp[i] < st.back().ff) {
+                auto [d, first] = st.back(); st.pop_back();
+                int occur = i - first + 1;
+                int up = max(lcp[i], st.back().ff);
+                starts[occur].pb(up + 1);
+                ends[occur].pb(d + 1);
+                last = first;
+            }
+            st.pb({lcp[i], last});
+        }
+        for(int i = 0; i < n; i++) {
+            int L = i ? lcp[i - 1] : 0;
+            int R = lcp[i];
+            int h = max(L, R);
+            int l = h + 1, r = n - sa[i];
+            if(l <= r) {
+                starts[1].pb(l);
+                ends[1].pb(r + 1);
+            }
+        }
+        for(auto& it : starts) srt(it);
+        for(auto& it : ends) srt(it);
+    }
+
+    int count_occurence(int len, int occur) { // among all strings with length = len, how many occurs exactly occur times?
+        // https://www.codechef.com/problems/SUBQUERY?tab=statement
+        if(occur > n) return 0;
+        auto count = [](const vi& a, int x) -> int {
+            return int(ub(all(a), x) - begin(a));
+        };
+        return count(starts[occur], len) - count(ends[occur], len);
     }
 
     int get_lcp(int i, int j) {
@@ -1919,6 +1994,28 @@ class suffix_array { // O(n) suffix_array
                     }
                     return s[l1 + common] < s[l2 + common];
                 });
+    }
+
+    pii get_range(int x, int len) {
+        int left = 0, right = x - 1, L = -1, R = x;
+        while(left <= right) {
+            int middle = midPoint;
+            if(rmq.query(middle, x - 1) >= len) L = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+        if(L == -1) {
+            if(lcp[x] < len) {
+                return {-1, -1};
+            }
+            L = x;
+        }
+        left = x, right = n - 1; 
+        while(left <= right) {
+            int middle = midPoint;
+            if(rmq.query(x, middle) >= len) R = middle + 1, left = middle + 1;
+            else right = middle - 1;
+        }
+        return {L, R};
     }
 
     int check(const string& x, int m) {
@@ -2092,7 +2189,6 @@ class suffix_array { // O(n) suffix_array
     }
 };
 
-
 template<int sigma = 26>
 struct SAM {
     struct State {
@@ -2263,7 +2359,6 @@ struct SAM {
     }
 };
 
-
 struct substring_count {
     // https://codeforces.com/contest/914/problem/F
     int n, W;
@@ -2329,8 +2424,9 @@ struct eer_tree {
         int len, link, next[26];
         ll palindrome;
         int diff, slink;
+        int min_even_suffix_len; // https://codeforces.com/contest/1827/problem/C
         Node(int l = 0)
-            : len(l), link(0), palindrome(0), diff(0), slink(0) {
+            : len(l), link(0), palindrome(0), diff(0), slink(0), min_even_suffix_len(0) {
             memset(next, 0, sizeof next);
         }
     };
@@ -2413,6 +2509,11 @@ struct eer_tree {
             N.diff  = N.len - F[N.link].len;
             if(N.diff == F[N.link].diff) N.slink = F[N.link].slink;
             else N.slink = N.link;
+            if(F[N.link].min_even_suffix_len) {
+                N.min_even_suffix_len = F[N.link].min_even_suffix_len;
+            } else if(N.len % 2 == 0) {
+                N.min_even_suffix_len = N.len;
+            }
             g.pb(0);
         }
 

@@ -241,7 +241,7 @@ int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
+ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
@@ -251,7 +251,161 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T, typename F = function<T(const T&, const T&)>>
+class basic_segtree {
+public:
+    int n;    
+    int size;  
+    vt<T> root;
+    F func;
+    T DEFAULT;  
+    
+    basic_segtree() {}
+
+    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
+        size = 1;
+        while (size < n) size <<= 1;
+        root.assign(size << 1, DEFAULT);
+    }
+    
+    void update_at(int idx, int r, int c, int val) {
+        if(idx < 0 || idx >= n) return;
+        idx += size, root[idx].set(r, c, val);
+        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
+    }
+    
+    T queries_range(int l, int r) {
+        l = max(0, l), r = min(r, n - 1);
+        T res_left = DEFAULT, res_right = DEFAULT;
+        l += size, r += size;
+        bool has_left = false, has_right = false;
+        while(l <= r) {
+            if((l & 1) == 1) {
+                if(!has_left) res_left = root[l++];
+                else res_left = func(res_left, root[l++]); 
+                has_left = true;
+            }
+            if((r & 1) == 0) {
+                if(!has_right) res_right = root[r--];
+                else res_right = func(root[r--], res_right);
+                has_right = true;
+            }
+            l >>= 1; r >>= 1;
+        }
+        if(!has_left) return res_right;
+        if(!has_right) return res_left;
+        return func(res_left, res_right);
+    }
+	
+	T queries_at(int idx) {
+        if(idx < 0 || idx >= n) return DEFAULT;
+        return root[idx + size];
+    }
+	
+	void update_range(int l, int r, ll v) {}
+
+    T get() {
+        return root[1];
+    }
+
+    template<typename Pred>
+    int max_right(int start, Pred P) const {
+        if(start < 0) start = 0;
+        if(start >= n) return n;
+        T sm = DEFAULT;
+        int idx = start + size;
+        do {
+            while((idx & 1) == 0) idx >>= 1;
+            if(!P(func(sm, root[idx]))) {
+                while(idx < size) {
+                    idx <<= 1;
+                    T cand = func(sm, root[idx]);
+                    if(P(cand)) {
+                        sm = cand;
+                        idx++;
+                    }
+                }
+                return idx - size - 1;
+            }
+            sm = func(sm, root[idx]);
+            idx++;
+        } while((idx & -idx) != idx);
+        return n - 1;
+    }
+
+    template<typename Pred>
+    int min_left(int ending, Pred P) const {
+        if(ending < 0) return 0;
+        if(ending >= n) ending = n - 1;
+        T sm = DEFAULT;
+        int idx = ending + size + 1;
+        do {
+            idx--;
+            while(idx > 1 && (idx & 1)) idx >>= 1;
+            if(!P(func(root[idx], sm))) {
+                while(idx < size) {
+                    idx = idx * 2 + 1;
+                    T cand = func(root[idx], sm);
+                    if(P(cand)) {
+                        sm = cand;
+                        idx--;
+                    }
+                }
+                return idx + 1 - size;
+            }
+            sm = func(root[idx], sm);
+        } while((idx & -idx) != idx);
+        return 0;
+    }
+};
+
+int k;
+struct info {
+    ll dp[5][5];
+    info() {
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                dp[i][j] = INF;
+            }
+        }
+    }
+
+    friend info operator+(const info& a, const info& b) {
+        info res;
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                for(int m = 0; m < k; m++) {
+                    res.dp[i][j] = min(res.dp[i][j], a.dp[i][m] + b.dp[m][j]);
+                }
+            }
+        }
+        return res;
+    }
+
+    void set(int r, int c, ll cost) {
+        dp[r][c] = min(dp[r][c], cost);
+    }
+};
+
 void solve() {
+    int n, m, q; cin >> k >> n >> m >> q;
+    basic_segtree<info> root(n / k, info());
+    for(int i = 0; i < m; i++) {
+        int u, v, w; cin >> u >> v >> w;
+        root.update_at(u / k, u % k, v % k, w);
+    }
+    while(q--) {
+        int u, v; cin >> u >> v;
+        if(u > v) swap(u, v);
+        int L = u / k, R = v / k;
+        if(L == R) {
+            cout << (u == v ? 0 : -1) << '\n';
+        } else {
+            auto it = root.queries_range(L, R - 1);
+            auto ans = it.dp[u % k][v % k];
+            cout << (ans >= INF ? -1 : ans) << '\n';
+        }
+    }
 }
 
 signed main() {
