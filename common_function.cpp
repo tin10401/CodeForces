@@ -1074,3 +1074,43 @@ vt<T> compute_lis(const vi& a, int K, const var(3)& queries) { // careful with k
     dfs(dfs, 0, n - 1, queries);
     return ans;
 }
+
+ll count_sqrt_divisor(ll n) {
+    // count # of value such that x % sqrt(x) == 0
+    if(n <= 0) return 0;
+	ll sq = sqrt(n);
+    // i^2 + 2*i + 1 - 1
+    // i*(i + 2) / i
+    ll res = 2 * (sq - 1) + (n / sq);
+    return res;
+}
+
+vll shift_vector(const vi& a) { // maintain abs(a[i] - i) for each rotation
+    // https://codeforces.com/contest/819/problem/B
+    const int n = a.size();
+    int lt = 0, gt = 0;
+    vi cnt(n);
+    ll orig = 0;
+    for(int i = 0; i < n; i++) {
+        orig += abs(a[i] - i);
+        if(a[i] > i) {
+            cnt[a[i] - i]++;
+            lt++;
+        } else {
+            gt++;
+        }
+    }
+    vll ans(n);
+    ans[0] = orig;
+    for(int k = 1; k < n; k++) {
+        orig += gt-- - lt++;
+        int id = (n - k) % n;
+        orig += a[id] - abs(a[id] - (n - 1)) - 1; // -1 for greater counter
+        if(a[id] + k < n) cnt[a[id] + k]++;
+        lt -= cnt[k];
+        gt += cnt[k];
+        ans[k] = orig;
+    }
+    return ans;
+}
+

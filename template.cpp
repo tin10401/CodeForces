@@ -177,6 +177,20 @@ vt<pair<T, int>> encode(const V& s) {
     return seg;
 }
 
+vs decode(const string& s, char off = ' ') {
+    vs a;
+    string t;
+    for(auto& ch : s) {
+        if(ch == off) {
+            if(!t.empty()) a.pb(t);
+            t = "";
+        } else {
+            t += ch;
+        }
+    }
+    if(!t.empty()) a.pb(t);
+    return a;
+}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {

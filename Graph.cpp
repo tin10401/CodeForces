@@ -672,6 +672,51 @@ struct Reachability_Tree { // 2 * n - 1 not 2 * n for total vertices
     }
 };
 
+struct functional_graph {
+    vi a;
+    functional_graph(const vi& a) : a(a) {}
+
+    ll run() {
+        int n = a.size();
+        vi ans(n, -1);
+        vvi rev_graph(n);
+        for(int i = 0; i < n; i++) {
+            rev_graph[a[i]].pb(i);
+        }
+        auto floyd = [&](int src) -> void {
+            int x = src, y = src;
+            do {
+                x = a[x];
+                y = a[a[y]];
+            } while(x != y);
+            do {
+                ans[x] = x;
+                x = a[x];
+            } while(x != y);
+            auto fill = [&](auto& fill, int node) -> void {
+                for(auto& nei : rev_graph[node]) {
+                    if(ans[nei] == -1) {
+                        ans[nei] = node;
+                        fill(fill, nei);
+                    }
+                }
+            };
+            do {
+                fill(fill, x);
+                x = a[x];
+            } while(x != y);
+        };
+        for(int i = 0; i < n; i++) {
+            if(ans[i] == -1) floyd(i);
+        }
+        int res = 0;
+        for(int i = 0; i < n; i++) {
+            if(ans[i] == i) res++;
+        }
+        return res;
+    }
+};
+
 class SCC {
     public:
     int n, curr_comp;

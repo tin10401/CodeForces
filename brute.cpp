@@ -177,6 +177,20 @@ vt<pair<T, int>> encode(const V& s) {
     return seg;
 }
 
+vs decode(const string& s, char off = ' ') {
+    vs a;
+    string t;
+    for(auto& ch : s) {
+        if(ch == off) {
+            if(!t.empty()) a.pb(t);
+            t = "";
+        } else {
+            t += ch;
+        }
+    }
+    if(!t.empty()) a.pb(t);
+    return a;
+}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -251,136 +265,56 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-struct wavelet_psgt {
-    private:
-    struct Node {
-        int cnt;
-        ll sm;
-        Node(int cnt = 0, ll sm = 0) : cnt(cnt), sm(sm) {}
-    };
-    Node merge(const Node& a, const Node& b) {
-        return {a.cnt + b.cnt, a.sm + b.sm};
-    }
-    Node subtract(const Node& a, const Node& b) {
-        return {a.cnt - b.cnt, a.sm - b.sm};
-    }
-    int n;
-    vt<Node> root;
-    vi t;
-    vpii child;
-    vi a;
-    int new_node() { root.pb(Node(0, 0)); child.pb({0, 0}); return root.size() - 1; }
-    int get_id(ll x) { return int(ub(all(a), x) - begin(a)) - 1; }
-    public:
-    wavelet_psgt() {}
+vll at_most_one_swap(const vi& a) {
+    int n = (int)a.size();
 
-    wavelet_psgt(const vi& arr) : a(arr) {
-        t.rsz(arr.size());
-        new_node(); 
-        srtU(a);
-        n = a.size();
-        for(int i = 0, prev = 0; i < (int)arr.size(); i++) {
-            t[i] = new_node();
-            update(t[i], prev, get_id(arr[i]), Node(1, arr[i]), 0, n - 1);
-            prev = t[i];
-        }
-    }
+    ll prefSum = 0, maxElemPref = -INF, minPsMinusMaxElem = INF, minCandidateLeft = INF;
+    ll kadaneEnd = 0, bestNoSwap = 0;
+    ll minPrefSum = 0, minCandidateRight = INF, bestPotential = -INF;
+    ll prevBeauty = 0;
 
-    void update(int curr, int prev, int id, Node delta, int left, int right) {  
-        root[curr] = root[prev];    
-        child[curr] = child[prev];
-        if(left == right) { 
-            root[curr] = merge(root[curr], delta);
-            return;
-        }
-        int middle = midPoint;
-        if(id <= middle) child[curr].ff = new_node(), update(child[curr].ff, child[prev].ff, id, delta, left, middle); 
-        else child[curr].ss = new_node(), update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
-    }
+    vll ans(n);
 
-    int kth(int l, int r, int k) {
-        return kth((l == 0 ? 0 : t[l - 1]), t[r], k, 0, n - 1);
-    }
+    for (int i = 0; i < n; ++i) {
+        ll x = a[i];
 
-    ll sum_kth(int l, int r, int k) {
-        return sum_kth((l == 0 ? 0 : t[l - 1]), t[r], k, 0, n - 1);
-    }
+        ll candRight = (bestPotential == -INF ? -INF : bestPotential + x);
 
-    int kth(int l, int r, int k, int left, int right) {
-        if(root[r].cnt - root[l].cnt < k) return -inf;
-        if(left == right) return a[left];
-        int middle = midPoint;
-        int left_cnt = root[child[r].ff].cnt - root[child[l].ff].cnt;
-        if(left_cnt >= k) return kth(child[l].ff, child[r].ff, k, left, middle);
-        return kth(child[l].ss, child[r].ss, k - left_cnt, middle + 1, right);
-    }
+        ll Bi = (minPsMinusMaxElem == INF ? INF : x + minPsMinusMaxElem);
+        minCandidateLeft = min(minCandidateLeft, Bi);
 
-    ll sum_kth(int l, int r, int k, int left, int right) {
-        if(root[r].cnt - root[l].cnt < k) return -inf;
-        if(k <= 0) return 0;
-        if(left == right) return (ll)k * a[left];
-        int middle = midPoint;
-        int left_cnt = root[child[r].ff].cnt - root[child[l].ff].cnt;
-        if(left_cnt >= k) return sum_kth(child[l].ff, child[r].ff, k, left, middle); 
-        return root[child[r].ff].sm - root[child[l].ff].sm + sum_kth(child[l].ss, child[r].ss, k - left_cnt, middle + 1, right);
-    }
+        prefSum += x;
+        ll candLeft = prefSum - minCandidateLeft;
 
-    int median(int l, int r) {
-        int len = r - l + 1;
-        int k = len / 2 + 1;
-        return kth(l, r, k);
-    }
+        kadaneEnd  = max(0LL, kadaneEnd + x);
+        bestNoSwap = max(bestNoSwap, kadaneEnd);
 
-    Node query_leq(int l, int r, int x) {
-        return query((l == 0 ? 0 : t[l - 1]), t[r], 0, get_id(x), 0, n - 1);
-    }
+        ll beauty = max({0LL, prevBeauty, bestNoSwap, candLeft, candRight});
+        ans[i] = beauty;
+        prevBeauty = beauty;
 
-    Node query_eq(int l, int r, int x) {
-        return subtract(query_leq(l, r, x), query_leq(l, r, x - 1));
-    }
+        maxElemPref = max(maxElemPref, x);
+        minPsMinusMaxElem = min(minPsMinusMaxElem, prefSum - maxElemPref);
 
-    Node queries_range(int l, int r, int low, int high) {
-        return query((l == 0 ? 0 : t[l - 1]), t[r], get_id(low - 1) + 1, get_id(high), 0, n - 1);
+        ll val = x + minPrefSum;
+        minCandidateRight = min(minCandidateRight, val);
+        bestPotential = max(bestPotential, prefSum - minCandidateRight);
+        minPrefSum = min(minPrefSum, prefSum);
     }
-
-    Node query(int l, int r, int start, int end, int left, int right) {
-        if(left > end || right < start || left > right) return Node();
-        if(start <= left && right <= end) return subtract(root[r], root[l]);
-        int middle = midPoint;
-        return merge(query(child[l].ff, child[r].ff, start, end, left, middle), query(child[l].ss, child[r].ss, start, end, middle + 1, right));
-    }
-	
-	ll first_missing_number(int l, int r) { // https://cses.fi/problemset/task/2184/
-        ll s = 1;
-        return first_missing_number(l == 0 ? 0 : t[l - 1], t[r], 0, n - 1, s);
-    }
-
-    ll first_missing_number(ll l, ll r, ll left, ll right, ll &s) {
-        if(s < a[left]) return s;
-        Node seg = subtract(root[r], root[l]);
-        if(a[right] <= s) {
-            s += seg.sm;
-            return s;
-        }
-        ll middle = midPoint;
-        first_missing_number(child[l].ff, child[r].ff, left, middle, s);
-        first_missing_number(child[l].ss, child[r].ss, middle + 1, right, s);
-        return s;
-    }
-};
-
+    return ans;
+}
 void solve() {
-    int n, k; cin >> n >> k;
+    int n; cin >> n;
     vi a(n); cin >> a;
-    int res = 0;
-    wavelet_psgt tree(a);
-    for(int i = 0; i < n; i++) {
-        for(int j = i + k - 1; j < n; j++) {
-            res = max(res, tree.median(i, j));
+    int q; cin >> q;
+    while(q--) {
+        int l, r; cin >> l >> r;
+        vi b;
+        for(int i = l; i <= r; i++) {
+            b.pb(a[i]);
         }
+        cout << at_most_one_swap(b).back() << '\n';
     }
-    cout << res << '\n';
 }
 
 signed main() {
@@ -391,7 +325,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -418,3 +352,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

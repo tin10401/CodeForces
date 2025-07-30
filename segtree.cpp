@@ -2428,3 +2428,62 @@ struct top_k_mode_info {
         return res;
     }
 };
+
+struct at_most_one_swap_max_subarray_info {
+    // https://codeforces.com/group/o09Gu2FpOx/contest/541481/problem/B
+    // section : dp medium
+    ll sm, pre, suff;
+    ll pre0, suff0;
+    ll pre1, suff1;
+    ll mx, mn;
+    ll best0, best1, best_minus;
+    ll pre_with_mx, suff_with_mx;
+    at_most_one_swap_max_subarray_info(ll x = -INF) : 
+        sm(x), pre(max(0LL, x)), suff(max(0LL, x)), 
+        pre0(max(0LL, x)), suff0(max(0LL, x)), 
+        pre1(max(0LL, x)), suff1(max(0LL, x)),
+        mx(x), mn(x),
+        best0(max(0LL, x)), best1(max(0LL, x)), best_minus(max(0LL, x)),
+        pre_with_mx(max(0LL, x)), suff_with_mx(max(0LL, x)) {} 
+
+    friend at_most_one_swap_max_subarray_info operator+(const at_most_one_swap_max_subarray_info& a, const at_most_one_swap_max_subarray_info& b) {
+        if(a.sm == -INF) return b;
+        if(b.sm == -INF) return a;
+        at_most_one_swap_max_subarray_info res;
+        res.sm = a.sm + b.sm;
+        res.pre = max(a.pre, a.sm + b.pre);
+        res.suff = max(b.suff, b.sm + a.suff);
+        res.best0 = max({a.best0, b.best0, a.suff + b.pre});
+        res.mn = min(a.mn, b.mn);
+        res.mx = max(a.mx, b.mx);
+        res.best_minus = max({a.best_minus, b.best_minus, a.suff0 + b.pre, b.pre0 + a.suff});
+        res.pre0 = max({a.pre, a.pre0, a.sm - a.mn + b.pre, a.sm + b.pre0});
+        res.suff0 = max({b.suff, b.suff0, b.sm - b.mn + a.suff, b.sm + a.suff0});
+        res.pre1 = max({res.pre, a.pre1, a.pre0 + b.mx, a.sm + b.pre1, a.pre0, a.sm - a.mn + b.pre_with_mx});
+        res.suff1 = max({res.suff, b.suff1, b.suff0 + a.mx, b.sm + a.suff1, b.suff0, b.sm - b.mn + a.suff_with_mx});
+        res.pre_with_mx = max({a.pre_with_mx, a.pre + max(0LL, b.mx), a.sm + b.pre_with_mx});
+        res.suff_with_mx = max({b.suff_with_mx, b.suff + max(0LL, a.mx), b.sm + a.suff_with_mx});
+        res.best1 = max({ a.best1, 
+                b.best1,
+                res.best0,
+                res.best_minus,
+                a.best_minus + b.mx,
+                b.best_minus + a.mx,
+                a.suff + b.pre_with_mx,
+                a.suff_with_mx + b.pre,
+                a.suff + b.pre0,
+                b.pre + a.suff0,
+                a.suff0 + b.mx,
+                b.pre0 + a.mx,
+                a.pre0 + b.mx,
+                b.suff0 + a.mx,
+                a.suff + b.pre1,
+                b.pre + a.suff1,
+                b.pre0 + a.suff_with_mx,
+                a.suff0 + b.pre_with_mx,
+                a.best0 + b.mx,
+                b.best0 + a.mx,
+                });
+        return res;
+    }
+};

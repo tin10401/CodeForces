@@ -222,7 +222,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -231,7 +231,7 @@ ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
 ll ceil(ll a, ll b) { if (b < 0) a = -a, b = -b; if (a >= 0) return (a + b - 1) / b; return a / b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+ll have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -239,49 +239,70 @@ const vvi knight_dirs = {{-2, -1}, {-2,  1}, {-1, -2}, {-1,  2}, {1, -2}, {1,  2
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
-ll modInv(ll a, ll m) { ll x, y; ll g = extended_gcd(a, m, x, y); if (g != 1) { return -1; } x %= m; if (x < 0) x += m; return x; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i - 1) + 1;
-        edges.pb({p, i + 1});
-    }
-    return edges;
-}
-
-string gen_string(int n) {
-    int N = n;
-    string s;
-    while(N--) {
-        s += char(uni(0, 9) + '0'); 
-    }
-    return s;
-}
 
 void solve() {
-    int n = uni(1, 1000);
-    cout << n << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(-1000, 1000) << (i == n - 1 ? '\n' : ' ');
+    int n, m, k; cin >> n >> m >> k;
+    k--;
+    vvar(3) graph(n);
+    while(m--) {
+        int u, v, l, r; cin >> u >> v >> l >> r;
+        u--, v--;
+        graph[u].pb({v, l, r});
+        graph[v].pb({u, l, r});
     }
-    int q = uni(1, 1000);
-    cout << q << '\n';
-    while(q--) {
-        int l = uni(0, n - 1);
-        int r = uni(0, n - 1);
-        cout << min(l, r) << ' ' << max(l, r) << '\n';
+    vll d(n, INF);
+    {
+        min_heap<pll> q;
+        auto process = [&](int node, ll cost) -> void {
+            if(d[node] > cost) {
+                d[node] = cost;
+                q.push({cost, node});
+            }
+        };
+        process(k, 0);
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            if(d[node] != cost) continue;
+            for(auto& [nei, l, r] : graph[node]) {
+                process(nei, cost + r);
+            }
+        }
     }
+    vll dp(n, INF);
+    {
+        min_heap<pll> q;
+        auto process = [&](int node, ll cost) -> void {
+            if(dp[node] > cost) {
+                dp[node] = cost;
+                q.push({cost, node});
+            }
+        };
+        process(0, -d[0]);
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            if(dp[node] != cost) continue;
+            if(node == n - 1) {
+                cout << "YES" << '\n';
+                return;
+            }
+            for(auto& [nei, l, r] : graph[node]) {
+                if(nei == k || dp[node] + l >= d[nei]) continue;
+                process(nei, max(-d[nei], cost + l));
+            }
+        }
+    }
+    cout << "NO" << '\n';
 }
 
 signed main() {
@@ -292,7 +313,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -177,6 +177,20 @@ vt<pair<T, int>> encode(const V& s) {
     return seg;
 }
 
+vs decode(const string& s, char off = ' ') {
+    vs a;
+    string t;
+    for(auto& ch : s) {
+        if(ch == off) {
+            if(!t.empty()) a.pb(t);
+            t = "";
+        } else {
+            t += ch;
+        }
+    }
+    if(!t.empty()) a.pb(t);
+    return a;
+}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -252,16 +266,8 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
-    ld m, n; cin >> m >> n;
-    cout << fixed << setprecision(15);
-    ld res = 0;
-    ld last = 0;
-    for(ld x = 1; x <= m; x++) {
-        ld now = pow(x / m, n);
-        res += x * (now - last);
-        last = now;
-    }
-    cout << res << '\n';
+    int n; cin >> n;
+    vi a(n); cin >> a;
 }
 
 signed main() {
@@ -272,7 +278,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

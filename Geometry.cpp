@@ -30,7 +30,26 @@ ld triangle_area(const Point &p1, const Point &p2, const Point &p3) {
 struct Circle {
     ld x, y, r;
     Circle(ld x = 0, ld y = 0, ld r = 0) : x(x), y(y), r(r) {}
+
+    ld intersect(const Circle& o) const {
+        // https://codeforces.com/contest/600/problem/D
+        ld dx = x - o.x;
+        ld dy = y - o.y;
+        ld d  = sqrt(dx * dx + dy * dy);
+        if(d >= r + o.r) return 0.0L;
+        if(d <= fabsl(r - o.r)) {
+            ld rr = min(r, o.r);
+            return M_PI * rr * rr;
+        }
+        ld r2 = r * r, R2 = o.r * o.r, d2 = d * d;
+        ld alpha = acosl((d2 + r2 - R2) / (2 * d * r)) * 2;
+        ld beta = acosl((d2 + R2 - r2) / (2 * d * o.r)) * 2;
+        ld area1 = 0.5L * r2 * (alpha - sinl(alpha));
+        ld area2 = 0.5L * R2 * (beta - sinl(beta));
+        return area1 + area2;
+    }
 };
+
 
 struct Rectangle {
     ld x, y, w, h;
