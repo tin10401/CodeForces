@@ -1283,6 +1283,120 @@ struct xor_basis {
         return true;
     }
 };
+
+// this one is faster since it iterating over the # of value instead of BITS, careful with initializing BITS, you can go 60 if needed
+// prefer to use this one
+template<typename T, int BITS = 30>
+struct xor_basis {
+    // subsequence [l, r] having subsequence_xor of x is pow(2, (r - l + 1) - rank())
+    T basis[BITS];
+    int r = 0;
+ 
+    bool insert(T x) {
+        if (x == 0) return false;
+        x = min_value(x);
+        if (x == 0) return false;
+        for (int i = 0; i < r; ++i)
+            if ((basis[i] ^ x) < basis[i]) basis[i] ^= x;
+        basis[r++] = x;
+        int k = r - 1;
+        while (k > 0 && max_bit(basis[k]) > max_bit(basis[k - 1])) {
+            swap(basis[k], basis[k - 1]);
+            --k;
+        }
+        return true;
+    }
+ 
+    bool contains(T x) const {
+        return min_value(x) == 0;
+    }
+ 
+    T min_value(T x) const {
+        if(r == BITS) return 0;
+        for (int i = 0; i < r; ++i) x = min(x, x ^ basis[i]);
+        return x;
+    }
+ 
+    T max_value(T x = 0) const {
+        for (int i = 0; i < r; ++i) x = max(x, x ^ basis[i]);
+        return x;
+    }
+ 
+    int rank() const { return r; }
+ 
+    uint64_t size() const { return (r >= 64 ? 0ULL : 1ULL << r); }
+ 
+    vt<T> get_compact_basis() const {
+        vt<T> vec;
+        for (int i = 0; i < r; ++i) vec.pb(basis[i]);
+        return vec;
+    }
+ 
+    T get_kth_smallest(uint64_t k) const {
+        if (r >= 64 || k >= (1ULL << r)) return T(0);
+        T ans = 0;
+        for (int i = 0; i < r; ++i)
+            if ((k >> i) & 1ULL) ans ^= basis[i];
+        return ans;
+    }
+ 
+    T get_kth_largest(uint64_t k) const {
+        uint64_t total = size();
+        if (total == 0 || k >= total) return T(0);
+        return get_kth_smallest(total - 1 - k);
+    }
+ 
+    bool insert_base_on(T x, T c) {
+        for (int i = 0; i < r; ++i) x = std::min(x, x ^ basis[i]);
+        if (x == 0) return false;
+        for (int b = BITS - 1; b >= 0; --b) {
+            if (have_bit(c, b) || !have_bit(x, b)) continue;
+            for (int i = 0; i < r; ++i)
+                if (have_bit(basis[i], b)) basis[i] ^= x;
+            basis[r++] = x;
+            int k = r - 1;
+            while (k > 0 && max_bit(basis[k]) > max_bit(basis[k - 1])) {
+                std::swap(basis[k], basis[k - 1]);
+                --k;
+            }
+            return true;
+        }
+        return false;
+    }
+ 
+    T max_value_base_on(T x) const {
+        T res = 0;
+        for (int i = 0; i < r; ++i)
+            if (!have_bit(x, max_bit(basis[i]))) res ^= basis[i];
+        return res;
+    }
+ 
+    inline xor_basis operator+(const xor_basis& other) const {
+        if (r == 0) return other;
+        if (other.r == 0) return *this;
+        const xor_basis* big   = (r >= other.r ? this  : &other);
+        const xor_basis* small = (r >= other.r ? &other :  this);
+        xor_basis res = *big;
+        for (int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
+        return res;
+    }
+ 
+    xor_basis& operator^=(T k) {
+        for (int i = r - 1; i >= 0; --i)
+            if (basis[i] & 1) {
+                basis[i] ^= k;
+            }
+        return *this;
+    }
+ 
+    bool operator==(const xor_basis &o) const {
+        if (r != o.r) return false;
+        for (int i = 0; i < r; ++i)
+            if (basis[i] != o.basis[i]) return false;
+        return true;
+    }
+};
+
 class MO {  
     public: 
     int n, q;  
@@ -3356,84 +3470,130 @@ struct cartesian_tree {
     }
 };
 
-template <typename T, bool smallest_tie = false>
-struct Static_Range_Mode_Query {
-    using u32 = uint32_t;
-    vt<T> V;
-    vvpii mode;
-    vi A, occur, start, pos;
+template <bool smallest_tie = true>
+struct static_range_mode_query {
+    int n;
     int bk;
+    int U;
+    vi occur, start, pos, A, V, arr, freq, seen;
+    vvpii mode_table;
 
-    Static_Range_Mode_Query() = default;
-    Static_Range_Mode_Query(const vt<T>& Vec) { init(Vec); }
-
-    void init(const vt<T>& Vec) {
-        int n = Vec.size();
-        V = Vec;
-        srtU(V);
-        bk = sqrt(n);
-        A.rsz(n);
-        for(int i = 0; i < n; i++) A[i] = int(lb(all(V), Vec[i]) - V.begin());
-        occur.rsz(n);
-        pos.rsz(n);
-        start.rsz(V.size() + 1);
-        for (int i = 0; i < n; i++) occur[i] = start[A[i]]++;
-        inclusive_scan(all(start), start.begin());
-        for (int i = n; i--; ) pos[--start[A[i]]] = i;
-        int blocks = (n + bk - 1) / bk;
-        mode.assign(blocks, vt<pii>(blocks));
-        vi cnt(V.size());
-        for(int i = 0; i + bk <= n; i += bk) {
-            int l = i / bk;
-            fill(cnt.begin(), cnt.end(), 0);
-            pii now_mode = {0, 0};
-            for(int j = i; j + bk <= n; j += bk) {
-                int r = j / bk;
-                for(int k = j; k < j + bk; k++) {
-                    int v = A[k];
-                    int c = ++cnt[v];
-                    if(c > now_mode.first || (c == now_mode.first && (smallest_tie ? v < now_mode.second : v > now_mode.second))) {
-                        now_mode = {c, v};
-                    }
-                }
-                mode[l][r] = now_mode;
-            }
-        }
+    static bool better(int candidate, int current_best, int cnt_cand, int cnt_best) {
+        if(cnt_cand != cnt_best) return cnt_cand > cnt_best;
+        if(smallest_tie) return candidate < current_best;
+        return candidate > current_best;
     }
 
-    pair<T,int> query(int l, int r) const {
-        if(l > r) return {T(), 0};
-        int r_excl = r + 1;
-        int lb = (l == 0 ? 0 : (l - 1) / bk + 1);
+    static_range_mode_query(const vi& input) {
+        arr = input;
+        n = arr.size();
+        bk = max(1, (int)sqrt(n));
+
+        V = arr;
+        srtU(V);
+        U = V.size();
+        freq.rsz(U);
+        seen.rsz(U);
+        map<int, int> comp;
+        for (int i = 0; i < U; i++) comp[V[i]] = i;
+
+        A.rsz(n);
+        for (int i = 0; i < n; i++) A[i] = comp[arr[i]];
+
+        occur.assign(n, 0);
+        start.assign(U + 1, 0);
+        for (int i = 0; i < n; i++) {
+            int a = A[i];
+            occur[i] = start[a];
+            start[a]++;
+        }
+        for(int i = 1; i <= U; i++) start[i] += start[i - 1];
+
+        pos.assign(n, 0);
+        for(int i = n - 1; i >= 0; i--) {
+            int a = A[i];
+            start[a]--;
+            pos[start[a]] = i;
+        }
+
+        int blocks = (n + bk - 1) / bk;
+        mode_table.assign(blocks, vpii(blocks, {0, 0}));
+        for(int bi = 0; bi < blocks; bi++) {
+            fill(all(freq), 0);
+            int bestVal = 0;
+            int bestCnt = 0;
+            for(int bj = bi; bj < blocks; bj++) {
+                int lo = bj * bk;
+                int hi = min(n, lo + bk);
+                for(int k = lo; k < hi; k++) {
+                    int v = A[k];
+                    freq[v]++;
+                    if(better(v, bestVal, freq[v], bestCnt)) {
+                        bestVal = v;
+                        bestCnt = freq[v];
+                    }
+                }
+                mode_table[bi][bj] = {bestVal, bestCnt};
+            }
+        }
+        fill(all(freq), 0);
+    }
+
+    int test = 0;
+
+    pii query(int left, int right) {
+        test++;
+        if (left > right) return {-1, 0};
+        int r_excl = right + 1;
+        int lb = (left == 0) ? 0 : ((left - 1) / bk + 1);
         int rb = r_excl / bk;
+
         if(lb >= rb) {
-            int freq = 0;
-            int value = 0;
-            for(int i = l; i < r_excl; i++) {
-                int j = occur[i] + start[A[i]];
-                while(j + freq < start[A[i] + 1] && pos[j + freq] < r_excl) {
-                    freq++;
-                    value = A[i];
+            int bestVal = 0;
+            int bestCnt = 0;
+            for(int i = left; i < r_excl; i++) {
+                int a = A[i];
+                if(seen[a] != test) {
+                    freq[a] = 0;
+                }
+                seen[a] = test;
+                int cnt = ++freq[a];
+                if(better(a, bestVal, cnt, bestCnt)) {
+                    bestVal = a;
+                    bestCnt = cnt;
                 }
             }
-            return {V[value], freq};
+            return {V[bestVal], bestCnt};
         }
-        auto [freq, value] = mode[lb][rb - 1];
-        for(int i = l; i < lb * bk; i++) {
-            int j = occur[i] + start[A[i]];
-            while(j + freq < start[A[i] + 1] && pos[j + freq] < r_excl) {
-                freq++;
-                value = A[i];
+
+        int freqVal = mode_table[lb][rb - 1].ff;
+        int freqCnt = mode_table[lb][rb - 1].ss;
+
+        for (int i = left; i < lb * bk; i++) {
+            int a = A[i];
+            int j = occur[i] + start[a];
+            if(j + freqCnt - 1 < start[a + 1] && pos[j + freqCnt - 1] < r_excl && better(a, freqVal, freqCnt, freqCnt)) {
+                freqVal = a;
+            }
+            while(j + freqCnt < start[a + 1] && pos[j + freqCnt] < r_excl) {
+                freqCnt++;
+                freqVal = a;
             }
         }
+
         for(int i = rb * bk; i < r_excl; i++) {
-            int j = occur[i] + start[A[i]];
-            while(j - freq >= start[A[i]] && pos[j - freq] >= l) {
-                freq++;
-                value = A[i];
+            int a = A[i];
+            int j = occur[i] + start[a];
+            if(j - freqCnt + 1 >= start[a] && pos[j - freqCnt + 1] >= left && better(a, freqVal, freqCnt, freqCnt)) {
+                freqVal = a;
+            }
+            while(j - freqCnt >= start[a] && pos[j - freqCnt] >= left) {
+                freqCnt++;
+                freqVal = a;
             }
         }
-        return {V[value], freq};
+
+        return {V[freqVal], freqCnt};
     }
 };
 
@@ -3572,6 +3732,160 @@ struct RangeSorter {
         for (int i = 1; i <= n; i++)
             ans[i - 1] = get(i);
         return ans;
+    }
+};
+
+struct range_set_distinct { // 1 base index
+    // https://www.luogu.com.cn/problem/P4690
+private:
+    template<class T>
+    struct PSGT {
+        struct Node {
+            int l, r;
+            T key;
+            Node(T key) : key(key), l(0), r(0) {}
+        };
+        int new_node(int prev) {
+            F.pb(F[prev]);
+            return F.size() - 1;
+        }
+        vt<Node> F;
+        vi t;
+        int n;
+        T DEFAULT;
+        PSGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT), t(n) { F.reserve(n * 20); F.pb(Node(DEFAULT)); }
+        int update(int prev, int id, T delta, int left, int right) {  
+            int curr = new_node(prev);
+            if(left == right) { 
+                F[curr].key = merge(F[curr].key, delta);
+                return curr;
+            }
+            int middle = midPoint;
+            if(id <= middle) F[curr].l = update(F[prev].l, id, delta, left, middle);
+            else F[curr].r = update(F[prev].r, id, delta, middle + 1, right);
+            F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
+            return curr;
+        }
+        T queries_at(int curr, int start, int end, int left, int right) { 
+            if(!curr || left > end || start > right) return DEFAULT;
+            if(left >= start && right <= end) return F[curr].key;
+            int middle = midPoint;  
+            return merge(queries_at(F[curr].l, start, end, left, middle), queries_at(F[curr].r, start, end, middle + 1, right));
+        };
+        void update_at(int i, int id, T delta) { 
+            while(i < n) { 
+                t[i] = update(t[i], id, delta, 0, n - 1);
+                i |= (i + 1);
+            }
+        }
+        T queries_at(int i, int start, int end) {
+            T res = 0;
+            while(i >= 0) {
+                res += queries_at(t[i], start, end, 0, n - 1);
+                i = (i & (i + 1)) - 1;
+            }
+            return res;
+        }
+        T queries_range(int l, int r, int low, int high) {
+            if(l > r || low > high) return DEFAULT;
+            auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
+            auto R = queries_at(r, low, high);
+            return R - L;
+        }
+        T merge(T left, T right) { return left + right; }
+    };
+    struct info {
+        int l, r, x;
+        info(int _l = 0, int _r = 0, int _x = 0) : l(_l), r(_r), x(_x) {}
+        bool operator < (const info& a) const {
+            return l < a.l;
+        }
+    };
+    map<int, int> mp;
+    vt<set<info>> each;
+    set<info> global;
+    int n, m;
+    vi pre;
+    PSGT<int> seg;
+    void insert(info x) {
+        global.insert(x);
+        each[x.x].insert(x);
+    }
+
+    void erase(info x) {
+        global.erase(x);
+        each[x.x].erase(x);
+    }
+
+    void split(int p) {
+        if(p >= n) return;
+        auto it = global.lb({p + 1, -1, -1}); 
+        it--;
+        if(it->l == p) return;
+        int L = it->l, R = it->r, x = it->x;
+        erase(*it);
+        insert({L, p - 1, x});
+        insert({p, R, x});
+    }
+
+    void update(int x, int v) {
+        if(pre[x] == v) return;
+        seg.update_at(x, pre[x], -1);
+        pre[x] = v;
+        seg.update_at(x, pre[x], 1);
+    }
+
+public:
+    int N;
+    range_set_distinct(vi& a, int q) : n(a.size()), pre(a.size()), m(q + a.size() + 5), seg(n, 0) {
+        each.rsz(m);
+        N = 0;
+        for(int i = 1; i < n; i++) {
+            if(!mp.count(a[i])) {
+                mp[a[i]] = N++;
+                each[mp[a[i]]].insert(info());
+            }
+            a[i] = mp[a[i]];
+            auto it = prev(each[a[i]].end());
+            pre[i] = it->l;
+            seg.update_at(i, pre[i], 1);
+            insert({i, i, a[i]});
+        }
+    }
+
+    void range_set(int l, int r, int x) {
+        if(!mp.count(x)) {
+            mp[x] = N++;
+            each[mp[x]].insert(info());
+        }
+        x = mp[x];
+        split(l), split(r + 1);
+        set<int> col = {x};
+        while(true) {
+            auto it = global.lb(info(l, -1, -1));
+            if(it == end(global) || it->l > r) break;
+            auto t = *it;
+            col.insert(t.x);
+            if(t.l > l) {
+                update(t.l, t.l - 1);
+            }
+            erase(*it);
+        }
+        insert({l, r, x});
+        {
+            auto it = prev(each[x].lb({l, -1, -1}));
+            update(l, it->r);
+        }
+        for(auto& c : col) {
+            auto it = each[c].lb({r + 1, -1, -1});
+            if(it != end(each[c])) {
+                update(it->l, prev(it)->r);
+            }
+        }
+    }
+
+    int query(int l, int r) {
+        return seg.queries_range(l, r, 0, l - 1);
     }
 };
 
@@ -4202,3 +4516,235 @@ struct PASCAL {
     }
 };
 
+template <typename T>
+struct StaticRangeInversion {
+    // https://judge.yosupo.jp/submission/28427
+    const int N, bs, nb_bc;
+    vi vals, sufG, preH;
+    vpii vals_sorted;
+    vvi presuf;
+    vvll R;
+
+    StaticRangeInversion(const vt<T> &sequence) : N(sequence.size()), bs(ceil(sqrt(std::max(N, 1)))), nb_bc((N + bs - 1) / bs) {
+        vt<T> dict = sequence;
+        srtU(dict);
+        const int D = dict.size();
+        vals.reserve(N), vals_sorted.reserve(N);
+        for (auto x : sequence) {
+            vals.emplace_back(lb(all(dict), x) - dict.begin());
+            vals_sorted.emplace_back(vals.back(), int(vals.size()) - 1);
+        }
+
+        presuf.assign(nb_bc, vi(N));
+        sufG.resize(N), preH.resize(N);
+
+        for(int ibc = 0; ibc < nb_bc; ibc++) {
+            const int L = ibc * bs, R = std::min(L + bs, N);
+            sort(vals_sorted.begin() + L, vals_sorted.begin() + R);
+            vi cnt(D + 1);
+            for(int i = L; i < R; i++) {
+                cnt[vals[i] + 1]++;
+            }
+            for(int i = 0; i < D; i++) {
+                cnt[i + 1] += cnt[i];
+            }
+            for(int b = 0; b < ibc; b++) {
+                for(int i = (b + 1) * bs - 1; i >= b * bs; i--) {
+                    presuf[ibc][i] = presuf[ibc][i + 1] + cnt[vals[i]];
+                }
+            }
+            for(int b = ibc + 1; b < bs; b++) {
+                for(int i = b * bs; i < min((b + 1) * bs, N); i++) {
+                    presuf[ibc][i] = (i == b * bs ? 0 : presuf[ibc][i - 1]) + cnt.back() - cnt[vals[i] + 1];
+                }
+            }
+            for(int i = L + 1; i < R; i++) {
+                preH[i] = preH[i - 1] + count_if(vals.begin() + L, vals.begin() + i, [&](int x) { return x > vals[i]; });
+            }
+            for(int i = R - 2; i >= L; i--) {
+                sufG[i] = sufG[i + 1] + count_if(vals.begin() + i + 1, vals.begin() + R, [&](int x) { return x < vals[i]; });
+            }
+        }
+
+        R.rsz(nb_bc, vll(nb_bc));
+        for(int i = nb_bc - 1; i >= 0; i--) {
+            R[i][i] = sufG[i * bs];
+            for(int j = i + 1; j < nb_bc; j++) {
+                R[i][j] = R[i][j - 1] + R[i + 1][j] - R[i + 1][j - 1] + presuf[j][i * bs];
+            }
+        }
+    }
+
+    ll query(int l, int r) const {
+        r++;
+        const int lb = (l + bs - 1) / bs, rb = (r == N ? nb_bc : r / bs) - 1;
+        ll ret = 0;
+        if(l / bs == (r - 1) / bs) {
+            const int b = l / bs;
+            ret += preH[r - 1] - (l % bs ? preH[l - 1] : 0);
+            int less_cnt = 0;
+            for(int p = b * bs, q = min((b + 1) * bs, N); p < q; p++) {
+                less_cnt += (vals_sorted[p].ss >= l && vals_sorted[p].ss < r);
+                ret -= less_cnt * (vals_sorted[p].ss < l);
+            }
+            return ret;
+        }
+        ret += R[lb][rb];
+        if(bs * lb > l) {
+            ret += sufG[l];
+            for(int b = lb; b <= rb; b++) {
+                ret += presuf[b][l];
+            }
+        }
+        if(bs * (rb + 1) < r) {
+            ret += preH[r - 1];
+            for(int b = lb; b <= rb; b++) {
+                ret += presuf[b][r - 1];
+            }
+        }
+        int less_cnt = 0, j = (rb + 1) * bs;
+        for(int p = max(0, (lb - 1) * bs), q = lb * bs; p < q; p++) {
+            if(vals_sorted[p].ss >= l) {
+                while(j < min(N, (rb + 2) * bs) && (vals_sorted[j].ss >= r || vals_sorted[j].ff < vals_sorted[p].ff)) {
+                    less_cnt += (vals_sorted[j].ss < r), j++;
+                }
+                ret += less_cnt;
+            }
+        }
+        return ret;
+    }
+};
+
+struct static_range_interval_query {
+    // https://codeforces.com/group/o09Gu2FpOx/contest/541484/problem/T
+    int n;
+    vi far, far_block, cnt, next;
+    int B;
+    static_range_interval_query(int _n) : B(sqrt(_n)), n(_n) { 
+        far.rsz(n, -inf);
+        cnt.rsz(n, -inf);
+        next.rsz(n, -inf);
+        far_block.rsz(n / B + 1, -inf);
+    }
+
+    int start_id(int i) {
+        return (i / B) * B;
+    }
+
+    int end_id(int i) {
+        return min(((i / B) + 1) * B - 1, n - 1);
+    }
+
+    int id(int i) {
+        return i / B;
+    }
+
+    void rebuild(int block) {
+        int st = block * B;
+        int en = min(n - 1, (block + 1) * B - 1);
+        int mx = far_block[block];
+        for(int i = st; i <= en; i++) {
+            mx = max(mx, far[i]);
+            far[i] = mx;
+        }
+        for(int i = en; i >= st; i--) {
+            int j = far[i] + 1;
+            if(j <= i) {
+                next[i] = -inf;
+                cnt[i] = 0;
+                continue;
+            }
+            if(j > en) {
+                next[i] = j;
+                cnt[i] = 1;
+            } else {
+                next[i] = next[j];
+                cnt[i] = cnt[j] + 1;
+            }
+        }
+    }
+
+    void insert(int l, int r) {
+        if(far[l] >= r || far_block[id(l)] >= r) return;
+        int bl = id(l), br = id(r);
+        if(bl == br) {
+            for(int i = l; i <= r; i++) {
+                far[i] = max(far[i], r);
+            }
+            rebuild(bl);
+            return;
+        }
+        for(int i = l; i <= end_id(l); i++) {
+            far[i] = max(far[i], r);
+        }
+        for(int i = bl + 1; i < br; i++) {
+            far_block[i] = max(far_block[i], r);
+        }
+        for(int i = start_id(r); i <= r; i++) {
+            far[i] = max(far[i], r);
+        }
+        rebuild(bl);
+        rebuild(br);
+    }
+
+    int query(int l, int r) {
+        int res = 0;
+        while(l <= r) {
+            int reach = max(far[l], far_block[id(l)]) + 1;
+            if(reach > end_id(l)) {
+                l = reach;
+                res++;
+            } else if(next[l] > l && next[l] < r) {
+                res += cnt[l];
+                l = next[l];
+            } else if(far[l] + 1 > l) {
+                res++;
+                l = far[l] + 1;
+            } else {
+                return -1;
+            }
+        }
+        return res;
+    }
+};
+
+const static int BIT = 20;
+const static int half = 10;
+bitset<1 << BIT> s, have;
+int ans[1 << BIT], last[1 << BIT];
+int timer = 0;
+struct max_and_set { // insert x into s, query max(x & a) where a in s
+    void insert(int x) {
+        if(s.test(x)) return;
+        timer++;
+        int high = x >> half;
+        int low = x & ((1 << half) - 1);
+        for(int sub = high;; sub = (sub - 1) & high) {
+            have[sub] = true;
+            s.set((sub << half) | low);
+            if(sub == 0) break;
+        }
+    }
+
+    int query(int x) {
+        if(last[x] == timer) {
+            return ans[x];
+        }
+        last[x] = timer;
+        int mx = 0;
+        int high = (x >> half);
+        for(int mask = high; mask; mask = (mask - 1) & high) {
+            if(have.test(mask)) {
+                mx = max(mx, mask);
+            }
+        }
+        int res = 0;
+        for(int low = (1 << half) - 1; low >= 0; low--) {
+            int now = (mx << half) | low;
+            if(s.test(now)) {
+                res = max(res, x & now);
+            }
+        }
+        return ans[x] = res;
+    }
+};

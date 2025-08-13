@@ -265,7 +265,96 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+ll count_middle_is_max(const vi& H) {
+    int n = H.size();
+    const int OFFSET = n;
+    vvi at_sum(2 * n + 1), at_diff(2 * n + 1);
+    for(int i = 0; i < n; i++) {
+        at_sum[i + H[i]].pb(i);
+        at_diff[i - H[i] + OFFSET].pb(i);
+    }
+    ll ans = 0;
+    for(int j = 0; j < n; j++) {
+        for(int i: at_sum[j]) {
+            if(i < j && H[i] < H[j]) {
+                int k = i + H[j];
+                if(k < n && k > j && H[k] + H[i] == H[j] && H[i] != H[k]) {
+                    ans++;
+                }
+            }
+        }
+        if(at_sum[j + H[j]].size() < at_diff[j - H[j] + OFFSET].size()) {
+            for(int k: at_sum[j + H[j]]) {
+                if(H[k] >= H[j] || k <= j) continue;
+                int i = k - H[j];
+                if(i < 0) continue;
+                if(H[i] + H[k] == H[j]) ans++;
+            }
+        } else {
+            for(int i: at_diff[j - H[j] + OFFSET]) {
+                if(H[i] >= H[j] || i >= j) continue;
+                int k = i + H[j];
+                if(k >= n) continue;
+                if(H[k] + H[i] == H[j]) ans++;
+            }
+        }
+    }
+    return ans;
+    // 1 _ 3 2
+    // 2 3 1
+    // 2 _ 6 6 (a[i] + i)
+    // 0 _ 0 -2 (a[i] - i)
+}
+
+ll count_triples(vi a) {
+    int n = a.size();
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+//        for(int k = max(0, i - a[i] + 1); k < i && k + a[i] < n; k++) {
+//            int j = k + a[i]; 
+//            int x = a[j], y = a[k];
+//            int d1 = i - k, d2 = j - i;
+//            if((a[j] == d1 && a[k] == d2) || (a[j] == d2 && a[k] == d1)) res++;
+//            // a[k] + k == i, i = j - a[i]
+//            // a[k] + a[j] == a[i]
+//            // i - k + j - i == a[i]
+//            
+//            // a[k] == j - i, a[j] = i - k
+//            // i = a[k] - j
+//            // 2 * a[j] + k + a[k] = i + a[i]
+//
+//        }
+        int l = i - a[i];
+        if(l >= 0) {
+            int x = a[l];
+            int y = a[i] - x; 
+            if(y > 0) {
+                if(a[l + x] == y) res++;
+                if(y != x && a[l + y] == y) res++;
+            }
+        }
+        int r = i + a[i];
+        if(r < n) {
+            int x = a[r];
+            int y = a[i] - x;
+            if(y > 0) {
+                if(a[i + x] == y) res++;
+                if(y != x && a[i + y] == y) res++;
+            }
+        }
+    }
+    return res + count_middle_is_max(a);
+}
+
+vi construct_range(int M, int K) {
+    return {0};
+}
+
+#ifdef LOCAL
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    cout << count_triples(a) << '\n';
 }
 
 signed main() {
@@ -289,6 +378,7 @@ signed main() {
 
     return 0;
 }
+#endif
 
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█

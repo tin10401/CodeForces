@@ -265,7 +265,239 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+struct lazy_seg {
+    const static ll lazy_value = INF;
+    const static ll default_value = INF;
+    struct info {
+        ll s;
+        ll lazy;
+        info(ll v = default_value) : s(v) , lazy(lazy_value) {}
+        void apply(ll v, int len) {
+            s = min(s, v);
+            lazy = v;
+        }
+        friend info operator+(const info& a, const info& b) {
+            return info(min(a.s, b.s));
+        }
+    };
+
+    int n, n0, h;
+    vt<info> tree;
+    vi seglen;
+
+    lazy_seg(int n_) : n(n_) , n0(1) , h(0) {
+        while(n0 < n) {
+            n0 <<= 1;
+            ++h;
+        }
+        tree.assign(2 * n0, info());
+        seglen.assign(2 * n0, 0);
+        for (int i = n0; i < 2 * n0; ++i) {
+            seglen[i] = 1;
+        }
+        for (int i = n0 - 1; i > 0; --i) {
+            seglen[i] = seglen[i * 2] + seglen[i * 2 + 1];
+        }
+    }
+
+    void apply_node(int p, ll v) {
+        tree[p].apply(v, seglen[p]);
+    }
+
+    void pull(int p) {
+        tree[p] = tree[2 * p] + tree[2 * p + 1];
+    }
+
+    void push(int p) {
+        if(tree[p].lazy != lazy_value) {
+            ll v = tree[p].lazy;
+            apply_node(2 * p, v);
+            apply_node(2 * p + 1, v);
+            tree[p].lazy = lazy_value;
+        }
+    }
+
+    void push_to(int p) {
+        for (int i = h; i > 0; --i) {
+            push(p >> i);
+        }
+    }
+
+    void update_range(int l, int r, ll v) {
+        if(l > r) return;
+        l = max(0, l);
+        r = min(r, n - 1);
+        int L = l + n0;
+        int R = r + n0;
+        push_to(L);
+        push_to(R);
+        int l0 = L, r0 = R + 1;
+        while(l0 < r0) {
+            if(l0 & 1) apply_node(l0++, v);
+            if(r0 & 1) apply_node(--r0, v);
+            l0 >>= 1;
+            r0 >>= 1;
+        }
+        for(int i = 1; i <= h; ++i) {
+            if(((L >> i) << i) != L) {
+                pull(L >> i);
+            }
+            if((((R + 1) >> i) << i) != (R + 1)) {
+                pull(R >> i);
+            }
+        }
+    }
+
+    void update_at(int p, ll v) {
+        if(p < 0 || p >= n) return;
+        int pos = p + n0;
+        push_to(pos);
+        tree[pos] = info(v);
+        for(pos >>= 1; pos > 0; pos >>= 1) {
+            pull(pos);
+        }
+    }
+
+    ll queries_at(int p) {
+        if(p < 0 || p >= n) return default_value;
+        int pos = p + n0;
+        push_to(pos);
+        return tree[pos].s;
+    }
+
+    ll queries_range(int l, int r) {
+        if(l > r) return 0;
+        l = max(0, l);
+        r = min(r, n - 1);
+        int L = l + n0;
+        int R = r + n0;
+        push_to(L);
+        push_to(R);
+        info resL;
+        info resR;
+        int l0 = L;
+        int r0 = R + 1;
+        while(l0 < r0) {
+            if(l0 & 1) resL = resL + tree[l0++];
+            if(r0 & 1) resR = tree[--r0] + resR;
+            l0 >>= 1;
+            r0 >>= 1;
+        }
+        return (resL + resR).s;
+    }
+
+    template<typename Pred>
+        int max_right(int l, Pred P) {
+            if(l < 0) l = 0;
+            if(l >= n) return n;
+            info sm;
+            int idx = l + n0;
+            push_to(idx);
+            int tmp = idx;
+            do {
+                while((tmp & 1) == 0) tmp >>= 1;
+                info cand = sm + tree[tmp];
+                if(!P(cand.s)) {
+                    while(tmp < n0) {
+                        push(tmp);
+                        tmp <<= 1;
+                        info cand2 = sm + tree[tmp];
+                        if(P(cand2.s)) {
+                            sm = cand2;
+                            tmp++;
+                        }
+                    }
+                    return tmp - n0 - 1;
+                }
+                sm = sm + tree[tmp];
+                tmp++;
+            } while((tmp & -tmp) != tmp);
+            return n - 1;
+        }
+
+    template<typename Pred>
+        int min_left(int r, Pred P) {
+            if(r < 0) return 0;
+            if(r >= n) r = n - 1;
+            info sm;
+            int idx = r + n0 + 1;
+            push_to(idx - 1);
+            do {
+                idx--;
+                while(idx > 1 && (idx & 1)) idx >>= 1;
+                info cand = tree[idx] + sm;
+                if(!P(cand.s)) {
+                    while(idx < n0) {
+                        push(idx);
+                        idx = idx * 2 + 1;
+                        info cand2 = tree[idx] + sm;
+                        if(P(cand2.s)) {
+                            sm = cand2;
+                            idx--;
+                        }
+                    }
+                    return idx + 1 - n0;
+                }
+                sm = tree[idx] + sm;
+            } while((idx & -idx) != idx);
+            return 0;
+        }
+
+};
+
 void solve() {
+    ll n, m, k; cin >> n >> m >> k;
+    vi c(n), d(n); cin >> c >> d;
+    vi mn(n);
+    iota(all(mn), 0);
+    for(int i = 0; i < m; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        mn[u] = min(mn[u], v);
+    }
+    lazy_seg root(n);
+    for(int i = 0; i < n; i++) {
+        root.update_at(i, i);
+    }
+    for(int i = 0; i < n; i++) {
+        root.update_range(mn[i], i, root.queries_range(mn[i], i));
+    }
+    set<int> s;
+    for(int i = 0; i < n; i++) {
+        s.insert(i);
+    }
+    vvi G(n);
+    for(int i = n - 1; i >= 0; i--) {
+        int low = root.queries_at(i);
+        for(auto it = s.lb(low); it != end(s) && *it <= i;) {
+            G[i].pb(*it);
+            it = s.erase(it);
+        }
+    }
+    auto suff(d);
+    suff.pb(0);
+    for(int i = n - 1; i >= 0; i--) {
+        suff[i] = max(suff[i], suff[i + 1]);
+    }
+    min_heap<ll> q;
+    ll res = 0;
+    for(int i = 0; i < n; i++) {
+        if(k < d[i]) {
+            cout << 0 << '\n';
+            return;
+        }
+        k += d[i];
+        ll count = i == n - 1 ? k : k - d[i + 1];
+        for(auto& j : G[i]) {
+            q.push(c[j]);
+            res += c[j];
+        }
+        while(!q.empty() && q.size() > count) {
+            res -= q.top();
+            q.pop();
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -276,7 +508,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

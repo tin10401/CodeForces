@@ -273,14 +273,7 @@ void solve() {
     int n = uni(1, 1000);
     cout << n << '\n';
     for(int i = 0; i < n; i++) {
-        cout << uni(-1000, 1000) << (i == n - 1 ? '\n' : ' ');
-    }
-    int q = uni(1, 1000);
-    cout << q << '\n';
-    while(q--) {
-        int l = uni(0, n - 1);
-        int r = uni(0, n - 1);
-        cout << min(l, r) << ' ' << max(l, r) << '\n';
+        cout << uni(1, 100) << (i == n - 1 ? '\n' : ' ');
     }
 }
 

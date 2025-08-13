@@ -266,6 +266,89 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
+    int n; cin >> n;
+    auto ask_prefix = [&](int r) -> int {
+        cout << "? " << r << ' ';
+        for(int i = 1; i <= r; i++) {
+            cout << i << (i == r ? '\n' : ' ');
+        }
+        cout.flush();
+        int x; cin >> x;
+        if(x == -1) exit(0);
+        return x;
+    };
+    auto ask = [&](vi a) -> int {
+        assert(!a.empty());
+        cout << "? " << a.size() << ' ';
+        output_vector(a);
+        cout.flush();
+        int x; cin >> x;
+        if(x == -1) exit(0);
+        return x;
+    };
+    int x, y;
+    string s(n + 1, ')');
+    if(ask_prefix(n) == 0) {
+        x = n;
+        y = 1;
+    } else {
+        int left = 2, right = n;
+        while(left <= right) {
+            int middle = midPoint;
+            if(ask_prefix(middle) > 0) x = middle - 1, y = middle, right = middle - 1;
+            else left = middle + 1;
+        }
+    }
+    // 1000 / 89
+    s[x] = '(';
+    s[y] = ')';
+    vi unk;
+    for(int i = 1; i <= n; i++) {
+        if(i != x && i != y) {
+            unk.pb(i);
+        }
+    }
+    const int B = 15;
+    vvi T(B);
+    ll total = 0;
+    for(int i = 0; i < B; i++) {
+        int t = 1 << i;
+        auto f = [](ll n) -> ll {
+            return n * (n + 1) / 2;
+        };
+        for(int x = 100; x >= 1; x--) {
+            while(t >= f(x)) {
+                total += x;
+                t -= f(x);
+                T[i].pb(x);
+            }
+        }
+    }
+    debug(total);
+    for(int pos = 0; pos < unk.size(); ){
+        int k = min(B, (int)unk.size() - (int)pos);
+        vi q;
+        for(int j = 0; j < k;j++){
+            int idx = unk[pos + j];
+            for(auto& it : T[j]) {
+                for(int x = 0; x < it; x++) {
+                    q.pb(idx);
+                    q.pb(y);
+                }
+                q.pb(y);
+            }
+        }
+        int val = ask(q);
+        for(int j = 0; j < k;j++){
+            int idx = unk[pos + j];
+            if(val & (1 << j)) s[idx] = '(';
+            else s[idx] = ')';
+        }
+        pos += k;
+    }
+    s.erase(s.begin());
+    cout << "! " << s << '\n';
+    cout.flush();
 }
 
 signed main() {
@@ -276,7 +359,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -303,3 +386,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

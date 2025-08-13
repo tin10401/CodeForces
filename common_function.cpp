@@ -1114,3 +1114,107 @@ vll shift_vector(const vi& a) { // maintain abs(a[i] - i) for each rotation
     return ans;
 }
 
+template<typename T>
+T get_val(const vll& a, ll k, int x) { // do m times a[i] += a[i - 1], what's the value of the index x
+    // https://www.codechef.com/problems/STROPR?tab=statement
+    if (k == 0) return T(a[x]);
+    T B = 1;
+    T res = 0;
+    k = (ll)mint(k);
+    for (int t = 0; t <= x; ++t) {
+        int idx = x - t;
+        res += T(a[idx]) * B;
+        B *= k + t;
+        B /= t + 1;
+    }
+    return res;
+}
+
+template<typename T>
+T ways_to_assign_color(const vvi& graph, int C) { // assign color for path length <= 2
+    // https://www.codechef.com/problems/TREECLR
+    int n = graph.size();
+    mint res = 1;
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+        int c = int(par != -1) + 1;
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            dfs(dfs, nei, node);
+            res *= C - c++;
+        }
+        if(par == -1) res *= C;
+    };
+    dfs(dfs);
+    return res;
+}
+
+db meeting_probability(int T1, int T2, int t1, int t2) {
+    // https://www.codechef.com/problems/FRNDMTNG?tab=statement
+    db SQ1, SQ2;
+    if(T1 > T2) {
+        swap(T1, T2);
+        swap(t1, t2);
+    }
+    if(t1 > T2) t1 = T2;
+    if(t2 > T1) t2 = T1;
+
+    SQ1 = T1 * 0.5 * T1;
+    if(T1 > t2) SQ1 -= (T1 - t2) * 0.5 * (T1 - t2);
+    if(t1+T1 <= T2) {
+        SQ2 = T1 * 1.0 * t1;
+    }
+    else {
+        SQ2 = T1 * 0.5 * T1;
+        SQ2 += (T1) * 1.0 * (T2-T1);
+        SQ2 -= (T2-t1) * 0.5 * (T2-t1);
+    }
+    return (SQ1 + SQ2) / (T1 * 1ll * T2);
+}
+
+vll all_subarray_sum_minimum(const vi& a, const vpii& queries) {
+    // https://codeforces.com/contest/2009/problem/G3
+    // update is range set so lazy = -INF
+    int n = a.size();
+    auto right = closest_right(a, less_equal<int>());
+    auto left = closest_left(a, less<int>());
+    vll suffix(n + 1);
+    for(int i = n - 1; i >= 0; i--) {    
+        suffix[i] = suffix[right[i] + 1] + (ll)a[i] * (right[i] - i + 1);
+    }
+    lazy_seg suffix_tree(n), suffix_ans_tree(n), ans_i_tree(n);
+    vll prefix(n + 1);
+    for(int i = 1; i <= n; i++) {
+        prefix[i] = prefix[i - 1] + suffix[i - 1];
+    }
+    vvpii G(n);
+    int q = queries.size();
+    for(int i = 0; i < q; i++) {
+        auto& [l, r] = queries[i];
+        G[r].pb({l, i});
+    }
+    vll A(q);
+    for(int r = 0; r < n; r++) {
+        int L = left[r]; 
+        suffix_tree.update_range(L, r, suffix[r]);
+        suffix_ans_tree.update_range(L, r, (ll)a[r] * (r - 1));
+        ans_i_tree.update_range(L, r, a[r]);
+        for(auto& [l, id] : G[r]) {
+            ll now = prefix[r + 1] - prefix[l]; // suffix[left] + suffix[left + 1] + ... + suffix[right]
+            now -= suffix_tree.queries_range(l, r); // - suffix[id]
+            now -= suffix_ans_tree.queries_range(l, r);
+            now += ans_i_tree.queries_range(l, r) * r;
+            A[id] = now;
+        }
+    }
+    return A;
+}
+
+ll sg(ll x) {
+    while(x > 1) {
+        int p = 1 << __lg(x);
+        int h = p >> 1;
+        if(x < p + h) return x - h;
+        x -= p;
+    }
+    return 0;
+}

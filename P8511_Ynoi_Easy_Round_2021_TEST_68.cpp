@@ -265,7 +265,326 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+class Binary_Trie { 
+    struct Node {
+        int c[2];
+        int cnt;
+        Node() {
+            c[0] = c[1] = 0;
+            cnt = 0;
+        }
+    };
+    public:
+    vt<Node> T; // careful with static if no merging needed
+    int root;
+    int BIT;
+    Binary_Trie(int _BIT = 30) : BIT(_BIT){ root = new_node(); }
+
+    int new_node() {
+        T.pb(Node());
+        return T.size() - 1;
+    }
+    
+    void insert(ll num, int v = 1) {  
+        int curr = root;   
+        for(int i = BIT - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            if(!T[curr].c[bits]) {
+                T[curr].c[bits] = new_node();
+            }
+            curr = T[curr].c[bits];
+            T[curr].cnt += v;
+        }
+		// dfs_insert(root, num, m - 1);
+    }
+	
+	void dfs_insert(int curr, ll num, int bit) {
+		if(bit == -1) {
+            T[curr].cnt = 1;
+			return;
+		}
+        int b = (num >> bit) & 1;
+        if(!T[curr].c[b]) {
+            T[curr].c[b] = new_node();
+        }
+        int nxt = T[curr].c[b];
+        dfs_insert(nxt, num, bit - 1);
+        T[curr].cnt = T[nxt].cnt + (T[curr].c[!b] ? T[T[curr].c[!b]].cnt : 0);
+    }
+
+    void merge(const Binary_Trie& other) {
+        root = merge_root(root, other.root);
+    }
+
+    int merge_root(int u, int v) {
+        if(u == 0) return v; 
+        if(v == 0) return u;
+        T[u].cnt += T[v].cnt;
+        for(int bit = 0; bit < 2; bit++) {
+            int cu = T[u].c[bit];
+            int cv = T[v].c[bit];
+            if(!cu) {
+                T[u].c[bit] = cv;
+            } else {
+                T[u].c[bit] = merge_root(cu, cv);
+            }
+        }
+        return u;
+    }
+	
+	int merge_tries(int u, int v) { // create new copies
+        if(u == 0) return v;
+        if(v == 0) return u;
+        int w = new_node();
+        T[w].cnt = T[u].cnt + T[v].cnt;
+        T[w].c[0] = merge_tries(T[u].c[0], T[v].c[0]);
+        T[w].c[1] = merge_tries(T[u].c[1], T[v].c[1]);
+        return w;
+    }
+
+        
+    ll max_xor(ll num) {  
+        ll res = 0, curr = root;
+        for(int i = BIT - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            int other = T[curr].c[!bits];
+            if(other && T[other].cnt) {
+                curr = T[curr].c[!bits];
+                res |= (1LL << i);
+            }
+            else {  
+                curr = T[curr].c[bits];
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+
+    ll min_xor(ll num) {  
+        ll res = num, curr = root;
+        for(int i = BIT - 1; i >= 0; i--) {  
+            int bits = (num >> i) & 1;  
+            int same = T[curr].c[bits];
+            if(same && T[same].cnt) {
+                curr = T[curr].c[bits];
+                if(bits) res ^= (1LL << i);
+            }
+            else {  
+                curr = T[curr].c[!bits];
+                if(!bits) res ^= (1LL << i);
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
+
+    ll cross_max_xor(const Binary_Trie& other, ll val = 0) {
+        return cross_max_xor(root, other.root, val, BIT - 1);
+    }
+
+    ll cross_max_xor(int u, int v, ll val, int bit) {
+        if(u == 0 || v == 0 || bit < 0) return 0;
+        int valb = (val >> bit) & 1;
+        int want = valb ^ 1;
+        ll res = -1;
+        for(int i = 0; i < 2; i++) {
+            for(int j = 0; j < 2; j++) {
+                int other = i ^ j;
+                if(other ^ valb) {
+                    int u0 = T[u].c[i], v0 = T[v].c[j];
+                    if(u0 && v0 && T[u0].cnt > 0 && T[v0].cnt > 0) {
+                        res = max(res, (1LL << bit) | cross_max_xor(u0, v0, val, bit - 1));
+                    }
+                }
+            }
+        }
+        if(res == -1) {
+            for(int i = 0; i < 2; i++) {
+                for(int j = 0; j < 2; j++) {
+                    int same = i ^ j;
+                    if(same == valb) {
+                        int u0 = T[u].c[i], v0 = T[v].c[j];
+                        if(u0 && v0 && T[u0].cnt > 0 && T[v0].cnt > 0) {
+                            res = max(res, cross_max_xor(u0, v0, val, bit - 1));
+                        }
+                    }
+                }
+            }
+        }
+        return max(0LL, res);
+    }
+
+    ll cross_min_xor(const Binary_Trie& other, ll val = 0) const {
+        return cross_min_xor(root, other.root, val, BIT - 1);
+    }
+
+    ll cross_min_xor(int u, int v, ll val, int bit) const {
+        if(u == 0 || v == 0) return INF;
+        if(bit  < 0) return 0;
+        int valb = (val >> bit) & 1;
+        ll best = INF;
+        for(int b = 0; b < 2; ++b) {
+            int uu = T[u] .c[b];
+            int vv = T[v].c[b ^ valb];
+            if(uu && vv) {
+                best = min(best, cross_min_xor(uu, vv, val, bit - 1));
+            }
+        }
+        if(best < INF) return best;
+        ll cost = 1LL << bit;
+        for(int b = 0; b < 2; ++b) {
+            int uu = T[u] .c[b];
+            int vv = T[v].c[b ^ (valb ^ 1)];
+            if(uu && vv) {
+                best = min(best, cost + cross_min_xor(uu, vv, val, bit - 1));
+            }
+        }
+        return best;
+    }
+
+	ll count_less_than(ll a, ll b) {
+        int curr = root;
+        ll res = 0;
+        for(int i = BIT - 1; i >= 0; i--) {
+            int bits = (a >> i) & 1;
+            int b_bits = (b >> i) & 1;
+            if(b_bits) {
+				if(T[curr].c[bits]) {
+					res += T[T[curr].c[bits]].cnt;
+				}
+                curr = T[curr].c[!bits];
+            }
+            else {
+                curr = T[curr].c[bits];
+            }
+            if(!curr) break;
+        }
+        // res += T[curr].cnt; // remove if count equal to as well
+        return res;
+    }
+	
+	ll count_greater_than(ll a, ll b) {
+        int curr = root;
+        ll res = 0;
+        for(int i = BIT - 1; i >= 0; i--) {
+            int bits = (a >> i) & 1;
+            int b_bits = (b >> i) & 1;
+            if(b_bits == 0 && T[curr].c[!bits]) {
+                res += T[T[curr].c[!bits]].cnt;
+            }
+            curr = T[curr].c[b_bits ^ bits];
+            if(!curr) break;
+        }
+        // res += T[curr].cnt; // remove if count equal to as well
+        return res;
+    }
+	
+	ll find_mex(ll x) { // https://codeforces.com/contest/842/submission/296903755
+        ll mex = 0, curr = root;
+        for(int i = BIT - 1; i >= 0; i--) {
+            int bit = (x >> i) & 1;
+            int c = T[curr].c[bit] ? T[T[curr].c[bit]].cnt : 0;
+            if(c < (1LL << i)) {
+                curr = T[curr].c[bit];
+            }
+            else {
+                mex |= (1LL << i);
+                curr = T[curr].c[!bit];
+            }
+            if(!curr) break;
+        }
+        return mex;
+    }
+	
+	ll kth(ll k) {
+        int curr = root;
+        int res = 0;
+        for(int i = BIT - 1; i >= 0; i--) {
+            int left = T[curr].c[0];
+            int right = T[curr].c[1];
+            if(left && T[left].cnt >= k) {
+                curr = left;
+            } else {
+                res |= 1LL << i;
+                if(left) {
+                    k -= T[left].cnt;
+                }
+                curr = right;
+            }
+        }
+        return res;
+    }
+
+    void clear() {
+        vt<Node>().swap(T);
+        root = new_node();
+    }
+
+};
+
 void solve() {
+    int n; cin >> n;
+    vvi graph(n + 1);
+    vi fa(n + 1);
+    for(int i = 2; i <= n; i++) {
+        cin >> fa[i];
+        graph[fa[i]].pb(i);
+    }
+    vll a(n + 1);
+    vll ans(n + 1);
+    ll mx = -1, x = 0, y = 0;
+    Binary_Trie trie(60);
+    for(int i = 1; i <= n; i++) {
+        cin >> a[i];
+        trie.insert(a[i]);
+        ll now = trie.max_xor(a[i]);
+        if(now > mx) {
+            mx = now;
+            x = a[i];
+            y = now ^ x;
+        }
+    } 
+    int px = -1, py = -1;
+    for(int i = 1; i <= n; i++) {
+        if(a[i] == x && px == -1) px = i;
+        else if(a[i] == y && py == -1) py = i;
+    }
+    {
+        auto dfs = [&](auto& dfs, int node = 1) -> int {
+            int seen = node == px || node == py;
+            for(auto& nei : graph[node]) {
+                seen |= dfs(dfs, nei);
+            }
+            if(!seen) ans[node] = mx;
+            return seen;
+        };
+        dfs(dfs);
+    }
+    ll global = 0;
+    auto go = [&](auto& go, int node) -> void {
+        trie.insert(a[node]);
+        global = max(global, trie.max_xor(a[node]));
+        for(auto& nei : graph[node]) go(go, nei);
+    };
+    auto dfs = [&](auto& dfs, int node, int par = 0) -> void {
+        if(node == 0) return;
+        dfs(dfs, fa[node], node);
+        ans[node] = max(ans[node], global);
+        trie.insert(a[node]);
+        global = max(global, trie.max_xor(a[node]));
+        if(par == 0) return;
+        for(auto& nei : graph[node]) {
+            if(nei != par) go(go, nei);
+        }
+    };
+    trie.clear();
+    dfs(dfs, px, 0);
+    global = 0;
+    trie.clear();
+    dfs(dfs, py, 0);
+    for(int i = 1; i <= n; i++) {
+        cout << ans[i] << '\n';
+    }
 }
 
 signed main() {

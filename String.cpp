@@ -73,9 +73,24 @@ class Binary_Trie {
         T[w].cnt = T[u].cnt + T[v].cnt;
         T[w].c[0] = merge_tries(T[u].c[0], T[v].c[0]);
         T[w].c[1] = merge_tries(T[u].c[1], T[v].c[1]);
-        return mp[MP(u, v)] = w;
+        return w;
     }
 
+    ll max_and(ll num) {
+        ll res = 0;
+        int curr = 0;
+        for(int i = BIT - 1; i >= 0; i--) {
+            int bit = (num >> i) & 1;
+            if(T[curr].c[bit] && T[T[curr].c[bit]].cnt > 0) {
+                if(bit) res |= 1LL << i;
+                curr = T[curr].c[bit];
+            } else {
+                curr = T[curr].c[!bit];
+            }
+            if(!curr) break;
+        }
+        return res;
+    }
         
     ll max_xor(ll num) {  
         ll res = 0, curr = root;
@@ -869,7 +884,7 @@ struct Z {
 https://toph.co/p/unique-substrings-query
 const int HASH_COUNT = 2;
 vll base, mod;
-ll p[HASH_COUNT][MX];
+ll p[HASH_COUNT][MX], geom[HASH_COUNT][MX];
 void initGlobalHashParams() {
     if (!base.empty() && !mod.empty()) return;
 	vll candidateBases = {
@@ -907,13 +922,18 @@ void initGlobalHashParams() {
         mod[i] = candidateMods[i];
         base[i] = candidateBases[i];
     }
-    p[0][0] = p[1][0] = 1;
-    for(int i = 1; i < MX; i++) {
-        for(int j = 0; j < HASH_COUNT; j++) {
+    for(int j = 0; j < HASH_COUNT; j++) {
+        ll inv = modExpo(base[j] - 1, mod[j] - 2, mod[j]);
+        p[j][0] = 1;
+        geom[j][0] = 0;
+        for(int i = 1; i < MX; i++) {
             p[j][i] = (p[j][i - 1] * base[j]) % mod[j];
+            ll num = (p[j][i] + mod[j] - 1) % mod[j];
+            geom[j][i] = num * inv % mod[j];
         }
     }
 }
+
 static const bool _hashParamsInitialized = [](){
     initGlobalHashParams();
     return true;

@@ -266,6 +266,32 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vvi a(n, vi(k)); cin >> a;
+    vi total(n);
+    for(int i = 0; i < n; i++) {
+        total[i] = sum(a[i]);
+    }
+    vt<ld> prev(n);
+    for(int j = 0; j < k; j++) {
+        prev[j] = (ld)a[0][j] / total[0]; 
+    }
+    if(n == 1) {
+        output_vector(prev);
+        return;
+    }
+    for(int i = 1; i < n - 1; i++) {
+        vt<ld> now(k);
+        for(int j = 0; j < k; j++) {
+            now[j] = (prev[j] + a[i][j]) / (total[i] + 1);
+        }
+        swap(now, prev);
+    }
+    int i = n - 1;
+    for(int j = 0; j < k; j++) {
+        ld now = (prev[j] + a[i][j]) / (total[i] + 1);
+        cout << now << (j == k - 1 ? '\n' : ' ');
+    }
 }
 
 signed main() {

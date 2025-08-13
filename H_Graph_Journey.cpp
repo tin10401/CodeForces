@@ -265,7 +265,74 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+ll dp[19][1 << 19];
+ll cost[20][20];
+int cached[19][1 << 19];
+int test = 0;
+
 void solve() {
+    test++;
+    int n, m, k; cin >> n >> m >> k;
+    vvpll graph(n);
+    while(m--) {
+        int u, v, c; cin >> u >> v >> c;
+        u--, v--;
+        graph[u].pb({v, c});
+        graph[v].pb({u, c});
+    }
+    auto dikstra = [&](int src) -> vll {
+        min_heap<pll> q;
+        vll dp(n, INF);
+        auto process = [&](int node, ll cost) -> void {
+            if(dp[node] > cost) {
+                dp[node] = cost;
+                q.push({cost, node});
+            }
+        };
+        process(src, 0);
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            if(dp[node] != cost) continue;
+            for(auto& [nei, w] : graph[node]) {
+                process(nei, cost + w);
+            }
+        }
+        return dp;
+    };
+    k += 2;
+    vpii a(k);
+    for(int i = 0; i < k; i++) {
+        if(i > 0) {
+            if(i == k - 1) {
+                a[i] = MP(n - 1, 0);
+            } else {
+                cin >> a[i];
+                a[i].ff--;
+            }
+        }
+    }
+    for(int i = 0; i < k; i++) {
+        auto& [u, val] = a[i];
+        auto dp = dikstra(u);
+        for(int j = 0; j < k; j++) {
+            cost[i][j] = dp[a[j].ff]; 
+        }
+    }
+    auto dfs = [&](auto& dfs, int node = 0, int mask = 0) -> ll {
+        if(node == k - 1) return 0;
+        auto& res = dp[node][mask];
+        auto& c = cached[node][mask];
+        if(c == test) return res;
+        c = test;
+        res = INF;
+        for(int j = 0; j < k; j++) {
+            if(!have_bit(mask, j)) {
+                res = min(res, dfs(dfs, j, mask | (1 << j)) - a[j].ss + cost[node][j]);
+            }
+        }
+        return res;
+    };
+    cout << dfs(dfs, 0, 1 << 0) << '\n';
 }
 
 signed main() {

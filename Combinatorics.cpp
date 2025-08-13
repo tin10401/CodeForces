@@ -526,15 +526,25 @@ class Combinatoric {
         return fact[n] * inv[n - k];
     }
 
-    ll nCk_no_mod(int n, int r) { // change to ll if needed
-        if(n < r) return 0;
-        r = min(r, n - r);
-        ll ans = 1;
-        for(int i = 1 ; i <= r ; i++) {
-            ans *= n - i + 1;
-            ans /= i ;   
-        }
-        return ans ;
+    ull nCk_no_mod(ull n, ull r) {
+		if(n < r) return 0;
+		r = min(r, n - r);
+		ull ans = 1;
+		for(int i = 1 ; i <= r ; i++) {
+			ull d = gcd(ans, i);
+			ans /= d;
+			ans *= (n - i + 1) / (i / d);
+		}
+		return ans ;
+	}
+
+    mint lucas(ll n, ll r) { // call on Combinatoric comb(MOD - 1) for small PRIME MOD, log(C)
+        if(r > n) return 0;
+        if(r == 0) return 1;
+        int ni = n % MOD;
+        int ri = r % MOD;
+        if(ri > ni) return 0;
+        return lucas(n / MOD, r / MOD) * nCk(ni, ri);
     }
 
     ll derangement(int n) {
@@ -598,6 +608,27 @@ class Combinatoric {
 
 }; Combinatoric<mint> comb(MX);
 
+const int K = 5010;
+mint nCk[K][K];
+void pre() {
+    for(int i = 0; i < K; i++) nCk[i][0] = 1;
+    for(int i = 1; i < K; i++) {
+        for(int j = 1; j <= i; j++) {
+            nCk[i][j] = (nCk[i - 1][j - 1] + nCk[i - 1][j]);
+        }
+    }
+} static const bool process_table = []() { pre(); return true; }();
+
+template<typename T>
+T subsegment_sum(int len, int j) { // compute sum of [l, r] where [l <= j <= r] 1 / (r - l + 1)
+    auto get = [](ll n) -> T {
+        // (l - t + 1) / t for all t
+        // (l + 1) * (1 / t) - L
+        return (n + 1) * pre[n] - n; // pre[n] = sum of (1 / j) from 1 to n
+    };
+    return get(len) - get(j - 1) - get(len - j);
+}
+
 struct SumKBinomial {
     // https://codeforces.com/contest/1549/problem/E
     // return sum (nck(1 * k, x) + nck(2 * k, x) + ... + (n * k, x)) for each x from 1 to n * k
@@ -653,6 +684,33 @@ T sum_of_powers(long long n, int k) { // find (1 ^ k + 2 ^ k + ... + n ^ k) sum
         if((M - i) & 1) invden = -invden;
         ans += y[i] * num * invden;
     }
+    return ans;
+}
+
+int sum_of_powers(ll n, ll k, ll mod) {
+    // https://www.codechef.com/problems/C2?tab=statement
+    vvll S(k + 5, vll(k + 2));
+	S[0][0] = 1 % mod;
+	for (int i = 1; i <= k; i++) {
+		for (int j = 1; j <= i; j++) {
+			if (i == j) S[i][j] = 1 % mod;
+			else S[i][j] = (j * S[i - 1][j] + S[i - 1][j - 1]) % mod;
+		}
+	}
+
+	ll ans = 0;
+	for (int i = 0; i <= k; i++) {
+		ll fact = 1, z = i + 1;
+		for(ll j = n - i + 1; j <= n + 1; j++) {
+			ll mul = j;
+			if (mul % z == 0) {
+				mul /= z;
+				z /= z;
+			}
+			fact = (fact * mul) % mod;
+		}
+		ans = (ans + S[k][i] * fact) % mod;
+	}
     return ans;
 }
 
@@ -1063,7 +1121,7 @@ struct sos_dp {
         }
     }
 
-    ll query_superset(ll mask) {
+    ll query_superset(ll mask) { // given x, how many v such that (v | x) == x
         if(A.empty()) return 0;
         const ll LOW = ((1LL << low) - 1) & mask;
         mask = (mask >> low) << low;

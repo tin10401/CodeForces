@@ -265,7 +265,101 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template<class T>
+struct PSGT {
+    struct Node {
+        int l, r;
+        T key;
+        Node(T key) : key(key), l(0), r(0) {}
+    };
+    int new_node(int prev) {
+        F.pb(F[prev]);
+        return F.size() - 1;
+    }
+
+    int new_node() {
+        F.pb(0);
+        return F.size() - 1;
+    }
+    vt<Node> F;
+    vi t;
+    int n;
+    T DEFAULT;
+    PSGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT), t(n) {
+        F.reserve(n * 20);
+        F.pb(Node(DEFAULT));
+    }
+
+	int update(int prev, int id, T delta, int left, int right) {  
+        int curr = new_node(prev);
+        if(left == right) { 
+            F[curr].key = merge(F[curr].key, delta);
+            return curr;
+        }
+        int middle = midPoint;
+        if(id <= middle) F[curr].l = update(F[prev].l, id, delta, left, middle);
+        else F[curr].r = update(F[prev].r, id, delta, middle + 1, right);
+        F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
+        return curr;
+    }
+	
+	int find_k(int i, int k) {
+        return find_k(t[i], k, 0, n - 1);
+    }
+
+    int find_k(int curr, int k, int left, int right) {
+        if(F[curr].key < k) return inf;
+        if(left == right) return left;
+        int middle = midPoint;
+        if(F[F[curr].l].key >= k) return find_k(F[curr].l, k, left, middle);
+        return find_k(F[curr].r, k - F[F[curr].l].key, middle + 1, right);
+    }
+
+    void update_at(int i, int prev, int id, T delta) { 
+        t[i] = update(prev, id, delta, 0, n - 1); 
+    }
+
+    T merge(T left, T right) {
+        return left + right;
+    }
+};
+
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    vll prefix(n + 1);
+    for(int i = 1; i <= n; i++) {
+        ll x; cin >> x;
+        prefix[i] = prefix[i - 1] - x;
+    }
+    vi dp(n);
+    for(int i = 1, j = 0; i < n; i++) {
+        while(j && s[i] != s[j]) j = dp[j - 1];
+        if(s[i] == s[j]) dp[i] = ++j;
+    }
+    auto b(prefix);
+    srtU(b);
+    const int N = b.size();
+    auto get_id = [&](ll x) -> ll {
+        return int(lb(all(b), x) - begin(b));
+    };
+    PSGT<int> root(n + 10, 0);
+    for(int i = 0; i < n; i++) {
+        int j = root.t[dp[i]];
+        root.update_at(i + 1, j, get_id(prefix[i + 1]), 1);
+    }
+    int q; cin >> q;
+    ll last = 0;
+    auto read = [&]() -> int {
+        ll x; cin >> x;
+        return (((x + last) % n + n) % n) + 1;
+    };
+    while(q--) {
+        int i = read(), k = read();
+        int curr = root.find_k(i, k);
+        last = curr >= inf ? 0 : -b[curr];
+        cout << last << '\n';
+    }
 }
 
 signed main() {

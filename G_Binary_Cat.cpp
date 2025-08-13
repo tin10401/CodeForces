@@ -236,7 +236,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1e18;
+const static ll INF = 1e18 + 5;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -265,7 +265,60 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+struct info {
+    int to;
+    ll sub, l, r;
+    info(int _to = 0, ll _l = 0, ll _r = 0, ll _sub = 0) : to(_to), l(_l), r(_r), sub(_sub) {}
+
+    friend info operator+(const info& a, const info& b) {
+        info res;
+        res.to = b.to;
+        res.l = max(a.l, b.l + a.sub);
+        res.r = min(a.r, b.r + a.sub);
+        res.sub = a.sub + b.sub;
+        return res;
+    }
+};
+
 void solve() {
+    int q; cin >> q;
+    vll len(q + 2);
+    len[0] = len[1] = 1;
+    vll l(q + 1), r(q + 1);
+    const int m = log2(q + 2) + 1;
+    vt<vt<info>> dp(q + 2, vt<info>(m));
+    auto get_bit = [&](int v, ll x) -> int {
+        while(v > 1) {
+            for(int i = m - 1; i >= 0; i--) {
+                if(dp[v][i].to > 1 && dp[v][i].l <= x && x <= dp[v][i].r) {
+                    x -= dp[v][i].sub;
+                    v = dp[v][i].to;
+                }
+            }
+            if(v <= 1) break;
+            if(len[l[v]] >= x) {
+                v = l[v];
+            } else {
+                x -= len[l[v]];
+                v = r[v];
+            }
+        }
+        return v;
+    };
+
+    for(int i = 2; i <= q + 1; i++) {
+        ll x; cin >> l[i] >> r[i] >> x;
+        len[i] = min(INF, len[l[i]] + len[r[i]]);
+        if(len[l[i]] >= len[r[i]]) {
+            dp[i][0] = info(l[i], 1, len[l[i]], 0);
+        } else {
+            dp[i][0] = info(r[i], len[l[i]] + 1, INF, len[l[i]]); 
+        }
+        for(int p = 1; p < m; p++) {
+            dp[i][p] = dp[i][p - 1] + dp[dp[i][p - 1].to][p - 1];
+        }
+        cout << get_bit(i, x) << '\n';
+    }
 }
 
 signed main() {
@@ -303,3 +356,4 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
+

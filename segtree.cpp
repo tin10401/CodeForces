@@ -262,6 +262,186 @@ public:
     }
 };
 
+struct lazy_seg {
+    const static ll lazy_value = INF;
+    const static ll default_value = INF;
+    struct info {
+        ll s;
+        ll lazy;
+        info(ll v = default_value) : s(v) , lazy(lazy_value) {}
+        void apply(ll v, int len) {
+            s = min(s, v);
+            lazy = v;
+        }
+        friend info operator+(const info& a, const info& b) {
+            return info(min(a.s, b.s));
+        }
+    };
+
+    int n, n0, h;
+    vt<info> tree;
+    vi seglen;
+
+    lazy_seg(int n_) : n(n_) , n0(1) , h(0) {
+        while(n0 < n) {
+            n0 <<= 1;
+            ++h;
+        }
+        tree.assign(2 * n0, info());
+        seglen.assign(2 * n0, 0);
+        for (int i = n0; i < 2 * n0; ++i) {
+            seglen[i] = 1;
+        }
+        for (int i = n0 - 1; i > 0; --i) {
+            seglen[i] = seglen[i * 2] + seglen[i * 2 + 1];
+        }
+    }
+
+    void apply_node(int p, ll v) {
+        tree[p].apply(v, seglen[p]);
+    }
+
+    void pull(int p) {
+        tree[p] = tree[2 * p] + tree[2 * p + 1];
+    }
+
+    void push(int p) {
+        if(tree[p].lazy != lazy_value) {
+            ll v = tree[p].lazy;
+            apply_node(2 * p, v);
+            apply_node(2 * p + 1, v);
+            tree[p].lazy = lazy_value;
+        }
+    }
+
+    void push_to(int p) {
+        for (int i = h; i > 0; --i) {
+            push(p >> i);
+        }
+    }
+
+    void update_range(int l, int r, ll v) {
+        if(l > r) return;
+        l = max(0, l);
+        r = min(r, n - 1);
+        int L = l + n0;
+        int R = r + n0;
+        push_to(L);
+        push_to(R);
+        int l0 = L, r0 = R + 1;
+        while(l0 < r0) {
+            if(l0 & 1) apply_node(l0++, v);
+            if(r0 & 1) apply_node(--r0, v);
+            l0 >>= 1;
+            r0 >>= 1;
+        }
+        for(int i = 1; i <= h; ++i) {
+            if(((L >> i) << i) != L) {
+                pull(L >> i);
+            }
+            if((((R + 1) >> i) << i) != (R + 1)) {
+                pull(R >> i);
+            }
+        }
+    }
+
+    void update_at(int p, ll v) {
+        if(p < 0 || p >= n) return;
+        int pos = p + n0;
+        push_to(pos);
+        tree[pos] = info(v);
+        for(pos >>= 1; pos > 0; pos >>= 1) {
+            pull(pos);
+        }
+    }
+
+    ll queries_at(int p) {
+        if(p < 0 || p >= n) return default_value;
+        int pos = p + n0;
+        push_to(pos);
+        return tree[pos].s;
+    }
+
+    ll queries_range(int l, int r) {
+        if(l > r) return 0;
+        l = max(0, l);
+        r = min(r, n - 1);
+        int L = l + n0;
+        int R = r + n0;
+        push_to(L);
+        push_to(R);
+        info resL;
+        info resR;
+        int l0 = L;
+        int r0 = R + 1;
+        while(l0 < r0) {
+            if(l0 & 1) resL = resL + tree[l0++];
+            if(r0 & 1) resR = tree[--r0] + resR;
+            l0 >>= 1;
+            r0 >>= 1;
+        }
+        return (resL + resR).s;
+    }
+
+    template<typename Pred>
+        int max_right(int l, Pred P) {
+            if(l < 0) l = 0;
+            if(l >= n) return n;
+            info sm;
+            int idx = l + n0;
+            push_to(idx);
+            int tmp = idx;
+            do {
+                while((tmp & 1) == 0) tmp >>= 1;
+                info cand = sm + tree[tmp];
+                if(!P(cand.s)) {
+                    while(tmp < n0) {
+                        push(tmp);
+                        tmp <<= 1;
+                        info cand2 = sm + tree[tmp];
+                        if(P(cand2.s)) {
+                            sm = cand2;
+                            tmp++;
+                        }
+                    }
+                    return tmp - n0 - 1;
+                }
+                sm = sm + tree[tmp];
+                tmp++;
+            } while((tmp & -tmp) != tmp);
+            return n - 1;
+        }
+
+    template<typename Pred>
+        int min_left(int r, Pred P) {
+            if(r < 0) return 0;
+            if(r >= n) r = n - 1;
+            info sm;
+            int idx = r + n0 + 1;
+            push_to(idx - 1);
+            do {
+                idx--;
+                while(idx > 1 && (idx & 1)) idx >>= 1;
+                info cand = tree[idx] + sm;
+                if(!P(cand.s)) {
+                    while(idx < n0) {
+                        push(idx);
+                        idx = idx * 2 + 1;
+                        info cand2 = tree[idx] + sm;
+                        if(P(cand2.s)) {
+                            sm = cand2;
+                            idx--;
+                        }
+                    }
+                    return idx + 1 - n0;
+                }
+                sm = tree[idx] + sm;
+            } while((idx & -idx) != idx);
+            return 0;
+        }
+
+};
+
 template<typename T, typename F = function<T(const T, const T)>>
 class arithmetic_segtree { // add a + d * (i - left) to [left, right] 
     public: 
@@ -777,13 +957,18 @@ struct PSGT {
         if(F[curr].key < k) return inf;
         if(left == right) return left;
         int middle = midPoint;
-        if(F[F[curr].f].key >= k) return find_k(F[curr].f, k, left, middle);
-        return find_k(F[curr].ss, k - F[F[curr].l].key, middle + 1, right);
+        if(F[F[curr].l].key >= k) return find_k(F[curr].l, k, left, middle);
+        return find_k(F[curr].r, k - F[F[curr].l].key, middle + 1, right);
     }
 
     void update_at(int i, int& prev, int id, T delta) { 
         t[i] = update(prev, id, delta, 0, n - 1); 
         prev = t[i];
+//            while(i < n) { 
+//                t[i] = update(t[i], id, delta, 0, n - 1);
+//                i |= (i + 1);
+//            }
+
     }
 
     T queries_at(int i, int start, int end) {
@@ -795,6 +980,14 @@ struct PSGT {
         auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
         auto R = queries_at(r, low, high);
         return R - L;
+		
+//            T res = 0;
+//            while(i >= 0) {
+//                res += queries_at(t[i], start, end, 0, n - 1);
+//                i = (i & (i + 1)) - 1;
+//            }
+//            return res;
+
     }
 
     T merge(T left, T right) {
@@ -1047,25 +1240,25 @@ struct mod_tree { // n*sqrtn*logn for printing queries [l, r, x] sum a[i] % x fo
 // you have to set up by assigning size and updating from 0 to n - 1 first
 template<typename T>
 struct lazy_PSGT {
-    struct Node {
-        T s, g;
+	struct Node {
+        T s;
         ll lazy;
         int l, r;
-        Node(T key = 0) : s(key), g(key), lazy(1), l(0), r(0) { }
+        Node(T key = 0) : s(key), lazy(0), l(0), r(0) { }
 
         friend Node operator+(const Node& a, const Node& b) {
             Node res;
-            res.g = gcd(a.g, b.g);
             res.s = a.s + b.s;
             return res;
         }
     };
+
     vt<Node> F;
     vi t;
     int n;
     T DEFAULT;
-    lazy_PSGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT), t(n + 10) {
-        F.reserve(n * 50);
+    lazy_PSGT(int n, T DEFAULT) : n(n), DEFAULT(DEFAULT), t(n + 5) {
+        F.reserve(n * 20);
         F.pb(Node(DEFAULT));
     }
 
@@ -1082,25 +1275,20 @@ struct lazy_PSGT {
         F[curr].r = r;
     }
 
-    void apply(int curr, int left, int right, T val) {
+	void apply(int curr, int left, int right, T val) {
         auto& x = F[curr];
-        x.s /= val;
-        x.g /= val;
-        x.lazy *= val;
+        x.s += (right - left + 1) * val;
+        x.lazy += val;
     }
 
     void push_down(int curr, int left, int right) {
-        if(left == right || !curr || F[curr].lazy == 1) return;
+        if(left == right || !curr || F[curr].lazy == 0) return;
         int middle = (left + right) >> 1;
-        if(F[curr].l) {
-            F[curr].l = new_node(F[curr].l);
-            apply(F[curr].l, left, middle, F[curr].lazy);
-        }
-        if(F[curr].r) {
-            F[curr].r = new_node(F[curr].r);
-            apply(F[curr].r, middle + 1, right, F[curr].lazy);
-        }
-        F[curr].lazy = 1;
+        F[curr].l = new_node(F[curr].l);
+        apply(F[curr].l, left, middle, F[curr].lazy);
+        F[curr].r = new_node(F[curr].r);
+        apply(F[curr].r, middle + 1, right, F[curr].lazy);
+        F[curr].lazy = 0;
     }
 
     int update_range(int prev, int start, int end, T delta) {
@@ -1792,11 +1980,16 @@ struct HISTORICAL_SGT_BEAT {
 };
 
 struct hash_info {
-    int len;
+    const static int K = 26;
+    int cnt[K], len;
     ll fwd[2], rev[2];
 
-    hash_info(ll v = -1) : len(v != -1) {
-        fwd[0] = fwd[1] = rev[0] = rev[1] = v;
+    hash_info(ll v = -1, int _len = 1) : len(_len) {
+        if(v == -1) {
+            fwd[0] = -1;
+            return;
+        }
+        set(v);
     }
 
     bool is_palindrome() const {
@@ -1804,15 +1997,27 @@ struct hash_info {
     }
 
     friend hash_info operator+(const hash_info& a, const hash_info& b) {
-        if (a.len == 0) return b;
-        if (b.len == 0) return a;
+        if(a.fwd[0] == -1) return b;
+        if(b.fwd[0] == -1) return a;
         hash_info r;
         r.len = a.len + b.len;
         for(int i = 0; i < 2;i++){
             r.fwd[i] = (a.fwd[i] * p[i][b.len] + b.fwd[i]) % mod[i];
             r.rev[i] = (b.rev[i] * p[i][a.len] + a.rev[i]) % mod[i];
         }
+        for(int i = 0; i < K; i++) {
+            r.cnt[i] = a.cnt[i] + b.cnt[i];
+        }
         return r;
+    }
+
+    void set(int x) {
+        for (int h = 0; h < 2; ++h) {
+            ll val = (ll)x * geom[h][len] % mod[h];
+            fwd[h] = rev[h] = val;
+        }
+        mset(cnt, 0);
+        cnt[x] = len;
     }
 };
 

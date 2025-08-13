@@ -239,7 +239,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 7e6 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
@@ -265,7 +265,216 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
+    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return (ll)value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return (db)value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+
+int spf[MX], mu[MX];
+
+void generatePrime() {  
+    mu[1] = 1;
+    for(int i = 2; i < MX; i++) {
+        if(spf[i] == 0) {
+            for(int j = i; j < MX; j += i) {    if(spf[j] == 0) spf[j] = i; }
+        }
+        int p = spf[i];
+        int m = i / p;
+        mu[i] = m % p == 0 ? 0 : -mu[m];
+    }
+} static const bool _generate_prime_init = []() { generatePrime(); return true; }();
+
+vi factorize(int n) {
+    vi divs;
+    divs.pb(1);
+    while(n > 1) {
+        int x = spf[n];
+        int cnt = 0;
+        while(n % x == 0) {
+            n /= x;
+            cnt++;
+        }
+        int d = 1;
+        int N = divs.size();
+        while(cnt--) {
+            d *= x;
+            for(int i = 0; i < N; i++) {
+                int D = divs[i] * d;
+                if(mu[D]) {
+                    divs.pb(D);
+                }
+            }
+        }
+    }
+    return divs;
+}
+
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW() {}
+    FW(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
+    }
+    
+    inline void update_at(int id, T val) {  
+        assert(id >= 0);
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    inline T get(int id) {   
+        assert(id < n);
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    inline T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    inline T queries_at(int i) {
+        return queries_range(i, i);
+    }
+
+    inline void update_range(int l, int r, T val) {
+		if(l > r) return;
+        update_at(l, val), update_at(r + 1, -val);
+    }
+	
+	inline void reset() {
+		root.assign(n, DEFAULT);
+	}
+
+	ll select(ll k) {
+        ll pos = -1;
+        T acc = DEFAULT;
+        for(ll bit = 1LL << N; bit > 0; bit >>= 1) {
+            ll np = pos + bit;
+            if(np < n) {
+                T cand = acc + root[np];
+                if(cand < k) {
+                    acc = cand;
+                    pos = np;
+                }
+            }
+        }
+        return pos + 1;
+    }
+
+};
+
+mint dp[MX], dp_d[MX];
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vvi G(n);
+    for(int i = 0; i < n; i++) {
+        dp[i] = 1;
+        G[i] = factorize(a[i]);
+    }
+    auto dfs = [&](auto& dfs, int l, int r) -> void {
+        if(l >= r) return;
+        int m = (l + r) >> 1;
+        dfs(dfs, l, m);
+        vpii L, R; 
+        for(int i = l; i <= m; i++) L.pb({a[i], i});
+        for(int i = m + 1; i <= r; i++) R.pb({a[i], i});
+        srt(L);
+        srt(R);
+        for(int i = 0, j = 0; i < R.size(); i++) {
+            while(j < L.size() && L[j].ff <= R[i].ff) {
+                auto t = dp[L[j].ss];
+                for(auto& d : G[L[j].ss]) {
+                    dp_d[d] += t;
+                }
+                j++;
+            }
+            for(auto& d : G[R[i].ss]) {
+                dp[R[i].ss] += dp_d[d] * mu[d];
+            }
+        }
+        for(auto& [x, _] : L) {
+            for(auto& d : factorize(x)) {
+                dp_d[d] = 0;
+            }
+        }
+        dfs(dfs, m + 1, r);
+    };
+    dfs(dfs, 0, n - 1);
+    mint res = 0;
+    for(int i = 0; i < n; i++) {
+        res += dp[i];
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -276,7 +485,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

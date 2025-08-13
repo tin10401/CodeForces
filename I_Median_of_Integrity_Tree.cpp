@@ -266,6 +266,48 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n); cin >> a;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    auto f = [&](int x) -> int {
+        int res = -inf;
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> vi {
+            vi dp(2, -inf); 
+            dp[1] = a[node] >= x ? 1 : -1;
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                auto nei_dp = dfs(dfs, nei, node);
+                const int N = dp.size() + nei_dp.size() - 1;
+                vi next(N, -inf);
+                for(int i = 0; i < dp.size(); i++) {
+                    for(int j = 0; j < nei_dp.size(); j++) {
+                        next[i + j] = max(next[i + j], dp[i] + nei_dp[j]); 
+                    }
+                }
+                swap(dp, next);
+            }
+            if(n - k < dp.size()) {
+                res = max(res, dp[n - k]);
+            }
+            dp[0] = 0;
+            return dp;
+        };
+        dfs(dfs);
+        return res >= 0;
+    };
+    int left = MIN(a), right = MAX(a), res = -1;
+    while(left <= right) {
+        int middle = midPoint;
+        if(f(middle)) res = middle, left = middle + 1;
+        else right = middle - 1;
+    }
+    cout << res << '\n';
 }
 
 signed main() {
@@ -276,7 +318,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

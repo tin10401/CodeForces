@@ -239,7 +239,7 @@ const static string pi = "3141592653589793238462643383279";
 const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
-const static int MX = 1e5 + 5;
+const static int MX = 1e7 + 5;
 ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return a; }
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
@@ -265,7 +265,252 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
+int spf[MX];
+
+void generatePrime() {  
+    for(int i = 2; i < MX; i++) {
+        if(spf[i] == 0) {
+            for(int j = i; j < MX; j += i) {    if(spf[j] == 0) spf[j] = i; }
+        }
+    }
+} static const bool _generate_prime_init = []() { generatePrime(); return true; }();
+
+vi factorize(int n) {
+    vi divs;
+    while(n > 1) {
+        int x = spf[n];
+        int cnt = 0;
+        while(n % x == 0) {
+            n /= x;
+            cnt++;
+        }
+        divs.pb(x);
+    }
+    return divs;
+}
+
+template <int MOD>
+struct mod_int {
+    int value;
+    
+    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
+    
+    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
+    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
+    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
+    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
+    
+    mod_int inv() const { return pow(MOD - 2); }
+    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
+    
+    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
+    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
+    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
+    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
+    
+    bool operator==(const mod_int &other) const { return value == other.value; }
+    bool operator!=(const mod_int &other) const { return value != other.value; }
+    bool operator<(const mod_int &other) const { return value < other.value; }
+    bool operator>(const mod_int &other) const { return value > other.value; }
+    bool operator<=(const mod_int &other) const { return value <= other.value; }
+    bool operator>=(const mod_int &other) const { return value >= other.value; }
+    
+    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
+    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
+    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
+    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
+    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
+    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
+    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
+    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
+    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
+    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+
+    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
+    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
+    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
+    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+
+    explicit operator ll() const { return (ll)value; }
+    explicit operator int() const { return value; }
+    explicit operator db() const { return (db)value; }
+
+    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
+    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
+    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
+};
+
+const static int MOD = 1e9 + 7;
+using mint = mod_int<MOD>;
+using vmint = vt<mint>;
+using vvmint = vt<vmint>;
+using vvvmint = vt<vvmint>;
+using pmm = pair<mint, mint>;
+using vpmm = vt<pmm>;
+
+template<class T> 
+class Combinatoric {    
+    public: 
+    int n;  
+    vt<T> fact, inv;   
+    Combinatoric(int n) {   
+        this->n = n;    
+        fact.rsz(n + 1), inv.rsz(n + 1);
+        init();
+    }
+        
+    void init() {   
+        fact[0] = 1;
+        for(int i = 1; i <= n; i++) {   
+            fact[i] = fact[i - 1] * i;
+        }
+        inv[n] = fact[n].inv();
+        for(int i = n - 1; i >= 0; i--) {   
+            inv[i] = inv[i + 1] * (i + 1);
+        }
+    }
+    
+    T nCk(int a, int b) {  
+        if(a < b) return 0;
+        assert(max(a, b) <= n);
+        return fact[a] * inv[b] * inv[a - b];
+    }
+
+    T nPk(int n, int k) {
+        if (k < 0 || k > n) return 0; 
+        return fact[n] * inv[n - k];
+    }
+
+    ull nCk_no_mod(ull n, ull r) {
+		if(n < r) return 0;
+		r = min(r, n - r);
+		ull ans = 1;
+		for(int i = 1 ; i <= r ; i++) {
+			ull d = gcd(ans, i);
+			ans /= d;
+			ans *= (n - i + 1) / (i / d);
+		}
+		return ans ;
+	}
+
+    mint lucas(ll n, ll r) { // call on Combinatoric comb(MOD - 1) for small PRIME MOD, log(C)
+        if(r > n) return 0;
+        if(r == 0) return 1;
+        int ni = n % MOD;
+        int ri = r % MOD;
+        if(ri > ni) return 0;
+        return lucas(n / MOD, r / MOD) * nCk(ni, ri);
+    }
+
+    ll derangement(int n) {
+        if(n == 0) return 1;
+        if(n == 1) return 0;
+        vll D(n + 1);
+        D[0] = 1;
+        D[1] = 0;
+        for(int i = 2; i <= n; ++i) {
+            D[i] = (i - 1) * (D[i - 1] + D[i - 2]);
+        }
+        return D[n];
+    }
+
+	T nCk_increasing_sequence(int l, int r, int len) { // given a range of number from l to r, len k, 
+                                                       // return the number of ways to choose those element in increasing order
+//        if(len > r - l + 1) return 0;  // not enough numbers
+//        return choose(r - l + 1, len); // for strictly increasing/decreasing
+        return nCk(r - l + len, len);
+        // x _ _ _ y
+        // # of way to choose the _ unknown value
+        // len = pos[y] - pos[x] - 1
+    }
+
+
+//    ll nCk_mod_Lucas_Theorem(int n, int r, int mod) {
+//        if(r > n) return 0 ;
+//        ll res = 1;
+//        while(n && r) {
+//            res *= nCk(n % mod, r % mod) ;
+//            res %= mod ;
+//            n /= mod ;
+//            r /= mod ; 
+//        }
+//        return res ;
+//    }
+//
+//    int nCk_lucas(int n, int r, int mod) {
+//        vi ans;
+//        for(auto& x : DIV[mod]) {
+//            ans.pb(nCk_mod_Lucas_Theorem(n, r, x));
+//        }
+//        ll res = 0;
+//        for(int i = 0; i < int(DIV[mod].size()); i++) {
+//            int p = DIV[mod][i];
+//            ll m = mod / p;
+//            ll inv = modExpo(m, p - 2, p);
+//            res = (res + ans[i] * m % mod * inv) % mod;
+//        }
+//        return res;
+//    }
+
+    T catalan(int k) { // # of pair of balanced bracket of length n is catalan(n / 2)
+        if(k == 0) return 1;
+        return nCk(2 * k, k) - nCk(2 * k, k - 1);
+    }
+
+	T monotonic_array_count(int n, int m) {// len n, element from 1 to m increasing/decreasing
+        return nCk(n + m - 1, n);
+    }
+
+}; Combinatoric<mint> comb(MX);
+
+int cnt[1 << 16];
+mint dp[16][1 << 16];
+
 void solve() {
+    int n; cin >> n;
+    vi a(n); cin >> a;
+    vvi g(n);
+    vi b;
+    for(int i = 0; i < n; i++) {
+        g[i] = factorize(a[i]);
+        b.insert(end(b), all(g[i]));
+    }
+    srtU(b);
+    const int N = b.size();
+    auto get_id = [&](int x) -> int {
+        return int(lb(all(b), x) - begin(b));
+    };
+    vi A;
+    for(int i = 0; i < n; i++) {
+        int mask = 0;
+        for(auto& x : g[i]) {
+            mask |= 1 << get_id(x);
+        }
+        cnt[mask]++;
+        if(mask) A.pb(mask);
+    }
+    srtU(A);
+    fill(all(dp[0]), 1);
+    const int M = A.size();
+    for(auto& x : A) {
+        for(int sz = N; sz >= 1; sz--) {
+            int other = ((1 << N) - 1) ^ x;
+            for(int mask = other; ; mask = (mask - 1) & other) {
+                dp[sz][mask] += cnt[x] * dp[sz - 1][mask ^ x];
+                if(mask == 0) break;
+            } 
+        } 
+    }
+    int one = cnt[0];
+    vmint ans(n + 1);
+    for(int i = 1; i <= n; i++) {
+        mint res = 0;
+        for(int j = 0; j <= min(N, i); j++) {
+            int rem = i - j;
+            res += dp[j][0] * comb.nCk(one, rem);
+        }
+        cout << res << (i == n ? '\n' : ' ');
+    }
 }
 
 signed main() {
