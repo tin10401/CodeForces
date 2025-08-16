@@ -177,6 +177,20 @@ vt<pair<T, int>> encode(const V& s) {
     return seg;
 }
 
+vs decode(const string& s, char off = ' ') {
+    vs a;
+    string t;
+    for(auto& ch : s) {
+        if(ch == off) {
+            if(!t.empty()) a.pb(t);
+            t = "";
+        } else {
+            t += ch;
+        }
+    }
+    if(!t.empty()) a.pb(t);
+    return a;
+}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -222,7 +236,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -231,7 +245,7 @@ ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
 ll ceil(ll a, ll b) { if (b < 0) a = -a, b = -b; if (a >= 0) return (a + b - 1) / b; return a / b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+ll have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -239,44 +253,128 @@ const vvi knight_dirs = {{-2, -1}, {-2,  1}, {-1, -2}, {-1,  2}, {1, -2}, {1,  2
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
-ll modInv(ll a, ll m) { ll x, y; ll g = extended_gcd(a, m, x, y); if (g != 1) { return -1; } x %= m; if (x < 0) x += m; return x; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i - 1) + 1;
-        edges.pb({p, i + 1});
-    }
-    return edges;
-}
 
-string gen_string(int n) {
-    int N = n;
-    string s;
-    while(N--) {
-        s += char(uni(0, 9) + '0'); 
+class DSU { 
+public: 
+    int n, comp;  
+    vi root, rank, col;  
+    bool is_bipartite;  
+    vvpii g;
+    vll s;
+    DSU(int n) {    
+        this->n = n;    
+        comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1), col.rsz(n, 0), g.rsz(n), s.rsz(n);
+        is_bipartite = true;
     }
-    return s;
-}
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        int p = find(root[x]);
+        col[x] ^= col[root[x]];
+        return root[x] = p;
+    }
+    
+    bool merge(int a, int b) {
+        int u = find(a);
+        int v = find(b);
+        if (u == v) {
+            if(col[a] == col[b]) {
+                is_bipartite = false;
+            }
+            return 0;
+        }
+        if(rank[u] < rank[v]) {
+            swap(u, v);
+            swap(a, b);
+        }
+        s[u] += s[v];
+        g[u].insert(end(g[u]), all(g[v]));
+        root[v] = u;
+        rank[u] += rank[v];
+        if(col[a] == col[b])
+            col[v] ^= 1;
+        return 1;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+
+    void assign(int x, int i, int j, ll c) {
+        g[find(x)].pb({i, j});
+        s[find(x)] += c;
+    }
+    
+	vvi get_group() {
+        vvi ans(n);
+        for(int i = 0; i < n; i++) {
+            ans[find(i)].pb(i);
+        }
+        sort(all(ans), [](const vi& a, const vi& b) {return a.size() > b.size();});
+        while(!ans.empty() && ans.back().empty()) ans.pop_back();
+        return ans;
+    }
+};
 
 void solve() {
-    cout << 1 << '\n';
-    int n = uni(1, 100);
-    cout << n << '\n';
-    const int K = 100;
+    // https://neps.academy/br/exercise/2798
+    int n, m; cin >> n >> m;
+    vvi a(n, vi(m)); cin >> a;
+    var(3) A;
     for(int i = 0; i < n; i++) {
-        cout << uni(-100, 100) << (i == n - 1 ? '\n' : ' ');
+        for(int j = 0; j < m; j++) {
+            A.pb({a[i][j], i, j});
+        }
     }
+    srt(A);
+    vvi active(n, vi(m));
+    const int N = n * m;
+    DSU root(N);
+    auto id = [&](int i, int j) -> int {
+        return i * m + j;
+    };
+    vvll ans(n, vll(m));
+    for(auto& [_, x, y] : A) {
+        active[x][y] = true;
+        root.assign(id(x, y), x, y, _);
+        for(int k = 0; k < 4; k++) {
+            int r = x + dirs[k][0];
+            int c = y + dirs[k][1];
+            if(r < 0 || c < 0 || r >= n || c >= m || !active[r][c]) continue;
+            int curr_id = id(x, y);
+            int nei_id = root.find(id(r, c));
+            if(root.s[nei_id] < _) {
+                for(auto& [i, j] : root.g[nei_id]) {
+                    ans[i][j] = root.s[root.find(nei_id)];
+                }
+                root.g[nei_id].clear();
+            }
+            root.merge(curr_id, nei_id);
+        }
+    }
+    for(auto& it : root.get_group()) {
+        int rt = root.find(it[0]);
+        for(auto& [r, c] : root.g[rt]) {
+            ans[r][c] = root.s[rt];
+        }
+    }
+    for(auto& it : ans) output_vector(it);
 }
 
 signed main() {

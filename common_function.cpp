@@ -1218,3 +1218,139 @@ ll sg(ll x) {
     }
     return 0;
 }
+
+int can_be_split(const string& s, int k) { // can s be split into subsequence of length k each
+    // https://codeforces.com/group/o09Gu2FpOx/contest/541486/problem/V
+    int n = s.size();
+    if(n % k) return false;
+    const int each = n / k;
+    const int K = 26;
+    set<int> pos[K];
+    for(int i = 0; i < n; i++) {
+        pos[s[i] - 'a'].insert(i);
+    }
+    vi prev(each, -1);
+    vi vis(n);
+    for(int i = 0; i < n; i++) {
+        if(vis[i]) continue;
+        vis[i] = true;
+        int id = s[i] - 'a';
+        for(int j = 0; j < each; j++) {
+            auto it = pos[id].ub(prev[j]);
+            if(it == end(pos[id])) return false;
+            vis[*it] = true;
+            prev[j] = *it;
+            pos[id].erase(it);
+        }
+    }
+    return true;
+}
+
+ll sum_of_second_max(vi a) {
+    // https://codeforces.com/group/o09Gu2FpOx/contest/541486/problem/C
+    int n = a.size();
+    a.insert(begin(a), 0);
+    auto left = closest_left(a, greater_equal<int>());
+    auto right = closest_right(a, greater_equal<int>());
+    vll pre(n + 2), suff(n + 2);
+    for(int i = 1; i <= n; i++) {
+        int L = left[i];
+        pre[i] = pre[L - 1] + (ll)a[i] * (i - L + 1);
+    }
+    for(int i = n; i >= 1; i--) {
+        int R = right[i];
+        suff[i] = suff[R + 1] + (ll)a[i] * (R - i + 1);
+    }
+    vi id(n + 1);
+    iota(all(id), 0);
+    linear_rmq<int> T(id, [&](const int& i, const int& j) {return a[i] > a[j];});
+    auto query_pre = [&](int l, int r) -> ll {
+        if(l > r) return 0;
+        int mx = T.query(l, r);
+        return pre[r] - pre[mx] + (ll)a[mx] * (mx - l + 1);
+    };
+    auto query_suff = [&](int l, int r) -> ll {
+        if(l > r) return 0;
+        int mx = T.query(l, r);
+        return suff[l] - suff[mx] + (ll)a[mx] * (r - mx + 1);
+    };
+    basic_segtree<int> max_tree(n + 1, -inf, [](const int& a, const int& b) {return max(a, b);});
+    for(int i = 1; i <= n; i++) {
+        max_tree.update_at(i, a[i]);
+    }
+    ll res = 0;
+    auto dfs = [&](auto& dfs, int l, int r) -> void {
+        if(l > r) return; 
+        int m = T.query(l, r);
+        res += query_pre(l, m - 1) + query_suff(m + 1, r); // where the border is m
+        if(l < m && m < r) {
+            if(m - l < r - m) {
+                int mx = -inf;
+                for(int i = m - 1; i >= l; i--) {
+                    mx = max(mx, a[i]);
+                    int R = min(r, max_tree.max_right(m + 1, [&](const int &x) {return x <= mx;}));
+                    res += (R - m) * (ll)mx + query_suff(R + 1, r);
+                }
+            } else {
+                int mx = -inf;
+                for(int i = m + 1; i <= r; i++) {
+                    mx = max(mx, a[i]);
+                    int L = max(l, max_tree.min_left(m - 1, [&](const int& x) {return x <= mx;}));
+                    res += (m - L) * (ll)mx + query_pre(l, L - 1);
+                }
+            }
+        }
+        dfs(dfs, l, m - 1);
+        dfs(dfs, m + 1, r);
+    };
+    dfs(dfs, 1, n);
+    return res;
+}
+
+string construct_median_string(string s, int k) { // reconstruct the binary string such that each window of size k would have ceil or floor k / 2 '1'
+    int n = s.size();
+    int m = 0;
+    for(char c: s) m += (c == '1');
+    int low = k / 2;
+    int high = (k + 1) / 2;
+    vi L(n + 1, 0), U(n + 1);
+    for(int i = 0; i <= n; ++i) U[i] = min(i, m);
+    L[0] = U[0] = 0;
+    L[n] = U[n] = m;
+    for(int i = 1; i <= n; ++i) {
+        L[i] = max(L[i], L[i - 1]);
+        if(i >= k) L[i] = max(L[i], L[i - k] + low);
+    }
+    for(int i = n - 1; i >= 0; --i) {
+        L[i] = max(L[i], L[i + 1] - 1);
+        if(i + k <= n) L[i] = max(L[i], L[i + k] - high);
+    }
+    for(int i = 0; i < n; ++i) {
+        U[i + 1] = min(U[i + 1], U[i] + 1);
+        if(i + k <= n) U[i + k] = min(U[i + k], U[i] + high);
+    }
+    for(int i = n; i >= 1; --i) {
+        U[i - 1] = min(U[i - 1], U[i]);
+        if(i >= k) U[i - k] = min(U[i - k], U[i] - low);
+    }
+    for(int i = 0; i <= n; ++i) {
+        if(L[i] < 0) L[i] = 0;
+        if(U[i] > min(i, m)) U[i] = min(i, m);
+    }
+    for(int i = 0; i <= n; ++i) {
+        if(L[i] > U[i]) return "";
+    }
+    string ans;
+    int curr = 0;
+    for(int i = 0; i < n; ++i) {
+        if(L[i + 1] <= curr && curr <= U[i + 1]) {
+            ans.pb('0');
+        } else {
+            ++curr;
+            if(curr < L[i + 1] || curr > U[i + 1]) return "";
+            ans.pb('1');
+        }
+    }
+    if(curr != m) return "";
+    return ans;
+}

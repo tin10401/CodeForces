@@ -266,6 +266,15 @@ bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && 
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
 void solve() {
+    int n, k; cin >> n >> k;
+    vi a(n);
+    int low = 1;
+    for(int i = 0; i < k; i++) {
+        for(int j = i; j < n; j += k) {
+            a[j] = low++;
+        }
+    }
+    output_vector(a);
 }
 
 signed main() {

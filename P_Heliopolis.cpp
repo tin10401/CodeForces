@@ -177,6 +177,20 @@ vt<pair<T, int>> encode(const V& s) {
     return seg;
 }
 
+vs decode(const string& s, char off = ' ') {
+    vs a;
+    string t;
+    for(auto& ch : s) {
+        if(ch == off) {
+            if(!t.empty()) a.pb(t);
+            t = "";
+        } else {
+            t += ch;
+        }
+    }
+    if(!t.empty()) a.pb(t);
+    return a;
+}
     
 template<typename K, typename V>
 auto operator<<(std::ostream &o, const std::map<K, V> &m) -> std::ostream& {
@@ -222,7 +236,7 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 #define eps 1e-9
 #define M_PI 3.14159265358979323846
 const static string pi = "3141592653589793238462643383279";
-const static ll INF = 1LL << 62;
+const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MK = 20;
 const static int MX = 1e5 + 5;
@@ -231,7 +245,7 @@ ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
 ll ceil(ll a, ll b) { if (b < 0) a = -a, b = -b; if (a >= 0) return (a + b - 1) / b; return a / b; }
 int pct(ll x) { return __builtin_popcountll(x); }
-ll have_bit(ll x, int b) { return x & (1LL << b); }
+ll have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }
 int max_bit(ll x) { return 63 - __builtin_clzll(x); } 
 const vvi dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // UP, DOWN, LEFT, RIGHT
@@ -239,43 +253,213 @@ const vvi knight_dirs = {{-2, -1}, {-2,  1}, {-1, -2}, {-1,  2}, {1, -2}, {1,  2
 const vc dirChar = {'U', 'D', 'L', 'R'};
 int modExpo(ll base, ll exp, ll mod) { ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; }
 ll extended_gcd(ll a, ll b, ll &x, ll &y) { if (b == 0) { x = 1; y = 0; return a; } ll d = extended_gcd(b, a % b, y, x); y -= (a / b) * x; return d; }
-ll modInv(ll a, ll m) { ll x, y; ll g = extended_gcd(a, m, x, y); if (g != 1) { return -1; } x %= m; if (x < 0) x += m; return x; }
 int modExpo_on_string(ll a, string exp, int mod) { ll b = 0; for(auto& ch : exp) b = (b * 10 + (ch - '0')) % (mod - 1); return modExpo(a, b, mod); }
 ll sum_even_series(ll n) { return (n / 2) * (n / 2 + 1);} 
-ll sum_odd_series(ll n) {return n - sum_even_series(n);} // sum of first n odd number is n ^ 2
+ll sum_odd_series(ll n) { ll m = (n + 1) / 2; return m * m; }
 ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2 * 2 + 3 * 3 + 4 * 4 + ... + n * n
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 ll sqrt(ll n) { ll t = sqrtl(n); while(t * t < n) t++; while(t * t > n) t--; return t;}
+template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^1 + p^2 + p^3 + ... + p^k
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
-ll uni(ll L, ll R) { uniform_int_distribution<long long> dist(L, R); ll x = dist(rng); return x; }
-vi gen_perm(int n) { vi a(n); iota(all(a), 1); shuffle(all(a), rng); return a; }
-vpii gen_tree(int n) {
-    vpii edges;
-    for(int i = 1; i < n; i++) {
-        int p = uni(0, i - 1) + 1;
-        edges.pb({p, i + 1});
-    }
-    return edges;
-}
 
-string gen_string(int n) {
-    int N = n;
-    string s;
-    while(N--) {
-        s += char(uni(0, 9) + '0'); 
+template<class T, typename F = function<T(const T&, const T&)>>
+class FW {  
+    public: 
+    int n, N;
+    vt<T> root;    
+    T DEFAULT;
+    F func;
+    FW() {}
+    FW(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : func(func) { 
+        this->n = n;    
+        this->DEFAULT = DEFAULT;
+        N = log2(n);
+        root.rsz(n, DEFAULT);
     }
-    return s;
-}
+    
+    inline void update_at(int id, T val) {  
+        assert(id >= 0);
+        while(id < n) {    
+            root[id] = func(root[id], val);
+            id |= (id + 1);
+        }
+    }
+    
+    inline T get(int id) {   
+        assert(id < n);
+        T res = DEFAULT;
+        while(id >= 0) { 
+            res = func(res, root[id]);
+            id = (id & (id + 1)) - 1;
+        }
+        return res;
+    }
+
+    inline T queries_range(int left, int right) {  
+        return get(right) - get(left - 1);
+    }
+
+    inline T queries_at(int i) {
+        return queries_range(i, i);
+    }
+
+    inline void update_range(int l, int r, T val) {
+		if(l > r) return;
+        update_at(l, val), update_at(r + 1, -val);
+    }
+	
+	inline void reset() {
+		root.assign(n, DEFAULT);
+	}
+
+	ll select(ll k) {
+        ll pos = -1;
+        T acc = DEFAULT;
+        for(ll bit = 1LL << N; bit > 0; bit >>= 1) {
+            ll np = pos + bit;
+            if(np < n) {
+                T cand = acc + root[np];
+                if(cand < k) {
+                    acc = cand;
+                    pos = np;
+                }
+            }
+        }
+        return pos + 1;
+    }
+
+};
 
 void solve() {
-    cout << 1 << '\n';
-    int n = uni(1, 100);
-    cout << n << '\n';
-    const int K = 100;
-    for(int i = 0; i < n; i++) {
-        cout << uni(-100, 100) << (i == n - 1 ? '\n' : ' ');
+    int n; cin >> n;
+    string s; cin >> s;
+    vi a(n), cost(n); cin >> a >> cost;
+    for(auto& x : a) x--;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
+        int u, v; cin >> u >> v;
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
+    }
+    vi tin(n), tout(n), sz(n, 1), heavy(n, -1), euler(n);
+    {
+        int timer = 0;
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+            tin[node] = timer++;
+            euler[tin[node]] = node;
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                dfs(dfs, nei, node);
+                if(heavy[node] == -1 || sz[nei] > sz[heavy[node]]) heavy[node] = nei;
+                sz[node] += sz[nei];
+            }
+            tout[node] = timer - 1;
+        };
+        dfs(dfs);
+    }
+    vpll ans(n, {-1, -1});
+    {
+        min_heap<pii> min_q;
+        max_heap<pii> max_q;
+        vi F(n + 1), U(n + 1), cnt(n + 1);
+        FW<ll> root(n + 1, 0, [](const ll& a, const ll& b) {return a + b;});
+        auto push = [&](int x) -> void {
+            min_q.push({F[x], x});
+            max_q.push({U[x], x});
+        };
+        ll base = 0, mand = 0;
+        int max_k = 0;
+        auto insert = [&](int x, bool erasable, int delta) -> void {
+            int f0 = F[x], u0 = U[x]; 
+            bool was = u0 > 0;
+            if(!erasable) U[x] += delta; 
+            F[x] += delta;
+            base += delta * cost[x];
+            int f1 = F[x], u1 = U[x];
+            int now = u1 > 0;
+            if(f0 > 0) {
+                cnt[f0]--; 
+                while(max_k > 0 && cnt[max_k] == 0) max_k--;
+            }
+            if(f1 > 0) {
+                cnt[f1]++;
+                max_k = max(max_k, f1);
+            }
+            if(!was && !now) {
+                if(f0 > 0) root.update_at(f0, -cost[x]);
+                if(f1 > 0) root.update_at(f1, cost[x]);
+            } else if(!was && now) {
+                if(f0 > 0) root.update_at(f0, -cost[x]);
+                mand += cost[x];
+                push(x);
+            } else if(was && now) {
+                push(x);
+            } else {
+                mand -= cost[x];
+                if(f1 > 0) root.update_at(f1, cost[x]);
+            }
+        };
+        auto update_node = [&](int u, int delta) -> void {
+            insert(a[u], s[u] - '0', delta);    
+        };
+        auto update_subtree = [&](int u, int delta) -> void {
+            for(int i = tin[u]; i <= tout[u]; i++) {
+                update_node(euler[i], delta);
+            } 
+        };
+        auto get_min = [&]() -> int {
+            while(!max_q.empty()) {
+                auto [u, x] = max_q.top();
+                if(U[x] > 0 && U[x] == u) return u;
+                max_q.pop();
+            }
+            return 0;
+        };
+        auto get_max = [&]() -> int {
+            while(!min_q.empty()) {
+                auto [f, x] = min_q.top();
+                if(U[x] > 0 && F[x] == f) return f;
+                min_q.pop();
+            }
+            return 0;
+        };
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1, bool keep = false) -> void {
+            for(auto& nei : graph[node]) {
+                if(nei != par && nei != heavy[node]) {
+                    dfs(dfs, nei, node, false);
+                }
+            }
+            if(heavy[node] != -1) dfs(dfs, heavy[node], node, true);
+            for(auto& nei : graph[node]) {
+                if(nei != par && nei != heavy[node]) {
+                    update_subtree(nei, 1); 
+                }
+            }
+            update_node(node, 1);
+            if(mand > 0) {
+                int mn = get_min(), mx = get_max(); 
+                if(mn <= mx) {
+                    ll real_cost = base - mx * (mand + root.queries_range(mx, n - 1));
+                    ans[node] = {mx, real_cost};
+                }
+            } else {
+                assert(mand == 0);
+                int mx = max_k;
+                ll real_cost = base - mx * root.queries_range(max_k, n - 1);
+                ans[node] = {mx, real_cost};
+            }
+            if(!keep) {
+                update_subtree(node, -1); 
+            }
+        };
+        dfs(dfs);
+    }
+    for(auto& [x, y] : ans) {
+        cout << x << ' ' << y << '\n';
     }
 }
 
@@ -287,7 +471,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -2692,3 +2692,22 @@ struct at_most_one_swap_max_subarray_info {
         return res;
     }
 };
+
+struct poly_info {
+    // https://codeforces.com/group/o09Gu2FpOx/contest/541486/problem/O
+    mint sum_1, sum_i, sum_i2, sum_val;
+    poly_info(mint _sum_val = 0, mint _sum_1 = 0, mint _sum_i = 0, mint _sum_i2 = 0) : sum_1(_sum_1), sum_i(_sum_i), sum_i2(_sum_i2), sum_val(_sum_val) {}
+    
+    friend poly_info operator+(const poly_info& a, const poly_info& b) {
+        poly_info res;
+        res.sum_1 = a.sum_1 + b.sum_1;
+        res.sum_i = a.sum_i + b.sum_i;
+        res.sum_i2 = a.sum_i2 + b.sum_i2;
+        res.sum_val = a.sum_val + b.sum_val;
+        return res;
+    }
+
+    void apply(mint a, mint b, mint c, int len) {
+        sum_val += a * sum_i2 + b * sum_i + c * sum_1;
+    }
+};

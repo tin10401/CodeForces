@@ -265,238 +265,20 @@ template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1
 bool is_perm(ll sm, ll square_sum, ll len) {return sm == len * (len + 1) / 2 && square_sum == len * (len + 1) * (2 * len + 1) / 6;} // determine if an array is a permutation base on sum and square_sum
 bool is_vowel(char c) {return c == 'a' || c == 'e' || c == 'u' || c == 'o' || c == 'i';}
 
-template <int MOD>
-struct mod_int {
-    int value;
-    
-    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
-    
-    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
-    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
-    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
-    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
-    
-    mod_int inv() const { return pow(MOD - 2); }
-    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
-    
-    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
-    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
-    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
-    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
-    
-    bool operator==(const mod_int &other) const { return value == other.value; }
-    bool operator!=(const mod_int &other) const { return value != other.value; }
-    bool operator<(const mod_int &other) const { return value < other.value; }
-    bool operator>(const mod_int &other) const { return value > other.value; }
-    bool operator<=(const mod_int &other) const { return value <= other.value; }
-    bool operator>=(const mod_int &other) const { return value >= other.value; }
-    
-    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
-    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
-    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
-    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
-    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
-    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
-    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
-    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
-    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
-    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
-
-    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
-    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
-    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
-    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
-
-    explicit operator ll() const { return (ll)value; }
-    explicit operator int() const { return value; }
-    explicit operator db() const { return (db)value; }
-
-    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
-    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
-    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
-};
-
-const static int MOD = 1e9 + 7;
-using mint = mod_int<MOD>;
-using vmint = vt<mint>;
-using vvmint = vt<vmint>;
-using vvvmint = vt<vvmint>;
-using pmm = pair<mint, mint>;
-using vpmm = vt<pmm>;
-
-template<class T, typename F = function<T(const T&, const T&)>>
-class basic_segtree {
-public:
-    int n;    
-    int size;  
-    vt<T> root;
-    F func;
-    T DEFAULT;  
-    
-    basic_segtree() {}
-
-    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
-        size = 1;
-        while (size < n) size <<= 1;
-        root.assign(size << 1, DEFAULT);
-    }
-    
-    void update_at(int idx, T val) {
-        if(idx < 0 || idx >= n) return;
-        idx += size, root[idx] = val;
-        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
-    }
-    
-	T queries_range(int l, int r) {
-        l = max(0, l), r = min(r, n - 1);
-        T res_left = DEFAULT, res_right = DEFAULT;
-        l += size, r += size;
-        bool has_left = false, has_right = false;
-        while(l <= r) {
-            if((l & 1) == 1) {
-                if(!has_left) res_left = root[l++];
-                else res_left = func(res_left, root[l++]); 
-                has_left = true;
-            }
-            if((r & 1) == 0) {
-                if(!has_right) res_right = root[r--];
-                else res_right = func(root[r--], res_right);
-                has_right = true;
-            }
-            l >>= 1; r >>= 1;
-        }
-        if(!has_left) return res_right;
-        if(!has_right) return res_left;
-        return func(res_left, res_right);
-    }
-
-	
-	T queries_at(int idx) {
-        if(idx < 0 || idx >= n) return DEFAULT;
-        return root[idx + size];
-    }
-
-	
-	void update_range(int l, int r, ll v) {}
-
-    T get() {
-        return root[1];
-    }
-
-    template<typename Pred>
-    int max_right(int start, Pred P) const {
-        if(start < 0) start = 0;
-        if(start >= n) return n;
-        T sm = DEFAULT;
-        int idx = start + size;
-        do {
-            while((idx & 1) == 0) idx >>= 1;
-            if(!P(func(sm, root[idx]))) {
-                while(idx < size) {
-                    idx <<= 1;
-                    T cand = func(sm, root[idx]);
-                    if(P(cand)) {
-                        sm = cand;
-                        idx++;
-                    }
-                }
-                return idx - size - 1;
-            }
-            sm = func(sm, root[idx]);
-            idx++;
-        } while((idx & -idx) != idx);
-        return n - 1;
-    }
-
-    template<typename Pred>
-    int min_left(int ending, Pred P) const {
-        if(ending < 0) return 0;
-        if(ending >= n) ending = n - 1;
-        T sm = DEFAULT;
-        int idx = ending + size + 1;
-        do {
-            idx--;
-            while(idx > 1 && (idx & 1)) idx >>= 1;
-            if(!P(func(root[idx], sm))) {
-                while(idx < size) {
-                    idx = idx * 2 + 1;
-                    T cand = func(root[idx], sm);
-                    if(P(cand)) {
-                        sm = cand;
-                        idx--;
-                    }
-                }
-                return idx + 1 - size;
-            }
-            sm = func(root[idx], sm);
-        } while((idx & -idx) != idx);
-        return 0;
-    }
-};
-
-template <typename T, typename F = function<bool(const T&, const T&)>> // only handle max, min
-struct linear_rmq {
-    vt<T> values;
-    F compare;
-    vi head;
-    vt<array<unsigned,2>> masks;
-
-    linear_rmq() {}
-
-    linear_rmq(const vt<T>& arr, F cmp = F{})
-      : values(arr), compare(cmp),
-        head(arr.size()+1),
-        masks(arr.size())
-    {
-        vi monoStack{-1};
-        int n = arr.size();
-        for (int i = 0; i <= n; i++) {
-            int last = -1;
-            while (monoStack.back() != -1 &&
-                   (i == n || !compare(values[monoStack.back()], values[i])))
-            {
-                if (last != -1) head[last] = monoStack.back();
-                unsigned diffBit = __bit_floor(unsigned(monoStack.end()[-2] + 1) ^ i);
-                masks[monoStack.back()][0] = last = (i & -diffBit);
-                monoStack.pop_back();
-                masks[monoStack.back() + 1][1] |= diffBit;
-            }
-            if (last != -1) head[last] = i;
-            monoStack.pb(i);
-        }
-        for (int i = 1; i < n; i++) {
-            masks[i][1] = (masks[i][1] | masks[i-1][1])
-                        & -(masks[i][0] & -masks[i][0]);
-        }
-    }
-
-    T query(int L, int R) const {
-        unsigned common = masks[L][1] & masks[R][1]
-                        & -__bit_floor((masks[L][0] ^ masks[R][0]) | 1);
-        unsigned k = masks[L][1] ^ common;
-        if (k) {
-            k = __bit_floor(k);
-            L = head[(masks[L][0] & -k) | k];
-        }
-        k = masks[R][1] ^ common;
-        if (k) {
-            k = __bit_floor(k);
-            R = head[(masks[R][0] & -k) | k];
-        }
-        return compare(values[L], values[R]) ? values[L] : values[R];
-    }
-};
-
 void solve() {
     int n; cin >> n;
     vi a(n); cin >> a;
-    mint res = 0;
+    ll res = 0;
     for(int i = 0; i < n; i++) {
-        int mx = 0, g = 0;
+        int mx1 = -inf, mx2 = -inf;
         for(int j = i; j < n; j++) {
-            mx = max(mx, a[j]);
-            g = gcd(g, a[j]);
-            res += (ll)g * mx;
+            if(a[j] > mx1) {
+                mx2 = mx1;
+                mx1 = a[j];
+            } else {
+                mx2 = max(mx2, a[j]);
+            }
+            if(j - i + 1 >= 2) res += mx1 + mx2;
         }
     }
     cout << res << '\n';
@@ -510,7 +292,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();
@@ -537,5 +319,3 @@ signed main() {
 //█░░▄▀▄▀▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀░░░░█░░▄▀▄▀▄▀░░█░░▄▀░░██░░░░░░░░░░▄▀░░█░░▄▀▄▀▄▀▄▀▄▀░░█
 //█░░░░░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░███░░░░░░░░░░█░░░░░░██████████░░░░░░█░░░░░░░░░░░░░░█
 //███████████████████████████████████████████████████████████████████████████████████████████████████████
-
-
