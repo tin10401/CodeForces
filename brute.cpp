@@ -270,15 +270,13 @@ void solve() {
     vi a(n); cin >> a;
     ll res = 0;
     for(int i = 0; i < n; i++) {
-        int mx1 = -inf, mx2 = -inf;
+        int mn = inf, mx = -inf;
         for(int j = i; j < n; j++) {
-            if(a[j] > mx1) {
-                mx2 = mx1;
-                mx1 = a[j];
-            } else {
-                mx2 = max(mx2, a[j]);
+            mn = min(mn, a[j]); 
+            mx = max(mx, a[j]);
+            if(a[i] + a[j] == mx + mn) {
+                res++;
             }
-            if(j - i + 1 >= 2) res += mx1 + mx2;
         }
     }
     cout << res << '\n';
@@ -292,7 +290,7 @@ signed main() {
     //generatePrime();
 
     int t = 1;
-    cin >> t;
+    //cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

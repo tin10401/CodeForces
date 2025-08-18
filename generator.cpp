@@ -270,12 +270,10 @@ string gen_string(int n) {
 }
 
 void solve() {
-    cout << 1 << '\n';
     int n = uni(1, 100);
     cout << n << '\n';
-    const int K = 100;
     for(int i = 0; i < n; i++) {
-        cout << uni(-100, 100) << (i == n - 1 ? '\n' : ' ');
+        cout << uni(1, 10) << (i == n - 1 ? '\n' : ' ');
     }
 }
 

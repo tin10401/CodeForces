@@ -490,173 +490,147 @@ struct MonoCHT { // max cht for monotonic function(prefix sum with all positive,
     }
 };
 
-template<typename T>
-struct LiChao {
-    static const T INF = std::numeric_limits<T>::max() / 2 - 5;
-    int n;
-    vector<pair<T, T>> tree;
- 
-    LiChao(int _n) : n(max(_n, 1)) {
-        int nn = (1 << __lg(n)) * 4;
-        tree.assign(nn, {0, -INF});
-    }
-    
-    void add(T k, T b) {
-        add_inner({k, b}, 0, 0, n - 1);
-    }
- 
-    void add_inner(pair<T, T> line, int i, int l, int r) {
-        while (l <= r) {
-            T curl = tree[i].first * l + tree[i].second;
-            T curr = tree[i].first * r + tree[i].second;
-            T mel = line.first * l + line.second;
-            T mer = line.first * r + line.second;
-            if (curl >= mel && curr >= mer) {
-                break;
-            }
-            if (curl <= mel && curr <= mer) {
-                tree[i] = line;
-                break;
-            }
-            assert(line.first != tree[i].first);
-            int m = (l + r) / 2;
-            T cur = tree[i].first * m + tree[i].second;
-            T me = line.first * m + line.second;
-            if (me > cur) {
-                swap(line, tree[i]);
-            }
-            if ((me <= cur && mer > curr) || (me > cur && mer < curr)) {
-                l = m + 1;
-                i = i * 2 + 2;
-            } else {
-                r = m;
-                i = i * 2 + 1;
-            }
-        }
-    }
- 
-    void add_segment(T k, T b, int l, int r) {
-        l = max(l, 0);
-        r = min(r, n - 1);
-        if (l > r) return;
-        show(k, b, l, r);
-        add_segment_inner({k, b}, l, r, 0, 0, n - 1);
-    }
- 
-    void add_segment_inner(pair<T, T> line, int l, int r, int i, int vl, int vr) {
-        if (l > vr || r < vl) {
-            return;
-        }
-        if (l <= vl && vr <= r) {
-            add_inner(line, i, vl, vr);
-            return;
-        }
-        int m = (vl + vr) / 2;
-        add_segment_inner(line, l, r, i * 2 + 1, vl, m);
-        add_segment_inner(line, l, r, i * 2 + 2, m + 1, vr);
-    }
- 
-    T ask(int x) {
-        T ans = -INF;
-        int i = 0;
-        int l = 0;
-        int r = n - 1;
-        while (true) {
-            int m = (l + r) / 2;
-            ans = max(ans, tree[i].first * x + tree[i].second);
-            if (l == r) break;
-            if (x <= m) {
-                r = m;
-                i = i * 2 + 1;
-            } else {
-                l = m + 1;
-                i = i * 2 + 2;
-            }
-        }
-        return ans;
-    }
-};
+struct LiChaoSegtree {
+    struct LiChaoMax {
+        struct Line {
+            ll m, b;
+            Line(ll m = 0, ll b = -INF) : m(m), b(b) {}
+            inline ll eval(ll x) const { return m * x + b; }
+        };
+        struct Node {
+            Line ln;
+            Node* l = nullptr;
+            Node* r = nullptr;
+            Node(Line ln = Line()) : ln(ln) {}
+        };
 
-struct Line {
-    ll k, b;
-    ll f(ll x) {
-        return k * x + b;
-    }
-    Line(ll k = 0, ll b = -INF) : k(k), b(b) {}
-};
+        ll lo, hi;
+        Node* root;
 
-struct Node {
-    Line line;
-    int left;
-    int right;
-    Node(Line line) : line(line), left(-1), right(-1) {}
-    Node() : line(), left(-1), right(-1) {}
-};
+        LiChaoMax() : lo(0), hi(0), root(nullptr) {}
+        LiChaoMax(ll lo, ll hi) : lo(lo), hi(hi), root(nullptr) {}
 
-struct li_chao_tree {
-    int idx;
-    vector<Node> nodes;
-    int L, R; 
+        void add_line(ll m, ll b) { add_line(root, lo, hi, Line(m, b)); }
+        void add_segment(ll m, ll b, ll L, ll R) {
+            if (R < lo || hi < L) return;
+            L = max(L, lo);
+            R = min(R, hi);
+            if (L > R) return;
+            add_segment(root, lo, hi, L, R, Line(m, b));
+        }
+        ll query(ll x) const { return query(root, lo, hi, x); }
 
-    li_chao_tree(int n, ll L = -inf, ll R = inf) : idx(0), L(L), R(R) {
-        nodes.rsz(n);
-        nodes[0] = Node(Line());
-        idx = 1;
+        private:
+        void add_line(Node*& p, ll l, ll r, Line nw) {
+            if(!p) { p = new Node(nw); return; }
+            ll mid = (l + r) >> 1;
+            bool lef = nw.eval(l) > p->ln.eval(l);
+            bool midb = nw.eval(mid) > p->ln.eval(mid);
+            if(midb) swap(nw, p->ln);
+            if(l == r) return;
+            if(lef != midb) add_line(p->l, l, mid, nw);
+            else add_line(p->r, mid + 1, r, nw);
+        }
+        void add_segment(Node*& p, ll l, ll r, ll ql, ll qr, Line nw) {
+            if(qr < l || r < ql) return;
+            if(ql <= l && r <= qr) { add_line(p, l, r, nw); return; }
+            if(!p) p = new Node();
+            ll mid = (l + r) >> 1;
+            add_segment(p->l, l, mid, ql, qr, nw);
+            add_segment(p->r, mid + 1, r, ql, qr, nw);
+        }
+        ll query(Node* p, ll l, ll r, ll x) const {
+            if(!p) return -INF;
+            ll res = p->ln.eval(x);
+            if(l == r) return res;
+            ll mid = (l + r) >> 1;
+            if(x <= mid) return max(res, query(p->l, l, mid, x));
+            return max(res, query(p->r, mid + 1, r, x));
+        }
+    };
+    int n, base;
+    ll xlo, xhi;
+    vt<LiChaoMax> seg;
+
+    LiChaoSegtree(int n, ll xlo, ll xhi) : n(n), xlo(xlo), xhi(xhi) {
+        base = 1;
+        while(base < n) base <<= 1;
+        seg.assign(base << 1, LiChaoMax(xlo, xhi));
     }
 
-    void add_line(int l, int r, int node, Line cur) {
-        if (l > r) return;
-        int mid = (l + r) / 2;
-        if (r - l == 1 && mid == r) {
-            mid--;
-        }
-        bool lf = cur.f(l) > nodes[node].line.f(l);
-        bool md = cur.f(mid) > nodes[node].line.f(mid);
-        if (md)
-            swap(nodes[node].line, cur);
-        if (l == r)
-            return;
-        if (lf != md) {
-            if (nodes[node].left == -1) {
-                nodes[node].left = idx;
-                nodes[idx++] = Node(cur);
-            } else {
-                add_line(l, mid, nodes[node].left, cur);
-            }
-        } else {
-            if (nodes[node].right == -1) {
-                nodes[node].right = idx;
-                nodes[idx++] = Node(cur);
-            } else {
-                add_line(mid + 1, r, nodes[node].right, cur);
-            }
+    void update_at(int id, pll line) {
+        if(id < 0 || id >= n) return;
+        int p = id + base;
+        while(p) {
+            seg[p].add_line(line.first, line.second);
+            p >>= 1;
         }
     }
 
-    void add_line(Line new_line) {
-        add_line(L, R, 0, new_line);
-    }
-
-    ll query(int l, int r, int node, ll x) {
-        if (l > r)
-            return -INF;
-        int mid = (l + r) / 2;
-        if (r - l == 1 && mid == r) {
-            mid--;
-        }
-        ll ans = nodes[node].line.f(x);
-        if (l == r)
-            return ans;
-        if (x <= mid && nodes[node].left != -1) {
-            ans = max(ans, query(l, mid, nodes[node].left, x));
-        }
-        if (x > mid && nodes[node].right != -1) {
-            ans = max(ans, query(mid + 1, r, nodes[node].right, x));
+    ll queries_at(int id, ll x) {
+        if(id < 0 || id >= n) return -INF;
+        ll ans = -INF;
+        int p = id + base;
+        while(p) {
+            ans = max(ans, seg[p].query(x));
+            p >>= 1;
         }
         return ans;
     }
 
-    ll query(ll x) {
-        return query(L, R, 0, x);
+    void update_range(int l, int r, pll line) {
+        if(l < 0) l = 0;
+        if(r >= n) r = n - 1;
+        if(l > r) return;
+        int L = l + base, R = r + base;
+        while(L <= R) {
+            if (L & 1) seg[L++].add_line(line.first, line.second);
+            if (!(R & 1)) seg[R--].add_line(line.first, line.second);
+            L >>= 1;
+            R >>= 1;
+        }
+    }
+
+    ll queries_range(int l, int r, ll x) {
+        if(l < 0) l = 0;
+        if(r >= n) r = n - 1;
+        if(l > r) return -INF;
+        ll ans = -INF / 4;
+        int L = l + base, R = r + base;
+        while(L <= R) {
+            if (L & 1) ans = max(ans, seg[L++].query(x));
+            if (!(R & 1)) ans = max(ans, seg[R--].query(x));
+            L >>= 1;
+            R >>= 1;
+        }
+        return ans;
+    }
+
+    void update_at_segmentX(int id, pll line, ll Lx, ll Rx) {
+        if(id < 0 || id >= n) return;
+        Lx = max(Lx, xlo);
+        Rx = min(Rx, xhi);
+        if(Lx > Rx) return;
+        int p = id + base;
+        while(p) {
+            seg[p].add_segment(line.first, line.second, Lx, Rx);
+            p >>= 1;
+        }
+    }
+
+    void update_range_segmentX(int l, int r, pll line, ll Lx, ll Rx) {
+        if(l < 0) l = 0;
+        if(r >= n) r = n - 1;
+        if(l > r) return;
+        Lx = max(Lx, xlo);
+        Rx = min(Rx, xhi);
+        if (Lx > Rx) return;
+        int L = l + base, R = r + base;
+        while(L <= R) {
+            if (L & 1) seg[L++].add_segment(line.first, line.second, Lx, Rx);
+            if (!(R & 1)) seg[R--].add_segment(line.first, line.second, Lx, Rx);
+            L >>= 1;
+            R >>= 1;
+        }
     }
 };
