@@ -1,19 +1,25 @@
-template<typename T, typename I = ll, typename II = ll, typename F = function<T(const T, const T)>, typename G = function<void(int i, int left, int right, I)>>
+#define lc i * 2 + 1
+#define rc i * 2 + 2
+#define lp lc, left, middle
+#define rp rc, middle + 1, right
+#define entireTree 0, 0, n - 1
+#define midPoint left + (right - left) / 2
+#define pushDown push(i, left, right)
+#define iter int i, int left, int right
+
+template<typename T, typename I = ll, typename II = ll, typename F = function<T(const T, const T)>>
 class SGT { 
     public: 
     int n;  
     vt<T> root;
-	vt<II> lazy;
     T DEFAULT;
     F func;
-    G apply_func;
-	SGT(int n, T DEFAULT, F func, G apply_func = [](int i, int left, int right, I val){}) : func(func), apply_func(apply_func) {    
+	SGT(int n, T DEFAULT = T(), F func = [](const auto& a, const auto& b) {return a + b;}) : func(func) {    
         this->n = n;
         this->DEFAULT = DEFAULT;
 		int k = 1;
         while(k < n) k <<= 1; 
         root.rsz(k << 1, DEFAULT);    
-        lazy.rsz(k << 1, 0);
     }
     
     void update_at(int id, T val) {  
@@ -51,15 +57,14 @@ class SGT {
     }
 
 	void apply(iter, I val) {
-        root[i] += val * (right - left + 1);
-        lazy[i] += val;
+        root[i].apply(val, right - left + 1);
     }
 
     void push(iter) {   
-        if(lazy[i] != 0 && left != right) {
+        if(root[i].have_lazy() && left != right) {
 			int middle = midPoint;
-            apply(lp, lazy[i]), apply(rp, lazy[i]);
-            lazy[i] = 0;
+            apply(lp, root[i].lazy), apply(rp, root[i].lazy);
+            root[i].reset_lazy();
         }
     }
 
@@ -89,12 +94,11 @@ class SGT {
         return func(queries_range(lp, start, end), queries_range(rp, start, end));
     }
 
-	void update_window(int L, int R, int len, T x) { // update [l, l + k - 1], [l + 1, l + k], ... [r, r + k] each with x
+    void update_window(int L, int R, int len, T x) { // update [l, l + k - 1], [l + 1, l + k], ... [r, r + k] each with x
         update_range(L, L + len - 1, x);
         update_range(R + 1, R + len, -x);
     }
 
-	
 	T get() {
 		return root[0];
 	}
@@ -262,24 +266,10 @@ public:
     }
 };
 
+template<typename T, typename lazy_type = ll>
 struct lazy_seg {
-    const static ll lazy_value = INF;
-    const static ll default_value = INF;
-    struct info {
-        ll s;
-        ll lazy;
-        info(ll v = default_value) : s(v) , lazy(lazy_value) {}
-        void apply(ll v, int len) {
-            s = min(s, v);
-            lazy = v;
-        }
-        friend info operator+(const info& a, const info& b) {
-            return info(min(a.s, b.s));
-        }
-    };
-
     int n, n0, h;
-    vt<info> tree;
+    vt<T> tree;
     vi seglen;
 
     lazy_seg(int n_) : n(n_) , n0(1) , h(0) {
@@ -287,7 +277,7 @@ struct lazy_seg {
             n0 <<= 1;
             ++h;
         }
-        tree.assign(2 * n0, info());
+        tree.assign(2 * n0, T());
         seglen.assign(2 * n0, 0);
         for (int i = n0; i < 2 * n0; ++i) {
             seglen[i] = 1;
@@ -297,7 +287,7 @@ struct lazy_seg {
         }
     }
 
-    void apply_node(int p, ll v) {
+    void apply_node(int p, lazy_type v) {
         tree[p].apply(v, seglen[p]);
     }
 
@@ -306,11 +296,10 @@ struct lazy_seg {
     }
 
     void push(int p) {
-        if(tree[p].lazy != lazy_value) {
-            ll v = tree[p].lazy;
-            apply_node(2 * p, v);
-            apply_node(2 * p + 1, v);
-            tree[p].lazy = lazy_value;
+        if(tree[p].have_lazy()) {
+            apply_node(2 * p, tree[p].lazy);
+            apply_node(2 * p + 1, tree[p].lazy);
+            tree[p].reset_lazy();
         }
     }
 
@@ -320,7 +309,7 @@ struct lazy_seg {
         }
     }
 
-    void update_range(int l, int r, ll v) {
+    void update_range(int l, int r, lazy_type v) {
         if(l > r) return;
         l = max(0, l);
         r = min(r, n - 1);
@@ -345,33 +334,33 @@ struct lazy_seg {
         }
     }
 
-    void update_at(int p, ll v) {
+    void update_at(int p, T v) {
         if(p < 0 || p >= n) return;
         int pos = p + n0;
         push_to(pos);
-        tree[pos] = info(v);
+        tree[pos] = v;
         for(pos >>= 1; pos > 0; pos >>= 1) {
             pull(pos);
         }
     }
 
-    ll queries_at(int p) {
-        if(p < 0 || p >= n) return default_value;
+    T queries_at(int p) {
+        if(p < 0 || p >= n) return T();
         int pos = p + n0;
         push_to(pos);
-        return tree[pos].s;
+        return tree[pos];
     }
 
-    ll queries_range(int l, int r) {
-        if(l > r) return 0;
+    T queries_range(int l, int r) {
+        if(l > r) return T();
         l = max(0, l);
         r = min(r, n - 1);
         int L = l + n0;
         int R = r + n0;
         push_to(L);
         push_to(R);
-        info resL;
-        info resR;
+        T resL;
+        T resR;
         int l0 = L;
         int r0 = R + 1;
         while(l0 < r0) {
@@ -380,26 +369,30 @@ struct lazy_seg {
             l0 >>= 1;
             r0 >>= 1;
         }
-        return (resL + resR).s;
+        return (resL + resR);
+    }
+
+    T get() {
+        return tree[1];
     }
 
     template<typename Pred>
         int max_right(int l, Pred P) {
             if(l < 0) l = 0;
             if(l >= n) return n;
-            info sm;
+            T sm;
             int idx = l + n0;
             push_to(idx);
             int tmp = idx;
             do {
                 while((tmp & 1) == 0) tmp >>= 1;
-                info cand = sm + tree[tmp];
-                if(!P(cand.s)) {
+                T cand = sm + tree[tmp];
+                if(!P(cand)) {
                     while(tmp < n0) {
                         push(tmp);
                         tmp <<= 1;
-                        info cand2 = sm + tree[tmp];
-                        if(P(cand2.s)) {
+                        T cand2 = sm + tree[tmp];
+                        if(P(cand2)) {
                             sm = cand2;
                             tmp++;
                         }
@@ -416,19 +409,19 @@ struct lazy_seg {
         int min_left(int r, Pred P) {
             if(r < 0) return 0;
             if(r >= n) r = n - 1;
-            info sm;
+            T sm;
             int idx = r + n0 + 1;
             push_to(idx - 1);
             do {
                 idx--;
                 while(idx > 1 && (idx & 1)) idx >>= 1;
-                info cand = tree[idx] + sm;
-                if(!P(cand.s)) {
+                T cand = tree[idx] + sm;
+                if(!P(cand)) {
                     while(idx < n0) {
                         push(idx);
                         idx = idx * 2 + 1;
-                        info cand2 = tree[idx] + sm;
-                        if(P(cand2.s)) {
+                        T cand2 = tree[idx] + sm;
+                        if(P(cand2)) {
                             sm = cand2;
                             idx--;
                         }
@@ -439,7 +432,32 @@ struct lazy_seg {
             } while((idx & -idx) != idx);
             return 0;
         }
+};
 
+struct info {
+    const static ll lazy_value = 0;
+    ll s;
+    ll lazy;
+    info(ll v = INF) : s(v), lazy(lazy_value) { }
+
+    int have_lazy() {
+        return !(lazy == lazy_value);
+    }
+
+    void reset_lazy() {
+        lazy = lazy_value;
+    }
+
+    void apply(ll v, int len) {
+        s += v;
+        lazy += v;
+    }
+
+    friend info operator+(const info& a, const info& b) {
+        info res;
+        res.s = min(a.s, b.s);
+        return res;
+    }
 };
 
 template<typename T, typename F = function<T(const T, const T)>>
@@ -936,10 +954,9 @@ struct PSGT {
 		return merge(queries_at(F[curr].l, start, end, left, middle), queries_at(F[curr].r, start, end, middle + 1, right));
     };
         
-    T get(int curr, int prev, int k, int left, int right) {    
-        if(F[curr].key - F[prev].key < k) return DEFAULT;
+	T get(int curr, int prev, int k, int left, int right) {    
         if(left == right) return left;
-        int leftCount = F[F[curr].l].key - F[F[prev].r].key;
+        int leftCount = F[F[curr].l].key - F[F[prev].l].key;
         int middle = midPoint;
         if(leftCount >= k) return get(F[curr].l, F[prev].l, k, left, middle);
         return get(F[curr].r, F[prev].r, k - leftCount, middle + 1, right);
@@ -1083,6 +1100,7 @@ struct distinct_tree { // range distinct element online
 
 struct good_split {
     // determine if in [l, r], there's an index such that max([l, i]) < min([i + 1, r])
+	// for minimum index l, https://www.codechef.com/problems/SSS7?tab=statement
     vi a;
     int n;
     PSGT<int> Tree;

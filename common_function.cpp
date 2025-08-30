@@ -1354,3 +1354,178 @@ string construct_median_string(string s, int k) { // reconstruct the binary stri
     if(curr != m) return "";
     return ans;
 }
+
+ll sum_k_infinity(ll k) { // return sum of the first k digit of [123456789101112...]
+    // https://codeforces.com/contest/2132/problem/D
+    static ll p10[19];
+    static bool init = false;
+    if(!init) {
+        p10[0] = 1;
+        for(int i = 1; i < 19; i++) p10[i] = p10[i - 1] * 10;
+        init = true;
+    }
+    auto S = [&](ll n) -> i128 {
+        if(n <= 0) return 0;
+        i128 res = 0;
+        for(ll p = 1; p <= n; p *= 10) {
+            ll left = n / (p * 10);
+            ll cur  = (n / p) % 10;
+            ll right = n % p;
+            res += (i128)left * 45 * p;
+            res += (i128)cur * (cur - 1) / 2 * p;
+            res += (i128)cur * (right + 1);
+        }
+        return res;
+    };
+    auto range = [&](ll a, ll b) -> ll {
+        if(b < a) return 0;
+        return (ll)(S(b) - S(a - 1));
+    };
+    auto sumDigits = [&](ll x) -> ll {
+        ll s = 0;
+        while(x) { s += x % 10; x /= 10; }
+        return s;
+    };
+    ll ans = 0;
+    ll rem = k;
+    for(int d = 1; rem > 0; d++) {
+        i128 cnt = (i128)d * 9 * p10[d - 1];
+        if(cnt <= rem) {
+            ll L = p10[d - 1];
+            ll R = p10[d] - 1;
+            ans += range(L, R);
+            rem -= (ll)cnt;
+        } else {
+            ll q = rem / d;
+            ll r = rem % d;
+            ll L = p10[d - 1];
+            if(q > 0) ans += range(L, L + q - 1);
+            if(r > 0) {
+                ll num = L + q;
+                ll trunc = num / p10[d - (int)r];
+                ans += sumDigits(trunc);
+            }
+            rem = 0;
+        }
+    }
+    return ans;
+}
+
+vvll count_subrectangle(const vs& S) { // return a vector [i][j] represents # of good subgrid with i as width and j as height
+    // https://atcoder.jp/contests/abc420/tasks/abc420_f
+    int n = S.size();
+    int m = S[0].size();
+    vvi R(n + 5, vi(m + 5)), U(n + 5, vi(m + 5)), D(n + 5, vi(m + 5));
+    vvll ans(n + 5, vll(m + 5));
+    vs mat(n + 5);
+    mat[0].assign(m + 5, '0');
+    mat[n + 1].assign(m + 5, '0');
+    mat[n + 2].assign(m + 5, '0');
+    mat[n + 3].assign(m + 5, '0');
+    for(int i = 1; i <= n; ++i) {
+        mat[i] = "0" + S[i - 1] + "000000";
+        for(int j = m; j >= 1; --j) {
+            if(mat[i][j] == '0') R[i][j] = 0;
+            else R[i][j] = R[i][j + 1] + 1;
+        }
+    }
+    vi st;
+    for(int j = 1; j <= m; ++j) {
+        st.clear();
+        for(int i = 1; i <= n; ++i) {
+            while(!st.empty() && R[i][j] < R[st.back()][j]) st.pop_back();
+            U[i][j] = st.empty() ? 1 : (st.back() + 1);
+            st.pb(i);
+        }
+        st.clear();
+        for(int i = n; i >= 1; --i) {
+            while(!st.empty() && R[i][j] <= R[st.back()][j]) st.pop_back();
+            D[i][j] = st.empty() ? n : (st.back() - 1);
+            st.pb(i);
+        }
+    }
+    for(int i = 1; i <= n; ++i) {
+        for(int j = 1; j <= m; ++j) {
+            int w = R[i][j];
+            ++ans[1][w];
+            --ans[i - U[i][j] + 2][w];
+            --ans[D[i][j] - i + 2][w];
+            ++ans[D[i][j] - U[i][j] + 3][w];
+        }
+    }
+    for(int j = 1; j <= m; ++j) {
+        for(int i = 1; i <= n; ++i) ans[i][j] += ans[i - 1][j];
+        for(int i = 1; i <= n; ++i) ans[i][j] += ans[i - 1][j];
+    }
+    for(int i = n; i >= 1; --i) {
+        for(int j = m; j >= 2; --j) ans[i][j - 1] += ans[i][j];
+    }
+    vvll res(n + 1, vll(m + 1));
+    for(int i = 1; i <= n; i++) {
+        for(int j = 1; j <= m; j++) {
+            res[i][j] = ans[i][j];
+        }
+    }
+    return res;
+}
+
+template<typename T> T dnc_mnmx(const vi& a) {
+    // https://marisaoj.com/problem/423
+    int n = a.size();
+    vi lmn(n), lmx(n), rmn(n), rmx(n);
+    auto dfs = [&](auto& self, int l, int r) -> T {
+        if(l == r) return (T)a[l] * a[l]; // careful
+        int m = (l + r) >> 1;
+        T res = self(self, l, m) + self(self, m + 1, r);
+        for(int i = m, mn = inf, mx = -inf; i >= l; i--) {
+            mn = min(mn, a[i]);
+            mx = max(mx, a[i]);
+            lmn[i] = mn;
+            lmx[i] = mx;
+        }
+        for(int i = m + 1, mn = inf, mx = -inf; i <= r; i++) {
+            mn = min(mn, a[i]);
+            mx = max(mx, a[i]);
+            rmn[i] = mn;
+            rmx[i] = mx;
+        }
+        { // lmn, lmx
+            int j = m + 1, k = m + 1;     
+            for(int i = m; i >= l; i--) {
+                while(j <= r && rmn[j] >= lmn[i]) j++;
+                while(k <= r && rmx[k] <= lmx[i]) k++;
+                int len = min(j, k) - (m + 1);
+                if(len > 0) res += (T)len * (lmn[i] * lmx[i]);
+            }
+        }
+        { // rmn, rmx
+            int j = m, k = m;
+            for(int i = m + 1; i <= r; i++) {
+                while(j >= l && lmn[j] > rmn[i]) j--;
+                while(k >= l && lmx[k] < rmx[i]) k--;
+                int len = m - max(j, k);
+                if(len > 0) res += (T)len * (rmn[i] * rmx[i]);
+            }
+        }
+        { // lmn, rmx
+            T s = 0;
+            for(int i = m, j = m + 1, k = m + 1; i >= l; i--) {
+                while(j <= r && rmn[j] >= lmn[i]) s += rmx[j++];
+                while(k < j && rmx[k] <= lmx[i]) s -= rmx[k++];
+                res += s * lmn[i];
+            } 
+        }
+        { // lmx, rmn
+            T s = 0;
+            for(int i = m + 1, j = m, k = m; i <= r; i++) {
+                while(j >= l && lmn[j] > rmn[i]) s += lmx[j--];
+                while(k > j && lmx[k] < rmx[i]) s -= lmx[k--];
+                res += s * rmn[i];
+            }
+        }
+        return res;
+    };
+    return dfs(dfs, 0, n - 1);
+}
+
+

@@ -1,0 +1,3 @@
+/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/app.dir
+/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/edit_cache.dir
+/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/rebuild_cache.dir

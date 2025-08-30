@@ -1,0 +1,36 @@
+Performing C++ SOURCE FILE Test _fcolor_diagnostics failed with the following output:
+Change Dir: /home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_768b4/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_768b4.dir/build.make CMakeFiles/cmTC_768b4.dir/build
+gmake[1]: Entering directory '/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_768b4.dir/src.cxx.o
+/usr/bin/c++ -D_fcolor_diagnostics  -fcolor-diagnostics -std=c++23 -o CMakeFiles/cmTC_768b4.dir/src.cxx.o -c /home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp/src.cxx
+c++: error: unrecognized command-line option '-fcolor-diagnostics'
+gmake[1]: *** [CMakeFiles/cmTC_768b4.dir/build.make:78: CMakeFiles/cmTC_768b4.dir/src.cxx.o] Error 1
+gmake[1]: Leaving directory '/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_768b4/fast] Error 2
+
+
+Source file was:
+int main() { return 0; }
+Performing C++ SOURCE FILE Test _fsanitize_address failed with the following output:
+Change Dir: /home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_d19bb/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_d19bb.dir/build.make CMakeFiles/cmTC_d19bb.dir/build
+gmake[1]: Entering directory '/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_d19bb.dir/src.cxx.o
+/usr/bin/c++ -D_fsanitize_address  -fsanitize=address -std=c++23 -o CMakeFiles/cmTC_d19bb.dir/src.cxx.o -c /home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_d19bb
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d19bb.dir/link.txt --verbose=1
+/usr/bin/c++ CMakeFiles/cmTC_d19bb.dir/src.cxx.o -o cmTC_d19bb 
+/usr/bin/ld: CMakeFiles/cmTC_d19bb.dir/src.cxx.o: in function `_sub_I_00099_0':
+src.cxx:(.text+0x18): undefined reference to `__asan_init'
+/usr/bin/ld: src.cxx:(.text+0x1d): undefined reference to `__asan_version_mismatch_check_v8'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_d19bb.dir/build.make:99: cmTC_d19bb] Error 1
+gmake[1]: Leaving directory '/home/sololtin2001/CodeForces/cmake-build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_d19bb/fast] Error 2
+
+
+Source file was:
+int main() { return 0; }

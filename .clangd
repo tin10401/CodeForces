@@ -1,0 +1,4 @@
+CompileFlags:
+  Add: [-std=gnu++23, -Wno-unused-parameter, -Wno-unused-variable, -Wno-unused-const-variable, -Wno-unused-but-set-variable]
+Diagnostics:
+  Suppress: [unused-parameter, unused-variable, unused-const-variable]

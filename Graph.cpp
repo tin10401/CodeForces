@@ -460,6 +460,7 @@ public:
             swap(u, v);
             swap(a, b);
         }
+		comp--;
         root[v] = u;
         rank[u] += rank[v];
         if(col[a] == col[b])

@@ -4748,3 +4748,122 @@ struct max_and_set { // insert x into s, query max(x & a) where a in s
         return ans[x] = res;
     }
 };
+
+template<typename T>
+struct sweep_2d {
+    int n, m;
+    vt<vt<T>> arr;
+    sweep_2d(int n, int m) : n(n), m(m) {
+        arr.assign(n + 2, vt<T>(m + 2));
+    }
+    void update_rect(int r1, int c1, int r2, int c2, T delta) {
+        if(r1 > r2 || c1 > c2) return;
+        arr[r1][c1] += delta;
+        arr[r1][c2 + 1] -= delta;
+        arr[r2 + 1][c1] -= delta;
+        arr[r2 + 1][c2 + 1] += delta;
+    }
+    void finalize() {
+        for(int i = 1; i <= n; i++) {
+            for(int j = 1; j <= m; j++) {
+                arr[i][j] += arr[i - 1][j] + arr[i][j - 1] - arr[i - 1][j - 1];
+            }
+        }
+    }
+};
+
+template<typename T>
+struct leftist_tree { // 1 base index
+    struct Node {
+        int ls, rs, td, fa; 
+        T vl;
+        Node(int _ls = 0, int _rs = 0, T _vl = 0, int _td = -1, int _fa = 0) : ls(_ls), rs(_rs), vl(_vl), td(_td), fa(_fa) {}
+    };
+
+    vi t;
+    vt<Node> F;
+    int n, src, dest;
+    leftist_tree(int _n, int _src, int _dest) : t(_n + 1), n(_n), src(_src), dest(_dest) { F.emplace_back(); }
+
+    int new_node(int ff = 0, T v = T()) {
+        F.pb(Node(0, 0, v, 0, ff));
+        return int(F.size()) - 1;
+    }
+
+    int merge(int a, int b) {
+        if(!a || !b) return a ^ b;
+        if(F[a].vl > F[b].vl) swap(a, b);
+        int node = new_node();
+        F[node] = F[a];
+        F[node].rs = merge(F[node].rs, b);
+        if(F[F[node].ls].td < F[F[node].rs].td) swap(F[node].ls, F[node].rs);
+        F[node].td = F[node].rs ? F[F[node].rs].td + 1 : 0;
+        return node;
+    }
+
+    void insert(int rt, int ff, T v) {
+        t[rt] = merge(t[rt], new_node(ff, v));
+    }
+
+    void merge_two_tree(int a, int b) {
+        t[a] = merge(t[a], t[b]);
+    }
+
+    using info = pair<T, int>;
+    vt<T> dp;
+    vpii par;
+    void preprocess(const vt<vt<tuple<int, int, T>>>& f, const vt<vt<tuple<int, int, T>>>& g) { // f is reverse graph, g is normal graph, [nei, id, T], 1 base index
+        dp.rsz(n + 1, INF);
+        par.rsz(n + 1);
+        min_heap<info> q;
+        auto process = [&](int node, T cost, int id, int p) -> void {
+            if(dp[node] > cost) {
+                dp[node] = cost;
+                par[node] = {id, p};
+                q.push({cost, node});
+            }
+        };
+        process(dest, 0, 0, 0);
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            if(dp[node] != cost) continue;
+            for(auto& [nei, id, w] : f[node]) {
+                process(nei, cost + w, id, node);
+            }
+        }
+        vi id(n);
+        iota(all(id), 1);
+        sort(all(id), [&](int i, int j) {return dp[i] < dp[j];});
+        for(auto& x : id) {
+            if(dp[x] >= INF) continue;
+            for(auto& [nei, id, w] : g[x]) {
+                if(dp[nei] >= INF) continue;
+                if(id != par[x].ff) {
+                    T delta = w + dp[nei] - dp[x];
+                    insert(x, nei, delta);
+                }
+            }
+            merge_two_tree(x, par[x].ss);
+        }
+    }
+
+    vt<T> run_dijkstra(int k) {
+        // https://www.luogu.com.cn/problem/P2483
+        // https://judge.yosupo.jp/problem/k_shortest_walk
+        vt<T> ans;
+        if(dp[src] >= INF) return ans;
+        ans.pb(dp[src]);
+        min_heap<info> q;
+        if(t[src]) q.push({F[t[src]].vl, t[src]});
+        while(!q.empty() && ans.size() < k) {
+            auto [cost, node] = q.top(); q.pop();
+            ans.pb(cost + dp[src]);
+            if(F[node].ls) q.push({cost - F[node].vl + F[F[node].ls].vl, F[node].ls});
+            if(F[node].rs) q.push({cost - F[node].vl + F[F[node].rs].vl, F[node].rs});
+            int p = t[F[node].fa];
+            if(p) q.push({cost + F[p].vl, p});
+        }
+        return ans;
+    }
+};
+

@@ -1,4 +1,7 @@
--std=c++17
+-std=c++23
 -Wall
 -Wextra
 -Werror
+-Wno-unused-parameter
+-Wno-unused-variable
+-Wno-unused-const-variable

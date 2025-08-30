@@ -3,7 +3,7 @@
 
 # Relative path conversion top directories.
 set(CMAKE_RELATIVE_PATH_TOP_SOURCE "/home/sololtin2001/CodeForces")
-set(CMAKE_RELATIVE_PATH_TOP_BINARY "/home/sololtin2001/CodeForces/build")
+set(CMAKE_RELATIVE_PATH_TOP_BINARY "/home/sololtin2001/CodeForces/cmake-build")
 
 # Force unix paths in dependencies.
 set(CMAKE_FORCE_UNIX_PATHS 1)

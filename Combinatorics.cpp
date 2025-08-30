@@ -1,9 +1,9 @@
-vi primes, spf(MX), phi(MX);
-vll gcd_sum(MX), lcm_sum(MX); // sum of gcd(i, k) for i from 1 to k
 bitset<MX> primeBits;
-vi mu(MX);
+int phi[MX], spf[MX], mu[MX];
+ll lcm_sum[MX], gcd_sum[MX];
+vi primes;
 
-void generatePrime() {  
+void nt_processing() {  
 	primeBits.set(2);   
     for(int i = 3; i < MX; i += 2) primeBits.set(i);
     for(int i = 2; i * i < MX; i += (i == 2 ? 1 : 2)) {    
@@ -11,33 +11,25 @@ void generatePrime() {
             for(int j = i; j * i < MX; j += 2) {    primeBits.reset(i * j); }
         }
     }
-    for(int i = 0; i < MX; i++ ) {  if(primeBits[i]) {  primes.pb(i); } }   
-
-//	iota(all(mu), 0); // for placeholder value
-    // mu[1] = 1; // for count of occurences
     iota(all(phi), 0);
-    for(int i = 1; i < MX; i++) {   
-        if(!primeBits[i]) continue;
-        for(int j = i; j < MX; j += i) {   
-            // if(j >= i * 2) mu[j] -= mu[i];
-            phi[j] -= phi[j] / i;
-        }
-    }
     mu[1] = 1;
     for(int i = 2; i < MX; i++) {
         if(spf[i] == 0) {
-            for(int j = i; j < MX; j += i) {    if(spf[j] == 0) spf[j] = i; }
+            primes.pb(i);
+            for(int j = i; j < MX; j += i) {    
+                if(spf[j] == 0) spf[j] = i; 
+                phi[j] -= phi[j] / i;
+            }
         }
         int p = spf[i];
         int m = i / p;
         mu[i] = m % p == 0 ? 0 : -mu[m];
     }
-	for(int d = 1; d < MX; d++) {
+    for(int d = 1; d < MX; d++) {
         for(int j = d; j < MX; j += d) {
             gcd_sum[j] += phi[j / d] * (ll)d;
         }
     }
-
     for(int d = 1; d < MX; ++d) {
         ll term = (ll)d * phi[d];
         for(int n = d; n < MX; n += d) {
@@ -47,7 +39,7 @@ void generatePrime() {
     for(int n = 1; n < MX; ++n) {
         lcm_sum[n] = (lcm_sum[n] + 1) * (ll)n / 2;
     }
-} static const bool _generate_prime_init = []() { generatePrime(); return true; }();
+} static const bool _nt_init = []() { nt_processing(); return true; }();
 
 // phi[divisor(n)] == n
 //void insert(int x) {
