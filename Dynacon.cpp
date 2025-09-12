@@ -1,3 +1,4 @@
+https://codeforces.com/contest/938/problem/G
 struct Undo_DSU {
     int n;
     using Record = ar(8);
