@@ -19,9 +19,9 @@ PCH    ?= 0
 
 IS_CLANG := $(shell $(CXX) --version 2>/dev/null | head -n1 | grep -qi clang && echo 1 || echo 0)
 ifeq ($(IS_CLANG),1)
-  SHADOW_FLAGS := -Wshadow-all
+  SHADOW_FLAGS := -Wno-shadow
 else
-  SHADOW_FLAGS := -Wshadow=local
+  SHADOW_FLAGS := -Wno-shadow
 endif
 CXXWARN_BASE := -Wall -Wextra $(SHADOW_FLAGS) -Wno-pedantic -Wno-variadic-macros
 ifeq ($(STRICT),1)

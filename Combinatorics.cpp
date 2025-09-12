@@ -1,7 +1,7 @@
 bitset<MX> primeBits;
 int phi[MX], spf[MX], mu[MX];
 ll lcm_sum[MX], gcd_sum[MX];
-vi primes;
+vi primes, DIV[MX];
 
 void nt_processing() {  
 	primeBits.set(2);   
@@ -27,7 +27,7 @@ void nt_processing() {
     }
     for(int d = 1; d < MX; d++) {
         for(int j = d; j < MX; j += d) {
-            gcd_sum[j] += phi[j / d] * (ll)d;
+            gcd_sum[j] += phi[j / d] * (ll)d; // for odd sum  gcd([1, 3, 5, ..], n), do (gcd_sum[n] + n) / 2 because of symmetry gcd(n, 1) == gcd(n, n - 1), + n because there are no pair matching gcd(n, n)
         }
     }
     for(int d = 1; d < MX; ++d) {
@@ -41,63 +41,9 @@ void nt_processing() {
     }
 } static const bool _nt_init = []() { nt_processing(); return true; }();
 
-// phi[divisor(n)] == n
-//void insert(int x) {
-//    for(auto& d : factorize(x)) {
-//        ans += comb.choose(cnt[d]++, K - 1) * phi[d];
-//    }    
-//}
-
-bool isPrime(uint64_t n) {
-    if(n < 2) return false;
-    for(uint64_t p : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL, 23ULL})
-        if(n % p == 0) return n == p;
-    uint64_t d = n - 1, s = 0;
-    while((d & 1) == 0) { d >>= 1; s++; }
-    auto modpow = [&](uint64_t a, uint64_t e) {
-        __uint128_t res = 1, base = a % n;
-        while(e) {
-            if(e & 1) res = (res * base) % n;
-            base = (base * base) % n;
-            e >>= 1;
-        }
-        return (uint64_t)res;
-    };
-    auto miller_pass = [&](uint64_t a) {
-        uint64_t x = modpow(a, d);
-        if(x == 1 || x == n-1) return true;
-        for(uint64_t r = 1; r < s; r++) {
-            x = (__uint128_t)x * x % n;
-            if(x == n - 1) return true;
-        }
-        return false;
-    };
-    for(uint64_t a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL, 9780504ULL, 1795265022ULL}) {
-        if(a % n == 0) break;
-        if(!miller_pass(a)) return false;
-    }
-    return true;
-}
-
-ll count_coprime(ll up, ll x) { // count number from [1 to up] where gcd(num, x) == 1
-    auto d = factor_prime(x);
-    int N = d.size();
-    ll ans = 0;
-    for (int mask = 0; mask < (1 << N); mask++) {
-        int prod = up, sign = 1;
-        for (int i = 0; i < N; i++) {
-            if (have_bit(mask, i)) {
-                prod /= d[i];
-                sign *= -1;
-            }
-        }
-        ans += prod * sign;
-    }
-    return ans;
-}
-
 vi factorize(int n, bool factor_prime = false) {
-    vi divs;
+    auto& divs = DIV[n];
+    if(!divs.empty()) return divs;
     if(!factor_prime) {
         divs.pb(1);
     }
@@ -119,6 +65,7 @@ vi factorize(int n, bool factor_prime = false) {
             }
         }
     }
+	srt(divs);
     return divs;
 }
 
@@ -212,6 +159,61 @@ vll factorize(ll n) {
     return divs;
 }
 
+// phi[divisor(n)] == n
+//void insert(int x) {
+//    for(auto& d : factorize(x)) {
+//        ans += comb.choose(cnt[d]++, K - 1) * phi[d];
+//    }    
+//}
+
+bool isPrime(uint64_t n) {
+    if(n < 2) return false;
+    for(uint64_t p : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL, 23ULL})
+        if(n % p == 0) return n == p;
+    uint64_t d = n - 1, s = 0;
+    while((d & 1) == 0) { d >>= 1; s++; }
+    auto modpow = [&](uint64_t a, uint64_t e) {
+        __uint128_t res = 1, base = a % n;
+        while(e) {
+            if(e & 1) res = (res * base) % n;
+            base = (base * base) % n;
+            e >>= 1;
+        }
+        return (uint64_t)res;
+    };
+    auto miller_pass = [&](uint64_t a) {
+        uint64_t x = modpow(a, d);
+        if(x == 1 || x == n-1) return true;
+        for(uint64_t r = 1; r < s; r++) {
+            x = (__uint128_t)x * x % n;
+            if(x == n - 1) return true;
+        }
+        return false;
+    };
+    for(uint64_t a : {2ULL, 325ULL, 9375ULL, 28178ULL, 450775ULL, 9780504ULL, 1795265022ULL}) {
+        if(a % n == 0) break;
+        if(!miller_pass(a)) return false;
+    }
+    return true;
+}
+
+ll count_coprime(ll up, ll x) { // count number from [1 to up] where gcd(num, x) == 1
+    auto d = factor_prime(x);
+    int N = d.size();
+    ll ans = 0;
+    for (int mask = 0; mask < (1 << N); mask++) {
+        int prod = up, sign = 1;
+        for (int i = 0; i < N; i++) {
+            if (have_bit(mask, i)) {
+                prod /= d[i];
+                sign *= -1;
+            }
+        }
+        ans += prod * sign;
+    }
+    return ans;
+}
+
 ll phi(ll n) {
     ll res = n;
     for(auto& [x, cnt] : factorize(n)) { // return primes factorize vector instead
@@ -220,24 +222,14 @@ ll phi(ll n) {
     return res;
 }
 
-vi spf_factor(int n) {
-    vi divs;
-    divs.pb(1);
-    while(n > 1) {
-        int x = spf[n];
-        int cnt = 0;
-        while(n % x == 0) {
-            n /= x;
-            cnt++;
-        }
-        int d = 1;
-        int N = divs.size();
-        while(cnt--) {
-            d *= x;
-            for(int i = 0; i < N; i++) divs.pb(divs[i] * d);
-        }
+int mobius(ll x) {
+    auto it = factorize_primes(x);
+    int cnt = 0;
+    for(auto& [X, c] : it) {
+        if(c > 1) return 0;
+        cnt++;
     }
-    return divs;
+    return cnt % 2 == 0 ? 1 : -1;
 }
 
 template<typename T>
@@ -488,28 +480,27 @@ ll kth_coprime(ll p, int k, ll x = 0) {  // find the kth coprime starting where 
 template<class T> 
 class Combinatoric {    
     public: 
-    int n;  
+    int N;  
     vt<T> fact, inv;   
-    Combinatoric(int n) {   
-        this->n = n;    
-        fact.rsz(n + 1), inv.rsz(n + 1);
+    Combinatoric(int _N) : N(_N) {   
+        fact.rsz(N + 1), inv.rsz(N + 1);
         init();
     }
         
     void init() {   
         fact[0] = 1;
-        for(int i = 1; i <= n; i++) {   
+        for(int i = 1; i <= N; i++) {   
             fact[i] = fact[i - 1] * i;
         }
-        inv[n] = fact[n].inv();
-        for(int i = n - 1; i >= 0; i--) {   
+        inv[N] = fact[N].inv();
+        for(int i = N - 1; i >= 0; i--) {   
             inv[i] = inv[i + 1] * (i + 1);
         }
     }
     
     T nCk(int a, int b) {  
         if(a < b) return 0;
-        assert(max(a, b) <= n);
+        assert(max(a, b) <= N);
         return fact[a] * inv[b] * inv[a - b];
     }
 
@@ -598,7 +589,7 @@ class Combinatoric {
         return nCk(n + m - 1, n);
     }
 
-}; Combinatoric<mint> comb(MX);
+}; Combinatoric<mint> comb(MX - 1);
 
 const int K = 5010;
 mint nCk[K][K];
@@ -963,32 +954,6 @@ ll solveCRT(const vpii& congruences) { // return a value x such that x % a[i].ff
     return r0;
 }
 
-pll solve_formula(ll a, ll b, ll c, ll d) {
-    if((i128)a * d >= (i128)b * c) return {-INF, -INF};
-	ll n = a / b;
-	a -= n * b, c -= n * d;
-	if(c > d) return {n + 1, 1};
-	auto [p, q] = solve_formula(d, c, b, a);
-	return {p * n + q, p};
-}
-
-vi get_pair_gcd(vi& a) {
-    int m = MAX(a);
-    vi f(m + 1), g(m + 1);
-    for(auto& x : a) f[x]++;
-    for(int i = 1; i <= m; i++) {
-        for(int j = i; j <= m; j += i) {
-            g[i] += f[j];
-        }
-    }
-    for(int i = m; i >= 1; i--) {
-        for(int j = i * 2; j <= m; j += i) {
-            g[i] -= g[j];
-        }
-    }
-    return g;
-}
-
 int find_y(int x, int p, int c) { // find y such that (x * y) % p == c
     auto egcd = [&](auto self, int a, int b) -> tuple<int, int, int> {
         if (!b) return {a, 1, 0};
@@ -1188,6 +1153,70 @@ vll submask_nck(int n, int k) {
     return masks;
 }
 
+struct n_mod_phi { // return the count of number such that n % phi[n] == 0
+    // https://www.codechef.com/problems/SPRNMBRS?tab=statement
+    vll a;   
+    n_mod_phi() {
+        if(!a.empty()) return;
+        ll p2 = 2;
+        for(int i = 0; i < 60; i++) {
+            ll p3 = 1;
+            while(p2 <= INF / p3) {
+                a.pb(p2 * p3);
+                p3 *= 3;
+            }
+            p2 *= 2;
+        }
+        a.pb(1);
+        srtU(a);
+    }
+
+    int count(ll l, ll r) {
+        return int(ub(all(a), r) - lb(all(a), l));
+    }
+}; n_mod_phi p;
+
+vll segmented_sieve(ll l, ll r) { // return vector of all primes in [l, r]
+    if(l == 1) {
+        l++;
+    }
+    auto sieve = [](int limit) -> vi {
+        vector<bool> is_prime(limit + 1, true);
+        is_prime[0] = is_prime[1] = false;
+        for(int p = 2; p * p <= limit; ++p) {
+            if(is_prime[p]) {
+                for(int i = p * p; i <= limit; i += p) {
+                    is_prime[i] = false;
+                }
+            }
+        }
+        vi primes;
+        for(int p = 2; p <= limit; ++p) {
+            if(is_prime[p]) {
+                primes.pb(p);
+            }
+        }
+        return primes;
+    };
+    int limit = sqrtl(r);
+    while((ll) limit * limit <= r) limit++;
+    while((ll) limit * limit > r) limit--;
+    auto primes = sieve(limit);
+    vector<bool> is_prime(r - l + 1, true);
+    for(ll p : primes) {
+        ll start = max((ll)p * p, (ll)(l + p - 1) / p * p);
+        for(ll j = start; j <= r; j += p) {
+            is_prime[j - l] = false;
+        }
+    }
+    vll vec;
+    for(ll i = l; i <= r; ++i) {
+        if(is_prime[i - l]) {
+            vec.pb(i);
+        }
+    }
+    return vec;
+}
 
 //for(auto& p : primes) {
 //	for(int c = m / p; c >= 1; c--) f[c] += f[c * p];

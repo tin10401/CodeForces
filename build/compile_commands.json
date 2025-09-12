@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/sololtin2001/CodeForces/build",
+  "command": "/usr/bin/c++ -D_GLIBCXX_DEBUG  -g -fdiagnostics-color=always -Wall -Wextra -O1 -g -fno-omit-frame-pointer -std=c++23 -o CMakeFiles/app.dir/submit.cpp.o -c /home/sololtin2001/CodeForces/submit.cpp",
+  "file": "/home/sololtin2001/CodeForces/submit.cpp"
+}
+]

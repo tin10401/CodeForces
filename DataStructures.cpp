@@ -211,12 +211,13 @@ public:
         merge(root, root, B);
     }
 
-    void erase_at(int k) { 
+	void erase_at(int k) { 
         assert(size(root) >= k);
         TreapNode*A, *B;
         split(root, root, A, k - 1);
         split(A, A, B, 1);
         merge(root, root, B);
+        delete(A);
     }
 	
 	void update_at(int k, T x) {
@@ -621,7 +622,7 @@ class FW {
     FW(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : func(func) { 
         this->n = n;    
         this->DEFAULT = DEFAULT;
-        N = log2(n);
+		N = n == 0 ? -1 : log2(n);
         root.rsz(n, DEFAULT);
     }
     
@@ -675,7 +676,6 @@ class FW {
         }
         return pos + 1;
     }
-
 };
 
 template<typename T>
@@ -685,8 +685,10 @@ struct range_fenwick {
     range_fenwick(int n): n(n), B1(n, 0), B2(n, 0) {}
 
     inline void update_range(int l, int r, T v){
-        B1.update_at(l, v);        B1.update_at(r + 1, -v);
-        B2.update_at(l, v * (l - 1));  B2.update_at(r + 1, -v * r);
+        B1.update_at(l, v);        
+        B1.update_at(r + 1, -v);
+        B2.update_at(l, v * (l - 1));  
+        B2.update_at(r + 1, -v * r);
     }
 
     inline T prefix(int i){

@@ -634,3 +634,61 @@ struct LiChaoSegtree {
         }
     }
 };
+
+struct Hull {
+    vpll hull;
+    set<pll> s;
+
+    void insert(ll a, ll b) {
+        auto it = s.lb({a, -INF});
+        if(it != s.begin() && prev(it)->ss <= b) return;
+        while(it != s.end() && it->ss >= b) it = s.erase(it);
+        s.insert({a, b});
+    }
+
+    void convert() {
+        hull = vpll(all(s));
+    }
+
+    // Query minimum value of f(a,b) = a*x + b*y
+    ll query(ll x, ll y) {
+        if(hull.empty()) return -INF;
+        auto calc = [&](pll it) -> ll { return it.ff * x + it.ss * y; };
+
+        int l = 0, r = int(hull.size()) - 2;
+        ll res = calc(hull.back());
+        while(l <= r) {
+            int m = l + (r - l) / 2;
+            auto X = calc(hull[m]);
+            auto Y = calc(hull[m + 1]);
+            res = min({res, X, Y});
+            if(X < Y) r = m - 1;
+            else l = m + 1;
+        }
+        return res;
+    }
+
+    void merge(const Hull &other) {
+        int i = 0, j = 0;
+        vpll newHull;
+        while(i < (int)hull.size() || j < (int)other.hull.size()) {
+            pll p;
+            if(i == (int)hull.size()) {
+                p = other.hull[j++];
+            } else if(j == (int)other.hull.size()) {
+                p = hull[i++];
+            } else {
+                if(hull[i].ff < other.hull[j].ff) {
+                    p = hull[i++];
+                } else {
+                    p = other.hull[j++];
+                }
+            }
+            while(!newHull.empty() && newHull.back().ss <= p.ss) {
+                newHull.pop_back();
+            }
+            newHull.pb(p);
+        }
+        hull = move(newHull);
+    }
+};

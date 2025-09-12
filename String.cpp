@@ -882,6 +882,15 @@ struct Z {
 };
 
 https://toph.co/p/unique-substrings-query
+ar(2) repeat_hash(ar(2) hash, int period_len, int times) {
+    ar(2) res = {};
+    for(int h = 0; h < 2; h++) {
+        ll B = p[h][period_len];
+        res[h] = hash[h] * ((p[h][period_len * times] - 1 + mod[h]) % mod[h]) % mod[h] * modExpo(B - 1, mod[h] - 2, mod[h]) % mod[h];
+    }
+    return res;
+}
+
 const int HASH_COUNT = 2;
 vll base, mod;
 ll p[HASH_COUNT][MX], geom[HASH_COUNT][MX];
@@ -922,6 +931,9 @@ void initGlobalHashParams() {
         mod[i] = candidateMods[i];
         base[i] = candidateBases[i];
     }
+	auto modExpo = [](ll base, ll exp, ll mod) -> ll {
+        ll res = 1; base %= mod; while(exp) { if(exp & 1) res = (res * base) % mod; base = (base * base) % mod; exp >>= 1; } return res; 
+    };
     for(int j = 0; j < HASH_COUNT; j++) {
         ll inv = modExpo(base[j] - 1, mod[j] - 2, mod[j]);
         p[j][0] = 1;
@@ -1002,6 +1014,7 @@ struct RabinKarp {
     }
 
     ll get_rev_hash(int l, int r) const {
+        tie(l, r) = make_tuple(n - r, n - l);
         if(l < 0 || r > n || l >= r) return 0;
         ll h0 = suffix[0][r] - (suffix[0][l] * p[0][r - l] % mod[0]);
         ll h1 = suffix[1][r] - (suffix[1][l] * p[1][r - l] % mod[1]);
@@ -1012,7 +1025,7 @@ struct RabinKarp {
 
     bool is_palindrome(int l, int r) const {
         if(l > r) return true;
-        return get_hash(l, r + 1) == get_rev_hash(n - 1 - r, n - l);
+        return get_hash(l, r + 1) == get_rev_hash(l, r + 1);
     }
     
     bool diff_by_one_char(RabinKarp &a, int offSet = 0) {
@@ -1039,7 +1052,7 @@ struct RabinKarp {
         if(n == 0 && other.n == 0) return 0;
         int left = 0, right = min(n, other.n) - 1, res = -1;
         while(left <= right) {
-            int middle = midPoint;
+            int middle = (left + right) >> 1;
             if(get_hash(0, middle + 1) != other.get_hash(0, middle + 1)) res = middle, right = middle - 1;
             else left = middle + 1;
         }

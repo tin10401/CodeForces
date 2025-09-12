@@ -11,12 +11,11 @@ public:
     vt<unsigned> in_label, ascendant;
     vi par_head;
     unsigned cur_lab = 1;
-    vt<vt<T>> adj;
+    const vt<vt<T>> adj;
 
     GRAPH() {}
 
-    GRAPH(const vt<vt<T>>& graph, int root = 0) {
-        adj = graph;
+    GRAPH(const vt<vt<T>>& graph, int root = 0) : adj(graph) {
         n = graph.size();
         m = log2(n) + 1;
 //        depth_by_weight.rsz(n);
@@ -67,7 +66,6 @@ public:
             }
         }
     }
-
 
     void sv_dfs1(int u, int p = -1) {
         in_label[u] = cur_lab++;
@@ -246,18 +244,18 @@ template<class T, typename TT = int, typename F = function<T(const T&, const T&)
 class HLD {
     private:
 	vpii get_path_helper(int node, int par) {
-        vpii seg;
+        vpii res;
         while(node != par && node != -1) {   
             if(g.depth[tp[node]] > g.depth[par]) {   
-                seg.pb({id[tp[node]], id[node]});
+                res.pb({id[tp[node]], id[node]});
                 node = parent[tp[node]];
             } else {   
-                seg.pb({id[par] + 1, id[node]});
+                res.pb({id[par] + 1, id[node]});
                 break;  
             } 
         }   
-        seg.pb({id[par], id[par]});
-        return seg;
+        res.pb({id[par], id[par]});
+        return res;
     }
 
 	T path_queries_helper(int node, int par) { // only query up to parent, don't include parent info
@@ -289,29 +287,28 @@ class HLD {
     }
     public:
     SGT<T> seg;
-    vi id, tp, sz, parent, chain_id;
+    vi id, tp, sz, parent, chain_id, rid;
     int chain_cnt;
     int ct;
-    vt<vt<T>> graph;
+    vt<vt<TT>> graph;
     int n;
     GRAPH<TT> g;
     T DEFAULT;
     F func;
     HLD() {}
 
-    HLD(vt<vt<TT>>& graph, vi a, F func, int root = 0, T DEFAULT = 0) : seg(graph.size(), DEFAULT, func), g(graph, root), n(graph.size()), func(func), DEFAULT(DEFAULT) {
+    HLD(vt<vt<TT>>& _graph, vi a, F func, int root = 0, T DEFAULT = 0) : graph(_graph), seg(graph.size(), DEFAULT, func), g(graph, root), n(graph.size()), func(func), DEFAULT(DEFAULT) {
         this->parent = move(g.parent);
         this->sz = move(g.subtree);
-        chain_cnt = 0;
-        chain_id.rsz(n);
-        ct = 0;
-        id.rsz(n), tp.rsz(n);
-        dfs(graph, root, -1, root);
+        chain_cnt = 0, ct = 0;
+        id.rsz(n), tp.rsz(n), chain_id.rsz(n), rid.rsz(n);
+        dfs(root, -1, root);
         for(int i = 0; i < n; i++) seg.update_at(id[i], a[i]);
     }
         
-    void dfs(const vt<vt<TT>>& graph, int node = 0, int par = -1, int top = 0) {   
+	void dfs(int node = 0, int par = -1, int top = 0) {   
         id[node] = ct++;    
+        rid[id[node]] = node;
         tp[node] = top;
         if(node == top) chain_id[node] = chain_cnt++;
         else chain_id[node] = chain_id[top];
@@ -324,9 +321,9 @@ class HLD {
             }   
         }   
         if(nxt == -1) return;   
-        dfs(graph, nxt, node, top);   
+        dfs(nxt, node, top);   
         for(auto& nei : graph[node]) {   
-            if(nei != par && nei != nxt) dfs(graph, nei, node, nei);  
+            if(nei != par && nei != nxt) dfs(nei, node, nei);  
         }   
     }
 
@@ -362,7 +359,6 @@ class HLD {
         return res;
     }
 
-
     void update_path(int u, int v, T val) {
         int c = g.lca(u, v);
         update_path_helper(u, c, val);
@@ -380,6 +376,73 @@ class HLD {
 
     bool contain_all_node(int u, int v) {
         return path_queries(u, v) == dist(u, v);
+    }
+
+    int climb(int u, int k) {
+        while(u != -1 && k > 0) {
+            int h = tp[u];
+            int d = g.depth[u] - g.depth[h];
+            if (k <= d) return rid[id[u] - k];
+            k -= d + 1;
+            u = parent[h];
+        }
+        return u;
+    }
+
+    int kth_on_path(int u, int v, int k) {
+        int c = g.lca(u, v);
+        int du = g.depth[u] - g.depth[c];
+        if (k <= du) return climb(u, k);
+        int dv = g.depth[v] - g.depth[c];
+        return climb(v, dv - (k - du));
+    }
+
+    int kth_ancestor(int u, int k) {
+        return climb(u, k);
+    }
+};
+
+template<class H, class T = long long>
+struct path_update_logn {
+	https://codeforces.com/gym/105937/problem/K
+    const H& h;
+    int n;
+    FW<T> S, SD;
+    T TOT;
+
+    path_update_logn(const H& hld) : h(hld), n(hld.n), S(hld.n, 0), SD(hld.n, 0), TOT(0) {}
+
+    inline T queries_range(const FW<T>& B, int l, int r) const {
+        if(l > r) return 0;
+        return B.get(r) - (l ? B.get(l - 1) : 0);
+    }
+
+    void update_path(int u, int v, T w) {
+        int l = h.lca(u, v);
+        TOT += (T)(h.depth[u] + h.depth[v] - 2 * h.depth[l] + 1) * w;
+        S.update_at(h.tin[u], w);
+        S.update_at(h.tin[v], w);
+        S.update_at(h.tin[l], -w);
+        if(h.parent[l] != -1) S.update_at(h.tin[h.parent[l]], -w);
+        SD.update_at(h.tin[u], w * (T)h.depth[u]);
+        SD.update_at(h.tin[v], w * (T)h.depth[v]);
+        SD.update_at(h.tin[l], -w * (T)h.depth[l]);
+        if(h.parent[l] != -1) SD.update_at(h.tin[h.parent[l]], -w * (T)h.depth[h.parent[l]]);
+    }
+
+    T subtree_sum(int u) const {
+        T W = queries_range(S, h.tin[u], h.tout[u]);
+        T WD = queries_range(SD, h.tin[u], h.tout[u]);
+        return WD - (T)(h.depth[u] - 1) * W;
+    }
+
+    T query_with_root(int x, int rt) const {
+        if(x == rt) return TOT;
+        if(h.g.is_ancestor(x, rt)) {
+            int y = h.kth_ancestor(rt, h.depth[rt] - h.depth[x] - 1);
+            return TOT - subtree_sum(y);
+        }
+        return subtree_sum(x);
     }
 };
 

@@ -29,13 +29,6 @@ ll maxPerimeter(const vvi& grid) { // max_rectangle in a grid
     return best;
 }
 
-//    root.apply_func = [&root](iter, pmm val) -> void { -> apply ai * x + y
-//        auto& r = root.root[i];
-//        auto& l = root.lazy[i];
-//        r = r * val.ff + val.ss * (right - left + 1);
-//        l = {l.ff * val.ff, val.ff * l.ss + val.ss};
-//    };
-
 struct digit_dp {
     const static int L = 20;
     const static int LCM = 2520;
@@ -1528,4 +1521,108 @@ template<typename T> T dnc_mnmx(const vi& a) {
     return dfs(dfs, 0, n - 1);
 }
 
+ll min_flip(ll O, ll Z, ll K) { // given a string s of O one, Z zero, in one move you can flip k index, return minimum move to make the string become all 1 or -1 if not possible
+    // https://leetcode.com/problems/minimum-operations-to-equalize-binary-string/description/
+    ll N = O + Z;
+    if (N == K) {
+        if (Z == 0) return 0;
+        if (Z == N) return 1;
+        return -1;
+    }
 
+    auto ceilDiv = [](ll x, ll y) -> ll { return (x + y - 1) / y; };
+
+    ll ans = INF;
+
+    if ((Z & 1) == 0) {
+        ll M = max(ceilDiv(Z, K), ceilDiv(Z, N - K));
+        M += (M & 1);
+        ans = min(ans, M);
+    }
+    if (((Z & 1) == (K & 1))) {
+        ll M = max(ceilDiv(Z, K), ceilDiv(N - Z, N - K));
+        M += ((M & 1) == 0);
+        ans = min(ans, M);
+    }
+    return ans < INF ? ans : -1;
+}
+
+template<typename T>
+T count_b_mod_a_equal_a_xor_b(ll L, ll R) { // return number of pair where l <= a <= b <= r and b % a == b ^ a
+    // https://codeforces.com/gym/106015/problem/B
+    auto f = [](ll l, ll r) -> T {
+        auto g = [](ll n) {
+            string s;
+            while(n) {
+                s += char((n & 1) + '0');
+                n >>= 1;
+            }
+            rev(s);
+            return s;
+        };
+        string s = g(l), t = g(r);
+        s = string(t.size() - s.size(), '0') + s;
+        const int n = s.size();
+        const int K = 60;
+        static T dp[K][2][2];
+        static int cached[K][2][2];
+        memset(cached, 0, sizeof(cached));
+        auto dfs = [&](auto &self, int i = 0, int t1 = 1, int t2 = 1) -> T {
+            if(i == n) return 1;
+            auto& res = dp[i][t1][t2];
+            auto& c = cached[i][t1][t2];
+            if(c) return res;
+            c = true;
+            res = 0;
+            int low = t1 ? s[i] - '0' : 0;
+            int high = t2 ? t[i] - '0' : 1;
+            for(int a = low; a <= 1; a++) {
+                for(int b = 0; b <= high; b++) {
+                    if(a > b) continue;
+                    res += self(self, i + 1, t1 && a == low, t2 && b == high);
+                }
+            }
+            return res;
+        };
+        return dfs(dfs);
+    };
+    int msb_l = max_bit(L);
+    int msb_r = max_bit(R);
+    T res = 0; 
+    for(int i = msb_l + 1; i < msb_r; i++) {
+        res += T(3).pow(i); // 3 possible happening each bit [0, 0], [0, 1], [1, 1]
+    }
+    L -= 1LL << msb_l;
+    R -= 1LL << msb_r;
+    if(msb_l == msb_r) {
+        res += f(L, R); 
+    } else {
+        res += f(L, (1LL << msb_l) - 1) + f(0, R);
+    }
+    return res;
+}
+
+string construct_string(const string& s, ll K) { // return the string with s appear as a subsequence K times
+    // https://atcoder.jp/contests/cf16-exhibition-final/tasks/cf16_exhibition_final_g
+    const int n = s.size();
+    vll curr(n + 1, 1);
+    curr[n] = 0;
+    string ans;
+    for(int i = 0; i < n - 1; i++) ans += s[i];
+    for(int i = 0; (1LL << i) <= K; i++) {
+        assert(curr[n - 1] == (1LL << i));
+        if(K >> i & 1) {
+            ans += s.back();
+            curr[n] += curr[n - 1];
+        }
+        for(int j = n - 2; j >= max(0, i / (n + 1)); j--) {
+            ll need = 2 * curr[j + 1];
+            while(curr[j + 1] != need) {
+                ans += s[j];
+                curr[j + 1] += curr[j];
+            }
+        }
+    }
+    assert(curr[n] == K);
+    return ans;
+}

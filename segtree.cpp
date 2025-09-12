@@ -167,10 +167,10 @@ public:
     
     basic_segtree() {}
 
-    basic_segtree(int n, T DEFAULT, F func = [](const T& a, const T& b) {return a + b;}) : n(n), DEFAULT(DEFAULT), func(func) {
+    basic_segtree(int _n, T _DEFAULT, F _func = [](const T& a, const T& b) {return a + b;}) : n(_n), func(_func), DEFAULT(_DEFAULT) {
         size = 1;
-        while (size < n) size <<= 1;
-        root.assign(size << 1, DEFAULT);
+        while(size < _n) size <<= 1;
+        root.assign(size << 1, _DEFAULT);
     }
     
     void update_at(int idx, T val) {
@@ -208,7 +208,6 @@ public:
         return root[idx + size];
     }
 
-	
 	void update_range(int l, int r, ll v) {}
 
     T get() {
@@ -692,119 +691,19 @@ class bad_subarray_segtree {
     }
 };
 
-// PERSISTENT SEGTREE
-int t[MX * MK], ptr, root[MX * 100]; // log2 = MX * 200; careful to match root with the type of template below
-pii child[MX * 100]; // maybe * 120
-template<class T>
-struct PSGT {
-    int n;
-    T DEFAULT;
-    void assign(int n, T DEFAULT) {
-        this->DEFAULT = DEFAULT;
-        this->n = n;
-    }
-
-	void update(int &curr, int prev, int id, T delta, int left, int right) {  
-//        if(!curr) curr = ++ptr; // 2d seg to save space
-        root[curr] = root[prev];    
-        child[curr] = child[prev];
-        if(left == right) { 
-			root[curr] = merge(root[curr], delta);
-            return;
-        }
-        int middle = midPoint;
-        if(id <= middle) child[curr].ff = ++ptr, update(child[curr].ff, child[prev].ff, id, delta, left, middle); // PSGT
-        else child[curr].ss = ++ptr, update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-//        if(id <= middle) update(child[curr].ff, child[prev].ff, id, delta, left, middle); // 2d seg
-//        else update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
-    }
-
-	T queries_at(int curr, int start, int end, int left, int right) { 
-        if(!curr || left > end || start > right) return DEFAULT;
-        if(left >= start && right <= end) return root[curr];
-        int middle = midPoint;  
-		return merge(queries_at(child[curr].ff, start, end, left, middle), queries_at(child[curr].ss, start, end, middle + 1, right));
-    };
-        
-    T get(int curr, int prev, int k, int left, int right) {    
-        if(root[curr] - root[prev] < k) return DEFAULT;
-        if(left == right) return left;
-        int leftCount = root[child[curr].ff] - root[child[prev].ff];
-        int middle = midPoint;
-        if(leftCount >= k) return get(child[curr].ff, child[prev].ff, k, left, middle);
-        return get(child[curr].ss, child[prev].ss, k - leftCount, middle + 1, right);
-    }
-
-    T get(int l, int r, int k) {
-        return get(t[r], t[l - 1], k, 0, n - 1);
-    }
-	
-	int find_k(int i, int k) {
-        return find_k(t[i], k, 0, n - 1);
-    }
-
-    int find_k(int curr, int k, int left, int right) {
-        if(root[curr] < k) return inf;
-        if(left == right) return left;
-        int middle = midPoint;
-        if(root[child[curr].ff] >= k) return find_k(child[curr].ff, k, left, middle);
-        return find_k(child[curr].ss, k - root[child[curr].ff], middle + 1, right);
-    }
-
-    void reset() {  
-        for(int i = 0; i <= ptr; i++) { 
-            root[i] = 0;
-            child[i] = {0, 0};
-        }
-		for(int i = 0; i < (int)(sizeof(t)/sizeof(t[0])); i++){
-            t[i] = 0;
-        }
-        ptr = 0;
-    }
-
-    void add(int i, int& prev, int id, T delta) { 
-        t[i] = ++ptr;
-        update(t[i], prev, id, delta, 0, n - 1); 
-        prev = t[i];
-//        while(i < n) { 
-//            update(t[i], t[i], id, delta, 0, n - 1);
-//            i |= (i + 1);
-//        }
-    }
-
-    T queries_at(int i, int start, int end) {
-        return queries_at(t[i], start, end, 0, n - 1);
-//        while(i >= 0) {
-//            res += queries(t[i], start, end, 0, n - 1);
-//            i = (i & (i + 1)) - 1;
-//        }
-    }
-
-	T queries_range(int l, int r, int low, int high) {
-        if(l > r || low > high) return DEFAULT;
-        auto L = (l == 0 ? DEFAULT : queries_at(l - 1, low, high));
-        auto R = queries_at(r, low, high);
-        return R - L;
-    }
-
-    T merge(T left, T right) {
-    }
-};
-
 struct wavelet_psgt {
     private:
     struct Node {
         int cnt;
         ll sm;
         Node(int cnt = 0, ll sm = 0) : cnt(cnt), sm(sm) {}
+        friend Node operator+(const Node& x, const Node& y) {
+            return {x.cnt + y.cnt, x.sm + y.sm};
+        };
+        friend Node operator-(const Node& x, const Node& y) {
+            return {x.cnt - y.cnt, x.sm - y.sm};
+        };
     };
-    Node merge(const Node& a, const Node& b) {
-        return {a.cnt + b.cnt, a.sm + b.sm};
-    }
-    Node subtract(const Node& a, const Node& b) {
-        return {a.cnt - b.cnt, a.sm - b.sm};
-    }
     int n;
     vt<Node> root;
     vi t;
@@ -831,13 +730,13 @@ struct wavelet_psgt {
         root[curr] = root[prev];    
         child[curr] = child[prev];
         if(left == right) { 
-            root[curr] = merge(root[curr], delta);
+            root[curr] = root[curr] + delta;
             return;
         }
-        int middle = midPoint;
+        int middle = (left + right) >> 1;
         if(id <= middle) child[curr].ff = new_node(), update(child[curr].ff, child[prev].ff, id, delta, left, middle); 
         else child[curr].ss = new_node(), update(child[curr].ss, child[prev].ss, id, delta, middle + 1, right);
-        root[curr] = merge(root[child[curr].ff], root[child[curr].ss]);
+        root[curr] = root[child[curr].ff] + root[child[curr].ss];
     }
 
     int kth(int l, int r, int k) {
@@ -851,7 +750,7 @@ struct wavelet_psgt {
     int kth(int l, int r, int k, int left, int right) {
         if(root[r].cnt - root[l].cnt < k) return -inf;
         if(left == right) return a[left];
-        int middle = midPoint;
+        int middle = (left + right) >> 1;
         int left_cnt = root[child[r].ff].cnt - root[child[l].ff].cnt;
         if(left_cnt >= k) return kth(child[l].ff, child[r].ff, k, left, middle);
         return kth(child[l].ss, child[r].ss, k - left_cnt, middle + 1, right);
@@ -861,7 +760,7 @@ struct wavelet_psgt {
         if(root[r].cnt - root[l].cnt < k) return -inf;
         if(k <= 0) return 0;
         if(left == right) return (ll)k * a[left];
-        int middle = midPoint;
+        int middle = (left + right) >> 1;
         int left_cnt = root[child[r].ff].cnt - root[child[l].ff].cnt;
         if(left_cnt >= k) return sum_kth(child[l].ff, child[r].ff, k, left, middle); 
         return root[child[r].ff].sm - root[child[l].ff].sm + sum_kth(child[l].ss, child[r].ss, k - left_cnt, middle + 1, right);
@@ -876,7 +775,7 @@ struct wavelet_psgt {
     }
 
     Node query_eq(int l, int r, int x) {
-        return subtract(query_leq(l, r, x), query_leq(l, r, x - 1));
+        return query_leq(l, r, x) - query_leq(l, r, x - 1);
     }
 
     Node queries_range(int l, int r, int low, int high) {
@@ -885,9 +784,9 @@ struct wavelet_psgt {
 
     Node query(int l, int r, int start, int end, int left, int right) {
         if(left > end || right < start || left > right) return Node();
-        if(start <= left && right <= end) return subtract(root[r], root[l]);
-        int middle = midPoint;
-        return merge(query(child[l].ff, child[r].ff, start, end, left, middle), query(child[l].ss, child[r].ss, start, end, middle + 1, right));
+        if(start <= left && right <= end) return root[r] - root[l];
+        int middle = (left + right) >> 1;
+        return query(child[l].ff, child[r].ff, start, end, left, middle) + query(child[l].ss, child[r].ss, start, end, middle + 1, right);
     }
 	
 	ll first_missing_number(int l, int r) { // https://cses.fi/problemset/task/2184/
@@ -897,12 +796,12 @@ struct wavelet_psgt {
 
     ll first_missing_number(ll l, ll r, ll left, ll right, ll &s) {
         if(s < a[left]) return s;
-        Node seg = subtract(root[r], root[l]);
+        Node seg = root[r] - root[l];
         if(a[right] <= s) {
             s += seg.sm;
             return s;
         }
-        ll middle = midPoint;
+        ll middle = (left + right) >> 1;
         first_missing_number(child[l].ff, child[r].ff, left, middle, s);
         first_missing_number(child[l].ss, child[r].ss, middle + 1, right, s);
         return s;
@@ -940,7 +839,7 @@ struct PSGT {
             F[curr].key = merge(F[curr].key, delta);
             return curr;
         }
-        int middle = midPoint;
+        int middle = (left + right) >> 1;
         if(id <= middle) F[curr].l = update(F[prev].l, id, delta, left, middle);
         else F[curr].r = update(F[prev].r, id, delta, middle + 1, right);
         F[curr].key = merge(F[F[curr].l].key, F[F[curr].r].key);
@@ -950,14 +849,14 @@ struct PSGT {
 	T queries_at(int curr, int start, int end, int left, int right) { 
         if(!curr || left > end || start > right) return DEFAULT;
         if(left >= start && right <= end) return F[curr].key;
-        int middle = midPoint;  
+        int middle = (left + right) >> 1;
 		return merge(queries_at(F[curr].l, start, end, left, middle), queries_at(F[curr].r, start, end, middle + 1, right));
     };
         
 	T get(int curr, int prev, int k, int left, int right) {    
         if(left == right) return left;
         int leftCount = F[F[curr].l].key - F[F[prev].l].key;
-        int middle = midPoint;
+        int middle = (left + right) >> 1;
         if(leftCount >= k) return get(F[curr].l, F[prev].l, k, left, middle);
         return get(F[curr].r, F[prev].r, k - leftCount, middle + 1, right);
     }
@@ -973,7 +872,7 @@ struct PSGT {
     int find_k(int curr, int k, int left, int right) {
         if(F[curr].key < k) return inf;
         if(left == right) return left;
-        int middle = midPoint;
+        int middle = (left + right) >> 1;
         if(F[F[curr].l].key >= k) return find_k(F[curr].l, k, left, middle);
         return find_k(F[curr].r, k - F[F[curr].l].key, middle + 1, right);
     }
@@ -2727,5 +2626,65 @@ struct poly_info {
 
     void apply(mint a, mint b, mint c, int len) {
         sum_val += a * sum_i2 + b * sum_i + c * sum_1;
+    }
+};
+
+struct min_max_info {
+    // optimizing this 
+    // int res = inf;
+    // for(int i = 0; i < n; i++) {
+    //      if(i % 2 == 0) res = min(res, a[i]);
+    //      else res = max(res, a[i]);
+    // }
+    // this struct works for odd n,
+    // for even n and range [l, r]
+    // do queries_range(l, r - 1) ans manually do the last index
+    // https://www.codechef.com/problems/DEQMNMX
+    int mn, mx;
+    min_max_info(int _mn = 1, int _mx = inf) : mn(_mn), mx(_mx) {}
+
+    static int get(const min_max_info& a, int x) {
+        return min(a.mx, max(a.mn, x));
+    }
+
+    friend min_max_info operator+(const min_max_info& a, const min_max_info& b) {
+        min_max_info res;
+        res.mn = get(b, a.mn);
+        res.mx = get(b, a.mx);
+        return res;
+    }
+};
+
+struct subarray_parity_info { // number of subarray divisiable by 3 when concatnating the subarray in decial, 0 <= a[i] <= 9
+    // https://www.codechef.com/problems/QSET?tab=statement
+    const static int K = 3;
+    ll ans[K], suff[K], pre[K], s;
+    subarray_parity_info(int x = -1) {
+        s = 0;
+        memset(ans, 0, sizeof(ans));
+        memset(suff, 0, sizeof(suff));
+        memset(pre, 0, sizeof(pre));
+        if(x != -1) {
+            ans[x % K]++, suff[x % K]++, pre[x % K]++;
+            s = x % K;
+        }
+    }
+
+    friend subarray_parity_info operator+(const subarray_parity_info& a, const subarray_parity_info& b) {
+        subarray_parity_info res;
+        for(int i = 0; i < K; i++) {
+            for(int j = 0; j < K; j++) {
+                res.ans[(i + j) % K] += a.suff[i] * b.pre[j];
+            }
+        }
+        for(int i = 0; i < K; i++) {
+            res.ans[i] += a.ans[i] + b.ans[i];
+            res.pre[i] += a.pre[i];
+            res.pre[(a.s + i) % K] += b.pre[i];
+            res.suff[i] += b.suff[i];
+            res.suff[(b.s + i) % K] += a.suff[i];
+        }
+        res.s = (a.s + b.s) % K;
+        return res;
     }
 };
