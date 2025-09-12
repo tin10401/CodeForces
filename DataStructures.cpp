@@ -1142,9 +1142,9 @@ struct xor_basis {
         return get_kth_smallest(idx);
     }
 
-    bool insert_base_on(T x, T c) {
+    bool insert_base_on(T x, T C) {
         for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(c, b)) continue;
+            if(have_bit(C, b)) continue;
             if(!have_bit(x, b)) continue;
             if(!basis[b]) {
                 basis[b] = x;
@@ -1177,7 +1177,6 @@ struct xor_basis {
         for (int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
         return res;
     }
-
 
     inline xor_basis& operator^=(T k) { // https://codeforces.com/contest/587/problem/E
         for (int i = BITS - 1; i >= 0; i--)
