@@ -2688,3 +2688,33 @@ struct subarray_parity_info { // number of subarray divisiable by 3 when concatn
         return res;
     }
 };
+
+#define P pair<ld, ld>
+struct mul_add_info { // [mul, add]
+    // https://codeforces.com/contest/895/problem/E
+    constexpr static P lazy_value = {1.0, 0};
+    ld s;
+    P lazy;
+
+    mul_add_info(ld v = 0) : s(v), lazy(lazy_value) { }
+
+    bool have_lazy() const {
+        return lazy != lazy_value;
+    }
+
+    void reset_lazy() {
+        lazy = lazy_value;
+    }
+
+    void apply(P v, int len) {
+        const auto& [mul, add] = v;
+        auto& [lazy_mul, lazy_add] = lazy;
+        s = s * mul + add * len;
+        lazy_mul *= mul;
+        lazy_add = lazy_add * mul + add;
+    }
+
+    friend mul_add_info operator+(const mul_add_info& a, const mul_add_info& b) {
+        return mul_add_info(a.s + b.s);
+    }
+};

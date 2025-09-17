@@ -939,7 +939,7 @@ ll find_all_solutions(ll a, ll b, ll c, ll minx, ll maxx, ll miny,ll maxy) {
 
 ll solveCRT(const vpii& congruences) { // return a value x such that x % a[i].ff == a[i].ss for all i
     ll r0 = 0, m0 = 1;
-    for (auto &[p, r] : congruences) {
+    for (auto &[r, p] : congruences) {
         ll s, t;
         ll g = extended_gcd(m0, p, s, t);
         if((r - r0) % g != 0) return -1;
@@ -977,6 +977,7 @@ int find_y(int x, int p, int c) { // find y such that (x * y) % p == c
     return y0 < 0 ? y0 + p1 : y0;
 }
 
+https://oj.uz/problem/view/IZhO17_subsequence
 template<typename T>
 struct sos_dp {
     ll B, N;
@@ -1041,7 +1042,7 @@ struct sos_dp {
     }
 
     vll A;
-    void update_subset(ll mask, ll delta = 1) { // tc : 1 << (K - low)
+    void update_subset(ll mask, ll delta = 1) { // update all submask of hi bits of mask
         if(A.empty()) A.rsz(N);
         ll lo = ((1LL << low) - 1) & mask;
         mask = (mask >> low) << low;
@@ -1052,7 +1053,7 @@ struct sos_dp {
         }
     }
 
-    ll query_subset(ll mask) { 
+    ll query_subset(ll mask) { // given mask, look for all super_mask of low bit of mask
         if(A.empty()) return 0;
         const ll LOW = (1LL << low) - 1;
         ll res = 0;
@@ -1245,6 +1246,7 @@ vll segmented_sieve(ll l, ll r) { // return vector of all primes in [l, r]
 
 // number of ways to make up the sum of s is 2 ^ (s - 1)
 
+// https://www.codechef.com/problems/PPDIV?tab=statement
 //    ll curr = 1;
 //    while(curr <= j) {
 //        ll add = j / curr;

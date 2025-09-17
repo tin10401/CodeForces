@@ -1050,33 +1050,34 @@ struct BIT2D_XOR {
     }
 };
 
+//https://atcoder.jp/contests/abc223/submissions/65149999
 // this one supports pos array
-template<typename T, int BITS = 30>
+template<typename T, int BITS = 60>
 struct xor_basis {
-	// subsequence [l, r] having subsequence_xor of x is pow(2, (r - l + 1) - rank())
     T basis[BITS];
+    T pos[BITS];
     int r;
 
     xor_basis() {
         r = 0;
-        for (int b = 0; b < BITS; b++)
+        for (int b = 0; b < BITS; b++) {
             basis[b] = 0;
+            pos[b] = inf;
+        }
     }
 
-    bool insert(T x) {
-        if(x == 0) return false;
+    bool insert(T x, int idx) {
         for(int b = BITS - 1; b >= 0; --b) {
             if(!have_bit(x, b)) continue;
             if(!basis[b]) {
                 basis[b] = x;
+                pos[b] = idx;
                 r++;
-                // TODO: elimination bit, remove if WA
-                for(int d = 0; d < BITS; ++d) {
-                    if(d != b && ((basis[d] >> b) & 1)) {
-                        basis[d] ^= x;
-                    }
-                }
                 return true;
+            }
+            if(pos[b] > idx) {
+                swap(pos[b], idx);
+                swap(x, basis[b]);
             }
             x ^= basis[b];
         }
@@ -1100,9 +1101,10 @@ struct xor_basis {
         return x;
     }
 
-    T max_value(T x = 0) const {
+    T max_value(int idx) const { // https://codeforces.com/contest/1100/submission/316886485
+        T x = 0;
         for (int b = BITS - 1; b >= 0; --b) {
-            if (basis[b] && (x ^ basis[b]) > x)
+            if (basis[b] && pos[b] <= idx && (x ^ basis[b]) > x)
                 x ^= basis[b];
         }
         return x;
@@ -1142,7 +1144,7 @@ struct xor_basis {
         return get_kth_smallest(idx);
     }
 
-    bool insert_base_on(T x, T C) {
+    bool insert_base_on(T x, T C) { // https://atcoder.jp/contests/abc141/submissions/me
         for(int b = BITS - 1; b >= 0; --b) {
             if(have_bit(C, b)) continue;
             if(!have_bit(x, b)) continue;
@@ -1168,7 +1170,7 @@ struct xor_basis {
         return res;
     }
 
-	inline xor_basis operator+(const xor_basis& other) const {
+    inline xor_basis operator+(const xor_basis& other) const {
         if (r == 0) return other;
         if (other.r == 0) return *this;
         const xor_basis* big   = (r >= other.r ? this  : &other);
@@ -1197,101 +1199,18 @@ struct xor_basis {
 
 // this one is faster since it iterating over the # of value instead of BITS, careful with initializing BITS, you can go 60 if needed
 // prefer to use this one
-static const int BITS = 60;
-template<typename T>
-struct xor_basis {
-    T basis[BITS];
-
-    xor_basis() {
-        for (int b = 0; b < BITS; b++)
-            basis[b] = 0;
-    }
-
-    bool add(T x) {
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) {
-                basis[b] = x;
-                for(int d = 0; d < BITS; ++d) {
-                    if(d != b && ((basis[d] >> b) & 1)) {
-                        basis[d] ^= x;
-                    }
-                }
-                return true;
-            }
-            x ^= basis[b];
-        }
-        return false;
-    }
-
-    bool contains(T x) const {
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) return false;
-            x ^= basis[b];
-        }
-        return true;
-    }
-
-    T min_value(T x) const {
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(basis[b] && (x ^ basis[b]) < x)
-                x ^= basis[b];
-        }
-        return x;
-    }
-
-    T max_value(T x = 0) const {
-        for (int b = BITS - 1; b >= 0; --b) {
-            if (basis[b] && (x ^ basis[b]) > x)
-                x ^= basis[b];
-        }
-        return x;
-    }
-
-    bool add_base_on(T x, T c) { // https://atcoder.jp/contests/abc141/tasks/abc141_f
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(c, b)) continue;
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) {
-                basis[b] = x;
-                return true;
-            }
-            x ^= basis[b];
-        }
-        return false;
-    }
-
-    T max_value_base_on(T x) const { // find max query(x) + (x ^ query(x));
-        T res = 0;
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(x, b)) continue;
-            if(!have_bit(res, b)) res ^= basis[b];
-        }
-        return res;
-    }
-
-    void merge(const xor_basis &o) {
-        for(int b = 0; b < BITS; b++)
-            if(o.basis[b])
-                add(o.basis[b]);
-    }
-
-    bool operator==(const xor_basis &o) const {
-        for(int b = 0; b < BITS; b++)
-            if(basis[b] != o.basis[b])
-                return false;
-        return true;
-    }
-};
-
-// this one is faster since it iterating over the # of value instead of BITS, careful with initializing BITS, you can go 60 if needed
-// prefer to use this one
 template<typename T, int BITS = 30>
 struct xor_basis {
     // subsequence [l, r] having subsequence_xor of x is pow(2, (r - l + 1) - rank())
     T basis[BITS];
     int r = 0;
+
+    xor_basis() {
+        r = 0;
+        for(int b = 0; b < BITS; b++) {
+            basis[b] = 0;
+        }
+    }
  
     bool insert(T x) {
         if (x == 0) return false;
@@ -1347,53 +1266,61 @@ struct xor_basis {
         return get_kth_smallest(total - 1 - k);
     }
  
-    bool insert_base_on(T x, T c) {
-        for (int i = 0; i < r; ++i) x = std::min(x, x ^ basis[i]);
-        if (x == 0) return false;
-        for (int b = BITS - 1; b >= 0; --b) {
-            if (have_bit(c, b) || !have_bit(x, b)) continue;
-            for (int i = 0; i < r; ++i)
-                if (have_bit(basis[i], b)) basis[i] ^= x;
-            basis[r++] = x;
-            int k = r - 1;
-            while (k > 0 && max_bit(basis[k]) > max_bit(basis[k - 1])) {
-                std::swap(basis[k], basis[k - 1]);
-                --k;
+    bool insert_base_on(T x, T C) { // https://atcoder.jp/contests/abc141/submissions/me
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(have_bit(C, b)) continue;
+            if(!have_bit(x, b)) continue;
+            if(!basis[b]) {
+                basis[b] = x;
+                r++;
+                for(int c = 0; c < BITS; ++c)
+                    if(c != b && (basis[c] >> b & 1))
+                        basis[c] ^= x;
+                return true;
             }
-            return true;
+            x ^= basis[b];
         }
         return false;
     }
- 
-    T max_value_base_on(T x) const {
+
+    T max_value_base_on(T x) const { // find max query(x) + (x ^ query(x));
         T res = 0;
-        for (int i = 0; i < r; ++i)
-            if (!have_bit(x, max_bit(basis[i]))) res ^= basis[i];
+        for(int b = BITS - 1; b >= 0; --b) {
+            if(have_bit(x, b)) continue;
+            if(!have_bit(res, b)) res ^= basis[b];
+        }
         return res;
+    }
+
+    template<typename F>
+    F subsequence_xor_contain_x(ll x, int len) { // https://codeforces.com/contest/959/problem/F
+        // there are rank() important value, (len - rank()) non-important value, which can be expressed as some subset
+        // can skip or take, either way we can still express them as a valid xor == 0 then xor with x
+        return contains(x) ? F(2).pow(len - rank()) : 0;
     }
  
     inline xor_basis operator+(const xor_basis& other) const {
-        if (r == 0) return other;
-        if (other.r == 0) return *this;
+        if(r == 0) return other;
+        if(other.r == 0) return *this;
         const xor_basis* big   = (r >= other.r ? this  : &other);
         const xor_basis* small = (r >= other.r ? &other :  this);
         xor_basis res = *big;
-        for (int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
+        for(int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
         return res;
     }
  
     xor_basis& operator^=(T k) {
-        for (int i = r - 1; i >= 0; --i)
-            if (basis[i] & 1) {
+        for(int i = r - 1; i >= 0; --i)
+            if(basis[i] & 1) {
                 basis[i] ^= k;
             }
         return *this;
     }
  
     bool operator==(const xor_basis &o) const {
-        if (r != o.r) return false;
-        for (int i = 0; i < r; ++i)
-            if (basis[i] != o.basis[i]) return false;
+        if(r != o.r) return false;
+        for(int i = 0; i < r; ++i)
+            if(basis[i] != o.basis[i]) return false;
         return true;
     }
 };
@@ -2900,14 +2827,15 @@ public:
 
 // Computes all possible subset sums from 0 to n that can be made using values from sizes. Runs in O(n sqrt n / 64) if
 // the sum of sizes is bounded by n, and O(n^2 / 64) otherwise.
-BITSET possible_subsets_knapsack(int n, const vi &sizes) {
+const int K = 1000;
+bitset<K> possible_subsets_knapsack(int n, const vi &sizes) {
     vi freq(n + 1); 
     for (int s : sizes) {
         if (1 <= s && s <= n) {
             freq[s]++;
         }
     }
-    BITSET knapsack(n + 1);
+    bitset<K> knapsack;
     knapsack.set(0);
     for (int s = 1; s <= n; s++) {
         if (freq[s] >= 3) {
@@ -3099,6 +3027,62 @@ struct Mat {
                 if(v == DEFAULT) continue;
                 for(int j = 0; j < o.C; j++)
                     r.a[i][j] = r.a[i][j] + v * o.a[k][j];
+            }
+        }
+        return r;
+    }
+
+    Mat pow(ll e) const {
+        Mat res = identity(R, DEFAULT), base = *this;
+        while(e > 0) {
+            if(e & 1) res = res * base;
+            base = base * base;
+            e >>= 1;
+        }
+        return res;
+    }
+
+    friend ostream& operator<<(ostream& os, const Mat& M) {
+        for(int i = 0; i < M.R; i++) {
+            for(int j = 0; j < M.C; j++) {
+                os << M.a[i][j];
+                if(j + 1 < M.C) os << ' ';
+            }
+            if(i + 1 < M.R) os << '\n';
+        }
+        return os;
+    }
+};
+
+template<typename T>
+struct Mat { // max min
+    int R, C;
+    vt<vt<T>> a;
+    T DEFAULT; 
+
+    Mat(const vt<vt<T>>& m, T _DEFAULT = 0) : R((int)m.size()), C(m.empty() ? 0 : (int)m[0].size()), a(m), DEFAULT(_DEFAULT) {}
+
+    Mat(int _R, int _C, T _DEFAULT = 0) : R(_R), C(_C), DEFAULT(_DEFAULT), a(R, vt<T>(C, _DEFAULT)) {}
+
+    static Mat identity(int n, T _DEFAULT) {
+        Mat I(n, n, _DEFAULT);
+        for(int i = 0; i < n; i++)
+            I.a[i][i] = 0;
+        return I;
+    }
+
+    Mat operator*(const Mat& o) const {
+        Mat r(R, o.C, DEFAULT);
+        for(int i = 0; i < R; ++i) {
+            for(int k = 0; k < C; ++k) {
+                T v = a[i][k];
+                if(v == DEFAULT) continue;
+                for(int j = 0; j < o.C; ++j) {
+                    T w = o.a[k][j];
+                    if(w == o.DEFAULT) continue;
+                    T sum = v + w;
+                    r.a[i][j] = min(r.a[i][j], sum);
+                }
             }
         }
         return r;
@@ -4868,3 +4852,58 @@ struct leftist_tree { // 1 base index
     }
 };
 
+template<typename T>
+struct sweepline_update {
+    int n;
+    vt<T> a, diff, slope;
+ 
+    sweepline_update(int n_) : n(n_) {
+        a.assign(n, 0);
+        diff.assign(n + 1, 0);
+        slope.assign(n + 1, 0);
+    }
+ 
+    void update_add(int l, int r, T val) {
+        if(l > r) return;
+        diff[l] += val;
+        if(r + 1 < n) diff[r + 1] -= val;
+    }
+ 
+    void update_arithmetic_prefix(int l, int r, T k) { // add k, k * 2, k * 3
+        if(l > r) return;
+        int sz = r - l + 1;
+        diff[l] += k;
+        slope[l] += k;
+        if(r + 1 < n) {
+            T last = (k * (sz + 1));
+            diff[r + 1] = (diff[r + 1] - last);
+            slope[r + 1] = (slope[r + 1] - k);
+        }
+    }
+ 
+    void update_arithmetic_suffix(int l, int r, T k) { // add k, k * 2, k * 3 but on suffix
+        if(l > r) return;
+        int sz = r - l + 1;
+        diff[l] += k * sz;
+        slope[l] -= k;
+        if(r + 1 < n) {
+            diff[r + 1] -= k * sz;
+            slope[r + 1] += k;
+        }
+    }
+ 
+    void build() {
+        T val = 0, s = 0;
+        for(int i = 0; i < n; i++) {
+            s += slope[i];
+            val += diff[i];
+            a[i] = val;
+            val += s;
+        }
+    }
+ 
+    vt<T> get() {
+        build();
+        return a;
+    }
+};

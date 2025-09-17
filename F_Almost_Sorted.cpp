@@ -64,35 +64,48 @@ const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
-const int MOD = 1e9 + 7;
+int dp[5005][1 << 8];
 void solve() {
-    ll n, q; cin >> n >> q;
-    vll a(n);
-    auto apply = [&](int l, int r, int k) -> void {
-        l--, r--;
-        int sz = r - l + 1;
-        vll b(sz);
-        for(int i = l; i <= r; i++) b[i - l] = i + 1;
-        b.insert(end(b), all(b));
-        for(int i = 0; i < sz; i++) {
-            ll s = 0;
-            for(int j = 0; j < k; j++) {
-                s += b[i + j];
-            }
-            (a[i + l] += s) %= MOD;
-        }
-    };
-    ll l, r, k; cin >> l >> r >> k;
-    while(q--) {
-        l = (l * 2) % n + 1;
-        r = (r * 3) % n + 1;
-        if(l > r) swap(l, r);
-        k = (k * 4) % (r - l + 1) + 1;
-        apply(l, r, k);
-    }
+    int n, k; cin >> n >> k;
+    vi p(n + 1, n);
     for(int i = 0; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
+        int x; cin >> x;
+        x--;
+        p[x] = i;
     }
+    for(int i = 0; i <= n; i++) {
+        for(int j = 0; j < 1 << k; j++) {
+            dp[i][j] = inf;
+        }
+    }
+    vi prefix(n), curr(n);
+    auto count = [&](int mn, int mask, int x) -> int {
+        int res = prefix.back() - prefix[p[x]];
+        for(int i = 0; i < k; i++) {
+            if(mask >> i & 1) {
+                if(p[x] < p[mn + i + 1]) res++;
+            } 
+        }
+        return res;
+    };
+    dp[0][0] = 0;
+    for(int mn = 0; mn < n; mn++) {
+        prefix = curr;
+        partial_sum(all(prefix), begin(prefix));
+        int t = min(k, n - mn - 1);
+        for(int mask = 0; mask < 1 << t; mask++) {
+            for(int j = 0; j < t; j++) {
+                if(mask >> j & 1) continue; 
+                dp[mn][mask | (1 << j)] = min(dp[mn][mask | (1 << j)], dp[mn][mask] + count(mn, mask, mn + j + 1));
+            } 
+            int mn2 = mn + 1, mask2 = mask;
+            while(mask2 & 1) mask2 >>= 1, mn2++;
+            mask2 >>= 1;
+            dp[mn2][mask2] = min(dp[mn2][mask2], dp[mn][mask] + count(mn, mask, mn));
+        }
+        curr[p[mn]] = 1;
+    }
+    cout << dp[n][0] << '\n';
 }
 
 signed main() {

@@ -1626,3 +1626,231 @@ string construct_string(const string& s, ll K) { // return the string with s app
     assert(curr[n] == K);
     return ans;
 }
+
+template<typename T>
+T count_perm_leq(string a, string b) { // count # of different reorder of a <= b
+    const int K = 26;
+    vi cnt(K); 
+    for(auto& ch : a) cnt[ch - 'a']++;
+    const int n = b.size();
+    mint res = 0;
+    mint s = comb.fact[sum(cnt)];
+    for(auto& v : cnt) {
+        s /= comb.fact[v];
+    }
+    for(int i = 0; i < n; i++) {
+        int x = b[i] - 'a';
+        int total = 0;
+        s /= (n - i);
+        for(int j = 0; j < x; j++) {
+            total += cnt[j];
+        }
+        res += s * total;
+        if(cnt[x] == 0) break;
+        s *= cnt[x]--;
+    }
+    return res + 1;
+}
+
+map<pll, ll> dp;
+ll xor_mst(ll l, ll r) { // find minimum mst of a graph with vertices from l to r where the cost of [u, v] is u ^ v
+    // https://www.codechef.com/problems/MINSET?tab=statement
+	if(l >= r) return 0;
+    if(l + 1 == r) return l ^ r;
+    if(dp.count({l, r})) return dp[{l, r}];
+    auto& res = dp[{l, r}];
+    ll p = 1;
+    while(p * 2 <= r) p *= 2;
+    if(p == r) {
+        return res = p + l + xor_mst(l, r - 1);
+    }
+    return res = p + xor_mst(l, p - 1) + xor_mst(0, r - p);
+}
+
+vll dikstra_avoid_edge(int n, const var(3)& edges) { // for each edges i, what's the shortest path from [1, n] if we ignore this edge
+    // https://codeforces.com/contest/1163/problem/F
+    int m = edges.size();
+    vvar(3) graph(n);
+    for(int i = 0; i < m; i++) {
+        const auto& [u, v, w] = edges[i];
+        graph[u].pb({v, w, i});
+        graph[v].pb({u, w, i});
+    }
+    vpii par(n, {-1, -1});
+    vll dp(n, INF);
+    vi on_path(n), l(n, -1), r(n, m);
+    auto dikstra = [&](int src, int type) -> void {
+        fill(all(dp), INF);
+        min_heap<pll> q;
+        auto process = [&](int node, ll cost, pii p) -> void {
+            if(dp[node] > cost) {
+                dp[node] = cost;
+                if(p.ff != -1) {
+                    if(type == 1 && !on_path[node]) {
+                        l[node] = l[p.ff];
+                    } else if(type == 2 && !on_path[node]) {
+                        r[node] = r[p.ff]; 
+                    }
+                }
+                par[node] = p;
+                q.push({cost, node});
+            }
+        };
+        process(src, 0, {-1, -1});
+        while(!q.empty()) {
+            auto [cost, node] = q.top(); q.pop();
+            for(auto& [nei, w, i] : graph[node]) {
+                process(nei, cost + w, {node, i});
+            }
+        }
+    };
+    dikstra(n - 1, 0);
+    int curr = 0;
+    vi ind(m, -1);
+    int N = 0;
+    while(curr != -1) {
+        on_path[curr] = true;
+        auto& [p, id] = par[curr];
+        l[curr] = r[curr] = N;
+        if(id != -1) ind[id] = N;
+        N++;
+        curr = p;
+    }
+    dikstra(0, 1);
+    vll dp1(dp);
+    dikstra(n - 1, 2);
+    vll dp2(dp);
+    vvll in(N + 1), out(N + 1);
+    auto update = [&](int L, int R, ll w) -> void {
+        if(L > R) return;
+        if(L <= N && L >= 0) {
+            in[L].pb(w);
+        }
+        if(R <= N && R >= 0) {
+            out[R].pb(w);
+        }
+    };
+    for(int i = 0; i < m; i++) {
+        if(ind[i] == -1) {
+            const auto& [u, v, w] = edges[i];
+            update(l[u] + 1, r[v], dp1[u] + w + dp2[v]);
+            update(l[v] + 1, r[u], dp1[v] + w + dp2[u]);
+        }    
+    }
+    multiset<ll> s;
+    vll ans(m);
+    vll val(N + 1, INF);
+    for(int i = 1; i <= N; i++) {
+        for(auto& x : in[i]) s.insert(x);
+        val[i] = s.empty() ? INF : *s.begin();
+        for(auto& x : out[i]) s.erase(s.find(x));
+    }
+    for(int i = 0; i < m; i++) {
+        if(ind[i] == -1) {
+            ans[i] = dp1[n - 1];
+        } else {
+            ans[i] = val[ind[i] + 1];
+        }
+    }
+    return ans;
+}
+
+pair<ll, vi> max_xor_via_swap(const vll& a, const vll& b) { // maximizing xor(a) + xor(b) and returning the number of indices need to swap
+    // https://codeforces.com/gym/103414, problem G
+    int n = a.size();
+    const int l = 61;
+    ull a_xor = 0, b_xor = 0;
+    for(auto x : a) a_xor ^= x;
+    for(auto x : b) b_xor ^= x;
+    ull all_bits = (1ULL << l) - 1;
+    ull u = (~(a_xor ^ b_xor)) & all_bits;
+
+    vt<ull> v(n);
+    for (int i = 0; i < n; i++) v[i] = (a[i] ^ b[i]) & u;
+
+    vt<ull> base_val_by_bit(l, 0);
+    vi base_id_by_bit(l, -1);
+    vt<ull> base_val_by_id, base_pre_mask_by_id;
+    vi base_lead_bit_by_id, base_orig_index_by_id;
+    int rank = 0;
+
+    auto insert = [&](ull x, int idx) {
+        ull cur = x, dep = 0;
+        for(int bit = l - 1; bit >= 0; --bit) {
+            if(!((cur >> bit) & 1ULL)) continue;
+            if(base_val_by_bit[bit]) {
+                cur ^= base_val_by_bit[bit];
+                dep ^= (1ULL << base_id_by_bit[bit]);
+            } else {
+                int id = rank++;
+                base_val_by_id.pb(cur);
+                base_pre_mask_by_id.pb(dep);
+                base_lead_bit_by_id.pb(bit);
+                base_orig_index_by_id.pb(idx);
+                base_val_by_bit[bit] = cur;
+                base_id_by_bit[bit] = id;
+                return;
+            }
+        }
+    };
+
+    for(int i = 0; i < n; i++) if (v[i]) insert(v[i], i);
+
+    ull cur = a_xor & u, res_val = cur, used_mask = 0;
+    for(int bit = l - 1; bit >= 0; --bit) {
+        int id = base_id_by_bit[bit];
+        if(id == -1) continue;
+        ull cand = res_val ^ base_val_by_id[id];
+        if(cand > res_val) {
+            res_val = cand;
+            used_mask ^= (1ULL << id);
+        }
+    }
+
+    ull best_sum = (a_xor ^ b_xor) + (res_val << 1);
+    vi idxs;
+    for(int k = rank - 1; k >= 0; --k) {
+        if((used_mask >> k) & 1ULL) {
+            idxs.pb(base_orig_index_by_id[k] + 1);
+            used_mask ^= (1ULL << k);
+            used_mask ^= base_pre_mask_by_id[k];
+        }
+    }
+    srt(idxs);
+    return {best_sum, idxs};
+}
+
+int total_subarray(int n, int x, int k) { // https://basecamp.eolymp.com/en/problems/12215#editorial
+    mint total = 0;
+    for(int len = 1; len <= x; len++) {
+        total += comb.nCk(n - 1, len - 1); 
+    }
+    if(k == 0) {
+        return (int)total;
+    }
+    vvmint dp(x + 1, vmint(n + 1));
+    dp[0][0] = 1;
+    for(int len = 1; len <= x; len++) {
+        mint pre = 0;
+        for(int i = 1; i <= n; i++) {
+            pre += dp[len - 1][i - 1];
+            if(i >= k) pre -= dp[len - 1][i - k];
+            dp[len][i] = pre;
+        }
+    }
+    total--;
+    mint bad = 0;
+    for(int size = 2; size <= x; size++) {
+        for(int j = 1; j <= size; j++) {
+            mint e = 0;
+            for(int mn = 1; mn <= n; mn++) {
+                int rem = n - mn * size;
+                if(rem < 0) break;
+                e += dp[size - j][rem];
+            }
+            e *= comb.nCk(size, j);
+            bad += e;
+        }
+    }
+    return int(total - bad);
+}

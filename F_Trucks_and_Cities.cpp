@@ -64,35 +64,31 @@ const static ll INF = 1e18;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
-const int MOD = 1e9 + 7;
+const int N = 401;
+int dp[N][N][N];
 void solve() {
-    ll n, q; cin >> n >> q;
-    vll a(n);
-    auto apply = [&](int l, int r, int k) -> void {
-        l--, r--;
-        int sz = r - l + 1;
-        vll b(sz);
-        for(int i = l; i <= r; i++) b[i - l] = i + 1;
-        b.insert(end(b), all(b));
-        for(int i = 0; i < sz; i++) {
-            ll s = 0;
-            for(int j = 0; j < k; j++) {
-                s += b[i + j];
-            }
-            (a[i + l] += s) %= MOD;
+    ll n, m; cin >> n >> m;
+    vi a(n); cin >> a;
+    memset(dp, -1, sizeof(dp));
+    auto dfs = [&](auto& dfs, int l, int r, int cuts) -> int {
+        if(l == r) return 0;
+        if(l + 1 == r || cuts == 0) return a[r] - a[l];
+        auto& res = dp[l][r][cuts];
+        if(res != -1) return res;
+        int k = int(lb(all(a), a[l] + (a[r] - a[l]) / (cuts + 1)) - begin(a));
+        res = inf;
+        for(int j = max(l + 1, k - 2); j < min(k + 2, r); j++) {
+            res = min(res, max(a[j] - a[l], dfs(dfs, j, r, cuts - 1)));
         }
+        return res;
     };
-    ll l, r, k; cin >> l >> r >> k;
-    while(q--) {
-        l = (l * 2) % n + 1;
-        r = (r * 3) % n + 1;
-        if(l > r) swap(l, r);
-        k = (k * 4) % (r - l + 1) + 1;
-        apply(l, r, k);
+    ll res = 0;
+    while(m--) {
+        ll s, f, c, r; cin >> s >> f >> c >> r;
+        s--, f--;
+        res = max(res, dfs(dfs, s, f, r) * c);
     }
-    for(int i = 0; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
-    }
+    cout << res << '\n';
 }
 
 signed main() {

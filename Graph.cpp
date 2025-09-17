@@ -1692,7 +1692,7 @@ struct two_sat {
         either(cur, l[1] ^ 1);
     }
 
-    vb satisfy() {
+    vt<bool> satisfy() {
         int V = 2 * N;
         vvi adj(V), radj(V);
         for (auto& e : edges) {
@@ -1703,7 +1703,7 @@ struct two_sat {
             radj[u].pb(v ^ 1);
         }
         vi order; order.reserve(V);
-        vc used(V, 0);
+        vector<char> used(V, 0);
         auto dfs1 = [&](auto& dfs1, int u) -> void {
             used[u] = 1;
             for(int w : adj[u]) if(!used[w]) dfs1(dfs1, w);
@@ -1723,7 +1723,7 @@ struct two_sat {
                 cid++;
             }
         }
-        vb res(N);
+        vt<bool> res(N);
         for(int i = 0; i < N; ++i) {
             if(comp[2 * i] == comp[2 * i + 1]) return {};
             res[i] = comp[2 * i] > comp[2 * i + 1];

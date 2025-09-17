@@ -271,11 +271,9 @@ string gen_string(int n) {
 
 void solve() {
     int n = uni(1, 10);
-    int k = uni(1, n);
-    cout << n << ' ' << k << '\n';
-    for(int i = 0; i < n; i++) {
-        cout << uni(1, n) << (i == n - 1 ? '\n' : ' ');
-    }
+    int q = uni(1, 2);
+    cout << n << ' ' << q << '\n';
+    cout << uni(1, 10) << ' ' << uni(1, 10) << ' ' << uni(1, 10) << '\n';
 }
 
 signed main() {

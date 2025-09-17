@@ -27,6 +27,17 @@ ll sum_of_square(ll n) { return n * (n + 1) * (2 * n + 1) / 6; } // sum of 1 + 2
 string make_lower(const string& t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return tolower(c); }); return s; }
 string make_upper(const string&t) { string s = t; transform(all(s), s.begin(), [](unsigned char c) { return toupper(c); }); return s; }
 template<typename T> T geometric_sum(ll n, ll k) { return (1 - T(n).pow(k + 1)) / (1 - n); } // return n^1 + n^2 + n^3 + n^4 + n^5 + ... + n^k
+ll geometric_sum(ll A, ll X, ll M) { // A^0 + A^1 + A^2 + ... + A^(x - 1), notice only to x - 1, works for any mod
+    // https://atcoder.jp/contests/abc293/tasks/abc293_e
+    if(X == 0) return 0;
+    if(A == 1) return X % M;
+    if(X % 2 == 1) {
+        return (geometric_sum(A, X - 1, M) + modExpo(A, X - 1, M)) % M;
+    }
+    ll half = geometric_sum(A, X / 2, M);
+    ll powA = modExpo(A, X / 2, M);
+    return half * (1 + powA) % M;
+}
 template<typename T> T geometric_power(ll p, ll k) { return (T(p).pow(k + 1) - 1) / T(p - 1); } // p^0 + p^1 + p^2 + p^3 + ... + p^k
 template<typename T> T geometric_power_range(T base, ll startExp, ll endExp) { // return base^startExp + base^(startExp + 1) + ... + base^endExp
     if(startExp > endExp) return 0;

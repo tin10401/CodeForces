@@ -450,8 +450,8 @@ struct aho_corasick {
     struct Node {
         int c[SIGMA], link[SIGMA], sfx, dict, is_end, cnt;
         Node() {
-            mset(c, 0);
-            mset(link, 0);
+			memset(c, 0, sizeof(c));
+            memset(link, 0, sizeof(link));
             sfx = dict = cnt = is_end = 0;
         }
     };

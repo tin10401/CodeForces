@@ -3,19 +3,45 @@ struct Point {
     Point() : x(0), y(0) {}
     Point(ld x, ld y) : x(x), y(y) {}
     double distance(const Point &other) const {
-        return std::sqrt((x - other.x) * (x - other.x) +
-                         (y - other.y) * (y - other.y));
+        return std::sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y));
     }
+
     friend std::ostream& operator<<(std::ostream& os, const Point& p) {
         os << "(" << p.x << ", " << p.y << ")";
         return os;
     }
 
     ld slope_to(const Point &other) const {
-        if (std::fabs(other.x - x) < eps) return std::numeric_limits<ld>::infinity();
+        if(fabs(other.x - x) < 1e-9) return std::numeric_limits<ld>::infinity();
         return (other.y - y) / (other.x - x);
     }
+
+    // parallel if they share same {A, B}
+    bool on_same_line(array<ll, 3> line) {
+        ll A = line[0], B = line[1], C = line[2];
+        return A * (ll)x + B * (ll)y + C == 0;
+    }
 };
+
+// Normalize (A, B, C) so that gcd(A, B, C) = 1 and A >= 0 (if A == 0, B >= 0)
+void normalize_abc(ll &A, ll &B, ll &C) {
+    ll g = std::gcd(std::gcd(std::abs(A), std::abs(B)), std::abs(C));
+    if(g > 0) {
+        A /= g; B /= g; C /= g;
+    }
+    if(A < 0 || (A == 0 && B < 0)) {
+        A = -A; B = -B; C = -C;
+    }
+}
+
+// Compute line coefficients Ax + By + C = 0 from two points
+std::array<ll, 3> get_slope_intercept(const Point &p1, const Point &p2) {
+    ll A = p2.y - p1.y;
+    ll B = p1.x - p2.x;
+    ll C = -A * p1.x - B * p1.y;
+    normalize_abc(A, B, C);
+    return {A, B, C};
+}
 
 bool is_collinear(const Point &p1, const Point &p2, const Point &p3) {
     ld cross = (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
