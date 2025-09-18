@@ -65,13 +65,34 @@ const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
 void solve() {
+    int n; cin >> n;
+    string s; cin >> s;
+    if(n & 1) {
+        cout << -1 << '\n';
+        return;
+    }
+    string t;
+    int free = 0;
+    for(auto& ch : s) {
+        if(!t.empty() && t.back() == ch) {
+            t.pop_back();
+            free++;
+        } else {
+            t.pb(ch);
+        }
+    }
+    if(free & 1 || (!t.empty() && t[0] == ')' && free == 0)) { // can move free '(' to the front and free ')' to the back
+        cout << -1 << '\n';
+        return;
+    }
+    cout << string(free, '(') + t + string(free, ')') << '\n';
 }
 
 signed main() {
     IOS;
     startClock
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

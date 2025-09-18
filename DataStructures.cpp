@@ -887,6 +887,35 @@ class compress_FW {
     }
 };
 
+template<typename T>
+struct BIT2D {
+    vt<vt<T>> val;
+    int n, m;
+
+    BIT2D(int _n, int _m) : n(_n), m(_m) {
+        val.assign(n, vt<T>(m, 0));
+    }
+
+    T query(int x, int y) {
+        T res = 0;
+        for(int i = x + 1; i > 0; i -= i & -i) {
+            for(int j = y + 1; j > 0; j -= j & -j) {
+                res += val[i - 1][j - 1];
+            }
+        }
+        return res;
+    }
+
+    void update(int x, int y, T delta) {
+        for(int i = x + 1; i <= n; i += i & -i) {
+            for(int j = y + 1; j <= m; j += j & -j) {
+                val[i - 1][j - 1] += delta;
+            }
+        }
+    }
+};
+
+
 template<typename T> // for queries and updating rectangle
 struct BIT2D {
     int n, m;
@@ -1051,157 +1080,10 @@ struct BIT2D_XOR {
 };
 
 //https://atcoder.jp/contests/abc223/submissions/65149999
-// this one supports pos array
-template<typename T, int BITS = 60>
-struct xor_basis {
-    T basis[BITS];
-    T pos[BITS];
-    int r;
-
-    xor_basis() {
-        r = 0;
-        for (int b = 0; b < BITS; b++) {
-            basis[b] = 0;
-            pos[b] = inf;
-        }
-    }
-
-    bool insert(T x, int idx) {
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) {
-                basis[b] = x;
-                pos[b] = idx;
-                r++;
-                return true;
-            }
-            if(pos[b] > idx) {
-                swap(pos[b], idx);
-                swap(x, basis[b]);
-            }
-            x ^= basis[b];
-        }
-        return false;
-    }
-
-    bool contains(T x) const {
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) return false;
-            x ^= basis[b];
-        }
-        return true;
-    }
-
-    T min_value(T x) const {
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(basis[b] && (x ^ basis[b]) < x)
-                x ^= basis[b];
-        }
-        return x;
-    }
-
-    T max_value(int idx) const { // https://codeforces.com/contest/1100/submission/316886485
-        T x = 0;
-        for (int b = BITS - 1; b >= 0; --b) {
-            if (basis[b] && pos[b] <= idx && (x ^ basis[b]) > x)
-                x ^= basis[b];
-        }
-        return x;
-    }
-
-    int rank() const {
-        return r;
-    }
-
-    uint64_t size() const {
-        return (r >= 64 ? 0ULL : (1ULL << r));
-    }
-
-    vt<T> get_compact_basis() const {
-        vt<T> vec;
-        for (int b = 0; b < BITS; ++b) {
-            if (basis[b]) vec.pb(basis[b]);
-        }
-        return vec;
-    }
-
-    T get_kth_smallest(uint64_t k) const {
-        auto vec = get_compact_basis();
-        int m = (int)vec.size();
-        if (m >= 64 || k >= (1ULL << m)) return T(0);
-        T ans = 0;
-        for (int i = 0; i < m; ++i) {
-            if ((k >> i) & 1ULL) ans ^= vec[i];
-        }
-        return ans;
-    }
-
-    T get_kth_largest(uint64_t k) const {
-        uint64_t total = size();
-        if (total == 0 || k >= total) return T(0);
-        uint64_t idx = total - 1 - k;
-        return get_kth_smallest(idx);
-    }
-
-    bool insert_base_on(T x, T C) { // https://atcoder.jp/contests/abc141/submissions/me
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(C, b)) continue;
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) {
-                basis[b] = x;
-                r++;
-                for(int c = 0; c < BITS; ++c)
-                    if(c != b && (basis[c] >> b & 1))
-                        basis[c] ^= x;
-                return true;
-            }
-            x ^= basis[b];
-        }
-        return false;
-    }
-
-    T max_value_base_on(T x) const { // find max query(x) + (x ^ query(x));
-        T res = 0;
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(x, b)) continue;
-            if(!have_bit(res, b)) res ^= basis[b];
-        }
-        return res;
-    }
-
-    inline xor_basis operator+(const xor_basis& other) const {
-        if (r == 0) return other;
-        if (other.r == 0) return *this;
-        const xor_basis* big   = (r >= other.r ? this  : &other);
-        const xor_basis* small = (r >= other.r ? &other :  this);
-        xor_basis res = *big;
-        for (int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
-        return res;
-    }
-
-    inline xor_basis& operator^=(T k) { // https://codeforces.com/contest/587/problem/E
-        for (int i = BITS - 1; i >= 0; i--)
-            if (basis[i] & (1LL << 31)) { // original array
-                basis[i] ^= k;
-                break;
-            }
-        return *this;
-    }
-
-    bool operator==(const xor_basis &o) const {
-        for(int b = 0; b < BITS; b++)
-            if(basis[b] != o.basis[b])
-                return false;
-        return true;
-    }
-};
-
-// this one is faster since it iterating over the # of value instead of BITS, careful with initializing BITS, you can go 60 if needed
-// prefer to use this one
+// https://codeforces.com/contest/938/problem/G
+// this one is faster since it iterating over the # of value instead of BITS
 template<typename T, int BITS = 30>
 struct xor_basis {
-    // subsequence [l, r] having subsequence_xor of x is pow(2, (r - l + 1) - rank())
     T basis[BITS];
     int r = 0;
 
@@ -1245,67 +1127,13 @@ struct xor_basis {
     int rank() const { return r; }
  
     uint64_t size() const { return (r >= 64 ? 0ULL : 1ULL << r); }
- 
-    vt<T> get_compact_basis() const {
-        vt<T> vec;
-        for (int i = 0; i < r; ++i) vec.pb(basis[i]);
-        return vec;
-    }
- 
-    T get_kth_smallest(uint64_t k) const {
-        if (r >= 64 || k >= (1ULL << r)) return T(0);
-        T ans = 0;
-        for (int i = 0; i < r; ++i)
-            if ((k >> i) & 1ULL) ans ^= basis[i];
-        return ans;
-    }
- 
-    T get_kth_largest(uint64_t k) const {
-        uint64_t total = size();
-        if (total == 0 || k >= total) return T(0);
-        return get_kth_smallest(total - 1 - k);
-    }
- 
-    bool insert_base_on(T x, T C) { // https://atcoder.jp/contests/abc141/submissions/me
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(C, b)) continue;
-            if(!have_bit(x, b)) continue;
-            if(!basis[b]) {
-                basis[b] = x;
-                r++;
-                for(int c = 0; c < BITS; ++c)
-                    if(c != b && (basis[c] >> b & 1))
-                        basis[c] ^= x;
-                return true;
-            }
-            x ^= basis[b];
-        }
-        return false;
-    }
 
-    T max_value_base_on(T x) const { // find max query(x) + (x ^ query(x));
-        T res = 0;
-        for(int b = BITS - 1; b >= 0; --b) {
-            if(have_bit(x, b)) continue;
-            if(!have_bit(res, b)) res ^= basis[b];
-        }
-        return res;
-    }
-
-    template<typename F>
-    F subsequence_xor_contain_x(ll x, int len) { // https://codeforces.com/contest/959/problem/F
-        // there are rank() important value, (len - rank()) non-important value, which can be expressed as some subset
-        // can skip or take, either way we can still express them as a valid xor == 0 then xor with x
-        return contains(x) ? F(2).pow(len - rank()) : 0;
-    }
  
-    inline xor_basis operator+(const xor_basis& other) const {
-        if(r == 0) return other;
-        if(other.r == 0) return *this;
-        const xor_basis* big   = (r >= other.r ? this  : &other);
-        const xor_basis* small = (r >= other.r ? &other :  this);
-        xor_basis res = *big;
-        for(int i = 0; i < small->r; ++i) res.insert(small->basis[i]);
+	friend xor_basis operator+(const xor_basis& a, const xor_basis& b) {
+        xor_basis res = a;
+        for(auto& x : b.basis) {
+            if(x) res.insert(x);
+        }
         return res;
     }
  
@@ -1322,6 +1150,143 @@ struct xor_basis {
         for(int i = 0; i < r; ++i)
             if(basis[i] != o.basis[i]) return false;
         return true;
+    }
+};
+
+template<typename T = int, int BITS = 30> 
+struct xor_basis {
+    T basis[BITS];
+    int pos[BITS];
+    int zeroes = 0, r = 0;
+
+    xor_basis() {
+        for(int i = 0; i < BITS; i++) {
+            basis[i] = 0; 
+            pos[i] = inf;
+        }
+    }
+
+    bool insert(T x, int id = -1) { // https://atcoder.jp/contests/abc141/submissions/me
+        if(contains(x)) return false;
+        for(int b = BITS - 1; b >= 0; b--) {
+            if(x >> b & 1) {
+                if(id != -1) {
+                    if(!basis[b]) {
+                        basis[b] = x;
+                        pos[b] = id;
+                        r++;
+                        return true;
+                    }
+                    if(pos[b] > id) {
+                        swap(pos[b], id);
+                        swap(x, basis[b]);
+                    }
+                    x ^= basis[b];
+                } else {
+                    if(basis[b]) {
+                        x ^= basis[b];
+                    } else {
+                        basis[b] = x;
+                        r++;
+                        return true;
+                    }
+                }
+            }
+        }
+        if(x == 0) {
+            zeroes++;
+        }
+        return false;
+    }
+	
+	bool contains(T x) const {
+        return min_value(x) == 0;
+    }
+ 
+    T min_value(T x) const {
+        if(r == BITS) return 0;
+        for(int i = BITS - 1; i >= 0; i--) x = min(x, x ^ basis[i]);
+        return x;
+    }
+ 
+    T max_value(T x = 0) const {
+        for(int i = BITS - 1; i >= 0; i--) {
+            x = max(x, x ^ basis[i]);
+        }
+        return x;
+    }
+
+    T get_kth_smallest(ll k) { // 0 base index
+        if(k < 0) return -1;
+        // k >>= zeroes; // kth distinct comment this out
+        if(k >= (1LL << r)) return -1;
+        int b = r - 1;
+        T res = 0;
+        for(int j = BITS - 1; j >= 0; j--) {
+            if(basis[j]) {
+                if((k >> b & 1) != (res >> j & 1)) {
+                    res ^= basis[j];
+                } 
+                b--;
+            }
+        }
+        return res;
+    }
+
+    T get_kth_largest(ll k) {
+        k = (1LL << BITS) - k - 1;
+        // k = (1LL << r) - k - 1;
+        return get_kth_smallest(k);
+    }
+
+    T get_ord(T x) {
+        T ord = 0;
+        int b = r - 1;
+        for(int i = BITS - 1; i >= 0; i--) {
+            if(basis[i]) {
+                if(x >> i & 1) {
+                    ord |= 1LL << b;
+                }
+                b--;
+            } 
+        }
+        // ord <<= zero; // for duplicates
+        return ord;
+    }
+
+    template<typename F>
+    F subsequence_xor_contain_x(ll x, int len) { // https://codeforces.com/contest/959/problem/F
+        // there are rank() important value, (len - rank()) non-important value, which can be expressed as some subset
+        // can skip or take, either way we can still express them as a valid xor == 0 then xor with x
+        return contains(x) ? F(2).pow(len - rank()) : 0;
+    }
+
+    int rank() {
+        return r;
+    }
+
+    friend xor_basis operator+(const xor_basis& a, const xor_basis& b) {
+        xor_basis res = a;
+        for(auto& x : b.basis) {
+            if(x) res.insert(x);
+        }
+        return res;
+    }
+
+    bool operator==(const xor_basis &o) const {
+        for(int b = 0; b < BITS; b++)
+            if(basis[b] != o.basis[b])
+                return false;
+        return true;
+    }
+
+    void reduced_row_echelon_form() { // https://codeforces.com/gym/102979/problem/F
+        for(int i = 0; i < BITS; i++) {
+            if(!basis[i]) continue;
+            for(int j = i + 1; j < BITS; j++) {
+                if(basis[j] >> i & 1) basis[j] ^= basis[i];
+            }
+        }
     }
 };
 

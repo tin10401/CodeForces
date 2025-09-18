@@ -541,17 +541,15 @@ class Combinatoric {
         }
         return D[n];
     }
-
-	T nCk_increasing_sequence(int l, int r, int len) { // given a range of number from l to r, len k, 
-                                                       // return the number of ways to choose those element in increasing order
-//        if(len > r - l + 1) return 0;  // not enough numbers
-//        return choose(r - l + 1, len); // for strictly increasing/decreasing
-        return nCk(r - l + len, len);
-        // x _ _ _ y
-        // # of way to choose the _ unknown value
-        // len = pos[y] - pos[x] - 1
+	
+    T catalan(int k) { // # of pair of balanced bracket of length n is catalan(n / 2)
+        if(k == 0) return 1;
+        return nCk(2 * k, k) - nCk(2 * k, k - 1);
     }
 
+	T monotonic_array_count(int n, int m) {// len n, element from 1 to m increasing/decreasing
+        return nCk(n + m - 1, n);
+    }
 
 //    ll nCk_mod_Lucas_Theorem(int n, int r, int mod) {
 //        if(r > n) return 0 ;
@@ -579,16 +577,6 @@ class Combinatoric {
 //        }
 //        return res;
 //    }
-
-    T catalan(int k) { // # of pair of balanced bracket of length n is catalan(n / 2)
-        if(k == 0) return 1;
-        return nCk(2 * k, k) - nCk(2 * k, k - 1);
-    }
-
-	T monotonic_array_count(int n, int m) {// len n, element from 1 to m increasing/decreasing
-        return nCk(n + m - 1, n);
-    }
-
 }; Combinatoric<mint> comb(MX - 1);
 
 const int K = 5010;
