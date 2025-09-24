@@ -60,38 +60,26 @@ template<typename T, size_t N> istream& operator>>(istream& is, vector<array<T, 
 template<typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) { return in >> input.ff >> input.ss; }
 template<typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
 mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
-const static ll INF = 1e18;
+const static ll INF = 4e18 + 10;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
-const int MOD = 1e9 + 7;
 void solve() {
-    ll n, q; cin >> n >> q;
-    vll a(n);
-    auto apply = [&](int l, int r, int k) -> void {
-        l--, r--;
-        int sz = r - l + 1;
-        vll b(sz);
-        for(int i = l; i <= r; i++) b[i - l] = i + 1;
-        b.insert(end(b), all(b));
-        for(int i = 0; i < sz; i++) {
-            ll s = 0;
-            for(int j = 0; j < k; j++) {
-                s += b[i + j];
-            }
-            (a[i + l] += s) %= MOD;
-        }
-    };
-    ll l, r, k; cin >> l >> r >> k;
-    while(q--) {
-        l = (l * 2) % n + 1;
-        r = (r * 3) % n + 1;
-        if(l > r) swap(l, r);
-        k = (k * 4) % (r - l + 1) + 1;
-        apply(l, r, k);
-    }
+    int n; cin >> n;
+    vi a(n); cin >> a;
     for(int i = 0; i < n; i++) {
-        cout << a[i] << (i == n - 1 ? '\n' : ' ');
+        map<int, int> mp;
+        int lt = 0, mex = 0, res = 0;
+        for(int j = i; j >= 0; j--) {
+            if(a[j] < mex) lt++;
+            mp[a[j]]++;
+            while(mp[mex]) {
+                lt += mp[mex++];
+            }
+            if(i + 1 - lt <= res) break;
+            res = max(res, i - j + 1 - lt);
+        }
+        cout << res << (i == n - 1 ? '\n' : ' ');
     }
 }
 
@@ -99,7 +87,7 @@ signed main() {
     IOS;
     startClock
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

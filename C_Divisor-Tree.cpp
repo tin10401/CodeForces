@@ -65,6 +65,44 @@ const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
 void solve() {
+    int n; cin >> n;
+    vll a(n); cin >> a;
+    srtR(a);
+    vll prime(n);
+    int p = 0;
+    for(int i = 0; i < n; i++) {
+        ll x = a[i];
+        for(ll j = 2; j * j <= x; j++) {
+            while(x % j == 0) {
+                prime[i]++;
+                x /= j;
+            }
+        }
+        if(x > 1) {
+            prime[i]++;
+        }
+        if(prime[i] == 1) p++;
+    }
+    vll tree;
+    tree.pb(0);
+    int res = inf;
+    auto dfs = [&](auto& dfs, int i = 0, int non_root = 0, int child = 0) -> void {
+        if(i == n) {
+            res = min(res, (non_root > 1) + child - p + (int)tree.size() - 1);
+            return;
+        }
+        for(int j = 0; j < int(tree.size()); j++) {
+            if(tree[j] % a[i] == 0) {
+                tree[j] /= a[i]; 
+                tree.pb(a[i]);
+                dfs(dfs, i + 1, non_root + int(j == 0), child + (j == 0 ? prime[i] : 0));
+                tree[j] *= a[i];
+                tree.pop_back();
+            }
+        }
+    };
+    dfs(dfs);
+    cout << res << '\n';
 }
 
 signed main() {

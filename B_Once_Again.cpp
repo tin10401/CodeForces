@@ -64,7 +64,90 @@ const static ll INF = 4e18 + 10;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
+template<typename T>
+struct Mat {
+    int R, C;
+    vt<vt<T>> a;
+    T DEFAULT; 
+
+    Mat(const vt<vt<T>>& m, T _DEFAULT = -inf) : R((int)m.size()), C(m.empty() ? 0 : (int)m[0].size()), a(m), DEFAULT(_DEFAULT) {}
+
+    Mat(int _R, int _C, T _DEFAULT = -inf) : R(_R), C(_C), DEFAULT(_DEFAULT), a(R, vt<T>(C, _DEFAULT)) {}
+
+    static Mat identity(int n, T _DEFAULT) {
+        Mat I(n, n, _DEFAULT);
+        for (int i = 0; i < n; i++)
+            I.a[i][i] = T(0); // for min max do 0 instead of 1
+        return I;
+    }
+
+    Mat operator*(const Mat& o) const {
+        Mat r(R, o.C, DEFAULT);
+        for(int i = 0; i < R; i++) {
+            for(int k = 0; k < C; k++) {
+                T v = a[i][k];
+                for(int j = 0; j < o.C; j++) {
+                    T w = o.a[k][j];
+                    r.a[i][j] = max(r.a[i][j], v + o.a[k][j]);
+                }
+            }
+        }
+        return r;
+    }
+
+    Mat pow(ll e) const {
+        Mat res = identity(R, DEFAULT), base = *this;
+        while(e > 0) {
+            if(e & 1) res = res * base;
+            base = base * base;
+            e >>= 1;
+        }
+        return res;
+    }
+
+    friend ostream& operator<<(ostream& os, const Mat& M) {
+        for(int i = 0; i < M.R; i++) {
+            for(int j = 0; j < M.C; j++) {
+                os << M.a[i][j];
+                if(j + 1 < M.C) os << ' ';
+            }
+            if(i + 1 < M.R) os << '\n';
+        }
+        return os;
+    }
+	
+	bool operator==(const Mat& o) const {
+        if(R != o.R || C != o.C) return false;
+        for(int i = 0; i < R; i++)
+            for(int j = 0; j < C; j++)
+                if(a[i][j] != o.a[i][j]) return false;
+        return true;
+    }
+};
+
 void solve() {
+    int n, t; cin >> n >> t;
+    vi a(n); cin >> a;
+    vvi A(n, vi(n, -inf));
+    for(int s = 0; s < n; ++s) {
+        for(int i = 0; i < n; ++i) {
+            if(a[i] < a[s]) A[s][i] = -inf;
+            else {
+                A[s][i] = 1;
+                for(int j = 0; j < i; ++j)
+                    if(a[j] <= a[i])
+                        A[s][i] = max(A[s][i], A[s][j] + 1);
+            }
+        }
+    }
+    auto it = Mat<int>(A).pow(t);
+    int res = 0;
+    for(auto& x : it.a) {
+        for(auto& y : x) {
+            res = max(res, y);
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {

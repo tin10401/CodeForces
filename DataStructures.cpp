@@ -2980,7 +2980,7 @@ struct Mat {
     static Mat identity(int n, T _DEFAULT) {
         Mat I(n, n, _DEFAULT);
         for (int i = 0; i < n; i++)
-            I.a[i][i] = T(1);
+            I.a[i][i] = T(1); // for min max do 0 instead of 1
         return I;
     }
 
@@ -2990,7 +2990,77 @@ struct Mat {
             for(int k = 0; k < C; k++) {
                 T v = a[i][k];
                 if(v == DEFAULT) continue;
-                for(int j = 0; j < o.C; j++)
+                for(int j = 0; j < o.C; j++) {
+                    T w = o.a[k][j];
+                    if(w == o.DEFAULT) continue;
+                    r.a[i][j] = r.a[i][j] + v * o.a[k][j];
+                }
+            }
+        }
+        return r;
+    }
+
+    Mat pow(ll e) const {
+        Mat res = identity(R, DEFAULT), base = *this;
+        while(e > 0) {
+            if(e & 1) res = res * base;
+            base = base * base;
+            e >>= 1;
+        }
+        return res;
+    }
+
+    friend ostream& operator<<(ostream& os, const Mat& M) {
+        for(int i = 0; i < M.R; i++) {
+            for(int j = 0; j < M.C; j++) {
+                os << M.a[i][j];
+                if(j + 1 < M.C) os << ' ';
+            }
+            if(i + 1 < M.R) os << '\n';
+        }
+        return os;
+    }
+	
+	bool operator==(const Mat& o) const {
+        if(R != o.R || C != o.C) return false;
+        for(int i = 0; i < R; i++)
+            for(int j = 0; j < C; j++)
+                if(a[i][j] != o.a[i][j]) return false;
+        return true;
+    }
+};
+
+template<typename T, int R, int C>
+struct Mat {
+    T a[R][C];
+    T DEFAULT; 
+
+    Mat(const T (&m)[R][C], T _DEFAULT = 0) : DEFAULT(_DEFAULT) {
+        for(int i = 0; i < R; i++) {
+            for(int j = 0; j < C; j++) {
+                a[i][j] = m[i][j];
+            }
+        }
+    }
+
+    Mat(int _R, int _C, T _DEFAULT = 0) : DEFAULT(_DEFAULT) {
+        for(auto& it : a) for(auto& x : it) x = DEFAULT;
+    }
+
+    static Mat identity(int n, T _DEFAULT) {
+        Mat I(n, n, _DEFAULT);
+        for (int i = 0; i < n; i++)
+            I.a[i][i] = T(1);
+        return I;
+    }
+
+    Mat operator*(const Mat& o) const {
+        Mat r(R, C, DEFAULT);
+        for(int i = 0; i < R; i++) {
+            for(int k = 0; k < C; k++) {
+                T v = a[i][k];
+                if(v == DEFAULT) continue;
+                for(int j = 0; j < C; j++)
                     r.a[i][j] = r.a[i][j] + v * o.a[k][j];
             }
         }
@@ -3017,61 +3087,12 @@ struct Mat {
         }
         return os;
     }
-};
 
-template<typename T>
-struct Mat { // max min
-    int R, C;
-    vt<vt<T>> a;
-    T DEFAULT; 
-
-    Mat(const vt<vt<T>>& m, T _DEFAULT = 0) : R((int)m.size()), C(m.empty() ? 0 : (int)m[0].size()), a(m), DEFAULT(_DEFAULT) {}
-
-    Mat(int _R, int _C, T _DEFAULT = 0) : R(_R), C(_C), DEFAULT(_DEFAULT), a(R, vt<T>(C, _DEFAULT)) {}
-
-    static Mat identity(int n, T _DEFAULT) {
-        Mat I(n, n, _DEFAULT);
-        for(int i = 0; i < n; i++)
-            I.a[i][i] = 0;
-        return I;
-    }
-
-    Mat operator*(const Mat& o) const {
-        Mat r(R, o.C, DEFAULT);
-        for(int i = 0; i < R; ++i) {
-            for(int k = 0; k < C; ++k) {
-                T v = a[i][k];
-                if(v == DEFAULT) continue;
-                for(int j = 0; j < o.C; ++j) {
-                    T w = o.a[k][j];
-                    if(w == o.DEFAULT) continue;
-                    T sum = v + w;
-                    r.a[i][j] = min(r.a[i][j], sum);
-                }
-            }
-        }
-        return r;
-    }
-
-    Mat pow(ll e) const {
-        Mat res = identity(R, DEFAULT), base = *this;
-        while(e > 0) {
-            if(e & 1) res = res * base;
-            base = base * base;
-            e >>= 1;
-        }
-        return res;
-    }
-
-    friend ostream& operator<<(ostream& os, const Mat& M) {
-        for(int i = 0; i < M.R; i++) {
-            for(int j = 0; j < M.C; j++) {
-                os << M.a[i][j];
-                if(j + 1 < M.C) os << ' ';
-            }
-            if(i + 1 < M.R) os << '\n';
-        }
-        return os;
+    bool operator==(const Mat& o) const {
+        for(int i = 0; i < R; i++)
+            for(int j = 0; j < C; j++)
+                if(a[i][j] != o.a[i][j]) return false;
+        return true;
     }
 };
 
@@ -4870,5 +4891,84 @@ struct sweepline_update {
     vt<T> get() {
         build();
         return a;
+    }
+};
+
+struct non_monotone_triples { // return the longest chain without monotone triples in [l, r]
+    // https://codeforces.com/contest/1332/problem/G
+    vi a;
+    int n;
+    var(3) a3;
+    var(4) a4;
+    non_monotone_triples(const vi& _a) : n(_a.size()), a(_a) {
+        a3.assign(n, {-1, -1, -1});
+        a4.assign(n, {-1, -1, -1, -1});
+        build();
+    }
+
+    void build() {
+        set<int> non_highs, non_lows, neither;
+        vi highs, lows, in_highs(n), in_lows(n);
+        for(int i = 0; i < n; i++) {
+            if(i) {
+                a4[i] = a4[i - 1];
+                a3[i] = a3[i - 1];
+            }
+            while(!highs.empty() && a[highs.back()] < a[i]) {
+                int j = highs.back(); highs.pop_back();
+                non_highs.insert(j);
+                in_highs[j] = false;
+                if(!in_lows[j]) neither.insert(j);
+            } 
+            while(!lows.empty() && a[lows.back()] > a[i]) {
+                int j = lows.back(); lows.pop_back();
+                non_lows.insert(j);
+                in_lows[j] = false;
+                if(!in_highs[j]) neither.insert(j);
+            }
+            in_lows[i] = in_highs[i] = true;
+            highs.pb(i);
+            lows.pb(i);
+            auto highs_it = lb(all(highs), i, [&](const int& x, const int& y) {return a[x] > a[y];});
+            auto lows_it = lb(all(lows), i, [&](const int& x, const int& y) {return a[x] < a[y];});
+            int last_high = highs_it == begin(highs) ? -1 : *prev(highs_it);
+            int last_low = lows_it == begin(lows) ? -1 : *prev(lows_it);
+            {
+                auto it = neither.lb(min(last_high, last_low));
+                if(it != begin(neither)) {
+                    it--;
+                    debug(lows, highs, neither, last_high, last_low, *it);
+                    int mx = *lb(all(highs), *it);
+                    int mn = *lb(all(lows), *it);
+                    a4[i] = max(a4[i], {*it, min(mn, mx), max(mn, mx), i});
+                }
+            }
+            {
+                auto it = non_highs.lb(last_high);
+                if(it != begin(non_highs)) {
+                    it--;
+                    int mx = *lb(all(highs), *it);
+                    a3[i] = max(a3[i], {*it, mx, i});
+                }
+            }
+            {
+                auto it = non_lows.lb(last_low);
+                if(it != begin(non_lows)) {
+                    it--;
+                    int mn = *lb(all(lows), *it);
+                    a3[i] = max(a3[i], {*it, mn, i});
+                }
+            }
+        }
+    }
+
+    vi query(int l, int r) {
+        if(a4[r][0] >= l) {
+            return {a4[r][0], a4[r][1], a4[r][2], a4[r][3]};
+        }
+        if(a3[r][0] >= l) {
+            return {a3[r][0], a3[r][1], a3[r][2]};
+        }
+        return {};
     }
 };

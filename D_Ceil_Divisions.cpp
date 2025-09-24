@@ -65,13 +65,32 @@ const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
 void solve() {
+    // x, x / 2
+    // x / (x / 2)
+    // 2
+    ll N; cin >> N;
+    int res = 0;
+    vpii ans;
+    while(N > 2) {
+        ll s = sqrt(N);
+        if(s * s < N) s++;
+        for(int i = s + 1; i < N; i++) 
+            ans.pb({i, N});
+        ans.pb({N, s});
+        ans.pb({N, s});
+        N = s;
+    }
+    cout << ans.size() << '\n';
+    for(auto& [x, y] : ans) {
+        cout << x << ' ' << y << '\n';
+    }
 }
 
 signed main() {
     IOS;
     startClock
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

@@ -1,5 +1,4 @@
 #include<bits/stdc++.h>
-#include <cstdlib>
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
 using namespace __gnu_pbds;
@@ -61,7 +60,7 @@ template<typename T, size_t N> istream& operator>>(istream& is, vector<array<T, 
 template<typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) { return in >> input.ff >> input.ss; }
 template<typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
 mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
-const static ll INF = 4e18 + 10;
+const static ll INF = LLONG_MAX;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
@@ -174,51 +173,52 @@ public:
     }
 };
 
-struct info {
-    int one, zl, zr, len, ans, s;
-    info(int v = -1) : one(v == 1), zl(v == 0), zr(v == 0), len(v >= 0), s(v) {}
-
-    friend info operator+(const info& a, const info& b) {
-        if(a.len == 0) return b;
-        if(b.len == 0) return a;
-        info res;
-        res.len = a.len + b.len;
-        res.s = a.s + b.s;
-        res.zl = a.zl + (a.zl == a.len ? b.zl : 0);
-        res.zr = b.zr + (b.zr == b.len ? a.zr : 0);
-        res.one = a.one || b.one;
-        res.ans = a.ans + b.ans + (a.one && b.one && (a.zr + b.zl) > 1 ? 3 : 0);
-        return res;
-    }
-
-    int get() {
-        if(s == 0) return 2;
-        if(s == len) return s;
-        if(!ans && !zl && !zr) {
-            return 2;
-        }
-        // 1 0 0 1 0 0 1
-        // 1 for the 1st one
-        // ans = [0, 0, 1] repeated sequences
-        return min(2, zl) + min(2, zr) + ans + 1;
-    }
-};
-
 void solve() {
-    int n; cin >> n;
-    vi a(n); cin >> a;
-    basic_segtree<info> root(n, info());
+    int n, q; cin >> n >> q;
+    vll x(n), w(n);
     for(int i = 0; i < n; i++) {
-        root.update_at(i, info(a[i]));
+        cin >> x[i] >> w[i];
     }
-    int q; cin >> q;
-    while(q--) {
-        int i; cin >> i;
-        i--;
-        a[i] ^= 1;
-        root.update_at(i, a[i]);
-        cout << root.get().get() << '\n';
+    vvi G(n);
+    {
+        stack<int> s;
+        for(int i = 0; i < n; i++) {
+            while(!s.empty() && w[s.top()] > w[i]) s.pop();
+            int j = s.empty() ? -1 : s.top();
+            if(j != -1) G[i].pb(j);
+            s.push(i);
+        }
     }
+    {
+        stack<int> s;
+        for(int i = n - 1; i >= 0; i--) {
+            while(!s.empty() && w[s.top()] > w[i]) s.pop();
+            int j = s.empty() ? n : s.top();
+            if(j != n) G[j].pb(i);
+            s.push(i);
+        }
+    }
+    auto cal = [&](int i, int j) -> ll {
+        return abs(x[i] - x[j]) * (w[i] + w[j]);
+    };
+    basic_segtree<ll> root(n, INF, [](const auto& x, const auto& y) {return min(x, y);});
+    vvpii Q(n);
+    vll ans(q);
+    for(int i = 0; i < q; i++) {
+        int l, r; cin >> l >> r;
+        l--, r--;
+        Q[r].pb({l, i});
+    }
+    for(int i = 0; i < n; i++) {
+        srtU(G[i]);
+        for(auto& l : G[i]) {
+            root.update_at(l, min(root.queries_at(l), cal(l, i)));
+        }
+        for(auto& [l, id] : Q[i]) {
+            ans[id] = root.queries_range(l, i);
+        }
+    }
+    for(auto& v : ans) cout << v << '\n';
 }
 
 signed main() {

@@ -94,7 +94,7 @@ class Binary_Trie {
         
     ll max_xor(ll num) {  
         ll res = 0, curr = root;
-        for(int i = BIT - 1; i >= 0; i--) {  
+        for(int i = BIT - 1; i >= 0; i--) { // go from lsb to msb if maximizing all pair ORs
             int bits = (num >> i) & 1;  
             int other = T[curr].c[!bits];
             if(other && T[other].cnt) {
@@ -111,7 +111,7 @@ class Binary_Trie {
 
     ll min_xor(ll num) {  
         ll res = num, curr = root;
-        for(int i = BIT - 1; i >= 0; i--) {  
+        for(int i = BIT - 1; i >= 0; i--) {
             int bits = (num >> i) & 1;  
             int same = T[curr].c[bits];
             if(same && T[same].cnt) {
@@ -268,7 +268,6 @@ class Binary_Trie {
         vt<Node>().swap(T);
         root = new_node();
     }
-
 }; vt<Binary_Trie::Node> Binary_Trie::T;
 
 struct PERSISTENT_TRIE {
