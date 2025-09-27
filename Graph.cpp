@@ -297,7 +297,7 @@ class HLD {
     F func;
     HLD() {}
 
-    HLD(vt<vt<TT>>& _graph, vi a, F func, int root = 0, T DEFAULT = 0) : graph(_graph), seg(graph.size(), DEFAULT, func), g(graph, root), n(graph.size()), func(func), DEFAULT(DEFAULT) {
+    HLD(vt<vt<TT>>& _graph, vi a, F func, int root = 0, T DEFAULT = 0) : graph(_graph), seg(_graph.size(), DEFAULT, func), g(graph, root), n(graph.size()), func(func), DEFAULT(DEFAULT) {
         this->parent = move(g.parent);
         this->sz = move(g.subtree);
         chain_cnt = 0, ct = 0;
@@ -1948,8 +1948,8 @@ struct EulerianPath {
     bool directed;
     vvpii graph;
     vi deg, indeg, outdeg;
-    vb used;
-    vi ans;
+    vt<bool> used;
+    vi ans_edges, ans_nodes;
 
     EulerianPath(int _nodes, int _edges, bool _directed = false)
       : nodes(_nodes), edges(_edges), directed(_directed), graph(_nodes), used(_edges, false) {
@@ -2004,17 +2004,19 @@ struct EulerianPath {
             if(used[id]) continue;
             used[id] = true;
             dfs(v);
-            ans.pb(id);
+            ans_edges.pb(id);
         }
+        ans_nodes.pb(u);
     }
 
-    vi get_path() {
+    pair<vi, vi> get_path() {
         int start = find_start();
         if(start < 0) return {};
         dfs(start);
-        if((int)ans.size() != edges) return {};
-        rev(ans);
-        return ans;
+        if((int)ans_edges.size() != edges) return {};
+        rev(ans_nodes);
+        rev(ans_edges);
+        return {ans_nodes, ans_edges};
     }
 };
 
