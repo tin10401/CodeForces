@@ -63,106 +63,115 @@ mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 4e18 + 10;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
+struct paint_grid {
+    // https://codeforces.com/contest/1080/problem/C
+    struct Paint { ll x1, y1, x2, y2; bool is_black; };
 
-struct mod_int {
-    int value;
-    
-    static int MOD;
-    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
-    
-    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
-    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
-    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
-    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
-    
-    mod_int inv() const { return pow(MOD - 2); }
-    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
-    
-    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
-    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
-    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
-    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
-    
-    bool operator==(const mod_int &other) const { return value == other.value; }
-    bool operator!=(const mod_int &other) const { return value != other.value; }
-    bool operator<(const mod_int &other) const { return value < other.value; }
-    bool operator>(const mod_int &other) const { return value > other.value; }
-    bool operator<=(const mod_int &other) const { return value <= other.value; }
-    bool operator>=(const mod_int &other) const { return value >= other.value; }
-    
-    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
-    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
-    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
-    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
-    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
-    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
-    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
-    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
-    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
-    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+    int n, m;
+    ll white, black;
+    vector<Paint> paints;
 
-    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
-    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
-    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
-    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+    paint_grid(int _n, int _m) : n(_n), m(_m) {
+        ll total = 1LL * n * m;
+        white = (total + 1) / 2;
+        black = total / 2;
+    }
 
-    explicit operator ll() const { return (ll)value; }
-    explicit operator int() const { return value; }
-    explicit operator db() const { return (db)value; }
+    static inline bool inter(ll x1, ll y1, ll x2, ll y2, ll a1, ll b1, ll a2, ll b2, ll &ix1, ll &iy1, ll &ix2, ll &iy2) {
+        ix1 = max(x1, a1);
+        iy1 = max(y1, b1);
+        ix2 = min(x2, a2);
+        iy2 = min(y2, b2);
+        return ix1 <= ix2 && iy1 <= iy2;
+    }
 
-    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
-    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
-    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
+    static inline ll area(ll x1, ll y1, ll x2, ll y2) {
+        return (x2 - x1 + 1) * 1LL * (y2 - y1 + 1);
+    }
+
+    static inline pll count_white_black_base(ll x1, ll y1, ll x2, ll y2) {
+        ll h = y2 - y1 + 1;
+        ll w = x2 - x1 + 1;
+        ll a = h * w;
+        ll whites = a / 2;
+        ll blacks = a / 2;
+        if(a & 1) {
+            if((x1 + y1) & 1) blacks++;
+            else whites++;
+        }
+        return {whites, blacks};
+    }
+
+    ll unique_area_from(int i, ll x1, ll y1, ll x2, ll y2, int last) {
+        ll ix1, iy1, ix2, iy2;
+        if(!inter(paints[i].x1, paints[i].y1, paints[i].x2, paints[i].y2, x1, y1, x2, y2, ix1, iy1, ix2, iy2)) return 0;
+        ll res = area(ix1, iy1, ix2, iy2);
+        for(int j = i + 1; j <= last; ++j)
+            res -= unique_area_from(j, ix1, iy1, ix2, iy2, last);
+        return res;
+    }
+
+    ll unique_base_white_from(int i, ll x1, ll y1, ll x2, ll y2, int last) {
+        ll ix1, iy1, ix2, iy2;
+        if(!inter(paints[i].x1, paints[i].y1, paints[i].x2, paints[i].y2, x1, y1, x2, y2, ix1, iy1, ix2, iy2)) return 0;
+        auto [w0, b0] = count_white_black_base(ix1, iy1, ix2, iy2);
+        ll res = w0;
+        for(int j = i + 1; j <= last; ++j)
+            res -= unique_base_white_from(j, ix1, iy1, ix2, iy2, last);
+        return res;
+    }
+
+    void paint(ll x1, ll y1, ll x2, ll y2, bool is_black) {
+        int last = (int)paints.size() - 1;
+
+        auto [baseW, baseB] = count_white_black_base(x1, y1, x2, y2);
+        ll white_in_rect = baseW;
+
+        for(int i = 0; i <= last; ++i) {
+            ll bw = unique_base_white_from(i, x1, y1, x2, y2, last);
+            ll ua = unique_area_from(i, x1, y1, x2, y2, last);
+            if(paints[i].is_black)
+                white_in_rect -= bw;
+            else
+                white_in_rect += (ua - bw);
+        }
+
+        ll rect_area = area(x1, y1, x2, y2);
+        if(is_black) {
+            white -= white_in_rect;
+            black += white_in_rect;
+        } else {
+            ll black_in_rect = rect_area - white_in_rect;
+            white += black_in_rect;
+            black -= black_in_rect;
+        }
+
+        paints.pb({x1, y1, x2, y2, is_black});
+    }
+
+    void paint_white(ll x1, ll y1, ll x2, ll y2) { paint(x1, y1, x2, y2, false); }
+    void paint_black(ll x1, ll y1, ll x2, ll y2) { paint(x1, y1, x2, y2, true); }
 };
 
-using mint = mod_int;
-int mint::MOD = 0;
-
 void solve() {
-    int n, q, p; cin >> n >> q >> p;
-    mint::MOD = p;
-    vi a(n + 1), b(n + 1);
-    for(int i = 1; i <= n; i++) {
-        cin >> a[i];
+    int n, m; cin >> n >> m;
+    paint_grid p(n, m);
+    {
+        int r1, c1, r2, c2; cin >> r1 >> c1 >> r2 >> c2;
+        p.paint_white(r1, c1, r2, c2);
     }
-    for(int i = 1; i <= n; i++) {
-        cin >> b[i];
+    {
+        int r1, c1, r2, c2; cin >> r1 >> c1 >> r2 >> c2;
+        p.paint_black(r1, c1, r2, c2);
     }
-    vector<mint> c(n + 1), d(n + 1);
-    int non_zero = 0;
-    for(int i = 1; i <= n; i++) {
-        c[i] = a[i] - b[i];
-        d[i] = c[i] - c[i - 1] - c[max(0, i - 2)];
-        non_zero += int(d[i] != 0);
-    }
-    const int N = n + 10;
-    vector<mint> fib(N);
-    fib[1] = 1;
-    for(int i = 2; i < N; i++) {
-        fib[i] = fib[i - 1] + fib[i - 2];
-    }
-    auto update = [&](int i, mint delta) -> void {
-        if(i > n || i <= 0) return;
-        non_zero -= int(d[i] != 0);
-        d[i] += delta;
-        non_zero += int(d[i] != 0);
-    };
-    while(q--) {
-        char op; cin >> op;
-        int l, r; cin >> l >> r;
-        int delta = op == 'A' ? 1 : -1;
-        update(l, 1 * delta);
-        update(r + 1, -1 * delta * fib[r - l + 2]);
-        update(r + 2, -1 * delta * fib[r - l + 1]);
-        cout << (non_zero ? "NO" : "YES") << '\n';
-    }
+    cout << p.white << ' ' << p.black << '\n';
 }
 
 signed main() {
     IOS;
     startClock
     int t = 1;
-    //cin >> t;
+    cin >> t;
     for(int i = 1; i <= t; i++) {   
         //cout << "Case #" << i << ": ";  
         solve();

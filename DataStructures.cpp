@@ -4972,3 +4972,93 @@ struct non_monotone_triples { // return the longest chain without monotone tripl
         return {};
     }
 };
+
+struct paint_grid {
+    // https://codeforces.com/contest/1080/problem/C
+    struct Paint { ll x1, y1, x2, y2; bool is_black; };
+
+    int n, m;
+    ll white, black;
+    vector<Paint> paints;
+
+    paint_grid(int _n, int _m) : n(_n), m(_m) {
+        ll total = 1LL * n * m;
+        white = (total + 1) / 2;
+        black = total / 2;
+    }
+
+    static inline bool inter(ll x1, ll y1, ll x2, ll y2, ll a1, ll b1, ll a2, ll b2, ll &ix1, ll &iy1, ll &ix2, ll &iy2) {
+        ix1 = max(x1, a1);
+        iy1 = max(y1, b1);
+        ix2 = min(x2, a2);
+        iy2 = min(y2, b2);
+        return ix1 <= ix2 && iy1 <= iy2;
+    }
+
+    static inline ll area(ll x1, ll y1, ll x2, ll y2) {
+        return (x2 - x1 + 1) * 1LL * (y2 - y1 + 1);
+    }
+
+    static inline pll count_white_black_base(ll x1, ll y1, ll x2, ll y2) {
+        ll h = y2 - y1 + 1;
+        ll w = x2 - x1 + 1;
+        ll a = h * w;
+        ll whites = a / 2;
+        ll blacks = a / 2;
+        if(a & 1) {
+            if((x1 + y1) & 1) blacks++;
+            else whites++;
+        }
+        return {whites, blacks};
+    }
+
+    ll unique_area_from(int i, ll x1, ll y1, ll x2, ll y2, int last) {
+        ll ix1, iy1, ix2, iy2;
+        if(!inter(paints[i].x1, paints[i].y1, paints[i].x2, paints[i].y2, x1, y1, x2, y2, ix1, iy1, ix2, iy2)) return 0;
+        ll res = area(ix1, iy1, ix2, iy2);
+        for(int j = i + 1; j <= last; ++j)
+            res -= unique_area_from(j, ix1, iy1, ix2, iy2, last);
+        return res;
+    }
+
+    ll unique_base_white_from(int i, ll x1, ll y1, ll x2, ll y2, int last) {
+        ll ix1, iy1, ix2, iy2;
+        if(!inter(paints[i].x1, paints[i].y1, paints[i].x2, paints[i].y2, x1, y1, x2, y2, ix1, iy1, ix2, iy2)) return 0;
+        auto [w0, b0] = count_white_black_base(ix1, iy1, ix2, iy2);
+        ll res = w0;
+        for(int j = i + 1; j <= last; ++j)
+            res -= unique_base_white_from(j, ix1, iy1, ix2, iy2, last);
+        return res;
+    }
+
+    void paint(ll x1, ll y1, ll x2, ll y2, bool is_black) {
+        int last = (int)paints.size() - 1;
+
+        auto [baseW, baseB] = count_white_black_base(x1, y1, x2, y2);
+        ll white_in_rect = baseW;
+
+        for(int i = 0; i <= last; ++i) {
+            ll bw = unique_base_white_from(i, x1, y1, x2, y2, last);
+            ll ua = unique_area_from(i, x1, y1, x2, y2, last);
+            if(paints[i].is_black)
+                white_in_rect -= bw;
+            else
+                white_in_rect += (ua - bw);
+        }
+
+        ll rect_area = area(x1, y1, x2, y2);
+        if(is_black) {
+            white -= white_in_rect;
+            black += white_in_rect;
+        } else {
+            ll black_in_rect = rect_area - white_in_rect;
+            white += black_in_rect;
+            black -= black_in_rect;
+        }
+
+        paints.pb({x1, y1, x2, y2, is_black});
+    }
+
+    void paint_white(ll x1, ll y1, ll x2, ll y2) { paint(x1, y1, x2, y2, false); }
+    void paint_black(ll x1, ll y1, ll x2, ll y2) { paint(x1, y1, x2, y2, true); }
+};

@@ -1627,6 +1627,28 @@ string construct_string(const string& s, ll K) { // return the string with s app
     return ans;
 }
 
+string construct_string(const string& target, ll k) { // shortest string with len of target = 2
+    // https://www.codechef.com/problems/XDS?tab=statement
+    ll h = sqrt(k);
+    string t = target.substr(0, target.size() - 1);
+    string tt = string(1, target.back());
+    string s;
+    for(int i = 0; i < h; i++) {
+        s += t;
+    }
+    ll rem = k - h * h, curr = h;
+    while(curr) {
+        if(rem >= curr) {
+            s += t;
+            rem -= curr;
+        } else {
+            curr--;
+            s += tt;
+        }
+    }
+    return s;
+}
+
 template<typename T>
 T count_perm_leq(string a, string b) { // count # of different reorder of a <= b
     const int K = 26;
@@ -1853,4 +1875,111 @@ int total_subarray(int n, int x, int k) { // https://basecamp.eolymp.com/en/prob
         }
     }
     return int(total - bad);
+}
+
+vi find_isomophic_center(const vvi& graph) {
+    // https://codeforces.com/contest/1182/problem/D
+    int n = graph.size();
+    vector<ull> hash(n);
+    vi ok(n, 1);
+    map<ull, ull> mp;
+    auto f = [&](ull t) -> void {
+        if(!mp.count(t)) {
+            mp[t] = (rng() << 32) | rng();
+        }
+    };
+    {
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> void {
+            ull s = 0, prev = 0;
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                dfs(dfs, nei, node);
+                s += hash[nei];
+                if(!ok[nei] || (prev && prev != hash[nei])) {
+                    ok[node] = false;
+                }
+                prev = hash[nei];
+            }
+            f(s);
+            hash[node] = mp[s];
+        };
+        dfs(dfs);
+    }
+    vi ans;
+    {
+        auto dfs = [&](auto& dfs, int node = 0, int par = -1, ull h = 0, int ok_up = 1) -> void {
+            map<ull, int> cnt; 
+            int bad = ok_up == 0;
+            if(par != -1) cnt[h]++;
+            ull curr = par == -1 ? 0 : h;
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                bad += !ok[nei];
+                cnt[hash[nei]]++;
+                curr += hash[nei];
+            }
+            if(bad == 0 && cnt.size() <= 1) {
+                ans.pb(node);
+            }
+            for(auto& nei : graph[node]) {
+                if(nei == par) continue;
+                bad -= !ok[nei];
+                if(--cnt[hash[nei]] == 0) cnt.erase(hash[nei]);
+                curr -= hash[nei];
+                f(curr);
+                dfs(dfs, nei, node, mp[curr], cnt.size() <= 1 && bad == 0);
+                cnt[hash[nei]]++;
+                curr += hash[nei];
+                bad += !ok[nei];
+            }
+        };
+        dfs(dfs);
+    }
+    return ans;
+}
+
+ll domino_solver(vll h, vll c) {
+    // https://codeforces.com/contest/1131/problem/G?adcd1e=caf4fvg4ke61uy&csrf_token=55be3d76734d8ccd743640b909b92ea9
+    h.insert(begin(h), 0);
+    c.insert(begin(c), 0);
+    const int N = h.size();
+    vi L(N), R(N);
+    {
+        stack<int> s;
+        for(ll i = N - 1; i >= 1; i--) {
+            while(!s.empty() && s.top() - h[s.top()] >= i) {
+                L[s.top()] = i + 1;
+                s.pop();
+            }
+            s.push(i);
+        }
+        while(!s.empty()) {
+            L[s.top()] = 1;
+            s.pop();
+        }
+    }
+    {
+        stack<int> s;
+        for(int i = 1; i < N; i++) {
+            while(!s.empty() && s.top() + h[s.top()] <= i) {
+                R[s.top()] = i - 1;
+                s.pop();
+            }
+            s.push(i);
+        }
+        while(!s.empty()) {
+            R[s.top()] = N - 1;
+            s.pop();
+        }
+    }
+    vll dp(N, INF);
+    dp[0] = 0;
+    stack<int> s;
+    for(int i = 1; i < N; i++) {
+        while(!s.empty() && R[s.top()] < i) s.pop();
+        dp[i] = dp[L[i] - 1] + c[i];
+        if(!s.empty()) dp[i] = min(dp[i], dp[s.top() - 1] + c[s.top()]);
+        if(s.empty() || (dp[i - 1] + c[i] < dp[s.top() - 1] + c[s.top()])) s.push(i);
+    }
+    return dp.back();
 }

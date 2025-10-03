@@ -1951,14 +1951,15 @@ struct EulerianPath {
     vt<bool> used;
     vi ans_edges, ans_nodes;
 
-    EulerianPath(int _nodes, int _edges, bool _directed = false)
-      : nodes(_nodes), edges(_edges), directed(_directed), graph(_nodes), used(_edges, false) {
+    EulerianPath(int _nodes, bool _directed = false)
+      : nodes(_nodes), edges(0), directed(_directed), graph(_nodes) {
         if(directed) indeg.assign(nodes,0), outdeg.assign(nodes,0);
         else deg.assign(nodes,0);
     }
 
     void add_edge(int u, int v, int id) {
         graph[u].emplace_back(v, id);
+        edges++;
         if(directed) {
             outdeg[u]++;
             indeg[v]++;
@@ -1998,9 +1999,13 @@ struct EulerianPath {
     }
 
     void dfs(int u) {
+		if(used.empty()) {
+			used.rsz(edges);
+		}
         while(!graph[u].empty()) {
             auto [v, id] = graph[u].back();
             graph[u].pop_back();
+			while((int)used.size() <= id) used.pb(0);
             if(used[id]) continue;
             used[id] = true;
             dfs(v);
@@ -2012,11 +2017,36 @@ struct EulerianPath {
     pair<vi, vi> get_path() {
         int start = find_start();
         if(start < 0) return {};
+        used.rsz(edges);
         dfs(start);
         if((int)ans_edges.size() != edges) return {};
         rev(ans_nodes);
         rev(ans_edges);
         return {ans_nodes, ans_edges};
+    }
+
+    vvi get_all_cycle() {
+        // https://oj.uz/problem/view/BOI14_postmen
+        dfs(0);
+        vi vis(nodes), curr;
+        vvi ans;
+        for(auto& x : ans_nodes) {
+            if(vis[x]) {
+                vi now;
+                now.pb(x);
+                while(!curr.empty() && curr.back() != x) {
+                    int v = curr.back();
+                    vis[v] = false;
+                    now.pb(v);
+                    curr.pop_back();
+                }
+                curr.pop_back();
+                ans.pb(now);
+            }
+            curr.pb(x);
+            vis[x] = true;
+        }
+        return ans;
     }
 };
 
