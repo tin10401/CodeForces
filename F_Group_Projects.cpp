@@ -123,20 +123,29 @@ using vvvmint = vt<vvmint>;
 using pmm = pair<mint, mint>;
 using vpmm = vt<pmm>;
 
+int dp[205][205][1005];
 void solve() {
-    int n, m, x; cin >> n >> m >> x;
-    if(n > m) {
-        cout << 0 << '\n';
-        return;
-    }
-    vvvi dp(n + 1, vvi(n + 1, vi(m + 1, -1)));
-    auto dfs = [&](auto& dfs, int i = 0, int open = 0, int close = 0) -> int {
-        if(i == m) return open == n && close == n;
-        auto& res = dp[i][open][close];
+    int n, K; cin >> n >> K;
+    vi a(n); cin >> a;
+    srt(a);
+    memset(dp, -1, sizeof(dp));
+    auto dfs = [&](auto& dfs, int i = 0, int g = 0, int k = 0) -> int {
+        if(i == n) return g == 0;
+        auto& res = dp[i][g][k];
         if(res != -1) return res;
         res = 0;
-        mint now = 0;
+        mint ans = 0;
+        k -= (i == 0 ? 0 : g * (a[i] - a[i - 1]));
+        if(k >= 0) {
+            ans += dfs(dfs, i + 1, g, k);
+            if(g > 0) ans += (mint)g * dfs(dfs, i + 1, g, k); 
+            ans += dfs(dfs, i + 1, g + 1, k);
+            if(g) ans += (mint)g * dfs(dfs, i + 1, g - 1, k);
+        }
+        res = (int)ans;
+        return res;
     };
+    cout << dfs(dfs, 0, 0, K) << '\n';
 }
 
 signed main() {

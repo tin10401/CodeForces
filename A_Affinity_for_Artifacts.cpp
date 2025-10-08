@@ -116,27 +116,67 @@ struct mod_int {
 };
 
 const static int MOD = 1e9 + 7;
-using mint = mod_int<MOD>;
+using mint = mod_int<998244353>;
 using vmint = vt<mint>;
 using vvmint = vt<vmint>;
 using vvvmint = vt<vvmint>;
 using pmm = pair<mint, mint>;
 using vpmm = vt<pmm>;
 
+const int N = 104;
+mint dp[N][N][N * (N - 1) / 2], dp2[N][N * (N - 1) / 2];
 void solve() {
-    int n, m, x; cin >> n >> m >> x;
-    if(n > m) {
-        cout << 0 << '\n';
-        return;
+    int n, X; cin >> n >> X;
+    vi a(n); cin >> a;
+    ll s = sum(a);
+    for(auto& x : a) {
+        x = min(x, n - 1);
     }
-    vvvi dp(n + 1, vvi(n + 1, vi(m + 1, -1)));
-    auto dfs = [&](auto& dfs, int i = 0, int open = 0, int close = 0) -> int {
-        if(i == m) return open == n && close == n;
-        auto& res = dp[i][open][close];
-        if(res != -1) return res;
-        res = 0;
-        mint now = 0;
-    };
+    srt(a);
+    const int MAXK = n * (n - 1) / 2;
+    dp[0][0][0] = 1;
+    for(int level = 0, x = 0, y; level < n; level++) {
+        for(int disc = 0; disc <= MAXK; disc++) {
+            for(int taken = 0; taken <= n && taken <= level; taken++) {
+                auto ways = dp[level][taken][disc];
+                auto mult = x - taken;
+                if(mult > 0) {
+                    dp[level + 1][taken + 1][disc] += ways * mult;
+                }
+                if(disc + level <= MAXK) {
+                    dp[level + 1][taken][disc + level] += ways;
+                }
+            }
+        }
+        while(x < n && a[x] == level) {
+            memset(dp2, 0, sizeof(dp2));
+            for(int disc = 0; disc <= MAXK; disc++) {
+                for(int taken = 0; taken <= n && taken <= level + 1; taken++) {
+                    auto ways = dp[level + 1][taken][disc];
+                    auto mult = level - taken + 1;
+                    if(mult > 0) {
+                        dp2[taken + 1][disc] += ways * mult;
+                    }
+                    if(disc + level <= MAXK) {
+                        dp2[taken][disc + level] += ways;
+                    }
+                }
+            }
+            for(int disc = 0; disc <= MAXK; disc++) {
+                for(int taken = 0; taken <= n; taken++) {
+                    dp[level + 1][taken][disc] = dp2[taken][disc];
+                }
+            }
+            x++;
+        }
+    }
+    mint res = 0;
+    for(int disc = 0; disc <= MAXK; disc++) {
+        if(X >= s - disc) {
+            res += dp[n][n][disc];
+        }
+    }
+    cout << res << '\n';
 }
 
 signed main() {

@@ -452,9 +452,46 @@ struct info {
         lazy += v;
     }
 
-    friend info operator+(const info& a, const info& b) {
+    friend info operator+(const info& a, const info& b) { // careful about lazy_copy
         info res;
         res.s = min(a.s, b.s);
+        return res;
+    }
+};
+
+using T = pair<ll, mint>;
+const static T lazy_value = {INF, 0};
+struct info { // set, add
+    mint s;
+    T lazy;
+
+    info(ll v = 0) : s(v), lazy(lazy_value) {}
+
+    bool have_lazy() const {
+        return !(lazy == lazy_value);
+    }
+
+    void reset_lazy() {
+        lazy = lazy_value;
+    }
+
+    void apply(T v, int len) {
+        auto& [setv, addv] = v;
+        auto& [lazy_set, lazy_add] = lazy;
+        if(setv != INF) {
+            lazy_set = setv;
+            lazy_add = lazy_value.ss;
+            s = setv * len;
+        } else if(addv != lazy_value.ss) {
+            if(lazy_set != INF) lazy_set = (ll)mint(lazy_set + (ll)addv);
+            else lazy_add += addv;
+            s += addv * len;
+        }
+    }
+
+    friend info operator+(const info& a, const info& b) { // careful with copy lazy_tag when merge
+        info res;
+        res.s = a.s + b.s;
         return res;
     }
 };

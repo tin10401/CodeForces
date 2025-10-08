@@ -1,6 +1,7 @@
 #include<bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
+#include <numeric>
 using namespace __gnu_pbds;
 using namespace std;
 template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
@@ -64,6 +65,63 @@ const static ll INF = 4e18 + 10;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
+const int BUF_SZ = 1 << 15; // do init_output() at the start of the main function
+
+inline namespace Input {
+    char buf[BUF_SZ];
+    int pos;
+    int len;
+    char next_char() {
+        if (pos == len) {
+            pos = 0;
+            len = (int)fread(buf, 1, BUF_SZ, stdin);
+            if (!len) { return EOF; }
+        }
+        return buf[pos++];
+    }
+
+    int read_int() {
+        int x;
+        char ch;
+        int sgn = 1;
+        while (!isdigit(ch = next_char())) {
+            if (ch == '-') { sgn *= -1; }
+        }
+        x = ch - '0';
+        while (isdigit(ch = next_char())) { x = x * 10 + (ch - '0'); }
+        return x * sgn;
+    }
+}
+inline namespace Output {
+    char buf[BUF_SZ];
+    int pos;
+
+    void flush_out() {
+        fwrite(buf, 1, pos, stdout);
+        pos = 0;
+    }
+
+    void write_char(char c) {
+        if (pos == BUF_SZ) { flush_out(); }
+        buf[pos++] = c;
+    }
+
+    void write_int(ll x) {
+        static char num_buf[100];
+        if (x < 0) {
+            write_char('-');
+            x *= -1;
+        }
+        int len = 0;
+        for (; x >= 10; x /= 10) { num_buf[len++] = (char)('0' + (x % 10)); }
+        write_char((char)('0' + x));
+        while (len) { write_char(num_buf[--len]); }
+        write_char('\n');
+    }
+
+    void init_output() { assert(atexit(flush_out) == 0); }
+}
+
 template <int MOD>
 struct mod_int {
     int value;
@@ -116,7 +174,7 @@ struct mod_int {
 };
 
 const static int MOD = 1e9 + 7;
-using mint = mod_int<MOD>;
+using mint = mod_int<998244353>;
 using vmint = vt<mint>;
 using vvmint = vt<vmint>;
 using vvvmint = vt<vvmint>;
@@ -124,24 +182,51 @@ using pmm = pair<mint, mint>;
 using vpmm = vt<pmm>;
 
 void solve() {
-    int n, m, x; cin >> n >> m >> x;
-    if(n > m) {
-        cout << 0 << '\n';
-        return;
+    int n = read_int();
+    int k = read_int();
+    int m = read_int();
+    var(3) edges(m);
+    for(auto& [l, r, ai] : edges) {
+        l = read_int();
+        r = read_int();
+        ai = read_int();
     }
-    vvvi dp(n + 1, vvi(n + 1, vi(m + 1, -1)));
-    auto dfs = [&](auto& dfs, int i = 0, int open = 0, int close = 0) -> int {
-        if(i == m) return open == n && close == n;
-        auto& res = dp[i][open][close];
-        if(res != -1) return res;
-        res = 0;
-        mint now = 0;
-    };
+    mint prod = 1;
+    for(int b = 0; b < k; b++) {
+        vi zero(n + 1), forced(n + 1);
+        for(auto& [l, r, ai] : edges) {
+            if(ai >> b & 1) {
+                forced[l]++;
+                if(r + 1 <= n) {
+                    forced[r + 1]--;
+                }
+            } else {
+                zero[r] = max(zero[r], l);
+            }
+        }
+        partial_sum(all(forced), begin(forced));
+        vmint pre(n + 1);
+        int last = 0;
+        for(int i = 1; i <= n; i++) {
+            mint s = 0;
+            if(!forced[i]) {
+                s = pre[i - 1];
+                if(last == 0) s++;
+                else s -= pre[last - 1];
+            }
+            pre[i] = pre[i - 1] + s;
+            last = max(last, zero[i]);
+        }
+        mint ways = last == 0 ? pre[n] + 1 : pre[n] - pre[last - 1];
+        prod *= ways;
+    }
+    write_int((int)prod);
 }
 
 signed main() {
     IOS;
     startClock
+    init_output();
     int t = 1;
     //cin >> t;
     for(int i = 1; i <= t; i++) {   
