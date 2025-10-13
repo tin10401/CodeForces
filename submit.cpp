@@ -1,154 +1,126 @@
-#include<bits/stdc++.h>
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
-using namespace __gnu_pbds;
+#include <bits/stdc++.h>
 using namespace std;
-template<class T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
-#define vt vector
-#define all(x) begin(x), end(x)
-#define allr(x) rbegin(x), rend(x)
-#define ub upper_bound
-#define lb lower_bound
-#define db double
-#define ld long db
-#define ll long long
-#define ull unsigned long long
-#define vi vt<int>
-#define vvi vt<vi>
-#define vvvi vt<vvi>
-#define pii pair<int, int>
-#define vpii vt<pii>
-#define vvpii vt<vpii>
-#define vll vt<ll>  
-#define vvll vt<vll>
-#define pll pair<ll, ll>    
-#define vpll vt<pll>
-#define vvpll vt<vpll>
-#define ar(x) array<int, x>
-#define var(x) vt<ar(x)>
-#define vvar(x) vt<var(x)>
-#define al(x) array<ll, x>
-#define vall(x) vt<al(x)>
-#define vvall(x) vt<vall(x)>
-#define vs vt<string>
-#define pb push_back
-#define ff first
-#define ss second
-#define rsz resize
-#define sum(x) (ll)accumulate(all(x), 0LL)
-#define srt(x) sort(all(x))
-#define srtR(x) sort(allr(x))
-#define srtU(x) sort(all(x)), (x).erase(unique(all(x)), (x).end())
-#define rev(x) reverse(all(x))
-#define MAX(a) *max_element(all(a)) 
-#define MIN(a) *min_element(all(a))
-#define SORTED(x) is_sorted(all(x))
-#define ROTATE(a, p) rotate(begin(a), begin(a) + p, end(a))
-#define i128 __int128
-#define IOS ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0)
-#if defined(LOCAL) && __has_include("debug.h")
-  #include "debug.h"
-#else
-  #define debug(...)
-  #define startClock
-  #define endClock
-  inline void printMemoryUsage() {}
-#endif
-template<class T> using max_heap = priority_queue<T>; template<class T> using min_heap = priority_queue<T, vector<T>, greater<T>>;
-template<typename T, size_t N> istream& operator>>(istream& is, array<T, N>& arr) { for (size_t i = 0; i < N; i++) { is >> arr[i]; } return is; }
-template<typename T, size_t N> istream& operator>>(istream& is, vector<array<T, N>>& vec) { for (auto &arr : vec) { is >> arr; } return is; }
-template<typename T1, typename T2>  istream &operator>>(istream& in, pair<T1, T2>& input) { return in >> input.ff >> input.ss; }
-template<typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto &el : v) in >> el; return in; }
-mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
-const static ll INF = 4e18 + 10;
-const static int inf = 1e9 + 100;
-const static int MX = 1e5 + 5;
 
-template <int MOD>
-struct mod_int {
-    int value;
-    
-    mod_int(ll v = 0) { value = int(v % MOD); if (value < 0) value += MOD; }
-    
-    mod_int& operator+=(const mod_int &other) { value += other.value; if (value >= MOD) value -= MOD; return *this; }
-    mod_int& operator-=(const mod_int &other) { value -= other.value; if (value < 0) value += MOD; return *this; }
-    mod_int& operator*=(const mod_int &other) { value = int((ll)value * other.value % MOD); return *this; }
-    mod_int pow(ll p) const { mod_int ans(1), a(*this); while (p) { if (p & 1) ans *= a; a *= a; p /= 2; } return ans; }
-    
-    mod_int inv() const { return pow(MOD - 2); }
-    mod_int& operator/=(const mod_int &other) { return *this *= other.inv(); }
-    
-    friend mod_int operator+(mod_int a, const mod_int &b) { a += b; return a; }
-    friend mod_int operator-(mod_int a, const mod_int &b) { a -= b; return a; }
-    friend mod_int operator*(mod_int a, const mod_int &b) { a *= b; return a; }
-    friend mod_int operator/(mod_int a, const mod_int &b) { a /= b; return a; }
-    
-    bool operator==(const mod_int &other) const { return value == other.value; }
-    bool operator!=(const mod_int &other) const { return value != other.value; }
-    bool operator<(const mod_int &other) const { return value < other.value; }
-    bool operator>(const mod_int &other) const { return value > other.value; }
-    bool operator<=(const mod_int &other) const { return value <= other.value; }
-    bool operator>=(const mod_int &other) const { return value >= other.value; }
-    
-    mod_int operator&(const mod_int &other) const { return mod_int((ll)value & other.value); }
-    mod_int& operator&=(const mod_int &other) { value &= other.value; return *this; }
-    mod_int operator|(const mod_int &other) const { return mod_int((ll)value | other.value); }
-    mod_int& operator|=(const mod_int &other) { value |= other.value; return *this; }
-    mod_int operator^(const mod_int &other) const { return mod_int((ll)value ^ other.value); }
-    mod_int& operator^=(const mod_int &other) { value ^= other.value; return *this; }
-    mod_int operator<<(int shift) const { return mod_int(((ll)value << shift) % MOD); }
-    mod_int& operator<<=(int shift) { value = int(((ll)value << shift) % MOD); return *this; }
-    mod_int operator>>(int shift) const { return mod_int(value >> shift); }
-    mod_int& operator>>=(int shift) { value >>= shift; return *this; }
+// Terry's Outing — dual/line-graph view realized via Euler-tour alternation.
+// Key points:
+// 1) Add dummy node D and connect all odd-degree vertices to D.
+// 2) Run one Euler tour starting from D (if D has any edges), alternating 1/2.
+//    This keeps any odd-length-tour imbalance at D, not at a real vertex.
+// 3) Run Euler tours on remaining components (all-even). If a component has an
+//    odd number of edges, exactly one real vertex gets imbalance 2 (optimal).
+// 4) Minimum cost = sum_v ceil(d_v^2 / 2) + 2 * (#components with all degrees
+//    even and an odd edge count).
 
-    mod_int& operator++() { ++value; if (value >= MOD) value = 0; return *this; }
-    mod_int operator++(int) { mod_int temp = *this; ++(*this); return temp; }
-    mod_int& operator--() { if (value == 0) value = MOD - 1; else --value; return *this; }
-    mod_int operator--(int) { mod_int temp = *this; --(*this); return temp; }
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    explicit operator ll() const { return (ll)value; }
-    explicit operator int() const { return value; }
-    explicit operator db() const { return (db)value; }
+    int T; 
+    if (!(cin >> T)) return 0;
+    for (int tc = 1; tc <= T; ++tc) {
+        int N, M; 
+        cin >> N >> M;
 
-    friend mod_int operator-(const mod_int &a) { return mod_int(0) - a; }
-    friend ostream& operator<<(ostream &os, const mod_int &a) { os << a.value; return os; }
-    friend istream& operator>>(istream &is, mod_int &a) { ll v; is >> v; a = mod_int(v); return is; }
-};
+        vector<pair<int,int>> E(M+1);
+        vector<vector<pair<int,int>>> g(N + 2); // 1..N real, N+1 = D
+        vector<int> deg(N + 2, 0);
 
-const static int MOD = 1e9 + 7;
-using mint = mod_int<MOD>;
-using vmint = vt<mint>;
-using vvmint = vt<vmint>;
-using vvvmint = vt<vvmint>;
-using pmm = pair<mint, mint>;
-using vpmm = vt<pmm>;
+        for (int i = 1; i <= M; ++i) {
+            int u, v; cin >> u >> v;
+            E[i] = {u, v};
+            g[u].push_back({v, i});
+            g[v].push_back({u, i});
+            deg[u]++; deg[v]++;
+        }
 
-void solve() {
-    int n, m, x; cin >> n >> m >> x;
-    if(n > m) {
-        cout << 0 << '\n';
-        return;
+        // Add dummy edges from odd-degree vertices to D
+        int D = N + 1;
+        int eid = M;
+        for (int v = 1; v <= N; ++v) {
+            if (deg[v] & 1) {
+                ++eid;
+                g[v].push_back({D, eid});
+                g[D].push_back({v, eid});
+            }
+        }
+
+        // Hierholzer stacks + alternating edge colors
+        vector<int> it(N + 2, 0);
+        vector<char> used(eid + 1, 0);
+        string ans(M, '1');
+        int flip = 0;
+
+        auto has_unused = [&](int u) -> bool {
+            for (auto &pr : g[u]) if (!used[pr.second]) return true;
+            return false;
+        };
+
+        auto run = [&](int s) {
+            vector<int> vs, es;
+            vs.push_back(s);
+            while (!vs.empty()) {
+                int u = vs.back();
+                while (it[u] < (int)g[u].size() && used[g[u][it[u]].second]) ++it[u];
+                if (it[u] == (int)g[u].size()) {
+                    vs.pop_back();
+                    if (!es.empty()) {
+                        int e = es.back(); es.pop_back();
+                        if (e <= M) ans[e - 1] = (flip ? '2' : '1');
+                        flip ^= 1;
+                    }
+                } else {
+                    auto [v, e] = g[u][it[u]++];
+                    if (used[e]) continue;
+                    used[e] = 1;
+                    vs.push_back(v);
+                    es.push_back(e);
+                }
+            }
+        };
+
+        // VERY IMPORTANT: drain the big "odd-degree" component by starting at D,
+        // so any odd-length-tour imbalance stays at D (not a real vertex).
+        if (has_unused(D)) run(D);
+        // Now handle remaining (all-even) components.
+        for (int v = 1; v <= N; ++v) if (has_unused(v)) run(v);
+
+        // Compute minimal total cost:
+        // base = sum ceil(d_v^2 / 2)
+        long long base = 0;
+        for (int v = 1; v <= N; ++v) {
+            long long d = deg[v];
+            base += (d*d + 1) / 2;
+        }
+
+        // penalty = +2 for each connected component that has:
+        // (i) all degrees even, and (ii) an odd number of edges.
+        vector<vector<int>> g0(N + 1);
+        for (int i = 1; i <= M; ++i) {
+            auto [u, v] = E[i];
+            g0[u].push_back(v);
+            g0[v].push_back(u);
+        }
+        vector<char> vis(N + 1, 0);
+        long long penalty = 0;
+        for (int s = 1; s <= N; ++s) {
+            if (vis[s] || g0[s].empty()) continue;
+            // BFS this component
+            long long edge_cnt = 0;
+            bool all_even = true;
+            queue<int> q; q.push(s); vis[s] = 1;
+            while (!q.empty()) {
+                int u = q.front(); q.pop();
+                edge_cnt += (int)g0[u].size();
+                if (deg[u] & 1) all_even = false;
+                for (int w : g0[u]) if (!vis[w]) vis[w] = 1, q.push(w);
+            }
+            edge_cnt /= 2;
+            if (all_even && (edge_cnt & 1)) penalty += 2;
+        }
+
+        long long best = base + penalty;
+        cout << "Case #" << tc << ": " << best << ' ' << ans << "\n";
     }
-    vvvi dp(n + 1, vvi(n + 1, vi(m + 1, -1)));
-    auto dfs = [&](auto& dfs, int i = 0, int open = 0, int close = 0) -> int {
-        if(i == m) return open == n && close == n;
-        auto& res = dp[i][open][close];
-        if(res != -1) return res;
-        res = 0;
-        mint now = 0;
-    };
-}
-
-signed main() {
-    IOS;
-    startClock
-    int t = 1;
-    //cin >> t;
-    for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << i << ": ";  
-        solve();
-    }
-    endClock;
-    printMemoryUsage();
     return 0;
 }
+

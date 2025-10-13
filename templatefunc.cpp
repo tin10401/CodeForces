@@ -92,3 +92,6 @@ vs decode(const string& s, char off = ' ') {
     if(!t.empty()) a.pb(t);
     return a;
 }
+
+//     const db st = clock();
+//     while((clock() - st) / CLOCKS_PER_SEC < 0.44) {

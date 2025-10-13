@@ -259,19 +259,20 @@ public:
     }
 
 	TreapNode* merge_treap(TreapNode* A, TreapNode* B) {
-        if (!B) return A;
-        if (!A) return B;
+        if(!A) return B;
+        if(!B) return A;
+        if(A->pri < B->pri) swap(A, B);
         push(B);
-        A = merge_treap(A, B->left);
-        A = merge_treap(A, B->right);
-        B->left = B->right = nullptr;
         TreapNode *L = nullptr, *R = nullptr;
         split(A, L, R, B->key);
-        merge(L, L, B);
-        merge(A, L, R);
-        unite(A);
-        return A;
+        B->left = merge_treap(L, B->left);
+        if(B->left) B->left->par  = B;
+        B->right = merge_treap(R, B->right);
+        if(B->right) B->right->par = B;
+        unite(B);
+        return B;
     }
+
 
     void merge_treap(TreapNode* other) {
         root = merge_treap(root, other);

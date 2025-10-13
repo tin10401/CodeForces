@@ -2755,3 +2755,59 @@ struct mul_add_info { // [mul, add]
         return mul_add_info(a.s + b.s);
     }
 };
+
+struct all_subarray_or_info {
+    // https://codeforces.com/contest/1004/problem/F
+    const static int K = 20;
+    pii L[K], R[K];
+    int Lsz, Rsz;
+    int OR;
+    ll ans;
+    int len;
+    bool empty;
+
+    all_subarray_or_info() : Lsz(0), Rsz(0), OR(0), ans(0), len(0), empty(true) {}
+    explicit all_subarray_or_info(int x) : Lsz(1), Rsz(1), OR(x), ans((x >= X) ? 1 : 0), len(1), empty(false) {
+        L[0] = R[0] = {x, 1};
+    }
+
+    friend all_subarray_or_info operator+(const all_subarray_or_info& a, const all_subarray_or_info& b) {
+        if(a.empty) return b;
+        if(b.empty) return a;
+
+        all_subarray_or_info res;
+        res.empty = false;
+        res.len = a.len + b.len;
+        res.OR = a.OR | b.OR;
+        res.ans = a.ans + b.ans;
+
+        ll suff = a.len;
+        for(int j = b.Lsz - 1, i = 0; j >= 0 && i < a.Rsz; j--) {
+            while(i < a.Rsz && ((a.R[i].ff | b.L[j].ff) < X)) {
+                suff -= a.R[i++].ss;
+            }
+            res.ans += 1LL * b.L[j].ss * suff;
+        }
+
+        res.Lsz = 0;
+        for(int i = 0; i < a.Lsz; i++) 
+            res.L[res.Lsz++] = a.L[i];
+        for(int j = 0; j < b.Lsz; ++j) {
+            int nx = b.L[j].ff | a.OR;
+            int cnt = b.L[j].ss;
+            if(res.Lsz && res.L[res.Lsz - 1].ff == nx) res.L[res.Lsz - 1].ss += cnt;
+            else res.L[res.Lsz++] = {nx, cnt};
+        }
+
+        res.Rsz = 0;
+        for(int i = 0; i < b.Rsz; i++) 
+            res.R[res.Rsz++] = b.R[i];
+        for(int i = 0; i < a.Rsz; i++) {
+            int nx = a.R[i].ff | b.OR;
+            int cnt = a.R[i].ss;
+            if(res.Rsz && res.R[res.Rsz - 1].ff == nx) res.R[res.Rsz - 1].ss += cnt;
+            else res.R[res.Rsz++] = {nx, cnt};
+        }
+        return res;
+    }
+};

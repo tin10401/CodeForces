@@ -799,6 +799,15 @@ vvi rotate90(const vvi matrix) {
     return res;
 }
 
+vvll rotate270(const vvll& A) {
+    int n = (int)A.size(), m = (int)A[0].size();
+    vvll B(m, vll(n));
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            B[m - 1 - j][i] = A[i][j];
+    return B;
+}
+
 ll allowed_kth(ll k, vi& allowed) { // find the kth number iff only digit in allowed vector show up
     // https://codeforces.com/contest/1811/problem/E
     ll res = 0, place = 1;
@@ -1982,4 +1991,27 @@ ll domino_solver(vll h, vll c) {
         if(s.empty() || (dp[i - 1] + c[i] < dp[s.top() - 1] + c[s.top()])) s.push(i);
     }
     return dp.back();
+}
+
+vvi mask_hamming_distance(int n, vi cnt) {
+	// https://codeforces.com/contest/662/problem/C
+    int N = 1 << n;
+    assert((int)cnt.size() == N);
+    // dp[k][mask] = #columns at Hamming distance exactly k from 'mask'
+    vvi dp(n + 1, vi(N, 0));
+    dp[0] = cnt;
+    for(int k = 1; k <= n; ++k) {
+        for(int mask = 0; mask < N; ++mask) {
+            ll sum = (k > 1 ? 1LL * (k - 2 - n) * dp[k - 2][mask] : 0LL);
+            for(int p = 0; p < n; ++p) {
+                sum += dp[k - 1][mask ^ (1 << p)];
+            }
+            dp[k][mask] = (sum / k);
+        }
+    }
+    vvi res(N, vi(n + 1, 0));
+    for(int mask = 0; mask < N; ++mask)
+        for(int k = 0; k <= n; ++k)
+            res[mask][k] = dp[k][mask];
+    return res;
 }
