@@ -62,216 +62,211 @@ template<typename T> istream &operator>>(istream &in, vector<T> &v) { for (auto 
 mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
 const static ll INF = 4e18 + 10;
 const static int inf = 1e9 + 100;
-const static int MX = 1e5 + 5;
+const static int MX = 2e5 + 5;
 
-template<class T, typename F = function<T(const T&, const T&)>>
-class basic_segtree {
-public:
-    int n;    
-    int size;  
-    vt<T> root;
-    F func;
-    T DEFAULT;  
-    
-    basic_segtree() {}
+const int BUF_SZ = 1 << 15; // do init_output() at the start of the main function
 
-    basic_segtree(int _n, T _DEFAULT, F _func = [](const T& a, const T& b) {return a + b;}) : n(_n), func(_func), DEFAULT(_DEFAULT) {
-        size = 1;
-        while(size < _n) size <<= 1;
-        root.assign(size << 1, _DEFAULT);
-    }
-    
-    void update_at(int idx, T val) {
-        if(idx < 0 || idx >= n) return;
-        idx += size, root[idx] = val;
-        for(idx >>= 1; idx > 0; idx >>= 1) root[idx] = func(root[idx << 1], root[idx << 1 | 1]);
-    }
-    
-	T queries_range(int l, int r) {
-        l = max(0, l), r = min(r, n - 1);
-        T res_left = DEFAULT, res_right = DEFAULT;
-        l += size, r += size;
-        bool has_left = false, has_right = false;
-        while(l <= r) {
-            if((l & 1) == 1) {
-                if(!has_left) res_left = root[l++];
-                else res_left = func(res_left, root[l++]); 
-                has_left = true;
-            }
-            if((r & 1) == 0) {
-                if(!has_right) res_right = root[r--];
-                else res_right = func(root[r--], res_right);
-                has_right = true;
-            }
-            l >>= 1; r >>= 1;
+inline namespace Input {
+    char buf[BUF_SZ];
+    int pos;
+    int len;
+    char next_char() {
+        if (pos == len) {
+            pos = 0;
+            len = (int)fread(buf, 1, BUF_SZ, stdin);
+            if (!len) { return EOF; }
         }
-        if(!has_left) return res_right;
-        if(!has_right) return res_left;
-        return func(res_left, res_right);
+        return buf[pos++];
     }
 
-	
-	T queries_at(int idx) {
-        if(idx < 0 || idx >= n) return DEFAULT;
-        return root[idx + size];
+    int read_int() {
+        int x;
+        char ch;
+        int sgn = 1;
+        while (!isdigit(ch = next_char())) {
+            if (ch == '-') { sgn *= -1; }
+        }
+        x = ch - '0';
+        while (isdigit(ch = next_char())) { x = x * 10 + (ch - '0'); }
+        return x * sgn;
+    }
+}
+inline namespace Output {
+    char buf[BUF_SZ];
+    int pos;
+
+    void flush_out() {
+        fwrite(buf, 1, pos, stdout);
+        pos = 0;
     }
 
-	void update_range(int l, int r, ll v) {}
-
-    T get() {
-        return root[1];
+    void write_char(char c) {
+        if (pos == BUF_SZ) { flush_out(); }
+        buf[pos++] = c;
     }
 
-    template<typename Pred>
-    int max_right(int start, Pred P) const {
-        if(start < 0) start = 0;
-        if(start >= n) return n;
-        T sm = DEFAULT;
-        int idx = start + size;
-        do {
-            while((idx & 1) == 0) idx >>= 1;
-            if(!P(func(sm, root[idx]))) {
-                while(idx < size) {
-                    idx <<= 1;
-                    T cand = func(sm, root[idx]);
-                    if(P(cand)) {
-                        sm = cand;
-                        idx++;
-                    }
+    void write_int(ll x) {
+        static char num_buf[100];
+        if (x < 0) {
+            write_char('-');
+            x *= -1;
+        }
+        int len = 0;
+        for (; x >= 10; x /= 10) { num_buf[len++] = (char)('0' + (x % 10)); }
+        write_char((char)('0' + x));
+        while (len) { write_char(num_buf[--len]); }
+        write_char('\n');
+    }
+
+    void init_output() { assert(atexit(flush_out) == 0); }
+}
+
+int n, M;
+struct EulerianPath {
+    int nodes, edges;
+    bool directed;
+    vvpii graph;
+    vi deg, indeg, outdeg;
+    vt<bool> used;
+
+    EulerianPath(int _nodes, bool _directed = false)
+      : nodes(_nodes), edges(0), directed(_directed), graph(_nodes) {
+        if(directed) indeg.assign(nodes,0), outdeg.assign(nodes,0);
+        else deg.assign(nodes,0);
+    }
+
+    void add_edge(int u, int v, int id) {
+        graph[u].emplace_back(v, id);
+        edges++;
+        if(directed) {
+            outdeg[u]++;
+            indeg[v]++;
+        } else {
+            graph[v].emplace_back(u, id);
+            deg[u]++;
+            deg[v]++;
+        }
+    }
+
+    int find_start() const {
+        int start = -1;
+        if(!directed) {
+            int odd = 0;
+            for(int i = 0; i < nodes; i++) {
+                if(deg[i] & 1) {
+                    odd++;
+                    start = i;
                 }
-                return idx - size - 1;
+                if(start < 0 && deg[i] > 0) start = i;
             }
-            sm = func(sm, root[idx]);
-            idx++;
-        } while((idx & -idx) != idx);
-        return n - 1;
+            if(start < 0) return 0;
+            if(odd != 0 && odd != 2) return -1;
+        } else {
+            int plus1 = 0, minus1 = 0;
+            for(int i = 0; i < nodes; i++) {
+                int d = outdeg[i] - indeg[i];
+                if(d == 1) { plus1++; start = i; }
+                else if(d == -1) minus1++;
+                else if(d != 0) return -1;
+                if(start < 0 && outdeg[i] > 0) start = i;
+            }
+            if(start < 0) return 0;
+            if(!((plus1 == 1 && minus1 == 1) || (plus1 == 0 && minus1 == 0))) return -1;
+        }
+        return start;
     }
 
-    template<typename Pred>
-    int min_left(int ending, Pred P) const {
-        if(ending < 0) return 0;
-        if(ending >= n) ending = n - 1;
-        T sm = DEFAULT;
-        int idx = ending + size + 1;
-        do {
-            idx--;
-            while(idx > 1 && (idx & 1)) idx >>= 1;
-            if(!P(func(root[idx], sm))) {
-                while(idx < size) {
-                    idx = idx * 2 + 1;
-                    T cand = func(root[idx], sm);
-                    if(P(cand)) {
-                        sm = cand;
-                        idx--;
-                    }
-                }
-                return idx + 1 - size;
-            }
-            sm = func(root[idx], sm);
-        } while((idx & -idx) != idx);
-        return 0;
-    }
-};
-
-struct info {
-    struct part {
-        ll s, mx, edge;
-        int len;
-    };
-
-    vector<part> pre, suff;
-    ll s = 0, mx = -1, pref = -1, suf = -1;
-    int len = 0, best = 0;
-
-    info() = default;
-
-    info(ll x) {
-        s = x; mx = x; pref = x; suf = x; len = 1; best = 0;
-        pre.pb({x, x, -1, 1});
-        suff.pb({x, x, -1, 1});
+    string s;
+    var(3) ans_edges;
+    void dfs(int u) {
+        while(!graph[u].empty()) {
+            auto [v, id] = graph[u].back();
+            graph[u].pop_back();
+            if(used[id]) continue;
+            used[id] = true;
+            dfs(v);
+            ans_edges.pb({id, u, v});
+        }
     }
 
-    friend info operator+(const info& A, const info& B) {
-        if(A.len == 0) return B;
-        if(B.len == 0) return A;
-
-        auto ok = [](const part& x) {
-            return x.edge == -1 || x.edge >= x.s;
-        };
-
-        info C;
-        C.best = max(A.best, B.best);
-        C.s = A.s + B.s;
-        C.len = A.len + B.len;
-        C.pref = A.pref;
-        C.suf  = B.suf;
-        C.mx = max(A.mx, B.mx);
-        C.pre = A.pre;
-        if(!C.pre.empty() && C.pre.back().edge == -1) {
-            C.pre.back().edge = B.pref;
-            if(!ok(C.pre.back())) C.pre.pop_back();
+    var(3) get_path() {
+        used.rsz(edges);
+        dfs(n);
+        for(int i = 0; i < n; i++) {
+            dfs(i);
         }
-        for(auto x : B.pre) {
-            x.mx = max(x.mx, A.mx);
-            x.s += A.s;
-            x.len += A.len;
-            if(ok(x)) C.pre.pb(x);
-        }
-
-        C.suff = B.suff;
-        if(!C.suff.empty() && C.suff.back().edge == -1) {
-            C.suff.back().edge = A.suf;
-            if(!ok(C.suff.back())) C.suff.pop_back();
-        }
-        for(auto x : A.suff) {
-            x.mx = max(x.mx, B.mx);
-            x.s += B.s;
-            x.len += B.len;
-            if(ok(x)) C.suff.push_back(x);
-        }
-
-        for(const auto& x : A.suff) {
-            for(const auto& y : B.pre) {
-                ll M = max(x.mx, y.mx);
-                ll sm = x.s + y.s;
-                if(M * 2 < sm) C.best = max(C.best, x.len + y.len);
-            }
-        }
-        return C;
+        s = string(edges, '?');
+        rev(ans_edges);
+        return ans_edges;
     }
 };
 
 void solve() {
-    int n, m; cin >> n >> m;
-    basic_segtree<info> root(n + 1, info(), [](const auto& x, const auto& y) {return x + y;});
-    for(int i = 1; i <= n; i++) {
-        ll x; cin >> x;
-        root.update_at(i, info(x));
+    // d1^2 + d2^2 
+    // di = d1 + d2
+    // si = d1 - d2
+    // di + si = 2 * d1
+    // d1 = (di + si) / 2
+    // d2 = (di - si) / 2
+    // d1^2 + d2^2 = ((di + si)^2 + (di - si) ^ 2) / 4
+    //             = (di^2 + 2disi + si^2 + di^2 + - 2disi + si^2) / 4
+    //             = (di^2 + si^2) / 2
+    int m;
+    n = read_int();
+    m = read_int();
+    EulerianPath graph(n + 1, false);
+    vi degree(n);
+    vpii edges;
+    for(int i = 0; i < m; i++) {
+        int u = read_int();
+        int v = read_int();
+        u--, v--;
+        edges.pb({u, v});
+        graph.add_edge(u, v, i);
+        degree[u]++;
+        degree[v]++;
     }
-    while(m--) {
-        int op; cin >> op;
-        if(op == 2) {
-            ll i, x; cin >> i >> x;
-            root.update_at(i, info(x));
-            continue;
+    M = m;
+    for(int i = 0; i < n; i++) {
+        if(degree[i] & 1) {
+            graph.add_edge(n, i, m++);
         }
-        int l, r; cin >> l >> r;
-        auto it = root.queries_range(l, r);
-        auto ans = it.best;
-        cout << (ans < 3 ? -1 : ans) << '\n';
     }
+    auto ans_edges = graph.get_path();
+    int c = 0;
+    vi s(m);
+    for(auto& [id, u, v] : ans_edges) {
+        s[id] = c ^= 1;
+    }
+    while((int)s.size() > M) s.pop_back();
+    vvi D(n, vi(2));
+    for(int i = 0; i < M; i++) {
+        auto& [u, v] = edges[i];
+        int g = s[i];
+        D[u][g]++;
+        D[v][g]++;
+    }
+    ll A = 0;
+    for(int i = 0; i < n; i++) {
+        for(auto& x : D[i]) {
+            A += (ll)x * x;
+        }
+    }
+    cout << A << ' ';
+    for(int i = 0; i < M; i++) {
+        cout << s[i] + 1;
+    }
+    cout << '\n';
 }
 
 signed main() {
     IOS;
-    startClock
+    init_output();
     int t = 1;
-    cin >> t;
+    t = read_int();
     for(int i = 1; i <= t; i++) {   
-        //cout << "Case #" << i << ": ";  
+        cout << "Case #" << i << ": ";  
         solve();
     }
-    endClock;
-    printMemoryUsage();
     return 0;
 }
