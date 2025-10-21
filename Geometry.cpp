@@ -161,6 +161,88 @@ bool areParallelByMidpoint(const pll& p1, const pll& p2, const pll& q1, const pl
     return getMidpointKey(p1,p2) == getMidpointKey(q1,q2);
 }
 
+--------------------------------------------------------------------------------------------------------------
+template <typename T>
+struct Point {
+    T x, y;
+};
+
+template <typename P>
+static inline ll cross(const P& a, const P& b, const P& c) {
+    ll x1 = (ll)b.x - a.x;
+    ll y1 = (ll)b.y - a.y;
+    ll x2 = (ll)c.x - a.x;
+    ll y2 = (ll)c.y - a.y;
+    return x1 * y2 - y1 * x2;
+}
+
+template <typename P>
+static inline int sgn(ll v) {
+    return (v > 0) - (v < 0);
+}
+
+template <typename P>
+static inline bool on_segment(const P& a, const P& b, const P& p) {
+    if(cross(a, b, p) != 0) return false;
+    return min(a.x, b.x) <= p.x && p.x <= max(a.x, b.x) &&
+           min(a.y, b.y) <= p.y && p.y <= max(a.y, b.y);
+}
+
+template <typename P>
+static inline bool seg_intersect(const P& a, const P& b, const P& c, const P& d) {
+    int o1 = sgn<P>(cross(a, b, c));
+    int o2 = sgn<P>(cross(a, b, d));
+    int o3 = sgn<P>(cross(c, d, a));
+    int o4 = sgn<P>(cross(c, d, b));
+    if((o1 == 0 && on_segment(a, b, c)) ||
+        (o2 == 0 && on_segment(a, b, d)) ||
+        (o3 == 0 && on_segment(c, d, a)) ||
+        (o4 == 0 && on_segment(c, d, b))) return true;
+    return (o1 > 0) != (o2 > 0) && (o3 > 0) != (o4 > 0);
+}
+
+template <typename P>
+static inline bool point_in_polygon_inclusive(const vector<P>& poly, const P& p) {
+    const int n = (int)poly.size();
+    for(int i = 0; i < n; ++i) {
+        const P& a = poly[i];
+        const P& b = poly[(i + 1) % n];
+        if(on_segment(a, b, p)) return true;
+    }
+    bool inside = false;
+    for(int i = 0; i < n; ++i) {
+        P a = poly[i];
+        P b = poly[(i + 1) % n];
+        bool intersectY = ((a.y > p.y) != (b.y > p.y));
+        if(intersectY) {
+            double xint = a.x + (double)(b.x - a.x) * (double)(p.y - a.y) / (double)(b.y - a.y);
+            if(xint > (double)p.x) inside = !inside;
+        }
+    }
+    return inside;
+}
+
+template <typename P>
+bool polygons_intersect(const vector<P>& A, const vector<P>& B) { // given 2 polygon, determine if they intersect
+	// https://codeforces.com/contest/994/problem/C
+    const int n = (int)A.size();
+    const int m = (int)B.size();
+    for(int i = 0; i < n; ++i) {
+        P a1 = A[i];
+        P a2 = A[(i + 1) % n];
+        for(int j = 0; j < m; ++j) {
+            P b1 = B[j];
+            P b2 = B[(j + 1) % m];
+            if(seg_intersect(a1, a2, b1, b2)) return true;
+        }
+    }
+    if(point_in_polygon_inclusive(B, A[0])) return true;
+    if(point_in_polygon_inclusive(A, B[0])) return true;
+    return false;
+}
+--------------------------------------------------------------------------------------------------------------
+
+
 struct manhattan {
     ll mx1 = -INF, mn1 = INF, mx2 = -INF, mn2 = INF;
     void update(ll x, ll y) {

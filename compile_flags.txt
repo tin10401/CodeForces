@@ -1,7 +1,9 @@
--std=c++23
+-std=c++20
+-O2
 -Wall
 -Wextra
--Werror
--Wno-unused-parameter
--Wno-unused-variable
--Wno-unused-const-variable
+-DCODEFORCES
+-Wshadow
+-Wshadow-uncaptured-local   # clang 16+ (more precise for lambdas)
+# optional “make it an error”:
+# -Werror=shadow

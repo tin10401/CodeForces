@@ -1,4 +1,4 @@
-# Install script for directory: /home/sololtin2001/CodeForces
+# Install script for directory: /home/tinle2/CodeForces
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/sololtin2001/CodeForces/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/tinle2/CodeForces/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

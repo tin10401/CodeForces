@@ -11,6 +11,7 @@ ll gcd(ll a, ll b) { while (b != 0) { ll temp = b; b = a % b; a = temp; } return
 ll lcm(ll a, ll b) { return (a / gcd(a, b)) * b; }
 ll floor(ll a, ll b) { if(b < 0) a = -a, b = -b; if (a >= 0) return a / b; return a / b - (a % b ? 1 : 0); }
 ll ceil(ll a, ll b) { if (b < 0) a = -a, b = -b; if (a >= 0) return (a + b - 1) / b; return a / b; }
+ll ceil_to_ll(db x) { return ceil(x - 1e-12L); }
 int pct(ll x) { return __builtin_popcountll(x); }
 int have_bit(ll x, int b) { return (x >> b) & 1; }
 int min_bit(ll x) { return __builtin_ctzll(x); }

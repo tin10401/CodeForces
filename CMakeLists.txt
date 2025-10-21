@@ -30,6 +30,7 @@ add_flag_if_supported("-fcolor-diagnostics")
 
 add_flag_if_supported("-Wall")
 add_flag_if_supported("-Wextra")
+add_flag_if_supported("-Wshadow")
 
 # Debug-only runtime checking
 add_dbg_flag_if_supported("-O1")
@@ -46,4 +47,3 @@ add_compile_definitions(
 )
 
 add_executable(app submit.cpp)
-
