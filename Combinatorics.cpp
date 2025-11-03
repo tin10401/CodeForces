@@ -1016,17 +1016,31 @@ struct sos_dp {
         superset = f;
     }
 
-    template<typename F>
-    F subset_equal_to(ll target) { // how many OR subset equal to target
+	template<typename F>
+    vector<F> subset_or_equal_to() { // how many OR subset equal to i from 0 to (1 << B) - 1
         // https://www.hackerrank.com/contests/w16/challenges/vim-war/problem
-        subsetSOS();
-        F res = 0;
-        for(ll mask = target; ; mask = (mask - 1) & target) {
-            if(pct(mask ^ target) & 1) res -= F(2).pow(f[mask]) - 1; // contribution of mask to target is (mask ^ target)
-            else res += F(2).pow(f[mask]) - 1;
-            if(mask == 0) break;
+        vt<F> dp(1 << B);
+        for(int i = 0; i < 1 << B; i++) {
+            dp[i] = a[i];
         }
-        return res;
+        for(int j = 1; j < 1 << B; j <<= 1) {
+            for(int i = 0; i < 1 << B; i++) {
+                if(i & j) {
+                    dp[i] += dp[i ^ j]; // for and do dp[i ^ j] += dp[i] and same for below
+                }
+            }
+        }
+        for(int i = 0; i < 1 << B; i++) {
+            dp[i] = F(2).pow((int)dp[i]) - 1;
+        }
+        for(int j = 1; j < 1 << B; j <<= 1) {
+            for(int i = 0; i < 1 << B; i++) {
+                if(i & j) {
+                    dp[i] -= dp[i ^ j];
+                }
+            }
+        }
+        return dp;
     }
 
     vll A;
@@ -1206,6 +1220,73 @@ vll segmented_sieve(ll l, ll r) { // return vector of all primes in [l, r]
     }
     return vec;
 }
+
+ll nck(ll n, ll k, ll MOD) {
+    if(k < 0 || k > n) return 0;
+    if(MOD == 1) return 0;
+
+    auto mod_pow = [&](ll a, ll e, ll m) -> ll {
+        ll r = 1 % m; a %= m; if (a < 0) a += m;
+        while(e) { if (e & 1) r = (i128)r * a % m; a = (i128)a * a % m; e >>= 1; }
+        return r;
+    };
+    auto egcd = [&](auto& self, ll a, ll b, ll& x, ll& y) -> ll {
+        if(!b) { x = 1; y = 0; return a >= 0 ? a : -a; }
+        ll x1, y1; ll g = self(self, b, a % b, x1, y1);
+        x = y1; y = x1 - y1 * (a / b); return g;
+    };
+    auto mod_inv = [&](ll a, ll m) -> ll {
+        ll x, y; ll g = egcd(egcd, a, m, x, y);
+        if(g != 1) return -1LL;
+        x %= m; if (x < 0) x += m; return x;
+    };
+    auto binom_pp = [&](ll N, ll K, int p, int q) -> ll {
+        if(K < 0 || K > N) return 0LL;
+        int pw = 1; for (int i = 0; i < q; ++i) pw *= p;
+        vt<ll> fct(pw); fct[0] = 1 % pw;
+        for (int i = 1; i < pw; ++i) fct[i] = (i % p == 0 ? fct[i - 1] : (fct[i - 1] * (ll)i) % pw);
+
+        auto facto = [&](auto& self, ll x) -> pll {
+            if (x < p) return {fct[(int)x], 0};
+            ll kq = x / pw, xp = x / p; int r = (int)(x % pw);
+            pll ret = {fct[r], xp};
+            auto sub = self(self, xp);
+            ret.ff = (ret.ff * sub.ff) % pw;
+            ret.ss += sub.ss;
+            ret.ff = (ret.ff * mod_pow(fct[pw - 1], kq, pw)) % pw;
+            return ret;
+        };
+
+        auto A = facto(facto, N);
+        auto B = facto(facto, K);
+        auto C = facto(facto, N - K);
+        ll e = A.ss - B.ss - C.ss;
+        if (e >= q) return 0LL;
+        ll denom = (B.ff * C.ff) % pw;
+        ll inv = mod_inv(denom, pw);
+        ll res = (A.ff * inv) % pw;
+        res = (res * mod_pow(p, e, pw)) % pw;
+        return res;
+    };
+
+    vt<pair<ll,ll>> residues;
+    for (auto [p, q] : factorize(MOD)) { // prime factorize with rho
+        int pw = 1; for (int i = 0; i < q; ++i) pw *= p;
+        ll ri = binom_pp(n, k, p, q);
+        residues.pb({ri, (ll)pw});
+    }
+
+    ll x = 0, cur = 1;
+    for (auto [ri, mi] : residues) {
+        ll t = ((ri - x) % mi + mi) % mi;
+        ll inv = mod_inv(cur % mi, mi);
+        ll add = (i128)t * inv % mi;
+        x = x + add * cur;
+        cur *= mi;
+    }
+    return x % MOD;
+};
+
 
 //for(auto& p : primes) {
 //	for(int c = m / p; c >= 1; c--) f[c] += f[c * p];

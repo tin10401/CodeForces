@@ -338,6 +338,8 @@ _O1:INTERNAL=1
 _Wall:INTERNAL=1
 //Test _Wextra
 _Wextra:INTERNAL=1
+//Test _Wfor_loop_analysis
+_Wfor_loop_analysis:INTERNAL=
 //Test _Wshadow
 _Wshadow:INTERNAL=1
 //Test _fcolor_diagnostics

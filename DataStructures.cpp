@@ -273,7 +273,6 @@ public:
         return B;
     }
 
-
     void merge_treap(TreapNode* other) {
         root = merge_treap(root, other);
     }
@@ -1217,6 +1216,58 @@ struct xor_basis {
         return x;
     }
 
+    int reduce(T pref, int from_bit) const {
+        for(int b = BITS - 1; b >= from_bit; b--) {
+            if(pref >> b & 1 && basis[b]) {
+                pref ^= basis[b];
+            }
+        }
+        return pref;
+    }
+ 
+    int can_make_prefix(T ai, T pref, int from_bit) const {
+        T now = ai ^ pref;
+        T v = reduce(now, from_bit);
+        return (v >> from_bit) == 0;
+    }
+ 
+    T max_value(T ai, T bi) const { // find maximum x <= bi such that ai ^ x exists
+        // https://codeforces.com/gym/644977/problem/C
+        T x = 0;
+        T mx = ai <= bi ? ai : -1;
+        for(int i = BITS - 1; i >= 0; i--) {
+            int b_bit = bi >> i & 1;
+            if(can_make_prefix(ai, x, i)) {
+                T pref = reduce(x ^ ai, i);
+                T nx = x;
+                for(int j = i - 1; j >= 0; j--) {
+                    int change = 0;
+                    if((nx | (1ll << j)) <= bi) {
+                        change = 1;
+                        nx |= 1ll << j;
+                        pref ^= 1ll << j;
+                    }
+                    if(pref >> j & 1) {
+                        if(basis[j]) {
+                            pref ^= basis[j];
+                        } else {
+                            pref ^= 1ll << j;
+                            nx ^= change << j;
+                        }
+                    }
+                } 
+                if(can_make_prefix(ai, nx, 0)) {
+                    mx = max(mx, nx);
+                }
+            }
+            if(b_bit) {
+                x |= 1ll << i;
+                if(!can_make_prefix(ai, x, i)) break;
+            }
+        }
+        return mx;
+    }
+
     T get_kth_smallest(ll k) { // 0 base index
         if(k < 0) return -1;
         // k >>= zeroes; // kth distinct comment this out
@@ -1290,6 +1341,217 @@ struct xor_basis {
         }
     }
 };
+
+struct BasisNode {
+    int value;
+    int id;
+    int mask;
+    int high;
+};
+
+inline int highest_bit(int x) {
+    if (x == 0) return -1;
+    return 31 - __builtin_clz(x);
+}
+
+inline void swap_mask_bits(int &x, int a, int b) {
+    int bit_a = (x >> a) & 1;
+    int bit_b = (x >> b) & 1;
+    int delta = (bit_a ^ bit_b);
+    x ^= (delta << a);
+    x ^= (delta << b);
+}
+
+struct XorBasis {
+    vector<BasisNode> basis;
+
+    static inline bool minimize(int &a, int b) {
+        if (b < a) { a = b; return true; }
+        return false;
+    }
+
+    inline bool add(int x, int id) {
+        int comb_mask = 0;
+        for(auto &row : basis) {
+            int reduced = x ^ row.value;
+            if(minimize(x, reduced)) comb_mask ^= row.mask;
+        }
+
+        if(x == 0) return false;
+        int col = int(basis.size());
+        comb_mask |= (1 << col);
+        for(auto &row : basis) {
+            int reduced = row.value ^ x;
+            if(minimize(row.value, reduced)) {
+                row.mask ^= comb_mask;
+                row.high = highest_bit(row.value);
+            }
+        }
+
+        basis.pb(BasisNode{ .value = x, .id = id, .mask = comb_mask, .high = highest_bit(x) });
+        return true;
+    }
+    inline int get_row_with_odd_parity_on_bits(int bits, const vi &vals_by_id) const {
+        for(const auto &row : basis) {
+            int v = vals_by_id[row.id];
+            if(__builtin_popcount(v & bits) & 1) return row.id;
+        }
+        return -1;
+    }
+
+    inline int rebuild_and_delete(int id) {
+        // Find its position in 'basis'
+        int pos = -1;
+        for(int i = 0; i < (int)basis.size(); ++i) {
+            if(basis[i].id == id) { pos = i; break; }
+        }
+        assert(pos != -1);
+        int affected_high_bits_mask = 0;
+        int best_row = pos;
+        int best_high = INT_MAX;
+        for(int i = 0; i < (int)basis.size(); ++i) {
+            if(basis[i].mask & (1 << pos)) {
+                affected_high_bits_mask ^= (1 << basis[i].high);
+                if(basis[i].high < best_high) {
+                    best_high = basis[i].high;
+                    best_row = i;
+                }
+            }
+        }
+
+        if(best_row != pos) {
+            swap(basis[best_row].id, basis[pos].id);
+            for(auto &row : basis) swap_mask_bits(row.mask, pos, best_row);
+            pos = best_row;
+        }
+
+        for(int i = 0; i < (int)basis.size(); ++i) {
+            if(i == pos) continue;
+            if(basis[i].mask & (1 << pos)) {
+                basis[i].value ^= basis[pos].value;
+                basis[i].mask ^= basis[pos].mask;
+                basis[i].high = highest_bit(basis[i].value);
+            }
+        }
+
+        int left_mask  = (1 << pos) - 1;
+        int right_mask = ((1 << (int)basis.size()) - 1) ^ (left_mask | (1 << pos));
+
+        basis.erase(basis.begin() + pos);
+
+        for(auto &row : basis) {
+            int new_mask = (row.mask & left_mask) | ((row.mask & right_mask) >> 1);
+            row.mask = new_mask;
+        }
+
+        return affected_high_bits_mask;
+    }
+};
+
+template<int MAX_BITS>
+class XorBasisOnline { // support deletion
+	// https://eolymp.com/en/problems/11732
+public:
+    XorBasisOnline() : max_layer_(0), current_id_(0) {}
+
+    int add(int x) {
+        values_.pb(x);
+        location_.pb({-1, -1});
+        int id = current_id_++;
+
+        if(x == 0) return id;
+
+        for(int layer = max_layer_; layer >= 0; --layer) {
+            if(layers_[layer].empty()) continue;
+            if(layers_[layer].back().add(x, id)) {
+                layers_[layer + 1].pb(layers_[layer].back());
+                layers_[layer].pop_back();
+                max_layer_ = max(max_layer_, layer + 1);
+
+                for(const auto &row : layers_[layer + 1].back().basis) {
+                    location_[row.id] = {layer + 1, (int)layers_[layer + 1].size() - 1};
+                }
+                return id;
+            }
+        }
+
+        layers_[1].emplace_back();
+        layers_[1].back().add(x, id);
+        location_[id] = {1, (int)layers_[1].size() - 1};
+        max_layer_ = max(max_layer_, 1);
+        return id;
+    }
+
+    void erase(int id) {
+        if(values_[id] == 0) return;
+
+        int layer, idx;
+        tie(layer, idx) = location_[id];
+        idx = move_to_back(layer, idx);
+
+        while(true) {
+            int affected_bits = layers_[layer].back().rebuild_and_delete(id);
+            int lower = layer - 1;
+            while(lower > 0 && layers_[lower].empty()) --lower;
+            int replacement_id = -1;
+            if(lower > 0) {
+                replacement_id = layers_[lower].back().get_row_with_odd_parity_on_bits(affected_bits, values_);
+            }
+            if (replacement_id == -1) {
+                if (layer > 1) {
+                    layers_[layer - 1].pb(layers_[layer].back());
+                    for (const auto &row : layers_[layer - 1].back().basis) {
+                        location_[row.id] = {layer - 1, (int)layers_[layer - 1].size() - 1};
+                    }
+                }
+                layers_[layer].pop_back();
+                if(max_layer_ > 0 && layers_[max_layer_].empty()) --max_layer_;
+                return;
+            }
+
+            int val = values_[replacement_id];
+            bool ok = layers_[layer].back().add(val, replacement_id);
+            (void)ok;
+            assert(ok);
+
+            int new_layer = lower;
+            int new_idx = (int)layers_[lower].size() - 1;
+            location_[replacement_id] = {layer, idx};
+
+            id = replacement_id;
+            layer = new_layer;
+            idx = new_idx;
+        }
+    }
+
+    int rank() const {
+        return max_layer_;
+    }
+
+private:
+    array<vector<XorBasis>, MAX_BITS + 1> layers_;
+    int max_layer_;
+
+    vpii location_;
+    vi values_;
+
+    int current_id_;
+
+    int move_to_back(int layer, int idx) {
+        int to = (int)layers_[layer].size() - 1;
+        if(to == idx) return idx;
+
+        for(const auto &row : layers_[layer][idx].basis) {
+            location_[row.id].ss = to;
+        }
+        for(const auto &row : layers_[layer][to].basis) {
+            location_[row.id].ss = idx;
+        }
+        swap(layers_[layer][idx], layers_[layer][to]);
+        return to;
+    }
+};
+
 
 class MO {  
     public: 
@@ -2834,7 +3096,7 @@ vi min_knapsack(int n, const vi& a) { // return a vector which a[i] is min_eleme
             for(int j = r, q = 0; j <= n; j += s, ++q) {
                 int val = dp[j] - q;
                 while(!dq.empty() && dq.front().ff < q - cnt) dq.pop_front();
-                while(!dq.empty() && dq.back().ss >= val) dq.pop_back();
+                while(!dq.empty() && dq.back().ss >= val) dq.pop_back(); // for max just reverse this sign and init as -inf
                 dq.emplace_back(q, val);
                 dp[j] = min(dp[j], dq.front().ss + q);
             }

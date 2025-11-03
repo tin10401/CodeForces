@@ -31,6 +31,7 @@ add_flag_if_supported("-fcolor-diagnostics")
 add_flag_if_supported("-Wall")
 add_flag_if_supported("-Wextra")
 add_flag_if_supported("-Wshadow")
+add_flag_if_supported("-Wfor-loop-analysis")
 
 # Debug-only runtime checking
 add_dbg_flag_if_supported("-O1")

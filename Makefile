@@ -31,19 +31,18 @@ else
 endif
 
 ifeq ($(SAN),asan)
-  SANFLAGS := -fsanitize=address
-  STL_DEBUG_FLAGS :=
-  UNDEF_STL_DEBUG := -U_GLIBCXX_DEBUG -U_GLIBCXX_ASSERTIONS
+  SANFLAGS := -fsanitize=address,undefined
   ASAN_SO := $(shell $(CXX) -print-file-name=libasan.so)
   ifeq ($(ASAN_SO),libasan.so)
     ASAN_SO :=
   endif
 else
   SANFLAGS :=
-  STL_DEBUG_FLAGS := -D_GLIBCXX_DEBUG -D_GLIBCXX_ASSERTIONS
-  UNDEF_STL_DEBUG :=
   ASAN_SO :=
 endif
+
+STL_DEBUG_FLAGS := -D_GLIBCXX_DEBUG -D_GLIBCXX_ASSERTIONS
+UNDEF_STL_DEBUG :=
 
 NO_PIE_CXX := -fno-pie
 NO_PIE_LD  := -no-pie
@@ -87,8 +86,18 @@ $(GENBIN): $(GENERATOR) $(DEPS_PCH) | $(BUILD_DIR)
 
 run: $(BIN_DEBUG)
 	@LDPRE=""; [ -n '$(ASAN_SO)' ] && LDPRE="LD_PRELOAD=$(ASAN_SO)"; \
-	ASAN_OPTIONS="halt_on_error=1:detect_container_overflow=1:symbolize=1:fast_unwind_on_malloc=0" \
-	env $$LDPRE ASAN_OPTIONS=$$ASAN_OPTIONS '$(BIN_DEBUG)' < '$(INPUT)'
+	ASAN="halt_on_error=1:abort_on_error=1:verbosity=0:print_summary=0:fast_unwind_on_malloc=1:malloc_context_size=0"; \
+	UBSAN="print_stacktrace=1:halt_on_error=1"; \
+	set -o pipefail; \
+	if env $$LDPRE ASAN_OPTIONS=$$ASAN UBSAN_OPTIONS=$$UBSAN '$(BIN_DEBUG)' < '$(INPUT)'; then \
+		: ; \
+	else \
+		out="$$( env $$LDPRE ASAN_OPTIONS=$$ASAN:detect_leaks=0 UBSAN_OPTIONS=$$UBSAN \
+			gdb -q -batch -ex "set pagination off" -ex "set print frame-arguments none" \
+			-ex "run < '$(INPUT)'" -ex "bt 32" --args '$(BIN_DEBUG)' 2>&1 )"; \
+		echo "$$out" | sed -n 's/.* at \(.*\.cpp:[0-9]\+\).*/\1/p' | head -n1 || printf "%s\n" "$$out"; \
+		exit 2; \
+	fi
 
 run-interactive: $(BIN_DEBUG)
 	@'$(BIN_DEBUG)'

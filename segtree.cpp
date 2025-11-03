@@ -2489,7 +2489,7 @@ struct dikstra_info {
     ll dp[5][5];
     dikstra_info() {
         for(int i = 0; i < k; i++) {
-            for(int j = 0; j < k; j++) {
+            for(int j = 0; j < k; j++) {	
                 dp[i][j] = INF;
             }
         }
@@ -2511,6 +2511,59 @@ struct dikstra_info {
         dp[r][c] = min(dp[r][c], cost);
     }
 };
+
+const int k = 3;
+struct dikstra_info {
+    // https://atcoder.jp/contests/abc429/tasks/abc429_f
+    ll dp[3][3];
+    int ok[3];
+    int empty;
+    dikstra_info(int _empty = 1) : empty(_empty) {
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {	
+                ok[i] = 0;
+                dp[i][j] = INF;
+            }
+        }
+    }
+
+    friend dikstra_info operator+(const dikstra_info& a, const dikstra_info& b) {
+        if(a.empty) return b;
+        if(b.empty) return a;
+        dikstra_info res;
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                for(int m = 0; m < k; m++) {
+                    res.dp[i][j] = min(res.dp[i][j], a.dp[i][m] + 1 + b.dp[m][j]);
+                }
+            }
+        }
+        res.empty = 0;
+        return res;
+    }
+
+    void flip(int r) {
+        empty = 0;
+        ok[r] ^= 1;
+        for(auto& it : dp) {
+            for(auto& i : it) i = INF;
+        }
+        for(int i = 0; i < k; i++) {
+            if(ok[i]) dp[i][i] = 0;
+            if(i + 1 < k && ok[i] && ok[i + 1]) {
+                dp[i][i + 1] = dp[i + 1][i] = 1;
+            }
+        }
+        for(int i = 0; i < k; i++) {
+            for(int j = 0; j < k; j++) {
+                for(int v = 0; v < k; v++) {
+                    dp[i][j] = min(dp[i][j], dp[i][v] + dp[v][j]);
+                }
+            }
+        }
+    }
+};
+
 
 struct fraction_info {
     // https://dmoj.ca/problem/dmopc19c7p4
@@ -2808,6 +2861,219 @@ struct all_subarray_or_info {
             if(res.Rsz && res.R[res.Rsz - 1].ff == nx) res.R[res.Rsz - 1].ss += cnt;
             else res.R[res.Rsz++] = {nx, cnt};
         }
+        return res;
+    }
+};
+
+struct max_vs_sum_info { // maximum subarray with 2 * max < sum
+    // https://codeforces.com/contest/1990/problem/F
+    struct part {
+        ll s, mx, edge;
+        int len;
+    };
+ 
+    vector<part> pre, suff;
+    ll s = 0, mx = -1, pref, suf;
+    int len = 0, best = 0;
+ 
+    max_vs_sum_info() = default;
+ 
+    max_vs_sum_info(ll x) : s(x), mx(x), len(1), best(0), pref(x), suf(x) {
+        pre.pb({x, x, -1, 1});
+        suff.pb({x, x, -1, 1});
+    }
+ 
+    friend max_vs_sum_info operator+(const max_vs_sum_info& A, const max_vs_sum_info& B) {
+        if(A.len == 0) return B;
+        if(B.len == 0) return A;
+ 
+        auto ok = [](const part& x) {
+            return x.edge == -1 || x.edge * 2 >= x.s;
+        };
+ 
+        max_vs_sum_info C;
+        C.best = max(A.best, B.best);
+        C.s = A.s + B.s;
+        C.len = A.len + B.len;
+        C.pref = A.pref;
+        C.suf = B.suf;
+        C.mx = max(A.mx, B.mx);
+        C.pre = A.pre;
+        if(!C.pre.empty() && C.pre.back().edge == -1) {
+            C.pre.back().edge = B.pref;
+            if(!ok(C.pre.back())) C.pre.pop_back();
+        }
+        for(auto x : B.pre) {
+            x.mx = max(x.mx, A.mx);
+            x.s += A.s;
+            x.len += A.len;
+            if(ok(x)) C.pre.pb(x);
+        }
+ 
+        C.suff = B.suff;
+        if(!C.suff.empty() && C.suff.back().edge == -1) {
+            C.suff.back().edge = A.suf;
+            if(!ok(C.suff.back())) C.suff.pop_back();
+        }
+        for(auto x : A.suff) {
+            x.mx = max(x.mx, B.mx);
+            x.s += B.s;
+            x.len += B.len;
+            if(ok(x)) C.suff.push_back(x);
+        }
+        int i = 0;
+        for(auto& x : A.suff) {
+            while(i < int(B.pre.size()) && B.pre[i].mx <= x.mx) i++;
+            if(i) {
+                const auto& y = B.pre[i - 1];
+                ll M = max(x.mx, y.mx);
+                ll sm = x.s + y.s;
+                if(M * 2 < sm) C.best = max(C.best, x.len + y.len);
+            }
+        }
+        i = 0;
+        for(auto& x : B.pre) {
+            while(i < int(A.suff.size()) && A.suff[i].mx <= x.mx) i++;
+            if(i) {
+                const auto& y = A.suff[i - 1];
+                ll M = max(x.mx, y.mx);
+                ll sm = x.s + y.s;
+                if(M * 2 < sm) C.best = max(C.best, x.len + y.len);
+            }
+        }
+ 
+        return C;
+    }
+};
+
+const int K = 3;
+struct component_grid_info { // count number of connected component in grid from [l, r]
+    // https://codeforces.com/contest/1661/problem/E
+    int ans, empty;
+    int f[2 * K + 1];
+ 
+    component_grid_info() : empty(true) {}
+ 
+    component_grid_info(const ar(K)& col) {
+        empty = false;
+        ans = 0;
+        memset(f, 0, sizeof(f));
+        for(int r = 0; r < K; ++r) {
+            if(!col[r]) continue;
+            if(r > 0 && col[r - 1]) {
+                f[r + 1] = f[r];
+                f[K + r + 1] = f[r];
+            } else {
+                ++ans;
+                f[r + 1] = r + 1;
+                f[K + r + 1] = r + 1;
+            }
+        }
+    }
+ 
+    friend component_grid_info operator+(const component_grid_info& A, const component_grid_info& B) {
+        if(A.empty) return B;
+        if(B.empty) return A;
+        int p[4 * K + 1];
+        memset(p, 0, sizeof(p));
+        int res = A.ans + B.ans;
+        for(int i = 1; i <= 2 * K; ++i) {
+            if(A.f[i]) p[i] = A.f[i];
+            if(B.f[i]) p[i + 2 * K] = B.f[i] + 2 * K;
+        }
+ 
+        auto Find = [&](int x) {
+            while(p[x] != x) x = p[x] = p[p[x]];
+            return x;
+        };
+ 
+        for(int r = 1; r <= K; ++r) {
+            int u = K + r;
+            int v = 2 * K + r;
+            if(p[u] && p[v]) {
+                int x = Find(u), y = Find(v);
+                if(x != y) { p[x] = y; --res; }
+            }
+        }
+ 
+        component_grid_info out;
+        out.empty = false;
+        out.ans = res;
+        memset(out.f, 0, sizeof(out.f));
+ 
+        for(int i = 1; i <= K; ++i) {
+            if(!p[i]) { out.f[i] = 0; continue; }
+            int ri = Find(i);
+            for(int j = 1; j <= i; ++j) {
+                if(Find(j) == ri) { out.f[i] = j; break; }
+            }
+        }
+ 
+        for(int idx = 3 * K + 1; idx <= 4 * K; ++idx) {
+            int pos = K + (idx - 3 * K);
+            if(!p[idx]) { out.f[pos] = 0; continue; }
+            int ri = Find(idx);
+            bool linked = false;
+            for(int j = 1; j <= K; ++j) {
+                if(Find(j) == ri) { out.f[pos] = j; linked = true; break; }
+            }
+            if(linked) continue;
+            for(int j = 3 * K + 1; j <= idx; ++j) {
+                if(Find(j) == ri) { out.f[pos] = K + (j - 3 * K); break; }
+            }
+        }
+ 
+        return out;
+    }
+};
+
+const static pll lazy_value = {0, 0};
+struct nc2_tree_info { // track sum of nc2 for whole tree
+    // https://www.codechef.com/problems/SUMLCA?tab=statement
+    ll s, sub, sub2, c, sc;
+    pll lazy;
+    int empty;
+    nc2_tree_info() : empty(true) { }
+
+    nc2_tree_info(ll _sub) : empty(false), s(0), sub(_sub), sub2(_sub * _sub), c(0), lazy(lazy_value), sc(0) { }
+
+    int have_lazy() {
+        return !(lazy == lazy_value);
+    }
+
+    void reset_lazy() {
+        lazy = lazy_value;
+    }
+
+    void apply(pll v, int len) {
+        if(empty) return;
+        const auto& [flip, add] = v;
+        if(flip) {
+            s += 2 * c - 2 * sc + sub2 - sub; 
+            c = sub - c;
+            // sc = sub * (sub - c) = sub^2 - subc
+            sc = sub2 - sc;
+            lazy.ff ^= 1;
+            lazy.ss *= -1;
+        }
+        s += 2 * c * add + (add * add - add) * len;
+        c += add * len;
+        // sc = sub * (c + add)
+        sc += sub * add;
+        lazy.ss += add;
+    }
+
+    friend nc2_tree_info operator+(const nc2_tree_info& a, const nc2_tree_info& b) { // careful about lazy_copy
+        if(a.empty) return b;
+        if(b.empty) return a;
+        nc2_tree_info res;
+        res.lazy = lazy_value;
+        res.sub = a.sub + b.sub;
+        res.sub2 = a.sub2 + b.sub2;
+        res.c = a.c + b.c;
+        res.sc = a.sc + b.sc;
+        res.s = a.s + b.s;
+        res.empty = 0;
         return res;
     }
 };
