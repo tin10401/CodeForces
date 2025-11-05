@@ -2015,3 +2015,39 @@ vvi mask_hamming_distance(int n, vi cnt) {
             res[mask][k] = dp[k][mask];
     return res;
 }
+
+template<typename T>
+T count_perm_abs_sum(vi a, int l) { // count number of permutation of a such that sum(a[i] - pi) <= l
+    // https://atcoder.jp/contests/abc134/tasks/abc134_f
+    if(l < 0) return 0;
+    const int n = (int)a.size();
+    srt(a);
+
+    vector<vector<T>> cur(l + 1, vector<T>(n + 1, T(0)));
+    vector<vector<T>> nxt(l + 1, vector<T>(n + 1, T(0)));
+    cur[0][0] = T(1);
+
+    for(int i = 0; i < n; ++i) {
+        int gap_top = (i == 0 ? 0 : a[i] - a[i - 1]);
+        int add_per_open = gap_top + 1;
+        for(int s = 0; s <= l; ++s) fill(nxt[s].begin(), nxt[s].end(), T(0));
+        for(int s = 0; s <= l; ++s) {
+            for(int j = 0; j <= n; ++j) {
+                T ways = cur[s][j];
+                if(ways == T(0)) continue;
+                ll s2 = s + 1LL * j * add_per_open;
+                if(s2 > l) continue;
+                nxt[(int)s2][j] += ways;
+                if(j + 1 <= n) nxt[(int)s2][j + 1] += ways;
+                if(j > 0) {
+                    nxt[(int)s2][j] += ways * T(2 * j);
+                    nxt[(int)s2][j - 1] += ways * T(1LL * j * j);
+                }
+            }
+        }
+        swap(cur, nxt);
+    }
+    T ans = T(0);
+    for(int s = 0; s <= l; ++s) ans += cur[s][0];
+    return ans;
+}

@@ -65,59 +65,30 @@ const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
 void solve() {
-    int n, m; cin >> n >> m;
-    vector<set<int>> block(n + 1);
-    while(m--) {
+    int n, k; cin >> n >> k;
+    vvi graph(n);
+    for(int i = 1; i < n; i++) {
         int u, v; cin >> u >> v;
-        block[u].insert(v);
-        block[v].insert(u);
+        u--, v--;
+        graph[u].pb(v);
+        graph[v].pb(u);
     }
-    set<int> rem;
-    for(int i = 2; i <= n; i++) {
-        rem.insert(i);
-    }
-    queue<int> q;
-    vector<int> dp(n + 1);
-    auto f = [&](int node, int cost) -> void {
-        dp[node] = cost;
-        q.push(node);
+    const int MOD = 1e9 + 7;
+    auto dfs = [&](auto& dfs, int node = 0, int par = -1) -> ll {
+        int child = graph[node].size() - (node > 0);
+        int avail = node == 0 ? k - 1 : k - 2;
+        if(avail < child) return 0;
+        ll ways = 1;
+        for(int i = 0; i < child; i++) {
+            ways = (ways * (avail - i)) % MOD;
+        }
+        for(auto& nei : graph[node]) {
+            if(nei == par) continue;
+            ways = (ways * dfs(dfs, nei, node)) % MOD;
+        }
+        return ways;
     };
-    f(1, 1);
-    while(!q.empty()) {
-        auto node = q.front(); q.pop();
-        for(auto it = begin(rem); it != end(rem);) {
-            int u = *it;
-            if(!block[node].count(u)) {
-                f(u, dp[node] + 1);
-                it = rem.erase(it);
-            } else {
-                it++;
-            }
-        }
-    }
-    vvi layer(n + 2);
-    const int MOD = 998244353;
-    for(int i = 1; i <= n; i++) {
-        layer[dp[i]].pb(i);
-    }
-    vector<int> ways(n + 1);
-    ways[1] = 1;
-    for(int i = 2; i <= n; i++) {
-        int prev = 0;
-        for(auto& u : layer[i - 1]) {
-            prev = (prev + ways[u]) % MOD;
-        }
-        for(auto& u : layer[i]) {
-            int now = prev;
-            for(auto& v : block[u]) {
-                if(dp[v] == i - 1) {
-                    now = (now - ways[v] + MOD) % MOD;
-                }
-            }
-            ways[u] = now;
-        }
-    }
-    cout << (dp[n] == 0 ? -1 : ways[n]) << '\n';
+    cout << (k * dfs(dfs)) % MOD << '\n';
 }
 
 signed main() {

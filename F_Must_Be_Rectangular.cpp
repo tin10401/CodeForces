@@ -64,60 +64,103 @@ const static ll INF = 4e18 + 10;
 const static int inf = 1e9 + 100;
 const static int MX = 1e5 + 5;
 
+class DSU { 
+public: 
+    int n, comp;  
+    vi root, rank, col;  
+    bool is_bipartite;  
+    DSU(int n) {    
+        this->n = n;    
+        comp = n;
+        root.rsz(n, -1), rank.rsz(n, 1), col.rsz(n, 0);
+        is_bipartite = true;
+    }
+    
+    int find(int x) {   
+        if(root[x] == -1) return x; 
+        int p = find(root[x]);
+        col[x] ^= col[root[x]];
+        return root[x] = p;
+    }
+    
+    bool merge(int a, int b) {
+        int u = find(a);
+        int v = find(b);
+        if (u == v) {
+            if(col[a] == col[b]) {
+                is_bipartite = false;
+            }
+            return 0;
+        }
+        if(rank[u] < rank[v]) {
+            swap(u, v);
+            swap(a, b);
+        }
+		comp--;
+        root[v] = u;
+        rank[u] += rank[v];
+        if(col[a] == col[b])
+            col[v] ^= 1;
+        return 1;
+    }
+    
+    bool same(int u, int v) {    
+        return find(u) == find(v);
+    }
+    
+    int get_rank(int x) {    
+        return rank[find(x)];
+    }
+    
+	vvi get_group() {
+        vvi ans(n);
+        for(int i = 0; i < n; i++) {
+            ans[find(i)].pb(i);
+        }
+        sort(all(ans), [](const vi& a, const vi& b) {return a.size() > b.size();});
+        while(!ans.empty() && ans.back().empty()) ans.pop_back();
+        return ans;
+    }
+};
+
 void solve() {
-    int n, m; cin >> n >> m;
-    vector<set<int>> block(n + 1);
-    while(m--) {
-        int u, v; cin >> u >> v;
-        block[u].insert(v);
-        block[v].insert(u);
+    int n; cin >> n;
+    vi x(n), y(n);
+    vi xx, yy;
+    for(int i = 0; i < n; i++) {
+        cin >> x[i] >> y[i];
+        xx.pb(x[i]);
+        yy.pb(y[i]);
     }
-    set<int> rem;
-    for(int i = 2; i <= n; i++) {
-        rem.insert(i);
-    }
-    queue<int> q;
-    vector<int> dp(n + 1);
-    auto f = [&](int node, int cost) -> void {
-        dp[node] = cost;
-        q.push(node);
+    srtU(xx), srtU(yy);
+    const int N = xx.size(), M = yy.size();
+    auto get_id = [](const vi& a, int x) -> int {
+        return int(lb(all(a), x) - begin(a));
     };
-    f(1, 1);
-    while(!q.empty()) {
-        auto node = q.front(); q.pop();
-        for(auto it = begin(rem); it != end(rem);) {
-            int u = *it;
-            if(!block[node].count(u)) {
-                f(u, dp[node] + 1);
-                it = rem.erase(it);
-            } else {
-                it++;
-            }
+    DSU X(N), Y(M);
+    vi g(M, -1), f(N, -1);
+    map<pii, int> mp;
+    for(int i = 0; i < n; i++) {
+        x[i] = get_id(xx, x[i]);
+        y[i] = get_id(yy, y[i]);
+        if(f[x[i]] != -1) {
+            Y.merge(f[x[i]], y[i]);
         }
-    }
-    vvi layer(n + 2);
-    const int MOD = 998244353;
-    for(int i = 1; i <= n; i++) {
-        layer[dp[i]].pb(i);
-    }
-    vector<int> ways(n + 1);
-    ways[1] = 1;
-    for(int i = 2; i <= n; i++) {
-        int prev = 0;
-        for(auto& u : layer[i - 1]) {
-            prev = (prev + ways[u]) % MOD;
+        f[x[i]] = y[i];
+        if(g[y[i]] != -1) {
+            X.merge(g[y[i]], x[i]);
         }
-        for(auto& u : layer[i]) {
-            int now = prev;
-            for(auto& v : block[u]) {
-                if(dp[v] == i - 1) {
-                    now = (now - ways[v] + MOD) % MOD;
-                }
-            }
-            ways[u] = now;
-        }
+        g[y[i]] = x[i];
     }
-    cout << (dp[n] == 0 ? -1 : ways[n]) << '\n';
+    for(int i = 0; i < n; i++) {
+        mp[{X.find(x[i]), Y.find(y[i])}]++;
+    }
+    ll res = 0;
+    for(auto& [it, exist] : mp) {
+        const auto& [a, b] = it;
+        res += (ll)X.get_rank(a) * Y.get_rank(b) - exist;
+    }
+    cout << res << '\n';
 }
 
 signed main() {
